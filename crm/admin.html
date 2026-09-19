@@ -47,28 +47,51 @@
     <section class="admin-section" id="kpi" data-roles="sep">
       <h2>Tổng quan hôm nay</h2>
       <p class="sub">Số lượng khách theo từng trạng thái trong phễu, giảm dần đúng thứ tự.</p>
+      <!-- Mỗi thẻ 1 icon + màu riêng theo đúng bậc phễu (khớp màu badge trạng
+           thái đã dùng ở bảng Khách hàng/CRM bên dưới) + sparkline minh hoạ xu
+           hướng - để 5 thẻ không còn nhìn giống hệt nhau. -->
       <div class="kpi-grid">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-quan-tam">
+          <div class="kpi-top">
+            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg></span>
+            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,20 10,17 20,18 30,13 40,10 50,7 60,4"/></svg>
+          </div>
           <div class="num">320</div>
           <div class="label">Khách quan tâm</div>
           <span class="trend up">+12% so với kỳ trước</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-tu-van">
+          <div class="kpi-top">
+            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></span>
+            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,18 10,16 20,17 30,14 40,12 50,10 60,8"/></svg>
+          </div>
           <div class="num">210</div>
           <div class="label">Đã tư vấn</div>
           <span class="trend up">+8% so với kỳ trước</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-dat-lich">
+          <div class="kpi-top">
+            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,15 10,14 20,16 30,13 40,12 50,11 60,10"/></svg>
+          </div>
           <div class="num">150</div>
           <div class="label">Đã đặt lịch</div>
           <span class="trend up">+5% so với kỳ trước</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-da-chup">
+          <div class="kpi-top">
+            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg></span>
+            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,10 10,9 20,11 30,10 40,12 50,13 60,14"/></svg>
+          </div>
           <div class="num">96</div>
           <div class="label">Đã chụp</div>
           <span class="trend down">-2% so với kỳ trước</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card kpi-hoan-thanh">
+          <div class="kpi-top">
+            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span>
+            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,14 10,13 20,15 30,12 40,13 50,11 60,10"/></svg>
+          </div>
           <div class="num">88</div>
           <div class="label">Hoàn thành</div>
           <span class="trend up">+3% so với kỳ trước</span>
@@ -139,19 +162,20 @@
            dữ liệu ảnh/tiến độ và bấm được như nhau. Yêu cầu thật của khách đọc
            từ js/data-store.js (AlohaData), thẻ minh hoạ nền là STATIC_REQUESTS
            trong admin.js (không lưu localStorage). id="kanbanCol-..." để JS
-           biết chèn thẻ vào cột nào. -->
+           biết chèn thẻ vào cột nào. Mỗi cột có 1 màu nhận diện riêng (định
+           nghĩa ở css/admin.css, tái dùng đúng bảng màu badge trạng thái đã có
+           sẵn) + icon + số lượng để phân biệt được ngay từ xa. Chỉ 3 giai đoạn
+           (bỏ "Chờ QC" riêng 2026-09-19 - Thợ ảnh tự kiểm tra ảnh trước khi tải
+           lên, không qua vai trò QC riêng - xem js/data-store.js STATUS_FLOW). -->
       <div class="kanban">
         <div class="kanban-col" id="kanbanCol-cho-xu-ly">
-          <h4>Chờ xử lý</h4>
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Chờ xử lý<span class="kanban-col-count" id="kanbanCount-cho-xu-ly"></span></h4>
         </div>
         <div class="kanban-col" id="kanbanCol-dang-thuc-hien">
-          <h4>Đang thực hiện</h4>
-        </div>
-        <div class="kanban-col" id="kanbanCol-cho-qc">
-          <h4>Chờ QC</h4>
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Đang thực hiện<span class="kanban-col-count" id="kanbanCount-dang-thuc-hien"></span></h4>
         </div>
         <div class="kanban-col" id="kanbanCol-hoan-thanh">
-          <h4>Hoàn thành</h4>
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Hoàn thành<span class="kanban-col-count" id="kanbanCount-hoan-thanh"></span></h4>
         </div>
       </div>
     </section>

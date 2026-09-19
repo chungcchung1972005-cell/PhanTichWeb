@@ -48,18 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const col = document.createElement('div');
       col.className = 'chart-bar-col';
       const heightPct = Math.round((d.val / maxVal) * 100);
-      col.innerHTML = `<div class="chart-bar" style="height:${heightPct}%"></div><span class="lbl">${d.lbl}</span>`;
+      col.innerHTML = `<span class="val">${d.val}</span><div class="chart-bar" style="height:${heightPct}%"></div><span class="lbl">${d.lbl}</span>`;
       chartWrap.appendChild(col);
     });
   }
 
   // ------------------------------- Phễu khách hàng (chỉ Sếp) -------------------------------
+  // Mỗi bậc phễu 1 màu riêng, khớp đúng màu badge trạng thái đã dùng ở bảng
+  // Khách hàng/CRM (badge-quan-tam/tu-van/dat-lich/da-chup/hoan-thanh) và ở
+  // KPI card phía trên - để phễu đọc thành 1 dải màu chuyển tiếp thay vì
+  // thanh hồng đơn sắc lặp lại 5 lần.
   const FUNNEL_DATA = [
-    { name: 'Khách quan tâm', val: 320 },
-    { name: 'Đã tư vấn', val: 210 },
-    { name: 'Đã đặt lịch', val: 150 },
-    { name: 'Đã chụp', val: 96 },
-    { name: 'Hoàn thành', val: 88 }
+    { name: 'Khách quan tâm', val: 320, color: '#4148c9' },
+    { name: 'Đã tư vấn', val: 210, color: '#b06a00' },
+    { name: 'Đã đặt lịch', val: 150, color: 'var(--pink-600)' },
+    { name: 'Đã chụp', val: 96, color: 'var(--blue-600)' },
+    { name: 'Hoàn thành', val: 88, color: '#1a9d5c' }
   ];
   const funnelWrap = document.getElementById('funnelChart');
   if (funnelWrap) {
@@ -70,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = 'funnel-row';
       row.innerHTML = `
         <span class="name">${d.name}</span>
-        <div class="funnel-bar-track"><div class="funnel-bar" style="width:${pct}%"></div></div>
+        <div class="funnel-bar-track"><div class="funnel-bar" style="width:${pct}%; background:${d.color}"></div></div>
         <span class="val">${d.val} (${pct}%)</span>`;
       funnelWrap.appendChild(row);
     });
@@ -179,11 +183,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // Người dùng yêu cầu: bấm được vào thẻ, biết yêu cầu nào tới trước (ưu tiên
   // xử lý), thấy đúng những ảnh nào cần làm, và có cách Thợ ảnh tự confirm
   // tiến độ để Sếp quan sát được — toàn bộ xử lý trong khối này.
+  // 3 bước (bỏ "Chờ QC" riêng, 2026-09-19 - xem js/data-store.js STATUS_FLOW):
+  // Chờ xử lý (xác nhận yêu cầu) -> Đang thực hiện (đang sửa ảnh) -> Hoàn
+  // thành (tải ảnh đã sửa lên). Nút "Chuyển sang bước tiếp theo" ở Đang thực
+  // hiện vẫn khoá tới khi Thợ ảnh tick xong hết ảnh (xem canAdvance()) - đúng
+  // với "tải ảnh đã sửa lên là hoàn thành" nhưng không cần vai trò QC riêng.
   const STATUS_COL_ID = {
     'Chờ xử lý': 'kanbanCol-cho-xu-ly',
     'Đang thực hiện': 'kanbanCol-dang-thuc-hien',
-    'Chờ QC': 'kanbanCol-cho-qc',
     'Hoàn thành': 'kanbanCol-hoan-thanh'
+  };
+  const STATUS_COUNT_ID = {
+    'Chờ xử lý': 'kanbanCount-cho-xu-ly',
+    'Đang thực hiện': 'kanbanCount-dang-thuc-hien',
+    'Hoàn thành': 'kanbanCount-hoan-thanh'
+  };
+  // Màu nhận diện riêng cho từng giai đoạn - lấy đúng từ bảng màu badge trạng
+  // thái đã có sẵn trong admin.css (không tạo bảng màu mới), để cột kanban và
+  // badge trạng thái trong modal luôn khớp nhau.
+  const STATUS_ACCENT = {
+    'Chờ xử lý': '#4148c9',
+    'Đang thực hiện': '#b06a00',
+    'Hoàn thành': '#1a9d5c'
   };
 
   const now = Date.now();
@@ -196,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const STATIC_REQUESTS = [
     { id: 'static-1', orderCode: '#AB240930', customerName: 'Khách demo 05', serviceLabel: 'Gia đình', status: 'Chờ xử lý', note: 'Muốn ảnh tông sáng, ít chỉnh da.', createdAt: now - 26 * HOUR, photoIds: [1, 2, 3, 4], doneIds: [] },
     { id: 'static-2', orderCode: '#AB240902', customerName: 'Khách demo 02', serviceLabel: 'Sinh nhật', status: 'Đang thực hiện', note: 'Xoá phông lộn xộn phía sau bé.', createdAt: now - 3 * 24 * HOUR, photoIds: [5, 6, 7, 8, 9], doneIds: [5, 6] },
-    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu', status: 'Chờ QC', note: '', createdAt: now - 5 * 24 * HOUR, photoIds: [10, 11, 12], doneIds: [10, 11, 12] },
+    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu', status: 'Hoàn thành', note: '', createdAt: now - 5 * 24 * HOUR, photoIds: [10, 11, 12], doneIds: [10, 11, 12] },
     { id: 'static-4', orderCode: '#AB240871', customerName: 'Khách demo 04', serviceLabel: 'Bé lớn', status: 'Hoàn thành', note: '', createdAt: now - 9 * 24 * HOUR, photoIds: [13, 14], doneIds: [13, 14] },
     { id: 'static-5', orderCode: '#AB240860', customerName: 'Khách demo 06', serviceLabel: 'Newborn', status: 'Hoàn thành', note: '', createdAt: now - 10 * 24 * HOUR, photoIds: [15, 16], doneIds: [15, 16] }
   ].map(r => {
@@ -265,11 +286,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const canEditProgress = role === 'tho-anh';
 
+  // Badge số lượng yêu cầu thật (không tính thẻ minh hoạ tĩnh) Thợ ảnh chưa mở
+  // xem - đặt ngay trên tab "Ảnh & chỉnh sửa" để thấy được cả khi đang ở tab
+  // khác, đúng yêu cầu "thợ nên nhận được thông báo khi khách có yêu cầu".
+  function updateTabBadge() {
+    const tab = document.querySelector('#adminTabs a[href="#anh"]');
+    if (!tab) return;
+    const unseenCount = getAllRequests().filter(r => !r.isStatic && !r.staffSeen).length;
+    let badge = tab.querySelector('.admin-tab-badge');
+    if (unseenCount > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'admin-tab-badge';
+        tab.appendChild(badge);
+      }
+      badge.textContent = unseenCount;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
   function renderEditRequests() {
     const board = document.querySelector('.kanban');
     if (!board) return;
     document.querySelectorAll('.kanban-col').forEach(col => {
-      col.querySelectorAll('.kanban-card').forEach(el => el.remove());
+      col.querySelectorAll('.kanban-card, .kanban-col-empty').forEach(el => el.remove());
     });
 
     const buckets = {};
@@ -281,6 +322,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const col = document.getElementById(STATUS_COL_ID[status]);
       if (!col) return;
       const list = (buckets[status] || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+
+      const countEl = document.getElementById(STATUS_COUNT_ID[status]);
+      if (countEl) countEl.textContent = list.length;
+
+      if (list.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'kanban-col-empty';
+        empty.textContent = 'Chưa có yêu cầu nào ở bước này.';
+        col.appendChild(empty);
+      }
+
       list.forEach((req, i) => {
         const doneCount = getDoneIds(req).length;
         const total = (req.photos || []).length;
@@ -319,6 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
         col.appendChild(card);
       });
     });
+
+    updateTabBadge();
   }
 
   // ------------------------------- Modal chi tiết 1 yêu cầu -------------------------------
@@ -328,6 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openRequestModal(req) {
     if (!modalOverlay || !modalBody) return;
+    // Thợ ảnh mở xem yêu cầu thật (chưa xem) -> tắt badge "chưa xem" trên tab.
+    if (role === 'tho-anh' && !req.isStatic && !req.staffSeen && window.AlohaData) {
+      AlohaData.markStaffSeen(req.id);
+      req.staffSeen = true;
+      updateTabBadge();
+    }
     renderModalBody(req);
     modalOverlay.classList.add('open');
     modalOverlay.setAttribute('aria-hidden', 'false');
@@ -347,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const STATUS_BADGE_CLASS = {
     'Chờ xử lý': 'badge-quan-tam',
     'Đang thực hiện': 'badge-tu-van',
-    'Chờ QC': 'badge-da-chup',
     'Hoàn thành': 'badge-hoan-thanh'
   };
 
@@ -361,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${req.note}"</p>` : ''}
       ${total > 0 ? `
-      <div class="kanban-modal-progress">
+      <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
         <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
         <span class="kanban-progress-label">Đã xong ${doneIds.length}/${total} ảnh${!canEditProgress ? ' (Thợ ảnh cập nhật)' : ''}</span>
       </div>
@@ -403,6 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   renderEditRequests();
+  // Mô phỏng "real-time" trong cùng trình duyệt: nếu Khách vừa gửi yêu cầu mới
+  // (hoặc dữ liệu đổi ở tab/khung khác), board + badge "chưa xem" trên tab tự
+  // cập nhật mà không cần tải lại trang. Không đụng vào modal đang mở (nếu có)
+  // để không ngắt thao tác Thợ ảnh đang làm dở. KHÔNG đồng bộ được giữa các
+  // thiết bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
+  // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
+  setInterval(renderEditRequests, 5000);
 
   // ------------------------------- Fade-in tối giản khi cuộn -------------------------------
   // Tôn trọng prefers-reduced-motion giống .reveal ở phần khách hàng (style.css)

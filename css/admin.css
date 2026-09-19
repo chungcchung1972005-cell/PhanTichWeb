@@ -23,8 +23,16 @@
 .admin-tabs a {
   padding: 8px 14px; border-radius: var(--radius-pill); font-size: 13.5px; font-weight: 700;
   color: var(--navy-700); text-decoration: none; transition: background 0.2s, color 0.2s;
+  position: relative; white-space: nowrap; flex-shrink: 0;
 }
 .admin-tabs a:hover, .admin-tabs a.active { background: var(--pink-50); color: var(--pink-700); }
+/* Badge số yêu cầu thật Thợ ảnh chưa mở xem - xem updateTabBadge() trong admin.js */
+.admin-tab-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px;
+  margin-left: 5px; padding: 0 4px; border-radius: var(--radius-pill);
+  background: var(--pink-600); color: var(--white); font-size: 10.5px; font-weight: 700;
+  vertical-align: 2px;
+}
 
 .admin-user { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--navy-700); }
 .admin-user strong { font-family: var(--font-heading); color: var(--navy-900); }
@@ -63,11 +71,32 @@
 .role-card.selected { border-color: var(--pink-600); background: var(--pink-50); }
 
 /* ---------------------------------- KPI cards ---------------------------------- */
+/* Mỗi thẻ 1 màu nhận diện riêng theo đúng bậc phễu (--kpi-accent/--kpi-accent-bg,
+   tái dùng đúng bảng màu badge trạng thái đã có - không tạo bảng màu mới) +
+   icon + sparkline nhỏ minh hoạ xu hướng, thay vì 5 thẻ trắng giống hệt nhau. */
 .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .kpi-card {
   background: var(--white); border: 1px solid var(--pink-100); border-radius: var(--radius-md);
-  padding: 18px; box-shadow: var(--shadow-soft);
+  padding: 16px 18px 18px; box-shadow: var(--shadow-soft); position: relative; overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--kpi-accent, var(--pink-400)); }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.kpi-icon {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  background: var(--kpi-accent-bg, var(--pink-50)); color: var(--kpi-accent, var(--pink-600));
+  display: flex; align-items: center; justify-content: center;
+}
+.kpi-icon svg { width: 17px; height: 17px; }
+.kpi-spark { width: 62px; height: 24px; overflow: visible; flex-shrink: 0; }
+.kpi-spark polyline { fill: none; stroke: var(--kpi-accent, var(--pink-600)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.kpi-spark polygon { fill: var(--kpi-accent, var(--pink-600)); opacity: 0.1; }
+.kpi-card.kpi-quan-tam { --kpi-accent: #4148c9; --kpi-accent-bg: #eef1ff; }
+.kpi-card.kpi-tu-van { --kpi-accent: #b06a00; --kpi-accent-bg: #fff4e0; }
+.kpi-card.kpi-dat-lich { --kpi-accent: var(--pink-600); --kpi-accent-bg: var(--pink-50); }
+.kpi-card.kpi-da-chup { --kpi-accent: var(--blue-600); --kpi-accent-bg: #e6f4ff; }
+.kpi-card.kpi-hoan-thanh { --kpi-accent: #1a9d5c; --kpi-accent-bg: #e6f7ec; }
 .kpi-card .num { font-family: var(--font-heading); font-size: 26px; font-weight: 700; color: var(--navy-900); }
 .kpi-card .label { font-size: 12.5px; color: var(--navy-500); margin-top: 2px; }
 .kpi-card .trend { font-size: 11.5px; font-weight: 700; margin-top: 8px; display: inline-block; }
@@ -81,7 +110,9 @@
   padding: 18px; box-shadow: var(--shadow-soft);
 }
 .chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
-.chart-bar { width: 100%; max-width: 28px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--pink-400), var(--pink-600)); }
+.chart-bar-col .val { font-size: 11px; font-weight: 700; color: var(--navy-700); }
+.chart-bar { width: 100%; max-width: 28px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--pink-400), var(--pink-600)); transition: transform 0.2s ease; }
+.chart-bar-col:hover .chart-bar { transform: scaleY(1.02); transform-origin: bottom; }
 .chart-bar-col .lbl { font-size: 11px; color: var(--navy-500); }
 
 /* ---------------------------------- Funnel ---------------------------------- */
@@ -91,6 +122,18 @@
 .funnel-bar-track { flex: 1; background: var(--pink-50); border-radius: var(--radius-pill); height: 22px; overflow: hidden; }
 .funnel-bar { height: 100%; background: linear-gradient(90deg, var(--pink-400), var(--pink-600)); border-radius: var(--radius-pill); }
 .funnel-row .val { width: 90px; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--navy-900); flex-shrink: 0; }
+
+/* ---------------------------------- Tab lọc (vd Lịch hẹn: Sắp tới/Hôm nay/Đã qua) ---------------------------------- */
+/* Trùng tên class .ps-tabs/.ps-tab với css/pages.css (view Đặt lịch/Ảnh của
+   tôi phía khách) nhưng admin.html không nạp pages.css (khác phạm vi style) -
+   định nghĩa lại riêng ở đây thay vì import cả file, tránh lẫn style khác. */
+.ps-tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.ps-tab {
+  padding: 9px 18px; border-radius: var(--radius-pill); border: 1.5px solid var(--pink-200);
+  background: var(--white); color: var(--navy-700); font-size: 13.5px; font-weight: 700; cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.ps-tab.active, .ps-tab:hover { background: var(--pink-600); border-color: var(--pink-600); color: var(--white); }
 
 /* ---------------------------------- Data table ---------------------------------- */
 .data-table-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -115,15 +158,43 @@
 .badge-huy { background: #f4f4f6; color: var(--navy-500); }
 
 /* ---------------------------------- Kanban (Quản lý ảnh) ---------------------------------- */
-.kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.kanban-col { background: var(--pink-50); border-radius: var(--radius-md); padding: 14px; }
-.kanban-col h4 { font-size: 13px; margin-bottom: 12px; color: var(--navy-700); }
-.kanban-card {
-  background: var(--white); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;
-  box-shadow: var(--shadow-soft); font-size: 12.5px; cursor: pointer;
-  border: 1.5px solid transparent; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+/* Mỗi giai đoạn 1 màu nhận diện riêng (--col-accent/--col-accent-bg), lấy đúng
+   từ bảng màu badge trạng thái đã có sẵn ở trên (không tạo bảng màu mới) -
+   để các cột phân biệt được ngay từ xa thay vì nhìn giống hệt nhau, và khớp
+   đúng màu badge hiện trong modal chi tiết (xem STATUS_ACCENT trong admin.js).
+   Chỉ 3 cột (bỏ "Chờ QC" riêng 2026-09-19, xem admin.html/admin.js/data-store.js). */
+#kanbanCol-cho-xu-ly { --col-accent: #4148c9; --col-accent-bg: #eef1ff; }
+#kanbanCol-dang-thuc-hien { --col-accent: #b06a00; --col-accent-bg: #fff4e0; }
+#kanbanCol-hoan-thanh { --col-accent: #1a9d5c; --col-accent-bg: #e6f7ec; }
+
+.kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.kanban-col {
+  background: var(--col-accent-bg, var(--pink-50)); border-radius: var(--radius-md); padding: 14px;
+  border-top: 3px solid var(--col-accent, var(--pink-300)); position: relative;
 }
-.kanban-card:hover, .kanban-card:focus-visible { border-color: var(--pink-300); box-shadow: var(--shadow-card); }
+.kanban-col:not(:last-child)::after {
+  content: ''; position: absolute; top: 22px; right: -11px; width: 8px; height: 8px;
+  border-top: 2.5px solid var(--col-accent, var(--pink-300)); border-right: 2.5px solid var(--col-accent, var(--pink-300));
+  transform: rotate(45deg); z-index: 2;
+}
+.kanban-col h4 {
+  display: flex; align-items: center; gap: 7px; font-size: 13px; margin-bottom: 12px; color: var(--col-accent, var(--navy-700));
+}
+.kanban-col h4 svg { width: 16px; height: 16px; flex-shrink: 0; }
+.kanban-col-count {
+  margin-left: auto; background: var(--white); color: var(--col-accent, var(--navy-700));
+  font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: var(--radius-pill); min-width: 20px; text-align: center;
+}
+.kanban-col-empty { font-size: 12px; color: var(--navy-500); text-align: center; padding: 18px 6px; line-height: 1.6; }
+.kanban-card {
+  background: var(--white); border-radius: var(--radius-sm); padding: 12px 12px 12px 14px; margin-bottom: 10px;
+  box-shadow: var(--shadow-soft); font-size: 12.5px; cursor: pointer;
+  border: 1.5px solid transparent; border-left: 4px solid var(--col-accent, var(--pink-300));
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.kanban-card:hover, .kanban-card:focus-visible {
+  border-color: var(--col-accent, var(--pink-300)); border-left-color: var(--col-accent, var(--pink-300)); box-shadow: var(--shadow-card);
+}
 .kanban-card:active { transform: scale(0.99); }
 .kanban-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
 .kanban-card-top strong { font-size: 13px; }
@@ -137,17 +208,17 @@
 .kanban-card-time { display: block; font-size: 11px; color: var(--navy-500); margin-top: 2px; }
 .kanban-card-notes-hint { display: block; font-size: 11px; color: var(--pink-700); font-weight: 700; margin-top: 4px; }
 .kanban-progress-track {
-  height: 6px; border-radius: var(--radius-pill); background: var(--pink-50); overflow: hidden; margin-top: 8px;
+  height: 6px; border-radius: var(--radius-pill); background: var(--col-accent-bg, var(--pink-50)); overflow: hidden; margin-top: 8px;
 }
-.kanban-progress-fill { height: 100%; background: linear-gradient(90deg, var(--pink-400), var(--pink-600)); transition: width 0.3s ease; }
+.kanban-progress-fill { height: 100%; background: var(--col-accent, var(--pink-600)); transition: width 0.3s ease; }
 .kanban-progress-fill.done { background: linear-gradient(90deg, #4fc98a, #1a9d5c); }
 .kanban-progress-label { display: block; font-size: 11px; color: var(--navy-500); margin-top: 3px; }
 .kanban-advance-btn {
   display: block; width: 100%; margin-top: 8px; padding: 6px 8px; border-radius: var(--radius-sm);
-  border: 1.5px solid var(--pink-200); background: var(--white); color: var(--pink-700);
+  border: 1.5px solid var(--col-accent, var(--pink-200)); background: var(--white); color: var(--col-accent, var(--pink-700));
   font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s;
 }
-.kanban-advance-btn:hover { background: var(--pink-50); }
+.kanban-advance-btn:hover { background: var(--col-accent-bg, var(--pink-50)); }
 .kanban-advance-btn:active { transform: scale(0.97); }
 .kanban-advance-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .kanban-advance-btn:disabled:hover { background: var(--white); }
@@ -240,6 +311,8 @@
 @media (max-width: 1120px) {
   .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .kanban { grid-template-columns: repeat(2, 1fr); }
+  /* 2 cột thì mũi tên nối "cột kế tiếp" không còn đúng hướng nữa (xuống dòng) -> ẩn đi */
+  .kanban-col::after { display: none; }
   .role-grid { grid-template-columns: repeat(2, 1fr); }
   .settings-grid { grid-template-columns: 1fr; }
   .concept-mini-grid { grid-template-columns: repeat(3, 1fr); }

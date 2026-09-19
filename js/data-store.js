@@ -67,7 +67,12 @@
       // trong lúc đang ở trạng thái "Đang thực hiện", để Sếp quan sát được.
       doneIds: [],
       status: 'Chờ xử lý',
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      // 2 cờ thông báo 1 chiều, độc lập nhau - Thợ ảnh chưa mở xem yêu cầu mới
+      // (staffSeen) và khách chưa mở xem thông báo khi ảnh đã Hoàn thành
+      // (customerSeenDone). Cả 2 mặc định false khi tạo yêu cầu mới.
+      staffSeen: false,
+      customerSeenDone: false
     };
     db.editRequests.push(req);
     writeDb(db);
@@ -78,7 +83,11 @@
     return readDb().editRequests;
   }
 
-  const STATUS_FLOW = ['Chờ xử lý', 'Đang thực hiện', 'Chờ QC', 'Hoàn thành'];
+  // Bỏ bước "Chờ QC" riêng (2026-09-19, theo xác nhận của người dùng): quy
+  // trình thật của Thợ ảnh chỉ có 3 bước - xác nhận yêu cầu (Chờ xử lý) ->
+  // đang sửa ảnh (Đang thực hiện) -> tải ảnh đã sửa lên là xong (Hoàn thành),
+  // không qua một vai trò QC riêng biệt để duyệt trước khi hoàn thành.
+  const STATUS_FLOW = ['Chờ xử lý', 'Đang thực hiện', 'Hoàn thành'];
 
   function advanceRequestStatus(id) {
     const db = readDb();
@@ -106,12 +115,35 @@
     return req;
   }
 
+  // Thợ ảnh đã mở xem yêu cầu này rồi -> tắt badge "Mới/chưa xem" phía Thợ ảnh.
+  function markStaffSeen(requestId) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    req.staffSeen = true;
+    writeDb(db);
+    return req;
+  }
+
+  // Khách đã mở xem thông báo lúc yêu cầu đang ở trạng thái Hoàn thành -> tắt
+  // chấm đỏ báo "ảnh đã sửa xong" phía khách cho riêng yêu cầu đó.
+  function markCustomerSeenDone(requestId) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    req.customerSeenDone = true;
+    writeDb(db);
+    return req;
+  }
+
   window.AlohaData = {
     getCustomerRecord,
     createEditRequest,
     getEditRequests,
     advanceRequestStatus,
     togglePhotoDone,
+    markStaffSeen,
+    markCustomerSeenDone,
     STATUS_FLOW
   };
 })(window);

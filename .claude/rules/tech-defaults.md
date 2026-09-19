@@ -32,7 +32,7 @@ Hồ sơ khách hàng là trung tâm dữ liệu — mọi tính năng mới (bo
 Dùng đúng cùng một bộ tên trạng thái xuyên suốt Admin và giao diện khách hàng — không tạo tên khác nhau cho cùng một ý nghĩa ở hai nơi.
 
 - **Trạng thái lịch hẹn:** Chưa cọc → Chờ xác nhận → (Chờ duyệt dời lịch, nếu có) → Sắp đến → Đã đến/Đang chụp → Đã chụp → Hoàn thành; nhánh Đã hủy khi áp dụng.
-- **Trạng thái chỉnh sửa ảnh:** Chờ khách chọn ảnh → Chờ xử lý → Đang thực hiện → Chờ QC → Hoàn thành.
+- **Trạng thái chỉnh sửa ảnh:** Chờ khách chọn ảnh → Chờ xử lý → Đang thực hiện → Hoàn thành. (Đã bỏ bước "Chờ QC" riêng — 2026-09-19, người dùng xác nhận quy trình thật của Thợ ảnh chỉ 3 bước: xác nhận yêu cầu → đang sửa ảnh → tải ảnh đã sửa lên là hoàn thành, tự kiểm tra chất lượng trong lúc sửa chứ không qua một vai trò QC riêng duyệt trước khi hoàn thành. Trước đó tài liệu này ghi có bước QC riêng do tham khảo mô tả lý tưởng hoá trong `workflow.md`/`design.md`, nay đã sửa cho khớp thực tế — xem `workflow.md` mục "Chọn & chỉnh sửa ảnh".)
 - **Trạng thái phễu khách hàng (CRM):** Khách quan tâm → Đã tư vấn → Đã đặt lịch → Đã chụp → Hoàn thành; nhánh rẽ: Không quan tâm.
 
 Số liệu dashboard/phễu phải giảm dần hợp lý qua từng trạng thái và nhất quán với các thẻ chỉ số — không để trạng thái sau có số liệu lớn hơn trạng thái trước (ví dụ lỗi thực tế cần tránh: `design.md`).

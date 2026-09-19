@@ -34,7 +34,7 @@ Khách vào Quản lý lịch hẹn → Đổi lịch hẹn. Hệ thống kiểm
 
 ## Chọn & chỉnh sửa ảnh
 
-Photographer tải ảnh gốc (gắn mã đơn) → Khách xem "Ảnh của tôi" → thả tim chọn ảnh → gửi yêu cầu chỉnh sửa → Chờ xử lý → Retoucher thực hiện → Chờ QC → QC kiểm tra → Hoàn thành → Khách nhận ảnh.
+Photographer tải ảnh gốc (gắn mã đơn) → Khách xem "Ảnh của tôi" → thả tim chọn ảnh → gửi yêu cầu chỉnh sửa → Chờ xử lý → Thợ ảnh (Retoucher) thực hiện, tự kiểm tra chất lượng ảnh trong lúc sửa → tải ảnh đã sửa lên là Hoàn thành → Khách nhận ảnh. (Không qua bước "Chờ QC" do một vai trò riêng duyệt — 2026-09-19, người dùng xác nhận quy trình thật chỉ 3 bước, xem `tech-defaults.md` mục Status System.)
 
 - Khách lọc ảnh theo buổi chụp, theo dõi số ảnh đã chọn so với gói; vượt gói → hiển thị phí mua thêm, báo Sales.
 - Yêu cầu chỉnh sửa có thể là chung hoặc riêng cho từng ảnh (làm da sáng, xóa vết chàm, ghép người vắng mặt...). Gửi yêu cầu → khóa danh sách ảnh đã chọn, tạo việc ở trạng thái Chờ xử lý.
@@ -44,7 +44,7 @@ Photographer tải ảnh gốc (gắn mã đơn) → Khách xem "Ảnh của tô
 - Bộ đếm luôn hiển thị: "Đã chọn X / Y ảnh" (Y = số ảnh trong gói đã mua), dạng thanh tiến trình.
 - Khi X > Y: hiển thị rõ số ảnh vượt gói và phí phát sinh tương ứng (số ảnh vượt × đơn giá/ảnh vượt gói — đơn giá là cấu hình, xem `tech-defaults.md`), không chỉ báo chung chung "có phí thêm".
 - Nút gửi yêu cầu chỉnh sửa chỉ bật khi đã chọn ít nhất 1 ảnh; sau khi gửi, khóa toàn bộ lựa chọn (không cho bỏ chọn ảnh đã gửi) đúng theo luồng ở trên.
-- QC kiểm tra 100% file (màu da, đường thẳng, lỗi hình ảnh); không đạt → trả lại retoucher kèm ghi chú.
+- Thợ ảnh tự kiểm tra 100% file trước khi tải lên (màu da, đường thẳng, lỗi hình ảnh) — không qua bước duyệt riêng của một vai trò QC khác trước khi chuyển Hoàn thành (đã bỏ, xem ghi chú ở luồng phía trên).
 - Khách nhận ảnh: xem/tải bản web; tải bản in nếu đủ điều kiện (cân nhắc gắn điều kiện với đã thanh toán đủ phần còn lại, khớp khâu thu nốt tiền); yêu cầu chỉnh lại trong số lần cho phép (`tech-defaults.md`). Ảnh lưu trữ trong thời hạn quy định (`tech-defaults.md`); hệ thống hiển thị dung lượng đã dùng; hết hạn chuyển archive phải báo trước cho khách tải về.
 
 **Quyền riêng tư (bắt buộc trong toàn bộ luồng này):** ảnh trẻ em là dữ liệu nhạy cảm — chỉ xem được qua tài khoản chính chủ; studio chỉ đăng/dùng ảnh khi có văn bản đồng ý; không dùng link công khai không xác thực, không để search engine index, không để URL đoán được.

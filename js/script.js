@@ -182,9 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  setupNavUtil('notifBtn', 'notifPanel', renderNotifications);
+  setupNavUtil('notifBtn', 'notifPanel', () => renderNotifications(true));
 
-  function renderNotifications() {
+  // markSeen=true chỉ khi khách CHỦ ĐỘNG mở panel (đang thật sự xem) - lúc đó
+  // mới tắt chấm đỏ "ảnh đã sửa xong" cho các yêu cầu Hoàn thành. Lúc load
+  // trang lần đầu hoặc lúc polling nền (xem setInterval bên dưới) chỉ đọc lại
+  // dữ liệu để cập nhật chấm đỏ/danh sách, không tự ý đánh dấu đã xem hộ khách.
+  function renderNotifications(markSeen) {
     const list = document.getElementById('notifList');
     const dot = document.getElementById('notifDot');
     if (!list || !dot) return;
@@ -202,16 +206,40 @@ document.addEventListener('DOMContentLoaded', () => {
       dot.hidden = true;
       return;
     }
-    list.innerHTML = myRequests.map((r) => `
+    list.innerHTML = myRequests.map((r) => {
+      const isDoneUnseen = r.status === 'Hoàn thành' && !r.customerSeenDone;
+      if (r.status === 'Hoàn thành') {
+        return `
+        <div class="nav-util-item${isDoneUnseen ? ' notif-highlight' : ''}">
+          <strong>${isDoneUnseen ? 'Ảnh đã sửa xong · ' : ''}${r.orderCode || ''}</strong>
+          <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
+          <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
+        </div>`;
+      }
+      return `
       <div class="nav-util-item">
         <strong>Yêu cầu chỉnh sửa ${r.orderCode || ''}</strong>
         <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
         <span class="notif-status">${r.status}</span>
-      </div>
-    `).join('');
-    dot.hidden = !myRequests.some((r) => r.status !== 'Hoàn thành');
+      </div>`;
+    }).join('');
+
+    if (markSeen && window.AlohaData) {
+      myRequests.forEach((r) => {
+        if (r.status === 'Hoàn thành' && !r.customerSeenDone) AlohaData.markCustomerSeenDone(r.id);
+      });
+    }
+    // Đọc lại sau khi có thể vừa đánh dấu đã xem, để chấm đỏ tắt đúng lúc.
+    const freshRequests = markSeen ? (window.AlohaData ? AlohaData.getEditRequests() : []).filter((r) => r.phone === session.phone) : myRequests;
+    dot.hidden = !freshRequests.some((r) => r.status !== 'Hoàn thành' || (r.status === 'Hoàn thành' && !r.customerSeenDone));
   }
-  renderNotifications();
+  renderNotifications(false);
+  // Mô phỏng "real-time" trong cùng trình duyệt: nếu Thợ ảnh vừa chuyển 1 yêu
+  // cầu sang Hoàn thành ở tab/khung khác, chấm đỏ + danh sách ở đây tự cập
+  // nhật mà khách không cần tải lại trang. KHÔNG đồng bộ được giữa các thiết
+  // bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
+  // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
+  setInterval(() => renderNotifications(false), 5000);
 
   // Scroll-reveal animation cho mọi section (yêu cầu bắt buộc — xem .claude/rules/design.md)
   const revealEls = document.querySelectorAll('.reveal');
