@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập | ALOHA Baby</title>
+<meta name="description" content="Đăng nhập ALOHA Baby bằng số điện thoại và mật khẩu. Hệ thống tự động đưa bạn vào đúng khu vực theo loại tài khoản.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<style>
+  body { background: var(--cream); }
+  .login-wrap { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+  .login-card {
+    width: 100%; max-width: 420px; background: var(--white); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card); padding: 36px 32px; opacity: 0; transform: translateY(14px);
+    animation: loginIn 0.5s ease forwards;
+  }
+  @keyframes loginIn { to { opacity: 1; transform: translateY(0); } }
+  .login-back {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700;
+    color: var(--navy-500); text-decoration: none; margin-bottom: 18px;
+  }
+  .login-back:hover { color: var(--pink-600); }
+  .login-card h1 { font-size: 22px; margin-bottom: 6px; text-align: center; }
+  .login-card > p.sub { color: var(--navy-500); font-size: 13.5px; text-align: center; margin-bottom: 26px; }
+  .login-field { margin-bottom: 18px; }
+  .login-field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 7px; color: var(--navy-700); }
+  .login-field .input-row { position: relative; }
+  .login-field input {
+    width: 100%; border: 1px solid var(--pink-200); border-radius: var(--radius-sm);
+    padding: 11px 13px; font-family: var(--font-body); font-size: 14px;
+  }
+  .login-field input:focus { outline: none; border-color: var(--pink-500); }
+  .login-toggle-pw {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    border: none; background: none; color: var(--pink-600); font-weight: 700; font-size: 12.5px;
+    cursor: pointer; padding: 6px 8px;
+  }
+  .login-error {
+    display: none; background: #fdeaea; color: #c22d2d; border-radius: var(--radius-sm);
+    padding: 10px 12px; font-size: 13px; margin-bottom: 16px;
+  }
+  .login-error.show { display: block; }
+  .login-submit { width: 100%; margin-top: 4px; }
+  .login-demo {
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--pink-50);
+    font-size: 12px; color: var(--navy-500);
+  }
+  .login-demo strong { display: block; margin-bottom: 8px; color: var(--navy-700); font-size: 12.5px; }
+  .login-demo table { width: 100%; border-collapse: collapse; }
+  .login-demo td { padding: 3px 0; }
+  .login-demo td:first-child { color: var(--pink-700); font-weight: 700; white-space: nowrap; padding-right: 10px; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <a href="index.html" class="login-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Về trang chủ
+    </a>
+    <h1 id="loginTitle">Đăng nhập ALOHA Baby</h1>
+    <p class="sub" id="loginSub">Nhập số điện thoại và mật khẩu để vào đúng khu vực của bạn.</p>
+
+    <div class="login-error" id="loginError">Số điện thoại hoặc mật khẩu không đúng.</div>
+
+    <form id="loginForm">
+      <div class="login-field" id="fieldName" hidden>
+        <label for="loginName">Họ tên</label>
+        <input type="text" id="loginName" placeholder="Nhập họ tên">
+      </div>
+      <div class="login-field">
+        <label for="loginPhone">Số điện thoại</label>
+        <input type="tel" id="loginPhone" placeholder="Nhập số điện thoại" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Mật khẩu</label>
+        <div class="input-row">
+          <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="current-password">
+          <button type="button" class="login-toggle-pw" id="togglePw">Hiện</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary login-submit" id="loginSubmitBtn">Đăng nhập</button>
+    </form>
+
+    <p class="login-note" id="loginModeSwitch" style="text-align:center; margin-top:16px; font-size:13px;">
+      Chưa có tài khoản? <a href="#" id="switchToRegister" style="color:var(--pink-600); font-weight:700;">Đăng ký ngay</a>
+    </p>
+
+    <!-- Đăng nhập demo mô phỏng phía client, xem js/auth.js -->
+    <div class="login-demo" id="loginDemoBox">
+      <strong>Tài khoản demo để xem thử:</strong>
+      <table>
+        <tr><td>Khách hàng</td><td>0900000001 / khach123</td></tr>
+        <tr><td>Sale/CSKH</td><td>0900000002 / sale123</td></tr>
+        <tr><td>Thợ ảnh</td><td>0900000003 / anh123</td></tr>
+        <tr><td>Sếp</td><td>0900000004 / sep123</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script>
+  // Tài khoản demo mô phỏng phía client, KHÔNG phải hệ thống xác thực thật.
+  var DEMO_ACCOUNTS = {
+    '0900000001': { password: 'khach123', role: 'khach-hang', name: 'Khách demo' },
+    '0900000002': { password: 'sale123', role: 'sale', name: 'Sale demo' },
+    '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
+    '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
+  };
+
+  var togglePw = document.getElementById('togglePw');
+  var pwInput = document.getElementById('loginPassword');
+  togglePw.addEventListener('click', function () {
+    var isPw = pwInput.type === 'password';
+    pwInput.type = isPw ? 'text' : 'password';
+    togglePw.textContent = isPw ? 'Ẩn' : 'Hiện';
+  });
+
+  // Trang chủ/Đặt lịch/Ảnh của tôi đã gộp vào index.html (SPA dùng hash, xem
+  // js/router.js) -> next chỉ còn là tên route ("dat-lich"/"chon-anh"), không
+  // phải tên file.
+  var validNextRoutes = ['dat-lich', 'chon-anh'];
+  var params = new URLSearchParams(window.location.search);
+  var isRegisterMode = params.get('mode') === 'register';
+
+  function applyMode() {
+    document.getElementById('fieldName').hidden = !isRegisterMode;
+    document.getElementById('loginDemoBox').style.display = isRegisterMode ? 'none' : '';
+    if (isRegisterMode) {
+      document.getElementById('loginTitle').textContent = 'Đăng ký tài khoản khách hàng';
+      document.getElementById('loginSub').textContent = 'Tạo tài khoản để đặt lịch và xem ảnh của bé.';
+      document.getElementById('loginSubmitBtn').textContent = 'Đăng ký';
+      document.getElementById('loginModeSwitch').innerHTML = 'Đã có tài khoản? <a href="#" id="switchToLogin" style="color:var(--pink-600); font-weight:700;">Đăng nhập</a>';
+      document.getElementById('switchToLogin').addEventListener('click', function (e) {
+        e.preventDefault(); isRegisterMode = false; applyMode();
+      });
+    } else {
+      document.getElementById('loginTitle').textContent = 'Đăng nhập ALOHA Baby';
+      document.getElementById('loginSub').textContent = 'Nhập số điện thoại và mật khẩu để vào đúng khu vực của bạn.';
+      document.getElementById('loginSubmitBtn').textContent = 'Đăng nhập';
+      document.getElementById('loginModeSwitch').innerHTML = 'Chưa có tài khoản? <a href="#" id="switchToRegister" style="color:var(--pink-600); font-weight:700;">Đăng ký ngay</a>';
+      document.getElementById('switchToRegister').addEventListener('click', function (e) {
+        e.preventDefault(); isRegisterMode = true; applyMode();
+      });
+    }
+    document.getElementById('loginError').classList.remove('show');
+  }
+  applyMode();
+
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var phone = document.getElementById('loginPhone').value.trim();
+    var password = pwInput.value;
+    var errorBox = document.getElementById('loginError');
+    var next = params.get('next');
+
+    if (isRegisterMode) {
+      // Đăng ký demo: chưa có backend, tạo phiên "khách hàng" ngay từ thông tin
+      // vừa nhập (mô phỏng phía client) - xem js/auth.js.
+      var name = document.getElementById('loginName').value.trim();
+      if (!name || !phone || !password) {
+        errorBox.textContent = 'Vui lòng nhập đủ họ tên, số điện thoại và mật khẩu.';
+        errorBox.classList.add('show');
+        return;
+      }
+      errorBox.classList.remove('show');
+      AlohaAuth.login('khach-hang', name, phone);
+      // Khách vừa đăng ký chưa từng đặt lịch nên chưa có ảnh nào để xem ->
+      // mặc định đưa vào luồng Đặt lịch (không phải "Ảnh của tôi" như tài
+      // khoản demo đăng nhập lại), trừ khi họ đến từ một trang cụ thể (next).
+      window.location.href = (next && validNextRoutes.indexOf(next) !== -1) ? 'index.html#/' + next : 'index.html#/dat-lich';
+      return;
+    }
+
+    var account = DEMO_ACCOUNTS[phone];
+    if (!account || account.password !== password) {
+      errorBox.textContent = 'Số điện thoại hoặc mật khẩu không đúng.';
+      errorBox.classList.add('show');
+      return;
+    }
+    errorBox.classList.remove('show');
+    AlohaAuth.login(account.role, account.name, phone);
+
+    if (next && account.role === 'khach-hang' && validNextRoutes.indexOf(next) !== -1) {
+      window.location.href = 'index.html#/' + next;
+    } else {
+      window.location.href = AlohaAuth.roleHome(account.role);
+    }
+  });
+</script>
+</body>
+</html>

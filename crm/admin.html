@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Khu vực quản trị | ALOHA Baby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<!-- 1 file dùng chung cho 3 vai trò nội bộ (Sale/Thợ ảnh/Sếp); nội dung hiển thị
+     theo đúng quyền của từng vai trò, xem crm/js/admin.js và js/auth.js -->
+<script src="../js/auth.js"></script>
+<script src="../js/data-store.js"></script>
+<script>AlohaAuth.requireRole(['sale', 'tho-anh', 'sep']);</script>
+
+<header class="admin-topnav">
+  <div class="container">
+    <a href="admin.html" class="logo">
+      <span class="mark">A</span>
+      <span class="word">ALOHA Baby</span>
+    </a>
+    <nav class="admin-tabs" id="adminTabs">
+      <a href="#kpi" data-roles="sep" class="active">Dashboard</a>
+      <a href="#khach-hang" data-roles="sep sale">Khách hàng</a>
+      <a href="#lich-hen" data-roles="sep sale">Lịch hẹn</a>
+      <a href="#anh" data-roles="sep tho-anh">Ảnh & chỉnh sửa</a>
+      <a href="#concept" data-roles="sep">Concept</a>
+      <a href="#doanh-thu" data-roles="sep">Doanh thu</a>
+      <a href="#cai-dat" data-roles="sep">Cài đặt</a>
+    </nav>
+    <div class="admin-user">
+      <span>Xin chào, <strong id="userName">—</strong> · <span id="userRole"></span></span>
+      <button class="admin-logout" onclick="AlohaAuth.logout()">Đăng xuất</button>
+    </div>
+  </div>
+</header>
+
+<main class="admin-body">
+  <div class="container">
+    <div class="admin-banner">Dữ liệu minh hoạ, không phải số liệu thật của studio. Nội dung hiển thị theo đúng quyền của tài khoản đang đăng nhập.</div>
+
+    <!-- Block Sếp: KPI + biểu đồ + phễu -->
+    <section class="admin-section" id="kpi" data-roles="sep">
+      <h2>Tổng quan hôm nay</h2>
+      <p class="sub">Số lượng khách theo từng trạng thái trong phễu, giảm dần đúng thứ tự.</p>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="num">320</div>
+          <div class="label">Khách quan tâm</div>
+          <span class="trend up">+12% so với kỳ trước</span>
+        </div>
+        <div class="kpi-card">
+          <div class="num">210</div>
+          <div class="label">Đã tư vấn</div>
+          <span class="trend up">+8% so với kỳ trước</span>
+        </div>
+        <div class="kpi-card">
+          <div class="num">150</div>
+          <div class="label">Đã đặt lịch</div>
+          <span class="trend up">+5% so với kỳ trước</span>
+        </div>
+        <div class="kpi-card">
+          <div class="num">96</div>
+          <div class="label">Đã chụp</div>
+          <span class="trend down">-2% so với kỳ trước</span>
+        </div>
+        <div class="kpi-card">
+          <div class="num">88</div>
+          <div class="label">Hoàn thành</div>
+          <span class="trend up">+3% so với kỳ trước</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section" data-roles="sep">
+      <div class="dash-two-col" style="display:grid; grid-template-columns: 1.1fr 1fr; gap:20px;">
+        <div>
+          <h2 style="font-size:16px; margin-bottom:12px;">Khách hàng mới theo tuần</h2>
+          <div class="chart-bar-wrap" id="newCustomerChart"></div>
+        </div>
+        <div>
+          <h2 style="font-size:16px; margin-bottom:12px;">Phễu khách hàng</h2>
+          <div class="funnel" id="funnelChart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Block Sếp + Sale: Khách hàng/CRM (nội dung bảng khác nhau theo quyền, cùng 1 nguồn dữ liệu) -->
+    <section class="admin-section" id="khach-hang" data-roles="sep sale">
+      <h2>Khách hàng / CRM</h2>
+      <p class="sub" id="custSectionSub">Toàn bộ hồ sơ khách hàng, tìm kiếm và lọc theo trạng thái.</p>
+      <div class="data-table-toolbar">
+        <input type="text" id="custSearch" placeholder="Tìm theo tên hoặc SĐT...">
+        <select id="custFilter">
+          <option value="">Tất cả trạng thái</option>
+          <option value="quan-tam">Khách quan tâm</option>
+          <option value="tu-van">Đã tư vấn</option>
+          <option value="dat-lich">Đã đặt lịch</option>
+          <option value="da-chup">Đã chụp</option>
+          <option value="hoan-thanh">Hoàn thành</option>
+        </select>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table" id="custTable">
+          <thead id="custTableHead"></thead>
+          <tbody id="custTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Block Sếp + Sale: Lịch hẹn -->
+    <section class="admin-section" id="lich-hen" data-roles="sep sale">
+      <h2>Lịch hẹn</h2>
+      <div class="ps-tabs" id="apptTabs">
+        <button type="button" class="ps-tab active" data-tab="sap-toi">Sắp tới</button>
+        <button type="button" class="ps-tab" data-tab="hom-nay">Hôm nay</button>
+        <button type="button" class="ps-tab" data-tab="da-qua">Đã qua</button>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Giờ</th><th>Khách hàng</th><th>Dịch vụ</th><th>Concept</th><th>Trạng thái</th></tr>
+          </thead>
+          <tbody id="apptTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Block Sếp + Thợ ảnh: Quản lý chụp & chỉnh ảnh -->
+    <section class="admin-section" id="anh" data-roles="sep tho-anh">
+      <h2>Quản lý chụp & chỉnh ảnh</h2>
+      <p class="sub">Trạng thái xử lý hậu kỳ theo từng đơn, khách đã gửi yêu cầu chỉnh sửa.</p>
+      <!-- Cột "Chờ xử lý" nhận thêm thẻ động từ yêu cầu thật của khách (xem
+           crm/js/admin.js + js/data-store.js) - id="kanbanCol-..." để JS biết
+           chèn vào đâu. Thẻ tĩnh dưới đây là dữ liệu nền minh hoạ, không trùng
+           mã đơn với tài khoản demo #AB240915 để tránh nhầm với thẻ động. -->
+      <div class="kanban">
+        <div class="kanban-col" id="kanbanCol-cho-xu-ly">
+          <h4>Chờ xử lý</h4>
+          <div class="kanban-card"><strong>#AB240930</strong><span>Khách demo 05 · Gia đình</span></div>
+        </div>
+        <div class="kanban-col" id="kanbanCol-dang-thuc-hien">
+          <h4>Đang thực hiện</h4>
+          <div class="kanban-card"><strong>#AB240902</strong><span>Khách demo 02 · Sinh nhật</span></div>
+        </div>
+        <div class="kanban-col" id="kanbanCol-cho-qc">
+          <h4>Chờ QC</h4>
+          <div class="kanban-card"><strong>#AB240888</strong><span>Khách demo 03 · Bầu</span></div>
+        </div>
+        <div class="kanban-col" id="kanbanCol-hoan-thanh">
+          <h4>Hoàn thành</h4>
+          <div class="kanban-card"><strong>#AB240871</strong><span>Khách demo 04 · Bé lớn</span></div>
+          <div class="kanban-card"><strong>#AB240860</strong><span>Khách demo 06 · Newborn</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Block Sếp: Concept -->
+    <section class="admin-section" id="concept" data-roles="sep">
+      <h2>Concept</h2>
+      <p class="sub">5 bộ concept mẫu đang sử dụng cho tư vấn khách hàng.</p>
+      <div class="concept-mini-grid">
+        <div class="concept-mini"><img src="../images/concept-bien.jpg" alt="Concept Biển" loading="lazy"><span>Biển</span></div>
+        <div class="concept-mini"><img src="../images/concept-noel.jpg" alt="Concept Noel" loading="lazy"><span>Noel</span></div>
+        <div class="concept-mini"><img src="../images/concept-sinh-nhat.jpg" alt="Concept Sinh nhật" loading="lazy"><span>Sinh nhật</span></div>
+        <div class="concept-mini"><img src="../images/concept-vintage.jpg" alt="Concept Vintage" loading="lazy"><span>Vintage</span></div>
+        <div class="concept-mini"><img src="../images/concept-han-quoc.jpg" alt="Concept Hàn Quốc" loading="lazy"><span>Hàn Quốc</span></div>
+      </div>
+    </section>
+
+    <!-- Block Sếp: Doanh thu -->
+    <section class="admin-section" id="doanh-thu" data-roles="sep">
+      <h2>Doanh thu</h2>
+      <div class="revenue-row">
+        <div class="chart-donut" style="--pct: 68%;"><span>68%</span></div>
+        <div class="revenue-stats">
+          <div class="revenue-stat"><div class="num">452.000.000đ</div><div class="label">Tổng doanh thu tháng</div></div>
+          <div class="revenue-stat"><div class="num">88</div><div class="label">Số đơn hoàn thành</div></div>
+          <div class="revenue-stat"><div class="num">5.136.000đ</div><div class="label">Giá trị TB/đơn</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Block Sếp: Cài đặt -->
+    <section class="admin-section" id="cai-dat" data-roles="sep">
+      <h2>Cài đặt</h2>
+      <p class="sub">Các thông số nghiệp vụ, hiện là giá trị minh hoạ chờ studio xác nhận chính thức.</p>
+      <div class="settings-grid">
+        <div class="settings-item">
+          <div class="k">Mức cọc</div>
+          <div class="v">30% giá trị gói (minh hoạ)</div>
+          <div class="note">Placeholder, chờ studio xác nhận</div>
+        </div>
+        <div class="settings-item">
+          <div class="k">Thời gian giữ khung giờ trước khi cọc</div>
+          <div class="v">5 phút (minh hoạ)</div>
+          <div class="note">Placeholder, chờ studio xác nhận</div>
+        </div>
+        <div class="settings-item">
+          <div class="k">Chính sách dời lịch</div>
+          <div class="v">Miễn phí 1 lần, trong hạn 48 giờ (minh hoạ)</div>
+          <div class="note">Placeholder, chờ studio xác nhận</div>
+        </div>
+        <div class="settings-item">
+          <div class="k">Tài khoản nhân viên</div>
+          <div class="v">12 tài khoản đang hoạt động</div>
+          <div class="note">Placeholder, chờ studio xác nhận</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty-state khi vai trò không có section nào phù hợp (an toàn dự phòng) -->
+    <div class="empty-card" id="emptyState" style="display:none;">
+      <p>Chưa có nội dung cho vai trò này.</p>
+    </div>
+  </div>
+</main>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
