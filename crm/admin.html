@@ -133,31 +133,36 @@
     <!-- Block Sếp + Thợ ảnh: Quản lý chụp & chỉnh ảnh -->
     <section class="admin-section" id="anh" data-roles="sep tho-anh">
       <h2>Quản lý chụp & chỉnh ảnh</h2>
-      <p class="sub">Trạng thái xử lý hậu kỳ theo từng đơn, khách đã gửi yêu cầu chỉnh sửa.</p>
-      <!-- Cột "Chờ xử lý" nhận thêm thẻ động từ yêu cầu thật của khách (xem
-           crm/js/admin.js + js/data-store.js) - id="kanbanCol-..." để JS biết
-           chèn vào đâu. Thẻ tĩnh dưới đây là dữ liệu nền minh hoạ, không trùng
-           mã đơn với tài khoản demo #AB240915 để tránh nhầm với thẻ động. -->
+      <p class="sub">Bấm vào 1 thẻ để xem chi tiết: ảnh nào cần làm, thứ tự ưu tiên (đến trước làm trước), tiến độ Thợ ảnh đã xử lý xong bao nhiêu ảnh.</p>
+      <!-- Toàn bộ thẻ (kể cả dữ liệu nền minh hoạ) đều do crm/js/admin.js render
+           động, không còn thẻ tĩnh hard-code trong HTML - để mọi thẻ đều có đủ
+           dữ liệu ảnh/tiến độ và bấm được như nhau. Yêu cầu thật của khách đọc
+           từ js/data-store.js (AlohaData), thẻ minh hoạ nền là STATIC_REQUESTS
+           trong admin.js (không lưu localStorage). id="kanbanCol-..." để JS
+           biết chèn thẻ vào cột nào. -->
       <div class="kanban">
         <div class="kanban-col" id="kanbanCol-cho-xu-ly">
           <h4>Chờ xử lý</h4>
-          <div class="kanban-card"><strong>#AB240930</strong><span>Khách demo 05 · Gia đình</span></div>
         </div>
         <div class="kanban-col" id="kanbanCol-dang-thuc-hien">
           <h4>Đang thực hiện</h4>
-          <div class="kanban-card"><strong>#AB240902</strong><span>Khách demo 02 · Sinh nhật</span></div>
         </div>
         <div class="kanban-col" id="kanbanCol-cho-qc">
           <h4>Chờ QC</h4>
-          <div class="kanban-card"><strong>#AB240888</strong><span>Khách demo 03 · Bầu</span></div>
         </div>
         <div class="kanban-col" id="kanbanCol-hoan-thanh">
           <h4>Hoàn thành</h4>
-          <div class="kanban-card"><strong>#AB240871</strong><span>Khách demo 04 · Bé lớn</span></div>
-          <div class="kanban-card"><strong>#AB240860</strong><span>Khách demo 06 · Newborn</span></div>
         </div>
       </div>
     </section>
+
+    <!-- Modal chi tiết 1 yêu cầu chỉnh ảnh (nội dung do admin.js render động) -->
+    <div class="kanban-modal-overlay" id="kanbanModalOverlay" aria-hidden="true">
+      <div class="kanban-modal" role="dialog" aria-modal="true" aria-labelledby="kanbanModalTitle">
+        <button type="button" class="kanban-modal-close" id="kanbanModalClose" aria-label="Đóng chi tiết">&times;</button>
+        <div id="kanbanModalBody"></div>
+      </div>
+    </div>
 
     <!-- Block Sếp: Concept -->
     <section class="admin-section" id="concept" data-roles="sep">

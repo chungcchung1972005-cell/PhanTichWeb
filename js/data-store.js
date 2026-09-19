@@ -60,6 +60,12 @@
       photoCount: data.photoCount || 0,
       note: data.note || '',
       photoNotes: Array.isArray(data.photoNotes) ? data.photoNotes : [],
+      // Danh sách ĐẦY ĐỦ ảnh trong yêu cầu (không chỉ ảnh có ghi chú riêng như
+      // photoNotes ở trên) -> Thợ ảnh/Sếp xem được "yêu cầu này gồm ảnh nào".
+      photos: Array.isArray(data.photos) ? data.photos : [],
+      // Các photo.id mà Thợ ảnh đã đánh dấu xử lý xong -> theo dõi tiến độ
+      // trong lúc đang ở trạng thái "Đang thực hiện", để Sếp quan sát được.
+      doneIds: [],
       status: 'Chờ xử lý',
       createdAt: Date.now()
     };
@@ -86,11 +92,26 @@
     return req;
   }
 
+  // Thợ ảnh bật/tắt trạng thái "đã xử lý xong" cho từng ảnh trong 1 yêu cầu -
+  // đây là cách để họ tự confirm tiến độ, Sếp xem cùng dữ liệu này ở chế độ
+  // chỉ đọc (xem crm/js/admin.js).
+  function togglePhotoDone(requestId, photoId) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    if (!Array.isArray(req.doneIds)) req.doneIds = [];
+    const i = req.doneIds.indexOf(photoId);
+    if (i === -1) req.doneIds.push(photoId); else req.doneIds.splice(i, 1);
+    writeDb(db);
+    return req;
+  }
+
   window.AlohaData = {
     getCustomerRecord,
     createEditRequest,
     getEditRequests,
     advanceRequestStatus,
+    togglePhotoDone,
     STATUS_FLOW
   };
 })(window);

@@ -83,12 +83,17 @@ const BASE = 'file:///D:/PhanTichWeb/';
     const hasRequest = kanbanText.includes('Khách demo') && kanbanText.includes('Mới') && kanbanText.includes('2 ảnh');
     log('Thợ ảnh thấy yêu cầu chỉnh sửa thật trong cột "Chờ xử lý"', hasRequest, kanbanText.replace(/\s+/g, ' ').trim());
 
-    // Bấm "Chuyển sang bước tiếp theo" -> request rời khỏi cột Chờ xử lý
-    const advanceBtn = await page.$('.kanban-advance-btn');
-    if (advanceBtn) await advanceBtn.click();
+    // Bấm "Chuyển sang bước tiếp theo" trên đúng thẻ request thật (có badge "Mới",
+    // không phải thẻ minh hoạ tĩnh cũng nằm trong cùng cột) -> request rời khỏi cột Chờ xử lý
+    await page.evaluate(() => {
+      const card = Array.from(document.querySelectorAll('#kanbanCol-cho-xu-ly .kanban-card'))
+        .find(c => c.textContent.includes('Mới'));
+      const btn = card && card.querySelector('.kanban-advance-btn');
+      if (btn) btn.click();
+    });
     await new Promise(r => setTimeout(r, 200));
-    const stillInColumn1 = await page.$('#kanbanCol-cho-xu-ly .dynamic-request') !== null;
-    const nowInColumn2 = await page.$('#kanbanCol-dang-thuc-hien .dynamic-request') !== null;
+    const stillInColumn1 = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent.includes('Mới'));
+    const nowInColumn2 = await page.$eval('#kanbanCol-dang-thuc-hien', el => el.textContent.includes('Mới'));
     log('bấm chuyển bước -> request sang cột "Đang thực hiện"', !stillInColumn1 && nowInColumn2);
     await page.close();
   }

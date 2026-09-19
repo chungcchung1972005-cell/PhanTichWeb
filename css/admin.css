@@ -120,10 +120,28 @@
 .kanban-col h4 { font-size: 13px; margin-bottom: 12px; color: var(--navy-700); }
 .kanban-card {
   background: var(--white); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;
-  box-shadow: var(--shadow-soft); font-size: 12.5px;
+  box-shadow: var(--shadow-soft); font-size: 12.5px; cursor: pointer;
+  border: 1.5px solid transparent; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.kanban-card:hover, .kanban-card:focus-visible { border-color: var(--pink-300); box-shadow: var(--shadow-card); }
+.kanban-card:active { transform: scale(0.99); }
+.kanban-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.kanban-card-top strong { font-size: 13px; }
+.priority-badge {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--navy-900); color: var(--white);
+  font-size: 10.5px; font-weight: 700;
 }
 .kanban-card strong { display: block; font-size: 13px; margin-bottom: 3px; }
 .kanban-card span { color: var(--navy-500); }
+.kanban-card-time { display: block; font-size: 11px; color: var(--navy-500); margin-top: 2px; }
+.kanban-card-notes-hint { display: block; font-size: 11px; color: var(--pink-700); font-weight: 700; margin-top: 4px; }
+.kanban-progress-track {
+  height: 6px; border-radius: var(--radius-pill); background: var(--pink-50); overflow: hidden; margin-top: 8px;
+}
+.kanban-progress-fill { height: 100%; background: linear-gradient(90deg, var(--pink-400), var(--pink-600)); transition: width 0.3s ease; }
+.kanban-progress-fill.done { background: linear-gradient(90deg, #4fc98a, #1a9d5c); }
+.kanban-progress-label { display: block; font-size: 11px; color: var(--navy-500); margin-top: 3px; }
 .kanban-advance-btn {
   display: block; width: 100%; margin-top: 8px; padding: 6px 8px; border-radius: var(--radius-sm);
   border: 1.5px solid var(--pink-200); background: var(--white); color: var(--pink-700);
@@ -131,6 +149,53 @@
 }
 .kanban-advance-btn:hover { background: var(--pink-50); }
 .kanban-advance-btn:active { transform: scale(0.97); }
+.kanban-advance-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.kanban-advance-btn:disabled:hover { background: var(--white); }
+
+/* ---------------------------------- Modal chi tiết yêu cầu chỉnh ảnh ---------------------------------- */
+.kanban-modal-overlay {
+  position: fixed; inset: 0; background: rgba(20, 15, 25, 0.55); z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.kanban-modal-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+.kanban-modal {
+  background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card);
+  width: 100%; max-width: 640px; max-height: 86vh; overflow-y: auto; padding: 28px 24px;
+  position: relative; transform: translateY(10px); transition: transform 0.2s ease;
+}
+.kanban-modal-overlay.open .kanban-modal { transform: translateY(0); }
+.kanban-modal-close {
+  position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%;
+  border: none; background: var(--pink-50); color: var(--navy-700); font-size: 20px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+}
+.kanban-modal-close:hover { background: var(--pink-100); }
+.kanban-modal h3 { font-size: 18px; margin-bottom: 8px; padding-right: 36px; }
+.kanban-modal-meta { font-size: 13px; color: var(--navy-500); margin-bottom: 4px; }
+.kanban-modal-note { font-size: 13.5px; color: var(--navy-700); font-style: italic; margin: 10px 0; }
+.kanban-modal-progress { margin: 14px 0 18px; }
+.kanban-photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.kanban-photo-tile {
+  border: 1.5px solid var(--pink-100); border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--pink-50); transition: border-color 0.2s;
+}
+.kanban-photo-tile.done { border-color: #1a9d5c; }
+.kanban-photo-tile img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+.kanban-photo-tile .note { font-size: 10.5px; color: var(--navy-700); padding: 5px 6px 0; }
+.photo-done-toggle {
+  display: block; width: 100%; margin-top: 5px; padding: 5px 4px; border: none; background: transparent;
+  color: var(--pink-700); font-size: 10.5px; font-weight: 700; cursor: pointer; text-align: center;
+}
+.kanban-photo-tile.done .photo-done-toggle { color: #1a9d5c; }
+.photo-done-toggle:hover { background: var(--pink-100); }
+.photo-done-flag {
+  display: block; text-align: center; font-size: 10.5px; font-weight: 700; padding: 5px 4px;
+  color: var(--navy-500);
+}
+.photo-done-flag.done { color: #1a9d5c; }
+.kanban-modal-advance { width: 100%; }
+.kanban-modal-advance:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------------------------------- Donut (CSS thuần) ---------------------------------- */
 .chart-donut {
@@ -192,4 +257,6 @@
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .role-grid { grid-template-columns: 1fr; }
   .concept-mini-grid { grid-template-columns: repeat(2, 1fr); }
+  .kanban-photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .kanban-modal { padding: 22px 16px; }
 }

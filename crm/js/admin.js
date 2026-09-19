@@ -169,10 +169,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ------------------------------- Yêu cầu chỉnh sửa THẬT từ khách (view "Ảnh của tôi" trong index.html) -------------------------------
-  // Đọc từ kho dữ liệu demo dùng chung (localStorage cùng trình duyệt) — xem
-  // js/data-store.js. Chèn thêm vào đúng cột kanban theo trạng thái, cạnh các
-  // thẻ tĩnh minh hoạ có sẵn, để Thợ ảnh/Sếp thấy được yêu cầu khách vừa gửi.
+  // ------------------------------- Quản lý chụp & chỉnh ảnh: kanban đầy đủ chức năng -------------------------------
+  // Gộp 2 nguồn thành 1 danh sách duy nhất để render và xử lý giống hệt nhau:
+  //  - Yêu cầu THẬT từ khách (view "Ảnh của tôi") -> AlohaData (localStorage,
+  //    xem js/data-store.js), tiến độ (doneIds) persist thật qua AlohaData.togglePhotoDone.
+  //  - Dữ liệu nền minh hoạ (STATIC_REQUESTS ngay dưới đây) -> chỉ tồn tại
+  //    trong bộ nhớ JS của trang này (giống cách CUSTOMERS/APPOINTMENTS ở trên
+  //    đã làm), tiến độ lưu tạm trong staticDoneMap, mất khi tải lại trang.
+  // Người dùng yêu cầu: bấm được vào thẻ, biết yêu cầu nào tới trước (ưu tiên
+  // xử lý), thấy đúng những ảnh nào cần làm, và có cách Thợ ảnh tự confirm
+  // tiến độ để Sếp quan sát được — toàn bộ xử lý trong khối này.
   const STATUS_COL_ID = {
     'Chờ xử lý': 'kanbanCol-cho-xu-ly',
     'Đang thực hiện': 'kanbanCol-dang-thuc-hien',
@@ -180,30 +186,222 @@ document.addEventListener('DOMContentLoaded', () => {
     'Hoàn thành': 'kanbanCol-hoan-thanh'
   };
 
+  const now = Date.now();
+  const HOUR = 3600 * 1000;
+  const staticDoneMap = {}; // requestId -> Set(photoId) đã đánh dấu xong, chỉ tồn tại trong phiên xem trang này
+
+  // Ảnh nền minh hoạ dùng lại đúng 16 ảnh demo có sẵn trong images/my-photos/,
+  // KHÔNG phải ảnh thật của khách demo 02/03/04/05/06 (những khách này chỉ có
+  // trong bảng CUSTOMERS ở trên, chưa có ảnh thật gắn kèm).
+  const STATIC_REQUESTS = [
+    { id: 'static-1', orderCode: '#AB240930', customerName: 'Khách demo 05', serviceLabel: 'Gia đình', status: 'Chờ xử lý', note: 'Muốn ảnh tông sáng, ít chỉnh da.', createdAt: now - 26 * HOUR, photoIds: [1, 2, 3, 4], doneIds: [] },
+    { id: 'static-2', orderCode: '#AB240902', customerName: 'Khách demo 02', serviceLabel: 'Sinh nhật', status: 'Đang thực hiện', note: 'Xoá phông lộn xộn phía sau bé.', createdAt: now - 3 * 24 * HOUR, photoIds: [5, 6, 7, 8, 9], doneIds: [5, 6] },
+    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu', status: 'Chờ QC', note: '', createdAt: now - 5 * 24 * HOUR, photoIds: [10, 11, 12], doneIds: [10, 11, 12] },
+    { id: 'static-4', orderCode: '#AB240871', customerName: 'Khách demo 04', serviceLabel: 'Bé lớn', status: 'Hoàn thành', note: '', createdAt: now - 9 * 24 * HOUR, photoIds: [13, 14], doneIds: [13, 14] },
+    { id: 'static-5', orderCode: '#AB240860', customerName: 'Khách demo 06', serviceLabel: 'Newborn', status: 'Hoàn thành', note: '', createdAt: now - 10 * 24 * HOUR, photoIds: [15, 16], doneIds: [15, 16] }
+  ].map(r => {
+    staticDoneMap[r.id] = new Set(r.doneIds.map(n => 'ph-' + n));
+    return {
+      id: r.id, orderCode: r.orderCode, customerName: r.customerName, serviceLabel: r.serviceLabel,
+      status: r.status, note: r.note, createdAt: r.createdAt, isStatic: true,
+      photos: r.photoIds.map(n => ({ id: 'ph-' + n, src: '../images/my-photos/photo-' + n + '.jpg', note: '' })),
+      photoCount: r.photoIds.length
+    };
+  });
+
+  function formatRelativeTime(ts) {
+    const diffMs = Date.now() - ts;
+    const min = Math.floor(diffMs / 60000);
+    if (min < 1) return 'Vừa xong';
+    if (min < 60) return min + ' phút trước';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + ' giờ trước';
+    const day = Math.floor(hr / 24);
+    return day + ' ngày trước';
+  }
+
+  function getDoneIds(req) {
+    if (req.isStatic) return Array.from(staticDoneMap[req.id] || []);
+    return Array.isArray(req.doneIds) ? req.doneIds : [];
+  }
+
+  function togglePhotoDone(req, photoId) {
+    if (req.isStatic) {
+      const set = staticDoneMap[req.id] || (staticDoneMap[req.id] = new Set());
+      if (set.has(photoId)) set.delete(photoId); else set.add(photoId);
+    } else if (window.AlohaData) {
+      // Đồng bộ lại req.doneIds trong bộ nhớ ngay sau khi ghi xuống localStorage,
+      // vì `req` đang giữ ở đây là bản chụp lúc mở modal (không tự cập nhật theo store).
+      const updated = AlohaData.togglePhotoDone(req.id, photoId);
+      if (updated) req.doneIds = updated.doneIds.slice();
+    }
+  }
+
+  function canAdvance(req) {
+    if (req.status !== 'Đang thực hiện') return true;
+    const total = (req.photos || []).length;
+    if (total === 0) return true;
+    return getDoneIds(req).length === total;
+  }
+
+  function advance(req) {
+    if (req.isStatic) {
+      const idx = AlohaData.STATUS_FLOW.indexOf(req.status);
+      if (idx >= 0 && idx < AlohaData.STATUS_FLOW.length - 1) req.status = AlohaData.STATUS_FLOW[idx + 1];
+    } else if (window.AlohaData) {
+      AlohaData.advanceRequestStatus(req.id);
+    }
+  }
+
+  function getAllRequests() {
+    // js/data-store.js lưu photo.src tương đối với index.html ở thư mục gốc
+    // (vd "images/my-photos/photo-1.jpg") - trang này (crm/admin.html) nằm
+    // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
+    const real = (window.AlohaData ? AlohaData.getEditRequests() : []).map(r => Object.assign({ isStatic: false }, r, {
+      photos: (r.photos || []).map(p => Object.assign({}, p, { src: '../' + p.src }))
+    }));
+    return STATIC_REQUESTS.concat(real);
+  }
+
+  const canEditProgress = role === 'tho-anh';
+
   function renderEditRequests() {
-    if (!window.AlohaData) return;
-    document.querySelectorAll('.kanban-card.dynamic-request').forEach(el => el.remove());
-    AlohaData.getEditRequests().forEach(req => {
-      const col = document.getElementById(STATUS_COL_ID[req.status]);
-      if (!col) return;
-      const card = document.createElement('div');
-      card.className = 'kanban-card dynamic-request';
-      card.innerHTML = `
-        <strong>${req.orderCode || req.id} <span class="badge badge-hoan-thanh" style="margin-left:4px;">Mới</span></strong>
-        <span>${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · ${req.photoCount} ảnh</span>
-        ${req.note ? `<span style="display:block; margin-top:4px; font-style:italic;">"${req.note}"</span>` : ''}
-        ${req.photoNotes && req.photoNotes.length ? `<span style="display:block; margin-top:4px; color:var(--pink-700); font-weight:700;">+${req.photoNotes.length} ảnh có ghi chú riêng</span>` : ''}
-        ${req.status !== 'Hoàn thành' ? '<button type="button" class="kanban-advance-btn" data-id="' + req.id + '">Chuyển sang bước tiếp theo →</button>' : ''}
-      `;
-      col.appendChild(card);
+    const board = document.querySelector('.kanban');
+    if (!board) return;
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      col.querySelectorAll('.kanban-card').forEach(el => el.remove());
     });
-    document.querySelectorAll('.kanban-advance-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        AlohaData.advanceRequestStatus(btn.dataset.id);
-        renderEditRequests();
+
+    const buckets = {};
+    getAllRequests().forEach(req => {
+      (buckets[req.status] = buckets[req.status] || []).push(req);
+    });
+
+    Object.keys(STATUS_COL_ID).forEach(status => {
+      const col = document.getElementById(STATUS_COL_ID[status]);
+      if (!col) return;
+      const list = (buckets[status] || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+      list.forEach((req, i) => {
+        const doneCount = getDoneIds(req).length;
+        const total = (req.photos || []).length;
+        const card = document.createElement('div');
+        card.className = 'kanban-card';
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', 'Xem chi tiết yêu cầu ' + (req.orderCode || req.id));
+        card.innerHTML = `
+          <div class="kanban-card-top">
+            <span class="priority-badge" title="Thứ tự ưu tiên xử lý trong cột này: đến trước làm trước">#${i + 1}</span>
+            <strong>${req.orderCode || req.id}</strong>
+            ${!req.isStatic ? '<span class="badge badge-hoan-thanh">Mới</span>' : ''}
+          </div>
+          <span>${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · ${total || req.photoCount || 0} ảnh</span>
+          <span class="kanban-card-time">Gửi ${formatRelativeTime(req.createdAt)}</span>
+          ${req.photoNotes && req.photoNotes.length ? `<span class="kanban-card-notes-hint">+${req.photoNotes.length} ảnh có ghi chú riêng</span>` : ''}
+          ${total > 0 ? `
+          <div class="kanban-progress-track"><div class="kanban-progress-fill${doneCount === total ? ' done' : ''}" style="width:${Math.round(doneCount / total * 100)}%"></div></div>
+          <span class="kanban-progress-label">Đã xong ${doneCount}/${total} ảnh</span>` : ''}
+          ${req.status !== 'Hoàn thành' ? `<button type="button" class="kanban-advance-btn" data-id="${req.id}"${canAdvance(req) ? '' : ' disabled title="Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước"'}>Chuyển sang bước tiếp theo →</button>` : ''}
+        `;
+        card.addEventListener('click', () => openRequestModal(req));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRequestModal(req); }
+        });
+        const advBtn = card.querySelector('.kanban-advance-btn');
+        if (advBtn) {
+          advBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (advBtn.disabled) return;
+            advance(req);
+            renderEditRequests();
+          });
+        }
+        col.appendChild(card);
       });
     });
   }
+
+  // ------------------------------- Modal chi tiết 1 yêu cầu -------------------------------
+  const modalOverlay = document.getElementById('kanbanModalOverlay');
+  const modalBody = document.getElementById('kanbanModalBody');
+  const modalClose = document.getElementById('kanbanModalClose');
+
+  function openRequestModal(req) {
+    if (!modalOverlay || !modalBody) return;
+    renderModalBody(req);
+    modalOverlay.classList.add('open');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModal() {
+    if (!modalOverlay) return;
+    modalOverlay.classList.remove('open');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+  }
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalOverlay) modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('open')) closeModal();
+  });
+
+  const STATUS_BADGE_CLASS = {
+    'Chờ xử lý': 'badge-quan-tam',
+    'Đang thực hiện': 'badge-tu-van',
+    'Chờ QC': 'badge-da-chup',
+    'Hoàn thành': 'badge-hoan-thanh'
+  };
+
+  function renderModalBody(req) {
+    const doneIds = getDoneIds(req);
+    const total = (req.photos || []).length;
+    const pct = total ? Math.round(doneIds.length / total * 100) : 0;
+    modalBody.innerHTML = `
+      <h3 id="kanbanModalTitle">${req.orderCode || req.id}</h3>
+      <p class="kanban-modal-meta">${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${req.status}</span></p>
+      <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
+      ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${req.note}"</p>` : ''}
+      ${total > 0 ? `
+      <div class="kanban-modal-progress">
+        <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
+        <span class="kanban-progress-label">Đã xong ${doneIds.length}/${total} ảnh${!canEditProgress ? ' (Thợ ảnh cập nhật)' : ''}</span>
+      </div>
+      <div class="kanban-photo-grid">
+        ${req.photos.map(p => {
+          const done = doneIds.indexOf(p.id) !== -1;
+          return `
+          <div class="kanban-photo-tile${done ? ' done' : ''}" data-photo-id="${p.id}">
+            <img src="${p.src}" alt="Ảnh ${p.id} trong yêu cầu ${req.orderCode || req.id}" loading="lazy">
+            ${p.note ? `<p class="note">"${p.note}"</p>` : ''}
+            ${canEditProgress
+              ? `<button type="button" class="photo-done-toggle" data-photo-id="${p.id}">${done ? '✓ Đã xong' : 'Đánh dấu đã xong'}</button>`
+              : `<span class="photo-done-flag${done ? ' done' : ''}">${done ? '✓ Đã xong' : 'Chưa xong'}</span>`}
+          </div>`;
+        }).join('')}
+      </div>` : '<p class="kanban-modal-meta">Yêu cầu này chưa có dữ liệu chi tiết từng ảnh (dữ liệu cũ).</p>'}
+      ${req.status !== 'Hoàn thành' ? `
+      <button type="button" class="btn btn-primary kanban-modal-advance"${canAdvance(req) ? '' : ' disabled title="Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước"'}>Chuyển sang bước tiếp theo →</button>` : ''}
+    `;
+
+    if (canEditProgress) {
+      modalBody.querySelectorAll('.photo-done-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          togglePhotoDone(req, btn.dataset.photoId);
+          renderModalBody(req);
+          renderEditRequests();
+        });
+      });
+    }
+    const advBtn = modalBody.querySelector('.kanban-modal-advance');
+    if (advBtn) {
+      advBtn.addEventListener('click', () => {
+        if (advBtn.disabled) return;
+        advance(req);
+        closeModal();
+        renderEditRequests();
+      });
+    }
+  }
+
   renderEditRequests();
 
   // ------------------------------- Fade-in tối giản khi cuộn -------------------------------

@@ -144,6 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const perPhotoNotes = Array.from(selected)
         .map(id => ({ id, note: (photoNotes.get(id) || '').trim() }))
         .filter(n => n.note);
+      // Danh sách đầy đủ ảnh đã chọn (kèm src + ghi chú riêng nếu có) -> Thợ
+      // ảnh/Sếp xem được đúng những ảnh nào nằm trong yêu cầu này.
+      const allSelectedPhotos = Array.from(selected)
+        .map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim() }));
 
       AlohaData.createEditRequest({
         phone: session.phone,
@@ -152,7 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
         serviceLabel: record.serviceLabel,
         photoCount: selected.size,
         note: document.getElementById('psNote').value.trim(),
-        photoNotes: perPhotoNotes
+        photoNotes: perPhotoNotes,
+        photos: allSelectedPhotos
       });
     }
 
