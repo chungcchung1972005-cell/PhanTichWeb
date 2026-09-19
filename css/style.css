@@ -899,7 +899,11 @@ body.hide-floating-book .floating-book { display: none; }
   .hero p.lead { margin-left: auto; margin-right: auto; }
   .hero-cta { justify-content: center; }
   .hero-stats { justify-content: center; }
-  .hero-visual { max-width: 360px; margin: 40px auto 0; }
+  /* width:100% (không chỉ max-width) để có kích thước xác định ngay - tránh
+     lỗi thật đã gặp: kết hợp margin:auto + max-width (không có width) trên 1
+     grid item cao phụ thuộc aspect-ratio khiến Chrome tính sai thành 0x0 (ảnh
+     hero biến mất trên mobile, để lại khoảng trống lớn trước phần "Dịch vụ"). */
+  .hero-visual { width: 100%; max-width: 360px; margin: 40px auto 0; }
   /* Chip nổi chỉ là chi tiết trang trí; ở layout 1 cột (mobile/tablet) dễ đè lên
      nội dung phía trên (hero-stats) nên ẩn hẳn thay vì cố định lại vị trí % dễ vỡ. */
   .floating-chip { display: none; }
