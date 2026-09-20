@@ -15,7 +15,7 @@ const express = require('express');
 const cors = require('cors');
 
 const PORT = process.env.PORT || 3001;
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 const API_KEY = process.env.GEMINI_API_KEY;
 
 // Dữ liệu dịch vụ/giá THAM KHẢO — khớp với SERVICE_INFO trong js/script.js
@@ -30,6 +30,9 @@ const SERVICE_INFO = {
   'Newborn': { concepts: 'Newborn tự nhiên (organic), cuộn ủ (wrap) cổ điển, hoặc có bố mẹ/anh chị cùng khung hình', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
 };
 
+// Các đích điều hướng frontend hỗ trợ (khớp CHAT_ACTIONS trong js/script.js).
+const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu'];
+
 const SYSTEM_PROMPT = `Bạn là trợ lý tư vấn của ALOHA Baby — studio chụp ảnh em bé và gia đình tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội, hotline 0938.125.222.
 
 5 dịch vụ chính, concept gợi ý và giá THAM KHẢO (luôn nói rõ đây là giá minh hoạ, Sales sẽ báo giá chính xác theo từng đơn; gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, ảnh chọn thêm ngoài gói tính phí theo ảnh):
@@ -42,11 +45,11 @@ Quy trình đặt lịch (5 bước): chọn dịch vụ & gói → chọn conce
 Nguyên tắc trả lời bắt buộc:
 - Trả lời thân thiện, đủ ý nhưng không lan man, bằng tiếng Việt có dấu — ưu tiên 2-4 câu, có thể xuống dòng liệt kê khi hữu ích cho khách dễ đọc.
 - Chỉ tư vấn trong phạm vi dịch vụ chụp ảnh của ALOHA Baby (5 dịch vụ trên, chụp tại nhà, concept, quy trình đặt lịch/đổi lịch/chọn ảnh). Nếu khách hỏi ngoài phạm vi (không liên quan chụp ảnh/studio), lịch sự từ chối và hướng về dịch vụ studio.
-- KHÔNG tự chốt lịch hay nhận cọc trong khung chat. Khi khách muốn đặt lịch, hướng dẫn họ bấm nút "Đặt lịch ngay" trên trang để vào đúng luồng đặt lịch chính thức.
+- KHÔNG tự chốt lịch hay nhận cọc trong khung chat. Bạn không tự chuyển trang: hệ thống chỉ chuyển khách khi khách bấm nút gợi ý bên dưới câu trả lời. Khi khách muốn đặt lịch (hoặc xem ảnh, xem dịch vụ...), trả lời ngắn gọn bằng chữ rồi mời khách bấm nút tương ứng ở các gợi ý bên dưới (ví dụ "bạn bấm nút Đặt lịch chụp ngay bên dưới để vào trang đặt lịch nhé"), không nói kiểu "mình đang chuyển bạn tới...".
 - KHÔNG bịa số liệu cụ thể về mức cọc, chính sách đổi/huỷ lịch, số ảnh được chỉnh sửa miễn phí — những thông số này chưa được studio chốt, chỉ nói "Sales sẽ tư vấn chi tiết khi bạn đặt lịch".
 - Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.
 
-Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 câu hỏi tiếp theo mà khách có khả năng muốn hỏi nhất sau câu trả lời vừa rồi). Mỗi gợi ý viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không trùng câu khách vừa hỏi, không lặp lại nhau.`;
+Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
 app.use(cors());
@@ -85,14 +88,25 @@ app.post('/api/chat', async (req, res) => {
             type: 'OBJECT',
             properties: {
               reply: { type: 'STRING' },
-              suggestions: { type: 'ARRAY', items: { type: 'STRING' } }
+              suggestions: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    label: { type: 'STRING' },
+                    action: { type: 'STRING', enum: ['none', ...ACTIONS] }
+                  },
+                  required: ['label', 'action']
+                }
+              }
             },
             required: ['reply', 'suggestions']
           }
         }
     });
 
-    // Free tier hay báo 503/429 tạm thời khi quá tải: thử lại tối đa 2 lần rồi mới báo lỗi.
+    // Free tier hay báo 503 tạm thời khi quá tải: thử lại tối đa 2 lần rồi mới báo lỗi.
+    // Không thử lại 429 (hết hạn mức free), thử lại chỉ tốn thêm lượt.
     let response, data;
     for (let attempt = 0; attempt < 3; attempt++) {
       response = await fetch(url, {
@@ -101,7 +115,7 @@ app.post('/api/chat', async (req, res) => {
         body: payload
       });
       data = await response.json();
-      if (response.ok || (response.status !== 503 && response.status !== 429)) break;
+      if (response.ok || response.status !== 503) break;
       await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
     }
     if (!response.ok) {
@@ -120,8 +134,8 @@ app.post('/api/chat', async (req, res) => {
       if (parsed && typeof parsed.reply === 'string') reply = parsed.reply.trim();
       if (parsed && Array.isArray(parsed.suggestions)) {
         suggestions = parsed.suggestions
-          .filter(s => typeof s === 'string' && s.trim())
-          .map(s => s.trim().slice(0, 80))
+          .filter(s => s && typeof s.label === 'string' && s.label.trim())
+          .map(s => ({ label: s.label.trim().slice(0, 80), action: ACTIONS.includes(s.action) ? s.action : 'none' }))
           .slice(0, 3);
       }
     } catch (e) {

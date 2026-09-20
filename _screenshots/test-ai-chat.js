@@ -24,6 +24,8 @@ const BASE = 'file:///D:/PhanTichWeb/';
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
+    await page.setRequestInterception(true);
+    page.on('request', (r) => (r.url().includes(':3001/') ? r.abort() : r.continue()));
     await loginAsCustomer(page);
     await page.click('#chatToggle');
     await new Promise(r => setTimeout(r, 300));

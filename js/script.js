@@ -548,21 +548,96 @@ document.addEventListener('DOMContentLoaded', () => {
       let aiBusy = false;
       const sendBtn = chatInputForm.querySelector('.chat-send');
 
-      // Dự phòng khi AI lỗi hoặc không trả gợi ý: 3 câu FAQ có sẵn (trả lời cục bộ, không cần AI).
-      const FALLBACK_SUGGESTIONS = ['Có mấy loại dịch vụ?', 'Đặt cọc thế nào?', 'Studio ở đâu?'];
+      // Dự phòng khi AI lỗi hoặc không trả gợi ý: 2 nút dẫn thẳng tới trang + 1 câu FAQ
+      // có sẵn (trả lời cục bộ, không cần AI).
+      const FALLBACK_SUGGESTIONS = [
+        { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
+        { label: 'Xem các dịch vụ', action: 'dich-vu' },
+        { label: 'Đặt cọc thế nào?', action: 'none' }
+      ];
 
-      // Menu 3 gợi ý dưới mỗi câu trả lời của AI. Gợi ý do AI sinh cùng lúc với
-      // câu trả lời nên bám sát nội dung; bấm vào sẽ gửi như khách tự gõ.
-      const suggestNext = (list, local) => {
-        addQuickReplies(list.slice(0, 3), async (choice) => {
-          if (local && FAQ[choice]) {
-            addMsg(choice, 'user');
-            await botSay(FAQ[choice]);
+      // Menu 3 gợi ý dưới mỗi câu trả lời của AI, mỗi gợi ý là {label, action}.
+      // Có action -> bấm là chuyển thẳng tới trang/mục đó (không tốn lượt gọi AI);
+      // action "none" -> gửi như khách tự gõ (hoặc trả lời FAQ cục bộ khi AI đang lỗi).
+      const suggestNext = (items, local) => {
+        const list = items.slice(0, 3);
+        addQuickReplies(list.map((s) => s.label), async (label) => {
+          const item = list.find((s) => s.label === label);
+          const action = item && CHAT_ACTIONS[item.action];
+          if (action) {
+            addMsg(label, 'user');
+            await botSay(`Mình đưa bạn tới ${action.label} ngay nhé.`, 400);
+            runChatAction(item.action);
+            suggestNext(list, local);
+            return;
+          }
+          if (local && FAQ[label]) {
+            addMsg(label, 'user');
+            await botSay(FAQ[label]);
             suggestNext(FALLBACK_SUGGESTIONS, true);
             return;
           }
-          sendToAI(choice);
+          sendToAI(label);
         });
+      };
+
+      // Điều hướng theo ý khách: AI trả "action" (xem ACTIONS trong server/server.js),
+      // hiện câu trả lời trước rồi mới chuyển trang. Mobile thì đóng khung chat để
+      // khách thấy ngay trang đích (khung chat phủ gần hết màn hình nhỏ).
+      const goHomeTop = () => {
+        const h = window.location.hash;
+        if (h.indexOf('#/') === 0 && h !== '#/') {
+          if (window.AlohaRouter) window.AlohaRouter.showView('');
+          history.replaceState(null, '', '#/');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      // label: tên đích trong câu "Mình đưa bạn tới ...", cta: chữ trên nút gợi ý dự phòng.
+      const CHAT_ACTIONS = {
+        'dat-lich': { label: 'trang Đặt lịch', cta: 'Đặt lịch chụp ngay', go: () => { window.location.hash = '/dat-lich'; } },
+        'chon-anh': { label: 'mục Ảnh của tôi', cta: 'Xem ảnh của tôi', go: () => { window.location.hash = '/chon-anh'; } },
+        'dich-vu': { label: 'phần Dịch vụ', cta: 'Xem các dịch vụ', go: () => goHomeThenFind('dich-vu') },
+        'concept': { label: 'thư viện Concept', cta: 'Xem các concept', go: () => goHomeThenFind('concept') },
+        'album': { label: 'Album ảnh đẹp', cta: 'Xem album ảnh đẹp', go: () => goHomeThenFind('album') },
+        'gioi-thieu': { label: 'phần Giới thiệu', cta: 'Xem giới thiệu studio', go: () => goHomeThenFind('gioi-thieu') },
+        'tin-tuc': { label: 'phần Tin tức', cta: 'Xem tin tức', go: () => goHomeThenFind('tin-tuc') },
+        'trang-chu': { label: 'Trang chủ', cta: 'Về trang chủ', go: goHomeTop }
+      };
+      const runChatAction = (name) => {
+        const action = CHAT_ACTIONS[name];
+        if (!action) return;
+        setTimeout(() => {
+          action.go();
+          if (window.innerWidth <= 720) chatPanel.classList.remove('open');
+        }, 900);
+      };
+
+      // Dự phòng khi AI không dùng được: nhận diện ý rõ ràng bằng từ khoá để vẫn
+      // dẫn khách đi được. Câu hỏi thông tin ("quy trình...", "bao nhiêu...") thì bỏ qua.
+      const LOCAL_INTENTS = [
+        ['dat-lich', /dat lich|dat hen|hen lich|dat coc|book/],
+        ['chon-anh', /chon anh|anh cua toi|xem anh cua|chinh sua anh|sua anh/],
+        ['concept', /concept/],
+        ['album', /album/],
+        ['dich-vu', /dich vu/],
+        ['gioi-thieu', /gioi thieu/],
+        ['tin-tuc', /tin tuc/],
+        ['trang-chu', /trang chu/]
+      ];
+      const detectLocalAction = (raw) => {
+        const t = stripDiacritics(raw);
+        if (/\?|the nao|nhu nao|ra sao|la gi|bao nhieu|quy trinh|co .* khong/.test(t)) return null;
+        const hit = LOCAL_INTENTS.find(([, re]) => re.test(t));
+        return hit ? hit[0] : null;
+      };
+
+      // Khách nêu rõ ý muốn (đặt lịch, xem ảnh...) thì menu PHẢI có nút dẫn tới đúng
+      // trang đó, kể cả khi AI quên (đặt lên đầu, giữ tối đa 3). Không tự chuyển
+      // trang, khách bấm nút mới chuyển.
+      const withIntentButton = (list, raw) => {
+        const name = detectLocalAction(raw);
+        if (!name || list.some((s) => s.action === name)) return list;
+        return [{ label: CHAT_ACTIONS[name].cta, action: name }, ...list].slice(0, 3);
       };
 
       const sendToAI = async (text) => {
@@ -590,8 +665,11 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             addMsg(data.reply, 'bot');
             aiHistory.push({ role: 'assistant', content: data.reply });
-            if (Array.isArray(data.suggestions) && data.suggestions.length) {
-              next = data.suggestions;
+            const valid = Array.isArray(data.suggestions)
+              ? data.suggestions.filter((s) => s && typeof s.label === 'string' && s.label)
+              : [];
+            if (valid.length) {
+              next = valid;
               local = false;
             }
           }
@@ -601,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
           aiBusy = false;
           sendBtn.disabled = false;
-          suggestNext(next, local);
+          suggestNext(withIntentButton(next, text), local);
         }
       };
 

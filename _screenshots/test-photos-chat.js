@@ -141,6 +141,8 @@ const BASE = 'file:///D:/PhanTichWeb/';
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
+    await page.setRequestInterception(true);
+    page.on('request', (r) => (r.url().includes(':3001/') ? r.abort() : r.continue()));
     await page.goto(BASE + 'index.html', { waitUntil: 'networkidle0' });
     await page.evaluate(() => localStorage.setItem('aloha_auth', JSON.stringify({ role: 'khach-hang', name: 'Test', phone: '0900000009', loginAt: Date.now() })));
     await page.reload({ waitUntil: 'networkidle0' });
