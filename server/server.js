@@ -1,11 +1,11 @@
 // ALOHA Baby — server proxy nhỏ cho chatbot tư vấn.
-// Nhiệm vụ DUY NHẤT: nhận tin nhắn từ chatbot trên trình duyệt, gọi Claude API
-// (Anthropic) bằng API key giữ ở đây (biến môi trường, không bao giờ gửi về
+// Nhiệm vụ DUY NHẤT: nhận tin nhắn từ chatbot trên trình duyệt, gọi Gemini API
+// (Google Gemini) bằng API key giữ ở đây (biến môi trường, không bao giờ gửi về
 // client), rồi trả lời về. Các trang HTML khác của site (đặt lịch, chọn ảnh,
 // CRM...) vẫn là site tĩnh như cũ, KHÔNG đi qua server này.
 //
 // Chạy:
-//   copy .env.example -> .env, điền ANTHROPIC_API_KEY thật vào .env
+//   copy .env.example -> .env, điền GEMINI_API_KEY thật vào .env
 //   npm install
 //   npm start
 // Server mặc định chạy ở http://localhost:3001
@@ -15,8 +15,8 @@ const express = require('express');
 const cors = require('cors');
 
 const PORT = process.env.PORT || 3001;
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
-const API_KEY = process.env.ANTHROPIC_API_KEY;
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const API_KEY = process.env.GEMINI_API_KEY;
 
 // Dữ liệu dịch vụ/giá THAM KHẢO — khớp với SERVICE_INFO trong js/script.js
 // (kịch bản quick-reply) để chatbot AI không tư vấn lệch với UI kịch bản có
@@ -44,7 +44,9 @@ Nguyên tắc trả lời bắt buộc:
 - Chỉ tư vấn trong phạm vi dịch vụ chụp ảnh của ALOHA Baby (5 dịch vụ trên, chụp tại nhà, concept, quy trình đặt lịch/đổi lịch/chọn ảnh). Nếu khách hỏi ngoài phạm vi (không liên quan chụp ảnh/studio), lịch sự từ chối và hướng về dịch vụ studio.
 - KHÔNG tự chốt lịch hay nhận cọc trong khung chat. Khi khách muốn đặt lịch, hướng dẫn họ bấm nút "Đặt lịch ngay" trên trang để vào đúng luồng đặt lịch chính thức.
 - KHÔNG bịa số liệu cụ thể về mức cọc, chính sách đổi/huỷ lịch, số ảnh được chỉnh sửa miễn phí — những thông số này chưa được studio chốt, chỉ nói "Sales sẽ tư vấn chi tiết khi bạn đặt lịch".
-- Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.`;
+- Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.
+
+Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 câu hỏi tiếp theo mà khách có khả năng muốn hỏi nhất sau câu trả lời vừa rồi). Mỗi gợi ý viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không trùng câu khách vừa hỏi, không lặp lại nhau.`;
 
 const app = express();
 app.use(cors());
@@ -65,29 +67,67 @@ app.post('/api/chat', async (req, res) => {
     .slice(-20)
     .map(m => ({ role: m.role, content: m.content.slice(0, 2000) }));
 
+  // Gemini gọi vai trò trả lời của bot là 'model', không phải 'assistant'.
+  const contents = cleanMessages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages: cleanMessages
-      })
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+    const payload = JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        generationConfig: {
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              reply: { type: 'STRING' },
+              suggestions: { type: 'ARRAY', items: { type: 'STRING' } }
+            },
+            required: ['reply', 'suggestions']
+          }
+        }
     });
 
-    const data = await response.json();
+    // Free tier hay báo 503/429 tạm thời khi quá tải: thử lại tối đa 2 lần rồi mới báo lỗi.
+    let response, data;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+        body: payload
+      });
+      data = await response.json();
+      if (response.ok || (response.status !== 503 && response.status !== 429)) break;
+      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+    }
     if (!response.ok) {
-      console.error('Anthropic API error:', data);
+      console.error('Gemini API error:', data);
       return res.status(502).json({ error: 'upstream_error', detail: data.error && data.error.message });
     }
-    const text = (data.content || []).map(block => block.text || '').join('').trim();
-    return res.json({ reply: text || 'Xin lỗi, mình chưa nghĩ ra câu trả lời phù hợp. Bạn có thể gọi hotline 0938.125.222 để được hỗ trợ trực tiếp nhé.' });
+    if (data.promptFeedback && data.promptFeedback.blockReason) {
+      console.error('Gemini blocked prompt:', data.promptFeedback);
+    }
+    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const text = parts.map(p => p.text || '').join('').trim();
+    let reply = text;
+    let suggestions = [];
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.reply === 'string') reply = parsed.reply.trim();
+      if (parsed && Array.isArray(parsed.suggestions)) {
+        suggestions = parsed.suggestions
+          .filter(s => typeof s === 'string' && s.trim())
+          .map(s => s.trim().slice(0, 80))
+          .slice(0, 3);
+      }
+    } catch (e) {
+      // Không phải JSON: giữ nguyên text làm câu trả lời, frontend tự dùng gợi ý dự phòng.
+    }
+    return res.json({ reply: reply || 'Xin lỗi, mình chưa nghĩ ra câu trả lời phù hợp. Bạn có thể gọi hotline 0938.125.222 để được hỗ trợ trực tiếp nhé.', suggestions });
   } catch (err) {
     console.error('Chat proxy error:', err);
     return res.status(500).json({ error: 'server_error' });
@@ -98,5 +138,5 @@ app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY }));
 
 app.listen(PORT, () => {
   console.log(`ALOHA Baby chat server đang chạy tại http://localhost:${PORT}`);
-  if (!API_KEY) console.warn('CẢNH BÁO: chưa có ANTHROPIC_API_KEY trong .env — chatbot AI sẽ không trả lời được.');
+  if (!API_KEY) console.warn('CẢNH BÁO: chưa có GEMINI_API_KEY trong .env — chatbot AI sẽ không trả lời được.');
 });

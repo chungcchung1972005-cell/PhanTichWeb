@@ -2,7 +2,7 @@
   "name": "aloha-baby-chat-server",
   "version": "1.0.0",
   "private": true,
-  "description": "Server proxy nho de chatbot tu van ALOHA Baby goi Claude API an toan (giu API key phia server, khong lo ra client).",
+  "description": "Server proxy nho de chatbot tu van ALOHA Baby goi Gemini API an toan (giu API key phia server, khong lo ra client).",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {

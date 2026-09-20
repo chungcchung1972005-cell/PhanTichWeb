@@ -548,18 +548,34 @@ document.addEventListener('DOMContentLoaded', () => {
       let aiBusy = false;
       const sendBtn = chatInputForm.querySelector('.chat-send');
 
-      chatInputForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if (!text || aiBusy) return;
+      // Dự phòng khi AI lỗi hoặc không trả gợi ý: 3 câu FAQ có sẵn (trả lời cục bộ, không cần AI).
+      const FALLBACK_SUGGESTIONS = ['Có mấy loại dịch vụ?', 'Đặt cọc thế nào?', 'Studio ở đâu?'];
 
-        chatInput.value = '';
+      // Menu 3 gợi ý dưới mỗi câu trả lời của AI. Gợi ý do AI sinh cùng lúc với
+      // câu trả lời nên bám sát nội dung; bấm vào sẽ gửi như khách tự gõ.
+      const suggestNext = (list, local) => {
+        addQuickReplies(list.slice(0, 3), async (choice) => {
+          if (local && FAQ[choice]) {
+            addMsg(choice, 'user');
+            await botSay(FAQ[choice]);
+            suggestNext(FALLBACK_SUGGESTIONS, true);
+            return;
+          }
+          sendToAI(choice);
+        });
+      };
+
+      const sendToAI = async (text) => {
+        if (!text || aiBusy) return;
+        chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
         addMsg(text, 'user');
         aiHistory.push({ role: 'user', content: text });
 
         aiBusy = true;
         sendBtn.disabled = true;
         const typing = addTyping();
+        let next = FALLBACK_SUGGESTIONS;
+        let local = true;
 
         try {
           const res = await fetch(CHAT_API_URL, {
@@ -574,6 +590,10 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             addMsg(data.reply, 'bot');
             aiHistory.push({ role: 'assistant', content: data.reply });
+            if (Array.isArray(data.suggestions) && data.suggestions.length) {
+              next = data.suggestions;
+              local = false;
+            }
           }
         } catch (err) {
           typing.remove();
@@ -581,7 +601,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
           aiBusy = false;
           sendBtn.disabled = false;
+          suggestNext(next, local);
         }
+      };
+
+      chatInputForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || aiBusy) return;
+        chatInput.value = '';
+        sendToAI(text);
       });
     }
   }

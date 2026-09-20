@@ -102,8 +102,16 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 }
 
 .section-head h2 {
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(32px, 8vw, 38px);
   margin-bottom: 12px;
+}
+
+/* "Giới thiệu" và "Video giới thiệu" không dùng .section-head (căn trái, đi
+   kèm ảnh) nhưng vẫn nên nổi bật ngang các tiêu đề section khác - trước đây
+   rơi về cỡ h2 mặc định của trình duyệt, nhỏ và không đồng nhất. */
+.about-content h2, .video-text h2 {
+  font-size: clamp(32px, 8vw, 38px);
+  margin-bottom: 14px;
 }
 
 .section-head p { color: var(--navy-500); font-size: 16px; }
@@ -895,6 +903,15 @@ body.hide-floating-book .floating-book { display: none; }
 }
 
 @media (max-width: 1120px) {
+  /* Khoảng cách giữa các section (96px trên/dưới ở desktop) quá xa khi nội
+     dung đã thu hẹp lại 1 cột trên tablet/mobile - giảm xuống cho gọn, tiêu
+     đề mỗi phần cũng gần nội dung của nó hơn thay vì trôi giữa 2 khoảng trắng
+     lớn. Giảm thêm 1 nấc nữa ở ≤560px (xem bên dưới). */
+  .hero { padding: 56px 0 64px; }
+  .services, .concept, .about, .album, .news { padding: 64px 0; }
+  .process, .video { padding: 0 0 64px; }
+  .section-head { margin-bottom: 36px; }
+
   .hero .container { grid-template-columns: 1fr; text-align: center; }
   .hero p.lead { margin-left: auto; margin-right: auto; }
   .hero-cta { justify-content: center; }
@@ -918,6 +935,12 @@ body.hide-floating-book .floating-book { display: none; }
 }
 
 @media (max-width: 560px) {
+  /* Giảm thêm 1 nấc nữa so với ≤1120px cho màn điện thoại thật. */
+  .hero { padding: 44px 0 48px; }
+  .services, .concept, .about, .album, .news { padding: 48px 0; }
+  .process, .video { padding: 0 0 48px; }
+  .section-head { margin-bottom: 28px; }
+
   .container { padding: 0 16px; }
   .topbar .topbar-links { display: none; }
   .nav { height: 66px; gap: 8px; }
