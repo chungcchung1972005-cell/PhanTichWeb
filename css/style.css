@@ -333,6 +333,7 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .hero h1 em { font-style: normal; color: var(--pink-600); }
 .hero p.lead { font-size: 17px; color: var(--navy-500); max-width: 480px; margin-bottom: 32px; }
 .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+.hero-cta .btn { border-radius: var(--radius-md); }
 
 .hero-stats { display: flex; gap: 32px; }
 .hero-stats div strong { display: block; font-family: var(--font-heading); font-size: 24px; color: var(--navy-900); }

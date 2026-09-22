@@ -1,682 +1,836 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ALOHA Baby | Studio chụp ảnh em bé & gia đình tại Hà Nội</title>
-<meta name="description" content="ALOHA Baby - Studio chụp ảnh bé lớn, sinh nhật, bầu, gia đình và newborn tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội. Đặt lịch và đặt cọc trực tuyến.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/pages.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALOHA Baby | Studio chụp ảnh em bé & gia đình tại Hà Nội</title>
+  <meta name="description"
+    content="ALOHA Baby - Studio chụp ảnh bé lớn, sinh nhật, bầu, gia đình và newborn tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội. Đặt lịch và đặt cọc trực tuyến.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pages.css">
 </head>
+
 <body>
 
-<script src="js/auth.js"></script>
-<script src="js/data-store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/data-store.js"></script>
 
-<!-- Topbar -->
-<div class="topbar">
-  <div class="container">
-    <div class="topbar-links">
-      <span>📍 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội</span>
-      <a href="tel:0938125222">📞 Hotline: 0938.125.222</a>
-    </div>
-    <div class="topbar-links">
-      <a href="#" id="topbarPartner" title="Mở khung chat để liên hệ hợp tác">Trở thành đối tác</a>
-      <a href="#" id="topbarSupport" title="Mở khung chat hỗ trợ">Hỗ trợ</a>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <span>📍 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội</span>
+        <a href="tel:0938125222">📞 Hotline: 0938.125.222</a>
+      </div>
+      <div class="topbar-links">
+        <a href="#" id="topbarPartner" title="Mở khung chat để liên hệ hợp tác">Trở thành đối tác</a>
+        <a href="#" id="topbarSupport" title="Mở khung chat hỗ trợ">Hỗ trợ</a>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Header -->
-<header class="site-header">
-  <nav class="nav container">
-    <a href="#/" class="logo">
-      <span class="mark">A</span>
-      <span class="word">ALOHA <span>Baby</span></span>
-    </a>
+  <!-- Header -->
+  <header class="site-header">
+    <nav class="nav container">
+      <a href="#/" class="logo">
+        <span class="mark">A</span>
+        <span class="word">ALOHA <span>Baby</span></span>
+      </a>
 
-    <ul class="nav-links" id="navLinks">
-      <li><a href="#/" id="navHomeLink" class="active">Trang chủ</a></li>
-      <li><a href="#gioi-thieu">Giới thiệu</a></li>
-      <li class="has-dropdown">
-        <a href="#dich-vu">Dịch vụ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
-        <ul class="dropdown">
-          <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-          <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-          <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-          <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-          <li><a href="#dich-vu">Chụp ảnh Newborn</a></li>
-        </ul>
-      </li>
-      <li><a href="#" id="navPricing" title="Mở khung chat tư vấn giá">Báo giá</a></li>
-      <li><a href="#" id="navPromo" title="Mở khung chat hỏi khuyến mại hiện tại">Khuyến mại</a></li>
-      <li><a href="#tin-tuc">Tin tức</a></li>
-      <li><a href="#album">Album ảnh đẹp</a></li>
-    </ul>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#/" id="navHomeLink" class="active">Trang chủ</a></li>
+        <li><a href="#gioi-thieu">Giới thiệu</a></li>
+        <li class="has-dropdown">
+          <a href="#dich-vu">Dịch vụ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg></a>
+          <ul class="dropdown">
+            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
+            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
+            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
+            <li><a href="#dich-vu">Chụp ảnh Newborn</a></li>
+          </ul>
+        </li>
+        <li><a href="#" id="navPricing" title="Mở khung chat tư vấn giá">Báo giá</a></li>
+        <li><a href="#" id="navPromo" title="Mở khung chat hỏi khuyến mại hiện tại">Khuyến mại</a></li>
+        <li><a href="#tin-tuc">Tin tức</a></li>
+        <li><a href="#album">Album ảnh đẹp</a></li>
+      </ul>
 
-    <div class="nav-actions">
-      <div class="nav-util">
-        <button type="button" class="icon-btn" id="searchBtn" aria-label="Tìm kiếm" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-        <div class="nav-util-panel" id="searchPanel">
-          <input type="text" id="searchInput" placeholder="Tìm dịch vụ, concept, trang...">
-          <div class="nav-util-results" id="searchResults"></div>
+      <div class="nav-actions">
+        <div class="nav-util">
+          <button type="button" class="icon-btn" id="searchBtn" aria-label="Tìm kiếm" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </button>
+          <div class="nav-util-panel" id="searchPanel">
+            <input type="text" id="searchInput" placeholder="Tìm dịch vụ, concept, trang...">
+            <div class="nav-util-results" id="searchResults"></div>
+          </div>
         </div>
-      </div>
-      <div class="nav-util">
-        <button type="button" class="icon-btn" id="notifBtn" aria-label="Thông báo" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
-          <span class="dot" id="notifDot" hidden></span>
-        </button>
-        <div class="nav-util-panel" id="notifPanel">
-          <div class="nav-util-header">Thông báo</div>
-          <div class="nav-util-results" id="notifList"></div>
+        <div class="nav-util">
+          <button type="button" class="icon-btn" id="notifBtn" aria-label="Thông báo" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+              <path d="M10 20a2 2 0 0 0 4 0" />
+            </svg>
+            <span class="dot" id="notifDot" hidden></span>
+          </button>
+          <div class="nav-util-panel" id="notifPanel">
+            <div class="nav-util-header">Thông báo</div>
+            <div class="nav-util-results" id="notifList"></div>
+          </div>
         </div>
+        <span id="navAuthArea">
+          <a href="login.html" class="btn btn-outline btn-sm">Đăng nhập</a>
+          <a href="login.html?mode=register" class="btn btn-primary btn-sm">Đăng ký</a>
+        </span>
+        <button class="nav-toggle" id="navToggle" aria-label="Mở menu">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-      <span id="navAuthArea">
-        <a href="login.html" class="btn btn-outline btn-sm">Đăng nhập</a>
-        <a href="login.html?mode=register" class="btn btn-primary btn-sm">Đăng ký</a>
-      </span>
-      <button class="nav-toggle" id="navToggle" aria-label="Mở menu">
-        <span></span><span></span><span></span>
-      </button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ============================== VIEW: Trang chủ ============================== -->
+    <div id="view-home">
+
+      <!-- Hero -->
+      <section class="hero">
+        <div class="container">
+          <div class="hero-text reveal">
+            <span class="eyebrow">Địa chỉ chụp ảnh em bé được yêu thích tại Hà Nội</span>
+            <h1>Lưu giữ từng khoảnh khắc <em>đáng yêu</em> của bé</h1>
+            <p class="lead">ALOHA Baby đồng hành cùng ba mẹ lưu giữ trọn vẹn từng cột mốc đầu đời của con, trong không
+              gian studio ấm áp và đội ngũ tận tâm.</p>
+            <div class="hero-cta">
+              <a href="#/dat-lich" class="btn btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M16 3v4M8 3v4M3 10h18" />
+                </svg>
+                Đặt lịch chụp ngay
+              </a>
+              <a href="#album" class="btn btn-outline">Xem album ảnh đẹp</a>
+            </div>
+            <!-- Số liệu minh họa - thay bằng số liệu thật của studio khi có -->
+            <div class="hero-stats">
+              <div><strong>500+</strong><span>Gia đình đã chụp</span></div>
+              <div><strong>05</strong><span>Dịch vụ chuyên biệt</span></div>
+              <div><strong>4.9/5</strong><span>Đánh giá khách hàng</span></div>
+            </div>
+          </div>
+
+          <div class="hero-visual reveal">
+            <div class="hero-card">
+              <img src="images/hero-baby.jpg" alt="Ảnh chụp em bé tại ALOHA Baby" loading="eager">
+            </div>
+            <div class="floating-chip chip-1">
+              <span class="ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 21s-7-4.35-9.5-8.5C.7 9.2 2.4 6 5.6 6c1.8 0 3.1 1 3.9 2.3.8 1.3 1 1.3 1 1.3s.2 0 1-1.3C12.3 7 13.6 6 15.4 6c3.2 0 4.9 3.2 3.1 6.5C16 16.65 12 21 12 21z" />
+                </svg>
+              </span>
+              Ảnh giao ngay trong ngày - Thu Hà test
+            </div>
+            <div class="floating-chip chip-2">2
+              <span class="ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+              Đặt lịch & cọc online
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services : 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md) -->
+      <section class="services" id="dich-vu">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2>5 dịch vụ đồng hành cùng con lớn khôn</h2>
+            <p>Mỗi cột mốc của con đều xứng đáng được lưu giữ bằng một bộ ảnh trọn vẹn.</p>
+          </div>
+
+          <div class="services-showcase reveal-stagger reveal">
+            <div class="showcase-main stagger-item">
+              <img src="images/services-main.jpg" alt="Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby" loading="lazy">
+              <span class="showcase-caption">Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby</span>
+            </div>
+            <div class="showcase-grid">
+              <a href="#/dat-lich" class="showcase-item stagger-item"
+                style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
+                <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="lazy">
+                <span>Bé lớn</span>
+              </a>
+              <a href="#/dat-lich" class="showcase-item stagger-item"
+                style="background:linear-gradient(135deg,#f6d365,#fda085);">
+                <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="lazy">
+                <span>Sinh nhật</span>
+              </a>
+              <a href="#/dat-lich" class="showcase-item stagger-item"
+                style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
+                <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="lazy">
+                <span>Bầu</span>
+              </a>
+              <a href="#/dat-lich" class="showcase-item stagger-item"
+                style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+                <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="lazy">
+                <span>Gia đình</span>
+              </a>
+              <a href="#/dat-lich" class="showcase-item stagger-item"
+                style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
+                <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="lazy">
+                <span>Newborn</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="services-extra reveal">
+            <div class="services-extra-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M3 11l9-8 9 8" />
+                <path d="M5 10v10h14V10" />
+                <path d="M9 20v-6h6v6" />
+              </svg>
+            </div>
+            <div class="services-extra-text">
+              <h4>Không thể đến studio? ALOHA Baby có dịch vụ chụp ảnh tại nhà</h4>
+              <p>Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen
+                thuộc.</p>
+            </div>
+            <a href="#/dat-lich" class="btn btn-outline btn-sm">Đặt lịch tại nhà</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Album ảnh đẹp -->
+      <section class="album" id="album">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2>Những bộ ảnh nổi bật tại ALOHA Baby</h2>
+            <p>Một vài album được ba mẹ yêu thích nhất, xem trọn bộ trong thư viện ảnh của studio.</p>
+          </div>
+          <!-- Ảnh minh họa (stock, miễn phí bản quyền) - chờ thay bằng ảnh thật của studio; caption cố tình dùng mô tả phong cách, không gắn tên khách hàng cụ thể -->
+          <div class="album-grid reveal-stagger reveal">
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
+              <img src="images/album-1.jpg" alt="Album ảnh Newborn nhẹ nhàng" loading="lazy">
+              <div class="album-info">
+                <h3>Newborn nhẹ nhàng</h3><span>Phong cách tự nhiên, ấm áp</span>
+              </div>
+            </div>
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+              <img src="images/album-2.jpg" alt="Album ảnh gia đình sum vầy" loading="lazy">
+              <div class="album-info">
+                <h3>Gia đình sum vầy</h3><span>Khoảnh khắc bên nhau</span>
+              </div>
+            </div>
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
+              <img src="images/album-3.jpg" alt="Album ảnh bầu ngọt ngào" loading="lazy">
+              <div class="album-info">
+                <h3>Bầu ngọt ngào</h3><span>Vintage nhẹ nhàng</span>
+              </div>
+            </div>
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
+              <img src="images/album-4.jpg" alt="Album ảnh sinh nhật rực rỡ" loading="lazy">
+              <div class="album-info">
+                <h3>Sinh nhật rực rỡ</h3><span>Đầy sắc màu, tràn niềm vui</span>
+              </div>
+            </div>
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
+              <img src="images/album-5.jpg" alt="Album ảnh bé lớn tinh nghịch" loading="lazy">
+              <div class="album-info">
+                <h3>Bé lớn tinh nghịch</h3><span>Ngoại cảnh & studio</span>
+              </div>
+            </div>
+            <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+              <img src="images/album-6.jpg" alt="Album ảnh Newborn đáng yêu" loading="lazy">
+              <div class="album-info">
+                <h3>Newborn đáng yêu</h3><span>Từng chi tiết nhỏ xinh</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Concept -->
+      <section class="concept" id="concept">
+        <div class="container">
+          <div class="concept-top reveal">
+            <div class="section-head">
+              <span class="eyebrow">Thư viện concept</span>
+              <h2>Chọn phong cách bạn yêu thích</h2>
+              <p>Từ nhẹ nhàng vintage đến rực rỡ ngoại cảnh, đa dạng concept phù hợp mọi gia đình.</p>
+            </div>
+            <button type="button" id="conceptChatBtn" class="btn btn-primary">Tư vấn concept ngay</button>
+          </div>
+
+          <div class="concept-grid reveal-stagger reveal">
+            <div class="concept-tile stagger-item"><img src="images/concept-bien.jpg" alt="Concept Biển"
+                loading="lazy"><span>Biển</span></div>
+            <div class="concept-tile stagger-item"><img src="images/concept-noel.jpg" alt="Concept Noel"
+                loading="lazy"><span>Noel</span></div>
+            <div class="concept-tile stagger-item"><img src="images/concept-sinh-nhat.jpg" alt="Concept Sinh nhật"
+                loading="lazy"><span>Sinh nhật</span></div>
+            <div class="concept-tile stagger-item"><img src="images/concept-vintage.jpg" alt="Concept Vintage"
+                loading="lazy"><span>Vintage</span></div>
+            <div class="concept-tile stagger-item"><img src="images/concept-han-quoc.jpg" alt="Concept Hàn Quốc"
+                loading="lazy"><span>Hàn Quốc</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section class="about" id="gioi-thieu">
+        <div class="container">
+          <div class="about-visual reveal">
+            <img src="images/about-studio.jpg" alt="Không gian studio ALOHA Baby" loading="lazy">
+          </div>
+          <div class="about-content reveal">
+            <h2>Một "thiên đường" nhỏ dành cho tuổi thơ của bé</h2>
+            <p style="color:var(--navy-500); font-size:15.5px;">Tọa lạc tại 35 Lê Văn Thiêm, Thanh Xuân, ALOHA Baby là
+              không gian studio rộng rãi dành riêng cho các buổi chụp ảnh em bé và gia đình, với phòng chụp tiêu chuẩn
+              newborn, đội ngũ chuyên nghiệp và quy trình chăm sóc bé tận tâm trong từng khung hình.</p>
+            <ul class="about-list">
+              <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg></span> Không gian studio rộng rãi, phòng chụp newborn đạt chuẩn nhiệt độ, an toàn cho bé</li>
+              <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg></span> Đội ngũ photographer & stylist giàu kinh nghiệm, tận tâm với từng bé</li>
+              <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg></span> Đặt lịch, đặt cọc và theo dõi ảnh hoàn toàn trực tuyến</li>
+              <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg></span> Cam kết bảo mật hình ảnh của bé, chỉ xem qua tài khoản của khách</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Video giới thiệu -->
+      <section class="video">
+        <div class="container">
+          <div class="video-frame reveal">
+            <img src="images/video-poster.jpg" alt="Hậu trường một buổi chụp tại ALOHA Baby" loading="lazy">
+            <div class="video-play">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+          <div class="video-text reveal">
+            <h2>Một ngày tại ALOHA Baby</h2>
+            <p style="color:var(--navy-500); font-size:15.5px;">Cùng xem hậu trường một buổi chụp thực tế tại studio, từ
+              lúc bé đến, makeup, tạo dáng cho đến khi nhận bộ ảnh hoàn thiện.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Process -->
+      <section class="process">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="eyebrow">Quy trình</span>
+            <h2>Đặt lịch chỉ trong 4 bước</h2>
+          </div>
+          <div class="process-grid reveal-stagger reveal">
+            <div class="process-card stagger-item">
+              <div class="num">1</div>
+              <h4>Chọn dịch vụ & concept</h4>
+              <p>Chọn gói chụp và phong cách bạn yêu thích, hoặc để studio tư vấn.</p>
+            </div>
+            <div class="process-card stagger-item">
+              <div class="num">2</div>
+              <h4>Đặt lịch & đặt cọc</h4>
+              <p>Chọn khung giờ còn trống và đặt cọc online để giữ lịch.</p>
+            </div>
+            <div class="process-card stagger-item">
+              <div class="num">3</div>
+              <h4>Tận hưởng buổi chụp</h4>
+              <p>Ekip đồng hành cùng bé trong không gian studio ấm áp.</p>
+            </div>
+            <div class="process-card stagger-item">
+              <div class="num">4</div>
+              <h4>Chọn ảnh & nhận ảnh</h4>
+              <p>Chọn ảnh yêu thích và theo dõi tiến độ chỉnh sửa ngay trên web.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tin tức - Sự kiện -->
+      <!-- Tiêu đề bài viết minh họa - thay bằng bài viết thật khi studio đăng tin tức -->
+      <section class="news" id="tin-tuc">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2>Kinh nghiệm chụp ảnh cho bé từ ALOHA Baby</h2>
+          </div>
+          <div class="news-grid reveal-stagger reveal">
+            <div class="news-card stagger-item">
+              <div class="news-thumb" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
+                <img src="images/news-1.jpg" alt="Nên chụp ảnh newborn cho bé vào thời điểm nào?" loading="lazy">
+              </div>
+              <div class="news-body">
+                <div class="news-date">Kinh nghiệm</div>
+                <h3>Nên chụp ảnh newborn cho bé vào thời điểm nào?</h3>
+                <p>Gợi ý thời điểm và cách chuẩn bị để có bộ ảnh newborn đẹp và an toàn cho bé.</p>
+                <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
+              </div>
+            </div>
+            <div class="news-card stagger-item">
+              <div class="news-thumb" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+                <img src="images/news-2.jpg" alt="Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby"
+                  loading="lazy">
+              </div>
+              <div class="news-body">
+                <div class="news-date">Hướng dẫn</div>
+                <h3>Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby</h3>
+                <p>Hướng dẫn từng bước đặt lịch, chọn concept và giữ khung giờ chụp yêu thích.</p>
+                <a href="#/dat-lich">Đặt lịch ngay →</a>
+              </div>
+            </div>
+            <div class="news-card stagger-item">
+              <div class="news-thumb" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
+                <img src="images/news-3.jpg" alt="Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?"
+                  loading="lazy">
+              </div>
+              <div class="news-body">
+                <div class="news-date">Địa điểm</div>
+                <h3>Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?</h3>
+                <p>Không gian rộng rãi, đội ngũ tận tâm và quy trình chăm sóc bé xuyên suốt buổi chụp.</p>
+                <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-final">
+        <div class="container">
+          <div class="cta-box reveal">
+            <div>
+              <h2>Sẵn sàng lưu giữ khoảnh khắc của bé?</h2>
+              <p>Đặt lịch ngay hôm nay để giữ khung giờ chụp yêu thích của bạn.</p>
+            </div>
+            <a href="#/dat-lich" class="btn btn-primary">Đặt lịch ngay</a>
+          </div>
+        </div>
+      </section>
+
     </div>
-  </nav>
-</header>
 
-<main>
+    <!-- ============================== VIEW: Đặt lịch ============================== -->
+    <div id="view-dat-lich" hidden>
 
-  <!-- ============================== VIEW: Trang chủ ============================== -->
-  <div id="view-home">
-
-    <!-- Hero -->
-    <section class="hero">
-      <div class="container">
-        <div class="hero-text reveal">
-          <span class="eyebrow">Địa chỉ chụp ảnh em bé được yêu thích tại Hà Nội</span>
-          <h1>Lưu giữ từng khoảnh khắc <em>đáng yêu</em> của bé</h1>
-          <p class="lead">ALOHA Baby đồng hành cùng ba mẹ lưu giữ trọn vẹn từng cột mốc đầu đời của con, trong không gian studio ấm áp và đội ngũ tận tâm.</p>
-          <div class="hero-cta">
-            <a href="#/dat-lich" class="btn btn-primary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-              Đặt lịch chụp ngay
-            </a>
-            <a href="#album" class="btn btn-outline">Xem album ảnh đẹp</a>
-          </div>
-          <!-- Số liệu minh họa - thay bằng số liệu thật của studio khi có -->
-          <div class="hero-stats">
-            <div><strong>500+</strong><span>Gia đình đã chụp</span></div>
-            <div><strong>05</strong><span>Dịch vụ chuyên biệt</span></div>
-            <div><strong>4.9/5</strong><span>Đánh giá khách hàng</span></div>
+      <section class="page-header">
+        <div class="container">
+          <div class="breadcrumb"><a href="#/">Trang chủ</a> / Đặt lịch chụp</div>
+          <h1>Đặt lịch chụp ảnh</h1>
+          <p>Khung giờ cập nhật theo thời gian thực, không lo trùng lịch với khách khác.</p>
+          <div class="bk-stepper" id="bkStepper">
+            <div class="bk-step active" data-step="1"><span>1</span>Dịch vụ</div>
+            <div class="bk-step" data-step="2"><span>2</span>Ngày & giờ</div>
+            <div class="bk-step" data-step="3"><span>3</span>Xác nhận</div>
           </div>
         </div>
+      </section>
 
-        <div class="hero-visual reveal">
-          <div class="hero-card">
-            <img src="images/hero-baby.jpg" alt="Ảnh chụp em bé tại ALOHA Baby" loading="eager">
-          </div>
-          <div class="floating-chip chip-1">
-            <span class="ico">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.5-8.5C.7 9.2 2.4 6 5.6 6c1.8 0 3.1 1 3.9 2.3.8 1.3 1 1.3 1 1.3s.2 0 1-1.3C12.3 7 13.6 6 15.4 6c3.2 0 4.9 3.2 3.1 6.5C16 16.65 12 21 12 21z"/></svg>
-            </span>
-            Ảnh giao trong 7 ngày
-          </div>
-          <div class="floating-chip chip-2">
-            <span class="ico">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </span>
-            Đặt lịch & cọc online
-          </div>
-        </div>
-      </div>
-    </section>
+      <section class="bk-body">
+        <div class="container bk-container">
 
-    <!-- Services : 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md) -->
-    <section class="services" id="dich-vu">
-      <div class="container">
-        <div class="section-head reveal">
-          <h2>5 dịch vụ đồng hành cùng con lớn khôn</h2>
-          <p>Mỗi cột mốc của con đều xứng đáng được lưu giữ bằng một bộ ảnh trọn vẹn.</p>
-        </div>
+          <div class="bk-main">
 
-        <div class="services-showcase reveal-stagger reveal">
-          <div class="showcase-main stagger-item">
-            <img src="images/services-main.jpg" alt="Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby" loading="lazy">
-            <span class="showcase-caption">Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby</span>
-          </div>
-          <div class="showcase-grid">
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-              <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="lazy">
-              <span>Bé lớn</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
-              <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="lazy">
-              <span>Sinh nhật</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-              <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="lazy">
-              <span>Bầu</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="lazy">
-              <span>Gia đình</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
-              <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="lazy">
-              <span>Newborn</span>
-            </a>
-          </div>
-        </div>
+            <!-- Bước 1: dịch vụ -->
+            <div class="bk-panel" id="step1">
+              <h2>Chọn dịch vụ</h2>
+              <div class="bk-service-grid" id="bkServiceGrid">
+                <button type="button" class="bk-service" data-service="Bé lớn">
+                  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="7" r="3.4" />
+                      <path d="M5.5 21v-1.5a6.5 6.5 0 0 1 13 0V21" />
+                    </svg></div>
+                  <span>Bé lớn</span>
+                </button>
+                <button type="button" class="bk-service" data-service="Sinh nhật">
+                  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2v3" />
+                      <path d="M9 6c0 1.4 1.1 1.5 1.1 2.8S9 11 9 12h6c0-1.3-1.1-1.6-1.1-3S15 7.4 15 6" />
+                      <rect x="4" y="12" width="16" height="8" rx="2" />
+                      <path d="M4 16h16" />
+                    </svg></div>
+                  <span>Sinh nhật</span>
+                </button>
+                <button type="button" class="bk-service" data-service="Bầu">
+                  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M12 21s-7-4.35-9.5-8.5C.7 9.2 2.4 6 5.6 6c1.8 0 3.1 1 3.9 2.3.8 1.3 1 1.3 1 1.3s.2 0 1-1.3C12.3 7 13.6 6 15.4 6c3.2 0 4.9 3.2 3.1 6.5C16 16.65 12 21 12 21z" />
+                    </svg></div>
+                  <span>Bầu</span>
+                </button>
+                <button type="button" class="bk-service" data-service="Gia đình">
+                  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="7" cy="8" r="2.4" />
+                      <circle cx="17" cy="8" r="2.4" />
+                      <circle cx="12" cy="6" r="1.8" />
+                      <path d="M2.5 20.5c0-3.2 2-5 4.5-5s4.5 1.8 4.5 5" />
+                      <path d="M12.5 20.5c0-2.6 1.6-4 3.5-4s3.5 1.4 3.5 4" />
+                    </svg></div>
+                  <span>Gia đình</span>
+                </button>
+                <button type="button" class="bk-service" data-service="Newborn">
+                  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10 2h4" />
+                      <path
+                        d="M11 2v3.5c0 .5-.3.9-.7 1.2C9.3 7.4 8.5 8.6 8.5 10v9a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-9c0-1.4-.8-2.6-1.8-3.3-.4-.3-.7-.7-.7-1.2V2" />
+                      <path d="M8.5 13h7" />
+                    </svg></div>
+                  <span>Newborn</span>
+                </button>
+              </div>
+            </div>
 
-        <div class="services-extra reveal">
-          <div class="services-extra-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-          </div>
-          <div class="services-extra-text">
-            <h4>Không thể đến studio? ALOHA Baby có dịch vụ chụp ảnh tại nhà</h4>
-            <p>Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen thuộc.</p>
-          </div>
-          <a href="#/dat-lich" class="btn btn-outline btn-sm">Đặt lịch tại nhà</a>
-        </div>
-      </div>
-    </section>
+            <!-- Bước 2: ngày & giờ (real-time) -->
+            <div class="bk-panel" id="step2" hidden>
+              <h2>Chọn ngày & khung giờ</h2>
+              <div class="bk-live-badge"><span class="bk-live-dot"></span> Cập nhật real-time · làm mới lúc <span
+                  id="bkLastUpdate">--:--:--</span></div>
+              <div class="bk-date-row" id="bkDateRow"></div>
+              <div class="bk-slot-grid" id="bkSlotGrid"></div>
+              <p class="bk-legend">
+                <span><i class="dot free"></i> Còn trống</span>
+                <span><i class="dot holding"></i> Người khác đang giữ</span>
+                <span><i class="dot full"></i> Đã đầy</span>
+                <span><i class="dot mine"></i> Đang giữ cho bạn</span>
+              </p>
+            </div>
 
-    <!-- Album ảnh đẹp -->
-    <section class="album" id="album">
-      <div class="container">
-        <div class="section-head reveal">
-          <h2>Những bộ ảnh nổi bật tại ALOHA Baby</h2>
-          <p>Một vài album được ba mẹ yêu thích nhất, xem trọn bộ trong thư viện ảnh của studio.</p>
-        </div>
-        <!-- Ảnh minh họa (stock, miễn phí bản quyền) - chờ thay bằng ảnh thật của studio; caption cố tình dùng mô tả phong cách, không gắn tên khách hàng cụ thể -->
-        <div class="album-grid reveal-stagger reveal">
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-            <img src="images/album-1.jpg" alt="Album ảnh Newborn nhẹ nhàng" loading="lazy">
-            <div class="album-info"><h3>Newborn nhẹ nhàng</h3><span>Phong cách tự nhiên, ấm áp</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-            <img src="images/album-2.jpg" alt="Album ảnh gia đình sum vầy" loading="lazy">
-            <div class="album-info"><h3>Gia đình sum vầy</h3><span>Khoảnh khắc bên nhau</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-            <img src="images/album-3.jpg" alt="Album ảnh bầu ngọt ngào" loading="lazy">
-            <div class="album-info"><h3>Bầu ngọt ngào</h3><span>Vintage nhẹ nhàng</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
-            <img src="images/album-4.jpg" alt="Album ảnh sinh nhật rực rỡ" loading="lazy">
-            <div class="album-info"><h3>Sinh nhật rực rỡ</h3><span>Đầy sắc màu, tràn niềm vui</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
-            <img src="images/album-5.jpg" alt="Album ảnh bé lớn tinh nghịch" loading="lazy">
-            <div class="album-info"><h3>Bé lớn tinh nghịch</h3><span>Ngoại cảnh & studio</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-            <img src="images/album-6.jpg" alt="Album ảnh Newborn đáng yêu" loading="lazy">
-            <div class="album-info"><h3>Newborn đáng yêu</h3><span>Từng chi tiết nhỏ xinh</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
+            <!-- Bước 3: xác nhận -->
+            <div class="bk-panel" id="step3" hidden>
+              <h2>Thông tin của bé & xác nhận</h2>
+              <form class="bk-form" id="bkForm">
+                <div class="bk-field">
+                  <label for="bkChildName">Tên bé</label>
+                  <input type="text" id="bkChildName" placeholder="VD: Bé Sữa">
+                </div>
+                <div class="bk-field">
+                  <label for="bkChildDob">Ngày sinh / dự sinh</label>
+                  <input type="date" id="bkChildDob">
+                </div>
+                <div class="bk-field">
+                  <label for="bkPeople">Số người trong ảnh</label>
+                  <input type="number" id="bkPeople" min="1" value="1">
+                </div>
+                <div class="bk-field">
+                  <label for="bkPhone">Số điện thoại</label>
+                  <input type="tel" id="bkPhone" placeholder="VD: 0987 654 321">
+                </div>
+                <div class="bk-field bk-field-full">
+                  <label for="bkHealth">Lưu ý sức khỏe</label>
+                  <textarea id="bkHealth" placeholder="Dị ứng, lưu ý đặc biệt cho bé (nếu có)"></textarea>
+                </div>
+                <div class="bk-field bk-field-full">
+                  <label for="bkNote">Ghi chú thêm</label>
+                  <textarea id="bkNote" placeholder="Yêu cầu khác gửi tới studio..."></textarea>
+                  <!-- Bước Đặt cọc: xem .claude/rules/workflow.md -->
+                  <small>Bước tiếp theo là Đặt cọc để giữ lịch chính thức. Bản demo này chưa tích hợp cổng thanh toán
+                    thật.</small>
+                </div>
+              </form>
+            </div>
 
-    <!-- Concept -->
-    <section class="concept" id="concept">
-      <div class="container">
-        <div class="concept-top reveal">
-          <div class="section-head">
-            <span class="eyebrow">Thư viện concept</span>
-            <h2>Chọn phong cách bạn yêu thích</h2>
-            <p>Từ nhẹ nhàng vintage đến rực rỡ ngoại cảnh, đa dạng concept phù hợp mọi gia đình.</p>
           </div>
-          <button type="button" id="conceptChatBtn" class="btn btn-primary">Tư vấn concept ngay</button>
-        </div>
 
-        <div class="concept-grid reveal-stagger reveal">
-          <div class="concept-tile stagger-item"><img src="images/concept-bien.jpg" alt="Concept Biển" loading="lazy"><span>Biển</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-noel.jpg" alt="Concept Noel" loading="lazy"><span>Noel</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-sinh-nhat.jpg" alt="Concept Sinh nhật" loading="lazy"><span>Sinh nhật</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-vintage.jpg" alt="Concept Vintage" loading="lazy"><span>Vintage</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-han-quoc.jpg" alt="Concept Hàn Quốc" loading="lazy"><span>Hàn Quốc</span></div>
-        </div>
-      </div>
-    </section>
+          <aside class="bk-summary">
+            <div id="bkSummaryBox">
+              <h3>Tóm tắt đặt lịch</h3>
+              <dl>
+                <div>
+                  <dt>Dịch vụ</dt>
+                  <dd id="sumService">—</dd>
+                </div>
+                <div>
+                  <dt>Ngày</dt>
+                  <dd id="sumDate">—</dd>
+                </div>
+                <div>
+                  <dt>Khung giờ</dt>
+                  <dd id="sumTime">—</dd>
+                </div>
+              </dl>
+              <div class="bk-hold-timer" id="bkHoldTimer" hidden>
+                Giữ chỗ còn: <strong id="bkCountdown">5:00</strong>
+              </div>
+              <button type="button" class="btn btn-primary bk-next" id="bkNextBtn" disabled>Tiếp tục</button>
+              <button type="button" class="btn btn-outline bk-back" id="bkBackBtn" hidden>Quay lại</button>
+            </div>
 
-    <!-- About -->
-    <section class="about" id="gioi-thieu">
-      <div class="container">
-        <div class="about-visual reveal">
-          <img src="images/about-studio.jpg" alt="Không gian studio ALOHA Baby" loading="lazy">
+            <div class="bk-success" id="bkSuccess">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg></div>
+              <h2>Đã ghi nhận thông tin!</h2>
+              <p>Bước tiếp theo là đặt cọc để giữ lịch chính thức. Sales sẽ liên hệ xác nhận trong ít phút.</p>
+              <a href="#/" class="btn btn-outline">Về trang chủ</a>
+            </div>
+          </aside>
+
         </div>
-        <div class="about-content reveal">
-          <h2>Một "thiên đường" nhỏ dành cho tuổi thơ của bé</h2>
-          <p style="color:var(--navy-500); font-size:15.5px;">Tọa lạc tại 35 Lê Văn Thiêm, Thanh Xuân, ALOHA Baby là không gian studio rộng rãi dành riêng cho các buổi chụp ảnh em bé và gia đình, với phòng chụp tiêu chuẩn newborn, đội ngũ chuyên nghiệp và quy trình chăm sóc bé tận tâm trong từng khung hình.</p>
-          <ul class="about-list">
-            <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Không gian studio rộng rãi, phòng chụp newborn đạt chuẩn nhiệt độ, an toàn cho bé</li>
-            <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Đội ngũ photographer & stylist giàu kinh nghiệm, tận tâm với từng bé</li>
-            <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Đặt lịch, đặt cọc và theo dõi ảnh hoàn toàn trực tuyến</li>
-            <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Cam kết bảo mật hình ảnh của bé, chỉ xem qua tài khoản của khách</li>
+      </section>
+
+    </div>
+
+    <!-- ============================== VIEW: Ảnh của tôi ============================== -->
+    <div id="view-chon-anh" hidden>
+
+      <section class="page-header">
+        <div class="container">
+          <div class="breadcrumb"><a href="#/">Trang chủ</a> / Ảnh của tôi</div>
+          <div class="ps-head-row">
+            <div>
+              <h1>Ảnh của tôi</h1>
+              <p id="psOrderInfo">Mã đơn <strong>#AB240915</strong>, buổi chụp Newborn, gói Premium (ảnh minh họa, chưa
+                phải dữ liệu thật)</p>
+            </div>
+            <div class="ps-summary" id="psSummaryCard">
+              <div class="ps-summary-count">
+                <span>Đã chọn</span>
+                <strong><span id="selectedCount">0</span> / <span id="packageCount">15</span> ảnh</strong>
+              </div>
+              <div class="ps-progress">
+                <div class="ps-progress-bar" id="psProgressBar"></div>
+              </div>
+              <!-- Đơn giá/ảnh vượt gói là cấu hình chưa xác định, xem .claude/rules/tech-defaults.md -->
+              <div class="ps-extra" id="psExtra" hidden>
+                Vượt <span id="extraCount">0</span> ảnh, phí thêm dự kiến <strong id="extraFee">0đ</strong>
+                <div style="margin-top:4px; opacity:.75; font-size:11px;">(Đơn giá ảnh vượt gói do studio quy định)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ps-body">
+        <div class="container">
+
+          <!-- Trạng thái rỗng: khách chưa từng có buổi chụp nào (xem js/chon-anh.js + js/data-store.js) -->
+          <div class="ps-empty-state reveal" id="psEmptyState" hidden>
+            <div class="ico">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                <circle cx="12" cy="13.5" r="3.6" />
+              </svg>
+            </div>
+            <h2>Bạn chưa có ảnh nào</h2>
+            <p>ALOHA Baby chưa ghi nhận buổi chụp nào cho tài khoản này. Đặt lịch một buổi chụp để bắt đầu lưu giữ
+              khoảnh khắc của bé nhé.</p>
+            <a href="#/dat-lich" class="btn btn-primary">Đặt lịch chụp ngay</a>
+          </div>
+
+          <div id="psContent">
+            <div class="ps-submitted-banner" id="psSubmittedBanner">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Danh sách ảnh đã được khóa, bạn có thể theo dõi tiến
+                độ tại mục Lịch hẹn.</span>
+            </div>
+
+            <div class="ps-tabs">
+              <button class="ps-tab active" data-filter="all">Tất cả</button>
+              <button class="ps-tab" data-filter="original">Ảnh gốc</button>
+              <button class="ps-tab" data-filter="liked">Yêu thích</button>
+            </div>
+
+            <div class="ps-grid reveal reveal-stagger visible" id="psGrid">
+              <!-- Ảnh + nút chọn được JS gắn vào, HTML chỉ cần khung tĩnh -->
+            </div>
+
+            <div class="ps-note-box reveal" id="psPhotoNotes" hidden>
+              <h3>Ghi chú riêng cho từng ảnh đã chọn (tùy chọn)</h3>
+              <div id="psPhotoNotesList"></div>
+            </div>
+
+            <div class="ps-note-box reveal">
+              <h3>Ghi chú chỉnh sửa chung cho cả bộ (tùy chọn)</h3>
+              <textarea id="psNote"
+                placeholder="Ví dụ: làm da sáng tự nhiên, giữ tông màu ấm cho cả bộ ảnh..."></textarea>
+            </div>
+
+            <div class="ps-submit-bar reveal">
+              <!-- Luồng trạng thái sau khi gửi: xem .claude/rules/workflow.md -->
+              <p>Sau khi gửi, danh sách ảnh đã chọn sẽ bị khóa, tạo yêu cầu chuyển cho đội ngũ Thợ ảnh xử lý (trạng thái
+                "Chờ xử lý").</p>
+              <button class="btn btn-primary" id="psSubmitBtn" disabled>Gửi yêu cầu chỉnh sửa</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+  <script src="js/router.js"></script>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#/" class="logo">
+            <span class="mark">A</span>
+            <span class="word">ALOHA Baby</span>
+          </a>
+          <p>Studio chụp ảnh em bé & gia đình tại Hà Nội. Lưu giữ trọn vẹn từng khoảnh khắc đầu đời của con.</p>
+          <!-- Icon mạng xã hội tạm ẩn: chưa có link Facebook/Instagram/TikTok/Zalo
+             thật để gắn, không tự đoán URL. Thêm lại .social-row khi có link thật. -->
+        </div>
+        <div class="footer-col">
+          <h5>Khám phá</h5>
+          <ul>
+            <li><a href="#/">Trang chủ</a></li>
+            <li><a href="#gioi-thieu">Giới thiệu</a></li>
+            <li><a href="#/dat-lich">Đặt lịch</a></li>
+            <li><a href="#/chon-anh">Ảnh của tôi</a></li>
           </ul>
         </div>
-      </div>
-    </section>
-
-    <!-- Video giới thiệu -->
-    <section class="video">
-      <div class="container">
-        <div class="video-frame reveal">
-          <img src="images/video-poster.jpg" alt="Hậu trường một buổi chụp tại ALOHA Baby" loading="lazy">
-          <div class="video-play">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </div>
+        <div class="footer-col">
+          <h5>Dịch vụ</h5>
+          <ul>
+            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
+            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
+            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
+            <li><a href="#dich-vu">Chụp ảnh newborn</a></li>
+          </ul>
         </div>
-        <div class="video-text reveal">
-          <h2>Một ngày tại ALOHA Baby</h2>
-          <p style="color:var(--navy-500); font-size:15.5px;">Cùng xem hậu trường một buổi chụp thực tế tại studio, từ lúc bé đến, makeup, tạo dáng cho đến khi nhận bộ ảnh hoàn thiện.</p>
+        <div class="footer-col">
+          <h5>Liên hệ</h5>
+          <ul>
+            <li class="contact-line">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z" />
+                <circle cx="12" cy="9" r="2.6" />
+              </svg>
+              <span>35 Lê Văn Thiêm, Thanh Xuân, Hà Nội</span>
+            </li>
+            <li class="contact-line">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z" />
+              </svg>
+              <span>Hotline: 0938.125.222</span>
+            </li>
+            <li class="contact-line">
+              <!-- Giờ mở cửa minh họa - cập nhật theo giờ thực tế của studio -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              <span>8:00 – 20:00 tất cả các ngày</span>
+            </li>
+          </ul>
         </div>
-      </div>
-    </section>
-
-    <!-- Process -->
-    <section class="process">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Quy trình</span>
-          <h2>Đặt lịch chỉ trong 4 bước</h2>
-        </div>
-        <div class="process-grid reveal-stagger reveal">
-          <div class="process-card stagger-item">
-            <div class="num">1</div>
-            <h4>Chọn dịch vụ & concept</h4>
-            <p>Chọn gói chụp và phong cách bạn yêu thích, hoặc để studio tư vấn.</p>
-          </div>
-          <div class="process-card stagger-item">
-            <div class="num">2</div>
-            <h4>Đặt lịch & đặt cọc</h4>
-            <p>Chọn khung giờ còn trống và đặt cọc online để giữ lịch.</p>
-          </div>
-          <div class="process-card stagger-item">
-            <div class="num">3</div>
-            <h4>Tận hưởng buổi chụp</h4>
-            <p>Ekip đồng hành cùng bé trong không gian studio ấm áp.</p>
-          </div>
-          <div class="process-card stagger-item">
-            <div class="num">4</div>
-            <h4>Chọn ảnh & nhận ảnh</h4>
-            <p>Chọn ảnh yêu thích và theo dõi tiến độ chỉnh sửa ngay trên web.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tin tức - Sự kiện -->
-    <!-- Tiêu đề bài viết minh họa - thay bằng bài viết thật khi studio đăng tin tức -->
-    <section class="news" id="tin-tuc">
-      <div class="container">
-        <div class="section-head reveal">
-          <h2>Kinh nghiệm chụp ảnh cho bé từ ALOHA Baby</h2>
-        </div>
-        <div class="news-grid reveal-stagger reveal">
-          <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-              <img src="images/news-1.jpg" alt="Nên chụp ảnh newborn cho bé vào thời điểm nào?" loading="lazy">
-            </div>
-            <div class="news-body">
-              <div class="news-date">Kinh nghiệm</div>
-              <h3>Nên chụp ảnh newborn cho bé vào thời điểm nào?</h3>
-              <p>Gợi ý thời điểm và cách chuẩn bị để có bộ ảnh newborn đẹp và an toàn cho bé.</p>
-              <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
-            </div>
-          </div>
-          <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/news-2.jpg" alt="Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby" loading="lazy">
-            </div>
-            <div class="news-body">
-              <div class="news-date">Hướng dẫn</div>
-              <h3>Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby</h3>
-              <p>Hướng dẫn từng bước đặt lịch, chọn concept và giữ khung giờ chụp yêu thích.</p>
-              <a href="#/dat-lich">Đặt lịch ngay →</a>
-            </div>
-          </div>
-          <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-              <img src="images/news-3.jpg" alt="Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?" loading="lazy">
-            </div>
-            <div class="news-body">
-              <div class="news-date">Địa điểm</div>
-              <h3>Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?</h3>
-              <p>Không gian rộng rãi, đội ngũ tận tâm và quy trình chăm sóc bé xuyên suốt buổi chụp.</p>
-              <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="cta-final">
-      <div class="container">
-        <div class="cta-box reveal">
-          <div>
-            <h2>Sẵn sàng lưu giữ khoảnh khắc của bé?</h2>
-            <p>Đặt lịch ngay hôm nay để giữ khung giờ chụp yêu thích của bạn.</p>
-          </div>
-          <a href="#/dat-lich" class="btn btn-primary">Đặt lịch ngay</a>
-        </div>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- ============================== VIEW: Đặt lịch ============================== -->
-  <div id="view-dat-lich" hidden>
-
-    <section class="page-header">
-      <div class="container">
-        <div class="breadcrumb"><a href="#/">Trang chủ</a> / Đặt lịch chụp</div>
-        <h1>Đặt lịch chụp ảnh</h1>
-        <p>Khung giờ cập nhật theo thời gian thực, không lo trùng lịch với khách khác.</p>
-        <div class="bk-stepper" id="bkStepper">
-          <div class="bk-step active" data-step="1"><span>1</span>Dịch vụ</div>
-          <div class="bk-step" data-step="2"><span>2</span>Ngày & giờ</div>
-          <div class="bk-step" data-step="3"><span>3</span>Xác nhận</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="bk-body">
-      <div class="container bk-container">
-
-        <div class="bk-main">
-
-          <!-- Bước 1: dịch vụ -->
-          <div class="bk-panel" id="step1">
-            <h2>Chọn dịch vụ</h2>
-            <div class="bk-service-grid" id="bkServiceGrid">
-              <button type="button" class="bk-service" data-service="Bé lớn">
-                <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.4"/><path d="M5.5 21v-1.5a6.5 6.5 0 0 1 13 0V21"/></svg></div>
-                <span>Bé lớn</span>
-              </button>
-              <button type="button" class="bk-service" data-service="Sinh nhật">
-                <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3"/><path d="M9 6c0 1.4 1.1 1.5 1.1 2.8S9 11 9 12h6c0-1.3-1.1-1.6-1.1-3S15 7.4 15 6"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M4 16h16"/></svg></div>
-                <span>Sinh nhật</span>
-              </button>
-              <button type="button" class="bk-service" data-service="Bầu">
-                <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-9.5-8.5C.7 9.2 2.4 6 5.6 6c1.8 0 3.1 1 3.9 2.3.8 1.3 1 1.3 1 1.3s.2 0 1-1.3C12.3 7 13.6 6 15.4 6c3.2 0 4.9 3.2 3.1 6.5C16 16.65 12 21 12 21z"/></svg></div>
-                <span>Bầu</span>
-              </button>
-              <button type="button" class="bk-service" data-service="Gia đình">
-                <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8" r="2.4"/><circle cx="17" cy="8" r="2.4"/><circle cx="12" cy="6" r="1.8"/><path d="M2.5 20.5c0-3.2 2-5 4.5-5s4.5 1.8 4.5 5"/><path d="M12.5 20.5c0-2.6 1.6-4 3.5-4s3.5 1.4 3.5 4"/></svg></div>
-                <span>Gia đình</span>
-              </button>
-              <button type="button" class="bk-service" data-service="Newborn">
-                <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M11 2v3.5c0 .5-.3.9-.7 1.2C9.3 7.4 8.5 8.6 8.5 10v9a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-9c0-1.4-.8-2.6-1.8-3.3-.4-.3-.7-.7-.7-1.2V2"/><path d="M8.5 13h7"/></svg></div>
-                <span>Newborn</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Bước 2: ngày & giờ (real-time) -->
-          <div class="bk-panel" id="step2" hidden>
-            <h2>Chọn ngày & khung giờ</h2>
-            <div class="bk-live-badge"><span class="bk-live-dot"></span> Cập nhật real-time · làm mới lúc <span id="bkLastUpdate">--:--:--</span></div>
-            <div class="bk-date-row" id="bkDateRow"></div>
-            <div class="bk-slot-grid" id="bkSlotGrid"></div>
-            <p class="bk-legend">
-              <span><i class="dot free"></i> Còn trống</span>
-              <span><i class="dot holding"></i> Người khác đang giữ</span>
-              <span><i class="dot full"></i> Đã đầy</span>
-              <span><i class="dot mine"></i> Đang giữ cho bạn</span>
-            </p>
-          </div>
-
-          <!-- Bước 3: xác nhận -->
-          <div class="bk-panel" id="step3" hidden>
-            <h2>Thông tin của bé & xác nhận</h2>
-            <form class="bk-form" id="bkForm">
-              <div class="bk-field">
-                <label for="bkChildName">Tên bé</label>
-                <input type="text" id="bkChildName" placeholder="VD: Bé Sữa">
-              </div>
-              <div class="bk-field">
-                <label for="bkChildDob">Ngày sinh / dự sinh</label>
-                <input type="date" id="bkChildDob">
-              </div>
-              <div class="bk-field">
-                <label for="bkPeople">Số người trong ảnh</label>
-                <input type="number" id="bkPeople" min="1" value="1">
-              </div>
-              <div class="bk-field">
-                <label for="bkPhone">Số điện thoại</label>
-                <input type="tel" id="bkPhone" placeholder="VD: 0987 654 321">
-              </div>
-              <div class="bk-field bk-field-full">
-                <label for="bkHealth">Lưu ý sức khỏe</label>
-                <textarea id="bkHealth" placeholder="Dị ứng, lưu ý đặc biệt cho bé (nếu có)"></textarea>
-              </div>
-              <div class="bk-field bk-field-full">
-                <label for="bkNote">Ghi chú thêm</label>
-                <textarea id="bkNote" placeholder="Yêu cầu khác gửi tới studio..."></textarea>
-                <!-- Bước Đặt cọc: xem .claude/rules/workflow.md -->
-                <small>Bước tiếp theo là Đặt cọc để giữ lịch chính thức. Bản demo này chưa tích hợp cổng thanh toán thật.</small>
-              </div>
-            </form>
-          </div>
-
-        </div>
-
-        <aside class="bk-summary">
-          <div id="bkSummaryBox">
-            <h3>Tóm tắt đặt lịch</h3>
-            <dl>
-              <div><dt>Dịch vụ</dt><dd id="sumService">—</dd></div>
-              <div><dt>Ngày</dt><dd id="sumDate">—</dd></div>
-              <div><dt>Khung giờ</dt><dd id="sumTime">—</dd></div>
-            </dl>
-            <div class="bk-hold-timer" id="bkHoldTimer" hidden>
-              Giữ chỗ còn: <strong id="bkCountdown">5:00</strong>
-            </div>
-            <button type="button" class="btn btn-primary bk-next" id="bkNextBtn" disabled>Tiếp tục</button>
-            <button type="button" class="btn btn-outline bk-back" id="bkBackBtn" hidden>Quay lại</button>
-          </div>
-
-          <div class="bk-success" id="bkSuccess">
-            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-            <h2>Đã ghi nhận thông tin!</h2>
-            <p>Bước tiếp theo là đặt cọc để giữ lịch chính thức. Sales sẽ liên hệ xác nhận trong ít phút.</p>
-            <a href="#/" class="btn btn-outline">Về trang chủ</a>
-          </div>
-        </aside>
-
-      </div>
-    </section>
-
-  </div>
-
-  <!-- ============================== VIEW: Ảnh của tôi ============================== -->
-  <div id="view-chon-anh" hidden>
-
-    <section class="page-header">
-      <div class="container">
-        <div class="breadcrumb"><a href="#/">Trang chủ</a> / Ảnh của tôi</div>
-        <div class="ps-head-row">
-          <div>
-            <h1>Ảnh của tôi</h1>
-            <p id="psOrderInfo">Mã đơn <strong>#AB240915</strong>, buổi chụp Newborn, gói Premium (ảnh minh họa, chưa phải dữ liệu thật)</p>
-          </div>
-          <div class="ps-summary" id="psSummaryCard">
-            <div class="ps-summary-count">
-              <span>Đã chọn</span>
-              <strong><span id="selectedCount">0</span> / <span id="packageCount">15</span> ảnh</strong>
-            </div>
-            <div class="ps-progress"><div class="ps-progress-bar" id="psProgressBar"></div></div>
-            <!-- Đơn giá/ảnh vượt gói là cấu hình chưa xác định, xem .claude/rules/tech-defaults.md -->
-            <div class="ps-extra" id="psExtra" hidden>
-              Vượt <span id="extraCount">0</span> ảnh, phí thêm dự kiến <strong id="extraFee">0đ</strong>
-              <div style="margin-top:4px; opacity:.75; font-size:11px;">(Đơn giá ảnh vượt gói do studio quy định)</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ps-body">
-      <div class="container">
-
-        <!-- Trạng thái rỗng: khách chưa từng có buổi chụp nào (xem js/chon-anh.js + js/data-store.js) -->
-        <div class="ps-empty-state reveal" id="psEmptyState" hidden>
-          <div class="ico">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg>
-          </div>
-          <h2>Bạn chưa có ảnh nào</h2>
-          <p>ALOHA Baby chưa ghi nhận buổi chụp nào cho tài khoản này. Đặt lịch một buổi chụp để bắt đầu lưu giữ khoảnh khắc của bé nhé.</p>
-          <a href="#/dat-lich" class="btn btn-primary">Đặt lịch chụp ngay</a>
-        </div>
-
-        <div id="psContent">
-          <div class="ps-submitted-banner" id="psSubmittedBanner">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Danh sách ảnh đã được khóa, bạn có thể theo dõi tiến độ tại mục Lịch hẹn.</span>
-          </div>
-
-          <div class="ps-tabs">
-            <button class="ps-tab active" data-filter="all">Tất cả</button>
-            <button class="ps-tab" data-filter="original">Ảnh gốc</button>
-            <button class="ps-tab" data-filter="liked">Yêu thích</button>
-          </div>
-
-          <div class="ps-grid reveal reveal-stagger visible" id="psGrid">
-            <!-- Ảnh + nút chọn được JS gắn vào, HTML chỉ cần khung tĩnh -->
-          </div>
-
-          <div class="ps-note-box reveal" id="psPhotoNotes" hidden>
-            <h3>Ghi chú riêng cho từng ảnh đã chọn (tùy chọn)</h3>
-            <div id="psPhotoNotesList"></div>
-          </div>
-
-          <div class="ps-note-box reveal">
-            <h3>Ghi chú chỉnh sửa chung cho cả bộ (tùy chọn)</h3>
-            <textarea id="psNote" placeholder="Ví dụ: làm da sáng tự nhiên, giữ tông màu ấm cho cả bộ ảnh..."></textarea>
-          </div>
-
-          <div class="ps-submit-bar reveal">
-            <!-- Luồng trạng thái sau khi gửi: xem .claude/rules/workflow.md -->
-            <p>Sau khi gửi, danh sách ảnh đã chọn sẽ bị khóa, tạo yêu cầu chuyển cho đội ngũ Thợ ảnh xử lý (trạng thái "Chờ xử lý").</p>
-            <button class="btn btn-primary" id="psSubmitBtn" disabled>Gửi yêu cầu chỉnh sửa</button>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-
-</main>
-<script src="js/router.js"></script>
-
-<!-- Footer -->
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a href="#/" class="logo">
-          <span class="mark">A</span>
-          <span class="word">ALOHA Baby</span>
-        </a>
-        <p>Studio chụp ảnh em bé & gia đình tại Hà Nội. Lưu giữ trọn vẹn từng khoảnh khắc đầu đời của con.</p>
-        <!-- Icon mạng xã hội tạm ẩn: chưa có link Facebook/Instagram/TikTok/Zalo
-             thật để gắn, không tự đoán URL. Thêm lại .social-row khi có link thật. -->
-      </div>
-      <div class="footer-col">
-        <h5>Khám phá</h5>
-        <ul>
-          <li><a href="#/">Trang chủ</a></li>
-          <li><a href="#gioi-thieu">Giới thiệu</a></li>
-          <li><a href="#/dat-lich">Đặt lịch</a></li>
-          <li><a href="#/chon-anh">Ảnh của tôi</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Dịch vụ</h5>
-        <ul>
-          <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-          <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-          <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-          <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-          <li><a href="#dich-vu">Chụp ảnh newborn</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Liên hệ</h5>
-        <ul>
-          <li class="contact-line">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.6"/></svg>
-            <span>35 Lê Văn Thiêm, Thanh Xuân, Hà Nội</span>
-          </li>
-          <li class="contact-line">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z"/></svg>
-            <span>Hotline: 0938.125.222</span>
-          </li>
-          <li class="contact-line">
-            <!-- Giờ mở cửa minh họa - cập nhật theo giờ thực tế của studio -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            <span>8:00 – 20:00 tất cả các ngày</span>
-          </li>
-        </ul>
-      </div>
-      <!-- Cột "Chính sách" tạm ẩn: nội dung đổi trả/bảo mật/điều khoản đụng
+        <!-- Cột "Chính sách" tạm ẩn: nội dung đổi trả/bảo mật/điều khoản đụng
            đúng các tham số chưa chốt (mức hoàn cọc...) trong rules/tech-defaults.md
            -> chưa viết để tránh tự đặt chính sách thay studio. Thêm lại khi có
            nội dung chính sách thật đã duyệt. -->
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year"></span> ALOHA Baby. All rights reserved.</span>
+        <span>Thiết kế với 💛 dành cho những gia đình nhỏ.</span>
+      </div>
     </div>
-    <div class="footer-bottom">
-      <span>© <span id="year"></span> ALOHA Baby. All rights reserved.</span>
-      <span>Thiết kế với 💛 dành cho những gia đình nhỏ.</span>
-    </div>
+  </footer>
+
+  <!-- Nút nổi: chat tư vấn + đặt lịch -->
+  <div class="floating-actions">
+    <button class="fab-chat" id="chatToggle" aria-label="Chat tư vấn với ALOHA Baby">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path
+          d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 9 9 0 0 1-4-.9L3 20l1-4.7A8.3 8.3 0 0 1 3.5 11 8.4 8.4 0 0 1 12 3a8.6 8.6 0 0 1 9 8.2z" />
+      </svg>
+      <span class="dot"></span>
+    </button>
+    <a href="#/dat-lich" class="floating-book">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 10h18" />
+      </svg>
+      <span>Đặt lịch</span>
+    </a>
   </div>
-</footer>
 
-<!-- Nút nổi: chat tư vấn + đặt lịch -->
-<div class="floating-actions">
-  <button class="fab-chat" id="chatToggle" aria-label="Chat tư vấn với ALOHA Baby">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 9 9 0 0 1-4-.9L3 20l1-4.7A8.3 8.3 0 0 1 3.5 11 8.4 8.4 0 0 1 12 3a8.6 8.6 0 0 1 9 8.2z"/></svg>
-    <span class="dot"></span>
-  </button>
-  <a href="#/dat-lich" class="floating-book">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-    <span>Đặt lịch</span>
-  </a>
-</div>
-
-<!-- Chatbot tư vấn: bước chọn dịch vụ/concept ban đầu vẫn là kịch bản dựng sẵn
+  <!-- Chatbot tư vấn: bước chọn dịch vụ/concept ban đầu vẫn là kịch bản dựng sẵn
      (quick-reply); khung nhập bên dưới nối sang server proxy (server/) gọi
      Claude API thật — xem .claude/rules/workflow.md và server/server.js. -->
-<div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
-  <div class="chat-header">
-    <div class="chat-avatar">A</div>
-    <div class="chat-header-text">
-      <strong>Trợ lý ALOHA</strong>
-      <span>Tư vấn concept & báo giá</span>
+  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
+    <div class="chat-header">
+      <div class="chat-avatar">A</div>
+      <div class="chat-header-text">
+        <strong>Trợ lý ALOHA</strong>
+        <span>Tư vấn concept & báo giá</span>
+      </div>
+      <button class="chat-close" id="chatClose" aria-label="Đóng chat">×</button>
     </div>
-    <button class="chat-close" id="chatClose" aria-label="Đóng chat">×</button>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-sale-bar">
+      <span>Muốn nói chuyện trực tiếp với Sale?</span>
+      <a href="tel:0938125222">Gọi ngay 0938.125.222</a>
+    </div>
+    <form class="chat-input-row" id="chatInputForm">
+      <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
+      <button type="submit" class="chat-send" aria-label="Gửi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 2 11 13" />
+          <path d="M22 2 15 22l-4-9-9-4 20-7z" />
+        </svg>
+      </button>
+    </form>
   </div>
-  <div class="chat-body" id="chatBody"></div>
-  <div class="chat-sale-bar">
-    <span>Muốn nói chuyện trực tiếp với Sale?</span>
-    <a href="tel:0938125222">Gọi ngay 0938.125.222</a>
-  </div>
-  <form class="chat-input-row" id="chatInputForm">
-    <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
-    <button type="submit" class="chat-send" aria-label="Gửi">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
-    </button>
-  </form>
-</div>
 
-<script src="js/script.js"></script>
-<script src="js/dat-lich.js"></script>
-<script src="js/chon-anh.js"></script>
+  <script src="js/script.js"></script>
+  <script src="js/dat-lich.js"></script>
+  <script src="js/chon-anh.js"></script>
 </body>
+
 </html>
