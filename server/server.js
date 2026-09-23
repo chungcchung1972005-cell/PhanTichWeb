@@ -17,6 +17,10 @@ const cors = require('cors');
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 const API_KEY = process.env.GEMINI_API_KEY;
+// Domain thật của frontend sau khi public, cách nhau bằng dấu phẩy (vd
+// "https://ten-nguoi-dung.github.io"). Để trống thì mở cho mọi origin (chỉ
+// chấp nhận được khi test local) - xem server/DEPLOY.md.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
 // Dữ liệu dịch vụ/giá THAM KHẢO — khớp với SERVICE_INFO trong js/script.js
 // (kịch bản quick-reply) để chatbot AI không tư vấn lệch với UI kịch bản có
@@ -52,7 +56,12 @@ Nguyên tắc trả lời bắt buộc:
 Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
-app.use(cors());
+if (ALLOWED_ORIGINS.length) {
+  app.use(cors({ origin: ALLOWED_ORIGINS }));
+} else {
+  app.use(cors());
+  console.warn('CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.');
+}
 app.use(express.json({ limit: '200kb' }));
 
 app.post('/api/chat', async (req, res) => {

@@ -300,7 +300,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatBody = document.getElementById('chatBody');
   const chatInputForm = document.getElementById('chatInputForm');
   const chatInput = document.getElementById('chatInput');
-  const CHAT_API_URL = 'http://localhost:3001/api/chat';
+  // Mở trang từ máy đang chạy server local (file:// hoặc localhost) -> gọi
+  // server local. Mở từ nơi khác (site đã public) -> gọi server đã deploy
+  // public. Cần đổi PROD_CHAT_API_URL thành URL thật sau khi deploy server/
+  // (xem hướng dẫn deploy trong server/DEPLOY.md).
+  const PROD_CHAT_API_URL = 'https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com/api/chat';
+  const isLocalHost = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const CHAT_API_URL = isLocalHost ? 'http://localhost:3001/api/chat' : PROD_CHAT_API_URL;
 
   if (chatToggle && chatPanel && chatClose && chatBody) {
     // Giá/concept/số ảnh gói dưới đây là MINH HỌA (số ảnh gói dùng lại đúng
