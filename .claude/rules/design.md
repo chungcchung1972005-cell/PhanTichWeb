@@ -13,7 +13,7 @@
 
 ## UI/UX Direction (nguồn: 4 ảnh tham chiếu)
 
-4 ảnh tham chiếu (màn hình Admin/CRM: dashboard, hồ sơ khách hàng, lịch/booking, tin nhắn khách hàng) là **nguồn tham chiếu chính** cho visual direction — không tự bịa design system khác khi ảnh đã thể hiện rõ hướng thiết kế. Ảnh có độ phân giải thấp (~150x90px), chỉ dùng để xác định định hướng tổng thể (màu sắc, bố cục, loại component); không dùng để suy ra giá trị pixel-perfect — xin thêm asset độ phân giải cao nếu cần chi tiết mức đó.
+4 ảnh tham chiếu (màn hình Admin/CRM: dashboard, hồ sơ khách hàng, lịch/booking, tin nhắn khách hàng; **file ảnh gốc không còn trong repo**, chỉ còn mô tả dưới đây, đối chiếu theo mô tả này + `alohababy.vn.png` cho bố cục trang chủ) là **nguồn tham chiếu chính** cho visual direction — không tự bịa design system khác khi ảnh đã thể hiện rõ hướng thiết kế. Ảnh có độ phân giải thấp (~150x90px), chỉ dùng để xác định định hướng tổng thể (màu sắc, bố cục, loại component); không dùng để suy ra giá trị pixel-perfect — xin thêm asset độ phân giải cao nếu cần chi tiết mức đó.
 
 - **Màu sắc:** Hồng/rose chủ đạo (nền nhạt, header, badge trạng thái, biểu đồ) phối nền trắng cho card, chữ chính xanh navy/đen nhạt, xanh dương cho link/nút phụ/chat bubble — tông "hồng – xanh" khớp định hướng nghiệp vụ, ưu tiên đúng bảng màu này.
 - **Layout:** Dashboard dạng card, top navigation bar với logo "ALOHA" góc trái, nội dung chia lưới nhiều cột.
