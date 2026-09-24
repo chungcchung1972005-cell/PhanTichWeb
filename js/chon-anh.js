@@ -310,10 +310,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  let currentFilter = 'all';
+
   function renderPhotoNotes() {
     if (!photoNotesSection || !photoNotesList) return;
     const ids = Array.from(selected);
-    photoNotesSection.hidden = ids.length === 0;
+
+    // Ẩn mục ghi chú riêng khi ở tab "Ảnh gốc" hoặc "Tất cả", chỉ hiển thị ở tab "Yêu thích" khi có ảnh chọn
+    if (currentFilter === 'original' || currentFilter === 'all' || ids.length === 0) {
+      photoNotesSection.hidden = true;
+    } else {
+      photoNotesSection.hidden = false;
+    }
+
     if (ids.length === 0) return;
 
     photoNotesList.innerHTML = ids.map(id => `
@@ -415,6 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyFilter(filter) {
+    currentFilter = filter;
+
     // Xoá ô dấu cộng cũ nếu có
     const existingAdd = grid.querySelector('.ps-add-photo');
     if (existingAdd) existingAdd.remove();
@@ -440,6 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generalNoteBox) {
       generalNoteBox.hidden = (filter === 'all');
     }
+
+    // Ẩn mục ghi chú riêng khi ở tab "Ảnh gốc" (và "Tất cả"), chỉ hiện ở tab "Yêu thích"
+    renderPhotoNotes();
   }
 
   // ===== Tabs =====
