@@ -116,16 +116,39 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPhotoNotes();
   });
 
-  // Tabs: Tất cả / Ảnh gốc (toàn bộ ảnh trong trang này đều là ảnh gốc chờ chọn) / Yêu thích (đã chọn)
+  // Tabs: Tất cả / Ảnh gốc: không giới hạn số ảnh
+  // Yêu thích: giới hạn tối đa 15 ảnh hiển thị
+  const FAV_LIMIT = 15;
   document.querySelectorAll('.ps-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.ps-tab').forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       const filter = tab.dataset.filter;
+      let likedCount = 0;
       document.querySelectorAll('.ps-photo').forEach((card) => {
-        const show = filter === 'all' || filter === 'original' || (filter === 'liked' && card.classList.contains('selected'));
+        let show;
+        if (filter === 'all' || filter === 'original') {
+          show = true;
+        } else if (filter === 'liked') {
+          if (card.classList.contains('selected') && likedCount < FAV_LIMIT) {
+            show = true;
+            likedCount++;
+          } else {
+            show = false;
+          }
+        }
         card.classList.toggle('hidden-by-filter', !show);
       });
+      // Hiện thông báo nếu có nhiều hơn 15 ảnh yêu thích
+      let limitMsg = document.getElementById('psLikedLimitMsg');
+      if (!limitMsg) {
+        limitMsg = document.createElement('p');
+        limitMsg.id = 'psLikedLimitMsg';
+        limitMsg.className = 'ps-liked-limit-msg';
+        limitMsg.textContent = 'Chỉ hiển thị tối đa ' + FAV_LIMIT + ' ảnh yêu thích.';
+        grid.parentNode.insertBefore(limitMsg, grid.nextSibling);
+      }
+      limitMsg.hidden = !(filter === 'liked' && selected.size > FAV_LIMIT);
     });
   });
 
