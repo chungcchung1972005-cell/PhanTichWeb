@@ -257,3 +257,67 @@
   background: #fce4f4;
   border-radius: 8px;
 }
+/* Ô link Google Drive - tải ảnh gốc chất lượng cao */
+.ps-drive-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #e8f0fe 0%, #f0e6ff 100%);
+  border: 1.5px solid #c5cae9;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #1a237e;
+  transition: all .25s ease;
+  max-width: 400px;
+}
+.ps-drive-link:hover {
+  background: linear-gradient(135deg, #d0e0fc 0%, #e0d0ff 100%);
+  border-color: #7c4dff;
+  box-shadow: 0 4px 16px rgba(124,77,255,.18);
+  transform: translateY(-2px);
+}
+.ps-drive-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+.ps-drive-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ps-drive-text strong {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #1a237e;
+}
+.ps-drive-text small {
+  font-size: .75rem;
+  color: #5c6bc0;
+  opacity: .85;
+}
+.ps-drive-arrow {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  color: #7c4dff;
+  font-weight: 700;
+  transition: transform .2s;
+}
+.ps-drive-link:hover .ps-drive-arrow {
+  transform: translateX(4px);
+}
+@media (max-width: 600px) {
+  .ps-drive-link {
+    max-width: 100%;
+    padding: 10px 14px;
+  }
+}
