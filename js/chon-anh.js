@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('psOrderInfo').innerHTML =
-    `Mã đơn <strong>${record.orderCode}</strong>, buổi chụp ${record.serviceLabel}, gói ${record.packageLabel} (ảnh minh họa, chưa phải dữ liệu thật)`;
+    `Mã đơn <strong>${record.orderCode}</strong>, buổi chụp ${record.serviceLabel}, gói ${record.packageLabel}`;
 
   const PACKAGE_COUNT = record.packageCount || 15; // số ảnh trong gói — minh họa, cấu hình thật do studio đặt
   const PHOTO_COUNT = record.photoCount || 16;
