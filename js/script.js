@@ -36,24 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'login.html' + (nextPage ? '?next=' + encodeURIComponent(nextPage) : '');
   };
 
-  // Ảnh Album và Concept hiện chưa dẫn tới đâu -> click vào cũng là một tín hiệu
-  // quan tâm, đưa khách chưa đăng nhập sang trang đăng nhập trước khi xem tiếp.
-  // Album gắn với "Ảnh của tôi" (xem ảnh), Concept gắn với luồng Đặt lịch (chọn
-  // concept rồi đặt lịch) -> đăng nhập xong quay lại đúng trang phù hợp.
-  document.querySelectorAll('.album-card').forEach(el => {
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {
-      if (!isCustomerLoggedIn()) { goToLogin('chon-anh'); return; }
-      window.location.hash = '/chon-anh';
-    });
-  });
-  document.querySelectorAll('.concept-tile').forEach(el => {
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {
-      if (!isCustomerLoggedIn()) { goToLogin('dat-lich'); return; }
-      window.location.hash = '/dat-lich';
-    });
-  });
+  // Ảnh Album/Concept trên Trang chủ giờ là link thật tới nội dung chi tiết (album
+  // concept #/album/..., trang concept #/noi-dung/...), xem công khai không cần đăng
+  // nhập (người dùng chốt 2026-09-25, thay cho gate "bấm là phải đăng nhập" trước đây).
+  // Đặt lịch / Ảnh của tôi vẫn gate trong js/router.js như cũ.
 
   // Mobile menu toggle
   const navToggle = document.getElementById('navToggle');
@@ -106,13 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
     { label: 'Chụp ảnh Bầu', sub: 'Dịch vụ', section: 'dich-vu', match: 'Bầu' },
     { label: 'Chụp ảnh Gia đình', sub: 'Dịch vụ', section: 'dich-vu', match: 'Gia đình' },
     { label: 'Chụp ảnh Newborn', sub: 'Dịch vụ', section: 'dich-vu', match: 'Newborn' },
-    { label: 'Concept Biển', sub: 'Thư viện concept', section: 'concept', match: 'Biển' },
-    { label: 'Concept Noel', sub: 'Thư viện concept', section: 'concept', match: 'Noel' },
-    { label: 'Concept Sinh nhật', sub: 'Thư viện concept', section: 'concept', match: 'Sinh nhật' },
-    { label: 'Concept Vintage', sub: 'Thư viện concept', section: 'concept', match: 'Vintage' },
-    { label: 'Concept Hàn Quốc', sub: 'Thư viện concept', section: 'concept', match: 'Hàn Quốc' },
+    { label: 'Concept Biển', sub: 'Thư viện concept', route: 'noi-dung/concept-bien' },
+    { label: 'Concept Noel', sub: 'Thư viện concept', route: 'noi-dung/concept-noel' },
+    { label: 'Concept Sinh nhật', sub: 'Thư viện concept', route: 'noi-dung/concept-sinh-nhat' },
+    { label: 'Concept Vintage', sub: 'Thư viện concept', route: 'noi-dung/concept-vintage' },
+    { label: 'Concept Hàn Quốc', sub: 'Thư viện concept', route: 'noi-dung/concept-han-quoc' },
     { label: 'Album ảnh đẹp', sub: 'Thư viện ảnh', section: 'album' },
-    { label: 'Giới thiệu studio', sub: 'Trang chủ', section: 'gioi-thieu' },
+    { label: 'Giới thiệu studio', sub: 'Về ALOHA Baby', route: 'noi-dung/gioi-thieu-studio' },
+    { label: 'Chụp ảnh tại nhà', sub: 'Dịch vụ', route: 'noi-dung/chup-tai-nha' },
+    { label: 'Video: Một ngày tại ALOHA Baby', sub: 'Video hậu trường', route: 'noi-dung/mot-ngay-tai-aloha' },
+    { label: 'Nên chụp ảnh newborn khi nào?', sub: 'Tin tức', route: 'noi-dung/newborn-thoi-diem' },
+    { label: 'Hướng dẫn đặt lịch, đặt cọc online', sub: 'Tin tức', route: 'noi-dung/huong-dan-dat-lich' },
+    { label: 'Vì sao chọn ALOHA Baby?', sub: 'Tin tức', route: 'noi-dung/vi-sao-chon-aloha' },
     { label: 'Tin tức, kinh nghiệm chụp ảnh', sub: 'Trang chủ', section: 'tin-tuc' },
     { label: 'Đặt lịch chụp ảnh', sub: 'Đặt lịch', route: 'dat-lich' },
     { label: 'Ảnh của tôi', sub: 'Sau khi chụp', route: 'chon-anh' },
@@ -431,9 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const askMainMenu = () => {
-      addQuickReplies(['Tư vấn dịch vụ & báo giá', 'Quy trình đặt lịch', 'Câu hỏi thường gặp', 'Liên hệ Sale ngay'], (choice) => {
+      addQuickReplies(['Tư vấn dịch vụ & báo giá', 'Concept & ảnh mẫu', 'Quy trình đặt lịch', 'Câu hỏi thường gặp', 'Liên hệ Sale ngay'], (choice) => {
         addMsg(choice, 'user');
         if (choice === 'Tư vấn dịch vụ & báo giá') { askService(); return; }
+        if (choice === 'Concept & ảnh mẫu') { askConceptService(); return; }
         if (choice === 'Quy trình đặt lịch') { explainProcess(); return; }
         if (choice === 'Câu hỏi thường gặp') { askFaq(); return; }
         callSale();
@@ -474,18 +466,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const showServiceAdvice = async (service) => {
       const info = SERVICE_INFO[service];
+      const concepts = albumConcepts(service).map((c) => c.name);
       addImageMsg(info.img, `Ảnh minh hoạ phong cách ${service} tại ALOHA Baby`, `Ảnh minh hoạ phong cách "${service}" (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
-      await botSay(`Với dịch vụ "${service}", ALOHA Baby gợi ý một vài concept:\n• ${info.concepts.join('\n• ')}`);
+      await botSay(`Với dịch vụ "${service}", ALOHA Baby có ${concepts.length || info.concepts.length} concept:\n• ${(concepts.length ? concepts : info.concepts).join('\n• ')}`);
       await botSay(info.note, 450);
       await botSay(`${info.packageNote}\nGiá tham khảo ${info.price} (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn).`, 450);
-      addQuickReplies(['Chốt đơn - Đặt lịch ngay', 'Xem dịch vụ khác', 'Liên hệ Sale ngay'], (choice) => {
+      const options = ['Chốt đơn - Đặt lịch ngay'];
+      if (concepts.length) options.push('Xem concept & ảnh mẫu');
+      options.push('Xem dịch vụ khác', 'Liên hệ Sale ngay');
+      addQuickReplies(options, (choice) => {
         addMsg(choice, 'user');
         if (choice.startsWith('Chốt đơn')) {
           confirmBooking(service);
+        } else if (choice === 'Xem concept & ảnh mẫu') {
+          askConcept(service);
         } else if (choice === 'Xem dịch vụ khác') {
           askService();
         } else {
           callSale();
+        }
+      });
+    };
+
+    // ------------------------------------------------ Kịch bản concept & ảnh mẫu
+    // Dữ liệu concept đọc từ js/albums.js (window.AlohaAlbums), cùng nguồn với
+    // trang album: thêm/sửa concept ở đó là chatbot tự cập nhật theo.
+    const albumOf = (service) => ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((s) => s.name === service) || null;
+    const albumConcepts = (service) => { const a = albumOf(service); return a ? a.concepts : []; };
+    // Mở trang album: trên điện thoại đóng khung chat để khách thấy ngay album.
+    const openAlbum = (href) => {
+      setTimeout(() => {
+        window.location.hash = href.slice(1);
+        if (window.innerWidth <= 720) chatPanel.classList.remove('open');
+      }, 700);
+    };
+
+    const askConceptService = async () => {
+      await botSay('Bạn muốn xem concept của dịch vụ nào? Mỗi dịch vụ có nhiều concept, mỗi concept có album ảnh mẫu riêng.', 450);
+      addQuickReplies(Object.keys(SERVICE_INFO).filter((s) => albumConcepts(s).length), (service) => {
+        addMsg(service, 'user');
+        askConcept(service);
+      });
+    };
+
+    const askConcept = async (service) => {
+      const concepts = albumConcepts(service);
+      await botSay(`Dịch vụ "${service}" có ${concepts.length} concept, bạn chọn một concept để xem nhé:`, 450);
+      addQuickReplies([...concepts.map((c) => c.name), 'Dịch vụ khác'], (choice) => {
+        addMsg(choice, 'user');
+        if (choice === 'Dịch vụ khác') { askConceptService(); return; }
+        showConcept(service, concepts.find((c) => c.name === choice));
+      });
+    };
+
+    const showConcept = async (service, concept) => {
+      addImageMsg(concept.cover, `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
+      await botSay(concept.desc, 500);
+      await botSay(`Album "${concept.name}" có ${concept.count} ảnh mẫu. Khi đặt lịch, bạn chọn concept này ở bước chọn concept, hoặc để studio tư vấn thêm nhé.`, 450);
+      addQuickReplies(['Xem album concept này', 'Đặt lịch concept này', 'Concept khác', 'Về menu chính'], (choice) => {
+        addMsg(choice, 'user');
+        if (choice === 'Xem album concept này') {
+          botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => { openAlbum(concept.href); askConcept(service); });
+        } else if (choice === 'Đặt lịch concept này') {
+          confirmBooking(`${service} · ${concept.name}`);
+        } else if (choice === 'Concept khác') {
+          askConcept(service);
+        } else {
+          askMainMenu();
         }
       });
     };
@@ -545,9 +592,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ---------------------------------------------------------------------
-    // Khung nhập tự do -> gọi server proxy cục bộ (server/) để trả lời bằng
-    // Claude API thật. Nếu server chưa chạy hoặc chưa có API key, báo lỗi
-    // thân thiện thay vì im lặng hoặc làm vỡ giao diện.
+    // Khung nhập tự do -> gọi server proxy (server/) để trả lời bằng Gemini API
+    // thật. Nếu AI không dùng được (server tắt, hết model dự phòng...), trả lời
+    // cục bộ theo từ khoá (localAnswer) thay vì hiện thông báo lỗi.
     // ---------------------------------------------------------------------
     if (chatInputForm && chatInput) {
       let aiHistory = [];
@@ -609,6 +656,15 @@ document.addEventListener('DOMContentLoaded', () => {
         'tin-tuc': { label: 'phần Tin tức', cta: 'Xem tin tức', go: () => goHomeThenFind('tin-tuc') },
         'trang-chu': { label: 'Trang chủ', cta: 'Về trang chủ', go: goHomeTop }
       };
+      // Album theo dịch vụ ("album-<dịch vụ>", AI được gợi ý, khớp ACTIONS trong
+      // server/server.js) và album từng concept ("album:<dịch vụ>/<concept>", chỉ
+      // frontend tự gắn khi khách nhắc tới concept, xem withConceptButton).
+      ((window.AlohaAlbums && window.AlohaAlbums.list) || []).forEach((s) => {
+        CHAT_ACTIONS['album-' + s.slug] = { label: `album ${s.name}`, cta: `Xem album ${s.name}`, go: () => { window.location.hash = s.href.slice(1); } };
+        s.concepts.forEach((c) => {
+          CHAT_ACTIONS[`album:${s.slug}/${c.slug}`] = { label: `album "${c.name}"`, cta: `Xem album ${c.name}`, go: () => { window.location.hash = c.href.slice(1); } };
+        });
+      });
       const runChatAction = (name) => {
         const action = CHAT_ACTIONS[name];
         if (!action) return;
@@ -646,6 +702,134 @@ document.addEventListener('DOMContentLoaded', () => {
         return [{ label: CHAT_ACTIONS[name].cta, action: name }, ...list].slice(0, 3);
       };
 
+      // Khách nhắc tới 1 concept (kể cả khi đang hỏi: "có chụp trung thu không?")
+      // -> gắn nút mở đúng album concept đó. Mỗi dòng: [từ khoá, { dịch vụ: concept }];
+      // từ khoá dùng chung nhiều dịch vụ (biển, vintage...) thì ưu tiên dịch vụ khách
+      // đang nhắc trong câu, không thì lấy dịch vụ đầu tiên.
+      const CONCEPT_KEYWORDS = [
+        [/trung thu|den long/, { 'sinh-nhat': 'trung-thu' }],
+        [/noel|giang sinh/, { 'sinh-nhat': 'le-hoi' }],
+        [/cong chua|hoang tu|vuong mien/, { 'sinh-nhat': 'cong-chua' }],
+        [/pastel|dap banh|cake smash/, { 'sinh-nhat': 'pastel' }],
+        [/bong bay/, { 'sinh-nhat': 'bong-bay' }],
+        [/bua tiec|tiec sinh nhat|tiec cung|thoi nen/, { 'sinh-nhat': 'tiec-gia-dinh' }],
+        [/picnic|da ngoai/, { 'sinh-nhat': 'picnic', 'gia-dinh': 'da-ngoai' }],
+        [/ao dai/, { 'be-lon': 'ao-dai' }],
+        [/han quoc|hanbok/, { 'be-lon': 'han-quoc' }],
+        [/nghe nghiep|canh sat|cuu hoa|bac si|phi cong/, { 'be-lon': 'nghe-nghiep' }],
+        [/mua thu|la vang/, { 'be-lon': 'mua-thu' }],
+        [/the thao|bong ro|bong da|tennis/, { 'be-lon': 'the-thao' }],
+        [/trang sao|mat trang|vang trang|ngoi sao/, { newborn: 'trang-sao' }],
+        [/tai tho|tai gau|thu ngo nghinh|hoa than thu|con thu/, { newborn: 'thu-ngo-nghinh' }],
+        [/cuon u|quan u|\bwrap\b/, { newborn: 'cuon-u' }],
+        [/hoa la/, { newborn: 'hoa-la' }],
+        [/tu nhien|organic/, { newborn: 'tu-nhien' }],
+        [/vong hoa/, { bau: 'vong-hoa' }],
+        [/cung chong|voi chong|ca chong/, { bau: 'cung-chong' }],
+        [/nhieu the he|\bong ba\b/, { 'gia-dinh': 'nhieu-the-he' }],
+        [/anh chi em/, { 'gia-dinh': 'anh-chi-em' }],
+        [/dong phuc/, { 'gia-dinh': 'dong-phuc' }],
+        [/toi gian/, { bau: 'toi-gian' }],
+        [/den trang/, { newborn: 'den-trang', 'be-lon': 'vintage' }],
+        [/\bbien\b/, { 'gia-dinh': 'bien', bau: 'bien', 'be-lon': 'ngoai-canh' }],
+        [/vintage|co dien/, { 'be-lon': 'vintage', bau: 'vintage', 'gia-dinh': 'vintage' }],
+        [/ngoai canh|cong vien|ngoai troi/, { 'be-lon': 'ngoai-canh', bau: 'ngoai-canh', 'gia-dinh': 'ngoai-canh' }]
+      ];
+      const detectConcept = (raw) => {
+        const t = stripDiacritics(raw);
+        const ctx = SERVICE_KEYWORDS.find(([, re]) => re.test(t));
+        const ctxSlug = ctx && albumOf(ctx[0]) ? albumOf(ctx[0]).slug : null;
+        for (const [re, map] of CONCEPT_KEYWORDS) {
+          if (!re.test(t)) continue;
+          const s = ctxSlug && map[ctxSlug] ? ctxSlug : Object.keys(map)[0];
+          const key = `album:${s}/${map[s]}`;
+          if (CHAT_ACTIONS[key]) return key;
+        }
+        return null;
+      };
+      const withConceptButton = (list, raw) => {
+        const key = detectConcept(raw);
+        if (!key || list.some((s) => s.action === key)) return list;
+        return [{ label: CHAT_ACTIONS[key].cta, action: key }, ...list].slice(0, 3);
+      };
+      const conceptOfAction = (key) => {
+        const [s, c] = key.slice('album:'.length).split('/');
+        const service = ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === s);
+        return service ? { service, concept: service.concepts.find((x) => x.slug === c) } : null;
+      };
+
+      // Lớp dự phòng cuối: server đã thử hết các model AI mà vẫn lỗi (hoặc không kết
+      // nối được server) -> trả lời cục bộ theo từ khoá, dùng đúng dữ liệu FAQ /
+      // SERVICE_INFO có sẵn, để khách luôn nhận được câu trả lời thay vì thông báo lỗi.
+      // Có nói rõ đây là trả lời nhanh, không giả vờ là AI (guardrail CLAUDE.md).
+      const LOCAL_NOTE = 'Trợ lý AI đang bận nên mình trả lời nhanh theo thông tin có sẵn nhé:\n';
+      const SERVICE_KEYWORDS = [
+        ['Newborn', /newborn|so sinh/],
+        ['Bầu', /\bbau\b|mang thai|mang bau/],
+        ['Sinh nhật', /sinh nhat|thoi noi/],
+        ['Gia đình', /gia dinh/],
+        ['Bé lớn', /be lon/]
+      ];
+      const PRICE_RE = /\bgia\b(?! dinh)|bao nhieu|chi phi|bang gia|bao gia|bao tien/;
+      const LOCAL_FAQ_RULES = [
+        [/o dau|dia chi|hotline|so dien thoai|\bsdt\b|lien he/, FAQ['Studio ở đâu?']],
+        [/\bcoc\b/, FAQ['Đặt cọc thế nào?']],
+        [/tai nha/, FAQ['Có chụp tại nhà không?']],
+        [/doi lich|doi ngay|doi hen|huy lich|hoan lich/, FAQ['Có đổi được lịch hẹn đã đặt không?']],
+        [/anh goc|chinh sua|chon anh|sua anh|hau ky/, FAQ['Ảnh gốc và ảnh đã chỉnh sửa khác nhau thế nào?']],
+        [/concept|phong cach/, FAQ['Chưa biết chọn concept nào thì sao?']],
+        [/quy trinh|dat lich|dat hen|cac buoc/, 'Đặt lịch tại ALOHA Baby gồm 5 bước: chọn dịch vụ & gói, chọn concept (hoặc để studio tư vấn), chọn ngày & khung giờ còn trống, nhập thông tin của bé & xác nhận, rồi đặt cọc để giữ lịch.'],
+        [/dich vu|may loai|chup gi/, FAQ['Có mấy loại dịch vụ?']]
+      ];
+      const localAnswer = (raw) => {
+        const t = stripDiacritics(raw);
+        const conceptKey = detectConcept(raw);
+        const hit = conceptKey && conceptOfAction(conceptKey);
+        if (hit && hit.concept) {
+          return {
+            text: `${LOCAL_NOTE}Concept "${hit.concept.name}" (dịch vụ ${hit.service.name}): ${hit.concept.desc} Album có ${hit.concept.count} ảnh mẫu, bạn bấm nút bên dưới để xem nhé.`,
+            suggestions: [
+              { label: CHAT_ACTIONS[conceptKey].cta, action: conceptKey },
+              { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
+              { label: 'Đặt cọc thế nào?', action: 'none' }
+            ]
+          };
+        }
+        const service = SERVICE_KEYWORDS.find(([, re]) => re.test(t));
+        if (service) {
+          const info = SERVICE_INFO[service[0]];
+          const album = albumOf(service[0]);
+          const concepts = album ? album.concepts.map((c) => c.name) : info.concepts;
+          return {
+            text: `${LOCAL_NOTE}Dịch vụ "${service[0]}" có ${concepts.length} concept: ${concepts.join(', ')}. ${info.note}\n${info.packageNote} Giá tham khảo ${info.price} (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn).`,
+            suggestions: album && CHAT_ACTIONS['album-' + album.slug]
+              ? [{ label: CHAT_ACTIONS['album-' + album.slug].cta, action: 'album-' + album.slug }, FALLBACK_SUGGESTIONS[0], FALLBACK_SUGGESTIONS[2]]
+              : FALLBACK_SUGGESTIONS
+          };
+        }
+        if (PRICE_RE.test(t)) {
+          const list = Object.entries(SERVICE_INFO).map(([name, info]) => `• ${name}: ${info.price}`).join('\n');
+          return { text: `${LOCAL_NOTE}Giá tham khảo 5 dịch vụ (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn):\n${list}`, suggestions: FALLBACK_SUGGESTIONS };
+        }
+        const rule = LOCAL_FAQ_RULES.find(([re]) => re.test(t));
+        if (rule) return { text: LOCAL_NOTE + rule[1], suggestions: FALLBACK_SUGGESTIONS };
+        return {
+          text: 'Trợ lý AI đang bận nên mình chưa trả lời chi tiết câu này được. Bạn chọn một câu hỏi thường gặp bên dưới, hoặc gọi hotline 0938.125.222 để Sales hỗ trợ ngay nhé.',
+          suggestions: [
+            { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
+            { label: 'Studio ở đâu?', action: 'none' },
+            { label: 'Đặt cọc thế nào?', action: 'none' }
+          ]
+        };
+      };
+
+      const answerLocally = (text) => {
+        const ans = localAnswer(text);
+        addMsg(ans.text, 'bot');
+        aiHistory.push({ role: 'assistant', content: ans.text });
+        return ans.suggestions;
+      };
+
       const sendToAI = async (text) => {
         if (!text || aiBusy) return;
         chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
@@ -659,15 +843,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let local = true;
 
         try {
+          // 90 giây: đủ cho Render free "thức dậy" (30-60s) + server thử model dự phòng.
           const res = await fetch(CHAT_API_URL, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ messages: aiHistory })
+            body: JSON.stringify({ messages: aiHistory }),
+            signal: AbortSignal.timeout(90000)
           });
           const data = await res.json();
           typing.remove();
           if (!res.ok || !data.reply) {
-            addMsg('Trợ lý AI hiện chưa sẵn sàng (server chưa chạy hoặc chưa cấu hình API key). Bạn có thể gọi hotline 0938.125.222 hoặc để lại câu hỏi, Sales sẽ liên hệ lại nhé.', 'error');
+            next = answerLocally(text);
           } else {
             addMsg(data.reply, 'bot');
             aiHistory.push({ role: 'assistant', content: data.reply });
@@ -681,11 +867,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (err) {
           typing.remove();
-          addMsg('Không kết nối được tới trợ lý AI ngay lúc này. Bạn có thể gọi hotline 0938.125.222 để được hỗ trợ trực tiếp.', 'error');
+          next = answerLocally(text);
         } finally {
           aiBusy = false;
           sendBtn.disabled = false;
-          suggestNext(withIntentButton(next, text), local);
+          suggestNext(withConceptButton(withIntentButton(next, text), text), local);
         }
       };
 

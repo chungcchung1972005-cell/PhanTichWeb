@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="ALOHA Baby">
+  <!-- Biểu tượng ALOHA Baby: trái tim hồng (cùng trái tim trong wordmark "aloha").
+       Dùng cho favicon, icon điện thoại, ảnh đại diện khung chat. Màu pink-400 / pink-600. -->
+  <defs>
+    <linearGradient id="ab-heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff8fb3"/>
+      <stop offset="1" stop-color="#e0417a"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="13" fill="#fff5f8"/>
+  <path d="M24 39C9.8 30 6.6 22.4 10.2 17 13.6 11.9 20.9 12.5 24 17.6 27.1 12.5 34.4 11.9 37.8 17 41.4 22.4 38.2 30 24 39z" fill="url(#ab-heart)"/>
+</svg>

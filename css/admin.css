@@ -12,12 +12,7 @@
 .admin-topnav .container {
   display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
 }
-.admin-topnav .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-.admin-topnav .logo .mark {
-  width: 34px; height: 34px; border-radius: 10px; background: var(--pink-600); color: var(--white);
-  display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 700;
-}
-.admin-topnav .logo .word { font-family: var(--font-heading); font-weight: 700; color: var(--navy-900); font-size: 17px; }
+.admin-topnav .logo { text-decoration: none; --wm-size: 25px; }
 
 .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .admin-tabs a {
