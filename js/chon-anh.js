@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const banner = document.getElementById('psSubmittedBanner');
   const photoNotesSection = document.getElementById('psPhotoNotes');
   const photoNotesList = document.getElementById('psPhotoNotesList');
+  const generalNoteBox = document.getElementById('psGeneralNote');
 
   // ===== Tạo popup hỏi chỉnh sửa thêm =====
   const overlay = document.createElement('div');
@@ -434,6 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filter === 'liked') {
       grid.appendChild(addBox);
     }
+
+    // Ẩn mục ghi chú chung khi ở tab "Tất cả" (chỉ xóa/ẩn ở mục Tất cả theo yêu cầu)
+    if (generalNoteBox) {
+      generalNoteBox.hidden = (filter === 'all');
+    }
   }
 
   // ===== Tabs =====
@@ -518,4 +524,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   updateSummary();
+  applyFilter('all');
 });
