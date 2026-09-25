@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ALOHA Baby | Studio chụp ảnh em bé & gia đình tại Hà Nội</title>
 <meta name="description" content="ALOHA Baby - Studio chụp ảnh bé lớn, sinh nhật, bầu, gia đình và newborn tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội. Đặt lịch và đặt cọc trực tuyến.">
+<link rel="icon" type="image/svg+xml" href="images/logo-mark.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260925">
-<link rel="stylesheet" href="css/pages.css?v=20260925">
+<link rel="stylesheet" href="css/style.css?v=20260925b">
+<link rel="stylesheet" href="css/pages.css?v=20260925b">
 </head>
 <body>
 
@@ -32,9 +35,8 @@
 <!-- Header -->
 <header class="site-header">
   <nav class="nav container">
-    <a href="#/" class="logo">
-      <span class="mark">A</span>
-      <span class="word">ALOHA <span>Baby</span></span>
+    <a href="#/" class="logo" aria-label="ALOHA Baby, trang chủ">
+      <span class="wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
     </a>
 
     <ul class="nav-links" id="navLinks">
@@ -92,12 +94,74 @@
   <!-- ============================== VIEW: Trang chủ ============================== -->
   <div id="view-home">
 
-    <!-- Hero -->
+    <!-- Hero Banner: 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md).
+         Mỗi ô ảnh / dòng dịch vụ mở album riêng #/album/<slug> (dữ liệu ảnh:
+         js/albums.js). Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
+    <section class="svc-hero" id="dich-vu">
+      <div class="svc-hero-inner">
+        <div class="svc-hero-text reveal">
+          <h1>5 dịch vụ đồng hành cùng <em>con lớn khôn</em></h1>
+          <p class="svc-hero-lead">Mỗi cột mốc của con đều xứng đáng được lưu giữ bằng một bộ ảnh trọn vẹn.</p>
+
+          <div class="svc-hero-cta">
+            <a href="#/dat-lich" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+              Đặt lịch chụp ngay
+            </a>
+            <span class="svc-hero-hint">Chọn một dịch vụ để xem album ảnh</span>
+          </div>
+        </div>
+
+        <div class="svc-collage reveal-stagger reveal">
+          <a href="#/album/newborn" class="svc-tile svc-tile--newborn stagger-item" data-album="newborn">
+            <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="eager">
+            <span class="svc-tile-body"><span class="svc-tile-name">Newborn</span><span class="svc-tile-meta">Xem album · <span data-album-count="newborn"></span></span></span>
+            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+          </a>
+          <a href="#/album/bau" class="svc-tile svc-tile--bau stagger-item" data-album="bau">
+            <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="eager">
+            <span class="svc-tile-body"><span class="svc-tile-name">Bầu</span><span class="svc-tile-meta">Xem album · <span data-album-count="bau"></span></span></span>
+            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+          </a>
+          <a href="#/album/sinh-nhat" class="svc-tile svc-tile--sinh-nhat stagger-item" data-album="sinh-nhat">
+            <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="eager">
+            <span class="svc-tile-body"><span class="svc-tile-name">Sinh nhật</span><span class="svc-tile-meta">Xem album · <span data-album-count="sinh-nhat"></span></span></span>
+            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+          </a>
+          <a href="#/album/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
+            <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="eager">
+            <span class="svc-tile-body"><span class="svc-tile-name">Bé lớn</span><span class="svc-tile-meta">Xem album · <span data-album-count="be-lon"></span></span></span>
+            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+          </a>
+          <a href="#/album/gia-dinh" class="svc-tile svc-tile--gia-dinh stagger-item" data-album="gia-dinh">
+            <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="eager">
+            <span class="svc-tile-body"><span class="svc-tile-name">Gia đình</span><span class="svc-tile-meta">Xem album · <span data-album-count="gia-dinh"></span></span></span>
+            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="services-extra reveal">
+          <div class="services-extra-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+          </div>
+          <div class="services-extra-text">
+            <h4>Không thể đến studio? ALOHA Baby có dịch vụ chụp ảnh tại nhà</h4>
+            <p>Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen thuộc.</p>
+            <a href="#/noi-dung/chup-tai-nha" class="more-link">Tìm hiểu dịch vụ tại nhà</a>
+          </div>
+          <a href="#/dat-lich" class="btn btn-outline btn-sm">Đặt lịch tại nhà</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Giới thiệu ngắn (trước đây là Hero đầu trang; từ khi 5 dịch vụ lên làm Hero Banner thì chuyển xuống đây, nội dung giữ nguyên, h1 đổi thành h2 vì trang chỉ nên có 1 h1) -->
     <section class="hero">
       <div class="container">
         <div class="hero-text reveal">
           <span class="eyebrow">Địa chỉ chụp ảnh em bé được yêu thích tại Hà Nội</span>
-          <h1>Lưu giữ từng khoảnh khắc <em>đáng yêu</em> của bé</h1>
+          <h2 class="hero-title">Lưu giữ từng khoảnh khắc <em>đáng yêu</em> của bé</h2>
           <p class="lead">ALOHA Baby đồng hành cùng ba mẹ lưu giữ trọn vẹn từng cột mốc đầu đời của con, trong không gian studio ấm áp và đội ngũ tận tâm.</p>
           <div class="hero-cta">
             <a href="#/dat-lich" class="btn btn-primary">
@@ -134,56 +198,6 @@
       </div>
     </section>
 
-    <!-- Services : 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md) -->
-    <section class="services" id="dich-vu">
-      <div class="container">
-        <div class="section-head reveal">
-          <h2>5 dịch vụ đồng hành cùng con lớn khôn</h2>
-          <p>Mỗi cột mốc của con đều xứng đáng được lưu giữ bằng một bộ ảnh trọn vẹn.</p>
-        </div>
-
-        <div class="services-showcase reveal-stagger reveal">
-          <div class="showcase-main stagger-item">
-            <img src="images/services-main.jpg" alt="Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby" loading="lazy">
-            <span class="showcase-caption">Không gian chụp ảnh chuyên nghiệp tại ALOHA Baby</span>
-          </div>
-          <div class="showcase-grid">
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-              <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="lazy">
-              <span>Bé lớn</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
-              <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="lazy">
-              <span>Sinh nhật</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-              <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="lazy">
-              <span>Bầu</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="lazy">
-              <span>Gia đình</span>
-            </a>
-            <a href="#/dat-lich" class="showcase-item stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
-              <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="lazy">
-              <span>Newborn</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="services-extra reveal">
-          <div class="services-extra-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-          </div>
-          <div class="services-extra-text">
-            <h4>Không thể đến studio? ALOHA Baby có dịch vụ chụp ảnh tại nhà</h4>
-            <p>Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen thuộc.</p>
-          </div>
-          <a href="#/dat-lich" class="btn btn-outline btn-sm">Đặt lịch tại nhà</a>
-        </div>
-      </div>
-    </section>
-
     <!-- Album ảnh đẹp -->
     <section class="album" id="album">
       <div class="container">
@@ -191,32 +205,34 @@
           <h2>Những bộ ảnh nổi bật tại ALOHA Baby</h2>
           <p>Một vài album được ba mẹ yêu thích nhất, xem trọn bộ trong thư viện ảnh của studio.</p>
         </div>
-        <!-- Ảnh minh họa (stock, miễn phí bản quyền) - chờ thay bằng ảnh thật của studio; caption cố tình dùng mô tả phong cách, không gắn tên khách hàng cụ thể -->
+        <!-- Ảnh minh họa (stock, miễn phí bản quyền) - chờ thay bằng ảnh thật của studio; caption cố tình dùng mô tả phong cách, không gắn tên khách hàng cụ thể.
+             Mỗi thẻ mở album concept tương ứng (#/album/<dịch vụ>/<concept>, js/albums.js), xem công khai.
+             Ảnh từng thẻ đã khớp lại với tên thẻ (trước đây 4/6 thẻ bị lệch ảnh, vd "Gia đình sum vầy" hiện ảnh 1 bé). -->
         <div class="album-grid reveal-stagger reveal">
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
+          <a href="#/album/newborn/tu-nhien" class="album-card stagger-item" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
             <img src="images/album-1.jpg" alt="Album ảnh Newborn nhẹ nhàng" loading="lazy">
             <div class="album-info"><h3>Newborn nhẹ nhàng</h3><span>Phong cách tự nhiên, ấm áp</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-            <img src="images/album-2.jpg" alt="Album ảnh gia đình sum vầy" loading="lazy">
+          </a>
+          <a href="#/album/gia-dinh/nhieu-the-he" class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+            <img src="images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-01.jpg" alt="Album ảnh gia đình sum vầy" loading="lazy">
             <div class="album-info"><h3>Gia đình sum vầy</h3><span>Khoảnh khắc bên nhau</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-            <img src="images/album-3.jpg" alt="Album ảnh bầu ngọt ngào" loading="lazy">
+          </a>
+          <a href="#/album/bau/vintage" class="album-card stagger-item" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
+            <img src="images/album-4.jpg" alt="Album ảnh bầu ngọt ngào" loading="lazy">
             <div class="album-info"><h3>Bầu ngọt ngào</h3><span>Vintage nhẹ nhàng</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
-            <img src="images/album-4.jpg" alt="Album ảnh sinh nhật rực rỡ" loading="lazy">
+          </a>
+          <a href="#/album/sinh-nhat/bong-bay" class="album-card stagger-item" style="background:linear-gradient(135deg,#f6d365,#fda085);">
+            <img src="images/album-6.jpg" alt="Album ảnh sinh nhật rực rỡ" loading="lazy">
             <div class="album-info"><h3>Sinh nhật rực rỡ</h3><span>Đầy sắc màu, tràn niềm vui</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
+          </a>
+          <a href="#/album/be-lon/ngoai-canh" class="album-card stagger-item" style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
             <img src="images/album-5.jpg" alt="Album ảnh bé lớn tinh nghịch" loading="lazy">
             <div class="album-info"><h3>Bé lớn tinh nghịch</h3><span>Ngoại cảnh & studio</span></div>
-          </div>
-          <div class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-            <img src="images/album-6.jpg" alt="Album ảnh Newborn đáng yêu" loading="lazy">
+          </a>
+          <a href="#/album/newborn/den-trang" class="album-card stagger-item" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
+            <img src="images/album-3.jpg" alt="Album ảnh Newborn đáng yêu" loading="lazy">
             <div class="album-info"><h3>Newborn đáng yêu</h3><span>Từng chi tiết nhỏ xinh</span></div>
-          </div>
+          </a>
         </div>
       </div>
     </section>
@@ -233,12 +249,13 @@
           <button type="button" id="conceptChatBtn" class="btn btn-primary">Tư vấn concept ngay</button>
         </div>
 
+        <!-- Mỗi ô mở trang chi tiết concept (#/noi-dung/concept-*, js/content.js): mô tả, gợi ý chuẩn bị, ảnh/video tham khảo, link album. -->
         <div class="concept-grid reveal-stagger reveal">
-          <div class="concept-tile stagger-item"><img src="images/concept-bien.jpg" alt="Concept Biển" loading="lazy"><span>Biển</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-noel.jpg" alt="Concept Noel" loading="lazy"><span>Noel</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-sinh-nhat.jpg" alt="Concept Sinh nhật" loading="lazy"><span>Sinh nhật</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-vintage.jpg" alt="Concept Vintage" loading="lazy"><span>Vintage</span></div>
-          <div class="concept-tile stagger-item"><img src="images/concept-han-quoc.jpg" alt="Concept Hàn Quốc" loading="lazy"><span>Hàn Quốc</span></div>
+          <a href="#/noi-dung/concept-bien" class="concept-tile stagger-item"><img src="images/concept-bien.jpg" alt="Concept Biển" loading="lazy"><span>Biển</span></a>
+          <a href="#/noi-dung/concept-noel" class="concept-tile stagger-item"><img src="images/concept-noel.jpg" alt="Concept Noel" loading="lazy"><span>Noel</span></a>
+          <a href="#/noi-dung/concept-sinh-nhat" class="concept-tile stagger-item"><img src="images/concept-sinh-nhat.jpg" alt="Concept Sinh nhật" loading="lazy"><span>Sinh nhật</span></a>
+          <a href="#/noi-dung/concept-vintage" class="concept-tile stagger-item"><img src="images/concept-vintage.jpg" alt="Concept Vintage" loading="lazy"><span>Vintage</span></a>
+          <a href="#/noi-dung/concept-han-quoc" class="concept-tile stagger-item"><img src="images/concept-han-quoc.jpg" alt="Concept Hàn Quốc" loading="lazy"><span>Hàn Quốc</span></a>
         </div>
       </div>
     </section>
@@ -258,22 +275,25 @@
             <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Đặt lịch, đặt cọc và theo dõi ảnh hoàn toàn trực tuyến</li>
             <li><span class="check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Cam kết bảo mật hình ảnh của bé, chỉ xem qua tài khoản của khách</li>
           </ul>
+          <a href="#/noi-dung/gioi-thieu-studio" class="more-link">Tìm hiểu thêm về studio</a>
         </div>
       </div>
     </section>
 
     <!-- Video giới thiệu -->
-    <section class="video">
+    <!-- Trước đây nút ▶ chỉ là hình, bấm không làm gì. Giờ mở trang #/noi-dung/mot-ngay-tai-aloha (video + các bước buổi chụp, js/content.js). -->
+    <section class="video" id="video">
       <div class="container">
-        <div class="video-frame reveal">
+        <a href="#/noi-dung/mot-ngay-tai-aloha" class="video-frame reveal" aria-label="Xem video Một ngày tại ALOHA Baby">
           <img src="images/video-poster.jpg" alt="Hậu trường một buổi chụp tại ALOHA Baby" loading="lazy">
           <div class="video-play">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           </div>
-        </div>
+        </a>
         <div class="video-text reveal">
           <h2>Một ngày tại ALOHA Baby</h2>
           <p style="color:var(--navy-500); font-size:15.5px;">Cùng xem hậu trường một buổi chụp thực tế tại studio, từ lúc bé đến, makeup, tạo dáng cho đến khi nhận bộ ảnh hoàn thiện.</p>
+          <a href="#/noi-dung/mot-ngay-tai-aloha" class="more-link">Xem video và hậu trường</a>
         </div>
       </div>
     </section>
@@ -307,11 +327,12 @@
             <p>Chọn ảnh yêu thích và theo dõi tiến độ chỉnh sửa ngay trên web.</p>
           </div>
         </div>
+        <p class="process-more reveal"><a href="#/noi-dung/huong-dan-dat-lich" class="more-link">Xem hướng dẫn chi tiết từng bước</a></p>
       </div>
     </section>
 
     <!-- Tin tức - Sự kiện -->
-    <!-- Tiêu đề bài viết minh họa - thay bằng bài viết thật khi studio đăng tin tức -->
+    <!-- Bài viết đầy đủ nằm trong js/content.js (#/noi-dung/<slug>); ảnh bìa + tiêu đề + nút "Đọc tiếp" đều mở bài. -->
     <section class="news" id="tin-tuc">
       <div class="container">
         <div class="section-head reveal">
@@ -319,36 +340,36 @@
         </div>
         <div class="news-grid reveal-stagger reveal">
           <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-              <img src="images/news-1.jpg" alt="Nên chụp ảnh newborn cho bé vào thời điểm nào?" loading="lazy">
-            </div>
+            <a href="#/noi-dung/newborn-thoi-diem" class="news-thumb" style="background:linear-gradient(135deg,#ffb199,#ff8fb3);" tabindex="-1" aria-hidden="true">
+              <img src="images/news-1.jpg" alt="" loading="lazy">
+            </a>
             <div class="news-body">
               <div class="news-date">Kinh nghiệm</div>
-              <h3>Nên chụp ảnh newborn cho bé vào thời điểm nào?</h3>
+              <h3><a href="#/noi-dung/newborn-thoi-diem">Nên chụp ảnh newborn cho bé vào thời điểm nào?</a></h3>
               <p>Gợi ý thời điểm và cách chuẩn bị để có bộ ảnh newborn đẹp và an toàn cho bé.</p>
-              <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
+              <a href="#/noi-dung/newborn-thoi-diem" class="news-more">Đọc tiếp →</a>
             </div>
           </div>
           <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/news-2.jpg" alt="Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby" loading="lazy">
-            </div>
+            <a href="#/noi-dung/huong-dan-dat-lich" class="news-thumb" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);" tabindex="-1" aria-hidden="true">
+              <img src="images/news-2.jpg" alt="" loading="lazy">
+            </a>
             <div class="news-body">
               <div class="news-date">Hướng dẫn</div>
-              <h3>Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby</h3>
+              <h3><a href="#/noi-dung/huong-dan-dat-lich">Cách đặt lịch và đặt cọc chụp ảnh online tại ALOHA Baby</a></h3>
               <p>Hướng dẫn từng bước đặt lịch, chọn concept và giữ khung giờ chụp yêu thích.</p>
-              <a href="#/dat-lich">Đặt lịch ngay →</a>
+              <a href="#/noi-dung/huong-dan-dat-lich" class="news-more">Đọc hướng dẫn →</a>
             </div>
           </div>
           <div class="news-card stagger-item">
-            <div class="news-thumb" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);">
-              <img src="images/news-3.jpg" alt="Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?" loading="lazy">
-            </div>
+            <a href="#/noi-dung/vi-sao-chon-aloha" class="news-thumb" style="background:linear-gradient(135deg,#fbc2eb,#a6c1ee);" tabindex="-1" aria-hidden="true">
+              <img src="images/news-3.jpg" alt="" loading="lazy">
+            </a>
             <div class="news-body">
               <div class="news-date">Địa điểm</div>
-              <h3>Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?</h3>
+              <h3><a href="#/noi-dung/vi-sao-chon-aloha">Vì sao ALOHA Baby được nhiều gia đình Hà Nội lựa chọn?</a></h3>
               <p>Không gian rộng rãi, đội ngũ tận tâm và quy trình chăm sóc bé xuyên suốt buổi chụp.</p>
-              <!-- "Đọc thêm" tạm ẩn: chưa có bài viết đầy đủ, chưa viết nội dung minh hoạ để tránh hứa hẹn nội dung chưa có. -->
+              <a href="#/noi-dung/vi-sao-chon-aloha" class="news-more">Đọc tiếp →</a>
             </div>
           </div>
         </div>
@@ -584,7 +605,141 @@
 
   </div>
 
+  <!-- ============================== VIEW: Album theo dịch vụ ==============================
+       Route #/album/<slug>, nội dung do js/albums.js render. Xem công khai, không cần đăng nhập. -->
+  <div id="view-album" hidden>
+
+    <div id="galleryFound">
+      <section class="page-header gallery-header">
+        <div class="container">
+          <div class="breadcrumb"><a href="#/">Trang chủ</a> / <a href="#dich-vu">Dịch vụ</a> / <span id="galleryCrumb"></span></div>
+          <div class="gallery-head">
+            <div>
+              <!-- Chỉ hiện ở tầng ảnh của 1 concept: quay lên danh sách concept của dịch vụ -->
+              <a href="#/" class="gallery-up" id="galleryUp" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+                Tất cả concept
+              </a>
+              <h1 id="galleryTitle"></h1>
+              <p id="galleryDesc"></p>
+              <p class="gallery-count" id="galleryCount"></p>
+            </div>
+            <div class="gallery-actions">
+              <a href="#/" class="btn btn-outline btn-sm gallery-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+                Về trang chủ
+              </a>
+              <a href="#/dat-lich" class="btn btn-primary btn-sm">Đặt lịch chụp</a>
+            </div>
+          </div>
+          <nav class="gallery-switch" id="gallerySwitch" aria-label="Album các dịch vụ"></nav>
+        </div>
+      </section>
+
+      <section class="gallery-body">
+        <div class="container">
+          <!-- Tầng dịch vụ: lưới thẻ concept album. Tầng concept: lưới ảnh. js/albums.js bật/tắt. -->
+          <div class="concept-albums" id="galleryConcepts"></div>
+          <div class="gallery-grid" id="galleryGrid" hidden></div>
+          <p class="gallery-note">Ảnh minh hoạ phong cách chụp, không phải ảnh khách hàng thật.</p>
+          <div class="gallery-footer">
+            <a href="#/" class="btn btn-outline" id="galleryUpBottom" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+              <span>Các concept</span>
+            </a>
+            <a href="#/" class="btn btn-outline gallery-back">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+              Về trang chủ
+            </a>
+            <a href="#/dat-lich" class="btn btn-primary">Đặt lịch chụp ngay</a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="page-header gallery-missing" id="galleryMissing" hidden>
+      <div class="container">
+        <h1>Không tìm thấy album</h1>
+        <p>Album này không tồn tại hoặc đã được đổi tên.</p>
+        <a href="#/" class="btn btn-primary gallery-back">Về trang chủ</a>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================== VIEW: Trang nội dung chi tiết ==============================
+       Route #/noi-dung/<slug>: concept, video, giới thiệu, chụp tại nhà, bài tin tức.
+       Dữ liệu + render ở js/content.js (thêm trang mới = thêm 1 object, không sửa HTML). Xem công khai. -->
+  <div id="view-content" hidden>
+    <div id="contentFound">
+      <section class="page-header content-header">
+        <div class="container">
+          <div class="breadcrumb"><a href="#/">Trang chủ</a> / <span id="contentCrumb"></span></div>
+          <div class="gallery-head">
+            <div>
+              <span class="eyebrow" id="contentEyebrow"></span>
+              <h1 id="contentTitle"></h1>
+              <p id="contentLead"></p>
+            </div>
+            <div class="gallery-actions">
+              <a href="#/" class="btn btn-outline btn-sm gallery-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+                Về trang chủ
+              </a>
+              <a href="#/dat-lich" class="btn btn-primary btn-sm">Đặt lịch chụp</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-body">
+        <div class="container">
+          <article class="content-article" id="contentBlocks"></article>
+          <div class="content-related-wrap" id="contentRelatedWrap">
+            <h2 class="content-h">Có thể ba mẹ quan tâm</h2>
+            <div class="content-related" id="contentRelated"></div>
+          </div>
+          <div class="gallery-footer">
+            <a href="#/" class="btn btn-outline gallery-back">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+              Về trang chủ
+            </a>
+            <a href="#/dat-lich" class="btn btn-primary">Đặt lịch chụp ngay</a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="page-header gallery-missing" id="contentMissing" hidden>
+      <div class="container">
+        <h1>Không tìm thấy nội dung</h1>
+        <p>Trang này không tồn tại hoặc đã được đổi tên.</p>
+        <a href="#/" class="btn btn-primary gallery-back">Về trang chủ</a>
+      </div>
+    </section>
+  </div>
+
+  <!-- Lightbox dùng chung cho view Album và view Nội dung (xem ảnh lớn / phát video), điều khiển trong js/albums.js. -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh, video phóng to" hidden>
+    <div class="lightbox-stage">
+      <img id="lightboxImg" src="" alt="">
+      <video id="lightboxVideo" controls playsinline preload="metadata" hidden></video>
+    </div>
+    <button type="button" class="lightbox-btn lightbox-close" id="lightboxClose" aria-label="Đóng">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <button type="button" class="lightbox-btn lightbox-prev" id="lightboxPrev" aria-label="Ảnh trước">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button type="button" class="lightbox-btn lightbox-next" id="lightboxNext" aria-label="Ảnh sau">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+  </div>
+
 </main>
+<script src="js/albums.js"></script>
+<script src="js/content.js"></script>
 <script src="js/router.js"></script>
 
 <!-- Footer -->
@@ -592,9 +747,8 @@
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="#/" class="logo">
-          <span class="mark">A</span>
-          <span class="word">ALOHA Baby</span>
+        <a href="#/" class="logo" aria-label="ALOHA Baby, trang chủ">
+          <span class="wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
         </a>
         <p>Studio chụp ảnh em bé & gia đình tại Hà Nội. Lưu giữ trọn vẹn từng khoảnh khắc đầu đời của con.</p>
         <!-- Icon mạng xã hội tạm ẩn: chưa có link Facebook/Instagram/TikTok/Zalo
@@ -666,7 +820,7 @@
      Claude API thật — xem .claude/rules/workflow.md và server/server.js. -->
 <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
   <div class="chat-header">
-    <div class="chat-avatar">A</div>
+    <div class="chat-avatar"><img src="images/logo-mark.svg" alt="" width="28" height="28"></div>
     <div class="chat-header-text">
       <strong>Trợ lý ALOHA</strong>
       <span>Tư vấn concept & báo giá</span>

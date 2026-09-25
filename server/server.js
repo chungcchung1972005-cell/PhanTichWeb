@@ -16,7 +16,14 @@ const express = require('express');
 const cors = require('cors');
 
 const PORT = process.env.PORT || 3001;
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+// Model dự phòng, thử lần lượt khi model chính lỗi (free tier hay báo "high
+// demand" 503 theo từng model, hiếm khi tất cả cùng quá tải một lúc).
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash-lite,gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.6-flash')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const MODEL_CHAIN = [...new Set([MODEL, ...FALLBACK_MODELS])];
+// Mỗi model chờ tối đa bấy nhiêu ms rồi chuyển sang model kế tiếp.
+const MODEL_TIMEOUT_MS = 18000;
 const API_KEY = process.env.GEMINI_API_KEY;
 // Domain thật của frontend sau khi public, cách nhau bằng dấu phẩy (vd
 // "https://ten-nguoi-dung.github.io"). Để trống thì mở cho mọi origin (chỉ
@@ -31,20 +38,22 @@ const SEPAY_WEBHOOK_KEY = process.env.SEPAY_WEBHOOK_KEY;
 // sẵn. Đây là giá/gói MINH HOẠ, chưa phải bảng giá chính thức đã duyệt — xem
 // .claude/rules/tech-defaults.md mục "Cấu hình chưa xác định".
 const SERVICE_INFO = {
-  'Bé lớn': { concepts: 'Ngoại cảnh công viên/phố cổ, phong cách Hàn Quốc tối giản, hoặc Vintage cổ điển', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
-  'Sinh nhật': { concepts: 'Sinh nhật rực rỡ nhiều bóng bay, theo mùa/lễ hội, hoặc tông pastel nhẹ nhàng', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
-  'Bầu': { concepts: 'Vintage nhẹ nhàng trong studio, ngoại cảnh thiên nhiên, hoặc tối giản tôn dáng mẹ bầu', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
-  'Gia đình': { concepts: 'Ngoại cảnh công viên/biển, Vintage ấm áp trong studio, hoặc đồng phục tông màu cả nhà', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
-  'Newborn': { concepts: 'Newborn tự nhiên (organic), cuộn ủ (wrap) cổ điển, hoặc có bố mẹ/anh chị cùng khung hình', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
+  'Bé lớn': { concepts: 'Ngoại cảnh công viên, biển; Phong cách Hàn Quốc (hanbok); Vintage cổ điển; Áo dài truyền thống; Hoá thân nghề nghiệp (cảnh sát, lính cứu hoả...); Mùa thu lá vàng; Năng động, thể thao', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
+  'Sinh nhật': { concepts: 'Rực rỡ bóng bay; Giáng sinh (Noel); Pastel nhẹ nhàng (đập bánh kem); Trung thu, đèn lồng; Công chúa, hoàng tử; Tiệc cùng gia đình; Picnic ngoài trời', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
+  'Bầu': { concepts: 'Ngoại cảnh thiên nhiên; Vintage trong studio; Tối giản, tôn dáng; Cùng chồng; Cùng bé lớn; Vòng hoa; Biển', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
+  'Gia đình': { concepts: 'Đồng phục tông màu; Ngoại cảnh công viên; Vintage ấm áp; Biển; Nhiều thế hệ (ông bà, bố mẹ, các cháu); Anh chị em; Dã ngoại picnic', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
+  'Newborn': { concepts: 'Cuộn ủ (wrap) cổ điển; Tự nhiên (organic); Cùng bố mẹ, anh chị; Hoa lá; Hoá thân thú ngộ nghĩnh (mũ tai thỏ, tai gấu); Đen trắng tinh tế; Trăng sao cổ tích', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
 };
 
 // Các đích điều hướng frontend hỗ trợ (khớp CHAT_ACTIONS trong js/script.js).
-const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu'];
+// album-<dịch vụ>: trang album ảnh mẫu của dịch vụ đó (danh sách concept, js/albums.js).
+const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu',
+  'album-newborn', 'album-bau', 'album-sinh-nhat', 'album-be-lon', 'album-gia-dinh'];
 
 const SYSTEM_PROMPT = `Bạn là trợ lý tư vấn của ALOHA Baby — studio chụp ảnh em bé và gia đình tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội, hotline 0938.125.222.
 
 5 dịch vụ chính, concept gợi ý và giá THAM KHẢO (luôn nói rõ đây là giá minh hoạ, Sales sẽ báo giá chính xác theo từng đơn; gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, ảnh chọn thêm ngoài gói tính phí theo ảnh):
-${Object.entries(SERVICE_INFO).map(([name, info]) => `- ${name}: concept gợi ý ${info.concepts} (${info.note}), giá tham khảo ${info.price}`).join('\n')}
+${Object.entries(SERVICE_INFO).map(([name, info]) => `- ${name}: các concept ${info.concepts} (${info.note}), giá tham khảo ${info.price}`).join('\n')}
 
 Ngoài 5 dịch vụ trên, studio còn nhận chụp tại nhà cho gia đình muốn không gian riêng tư quen thuộc.
 
@@ -57,7 +66,7 @@ Nguyên tắc trả lời bắt buộc:
 - KHÔNG bịa số liệu cụ thể về mức cọc, chính sách đổi/huỷ lịch, số ảnh được chỉnh sửa miễn phí — những thông số này chưa được studio chốt, chỉ nói "Sales sẽ tư vấn chi tiết khi bạn đặt lịch".
 - Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.
 
-Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
+Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ), "album-newborn" / "album-bau" / "album-sinh-nhat" / "album-be-lon" / "album-gia-dinh" (album ảnh mẫu theo concept của đúng dịch vụ đó; khi khách hỏi về concept hoặc muốn xem ảnh mẫu của 1 dịch vụ thì ưu tiên gợi ý nút này, ví dụ {"label": "Xem album Sinh nhật", "action": "album-sinh-nhat"}). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
 if (ALLOWED_ORIGINS.length) {
@@ -90,7 +99,6 @@ app.post('/api/chat', async (req, res) => {
   }));
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
     const payload = JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
@@ -118,28 +126,45 @@ app.post('/api/chat', async (req, res) => {
         }
     });
 
-    // Free tier hay báo 503 tạm thời khi quá tải: thử lại tối đa 2 lần rồi mới báo lỗi.
-    // Không thử lại 429 (hết hạn mức free), thử lại chỉ tốn thêm lượt.
-    let response, data;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
-        body: payload
-      });
-      data = await response.json();
-      if (response.ok || response.status !== 503) break;
-      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+    // Thử lần lượt từng model trong MODEL_CHAIN: model nào lỗi (quá tải 503, hết
+    // hạn mức 429, ngừng hỗ trợ 404...), quá thời gian chờ, hoặc trả về rỗng thì
+    // chuyển sang model kế tiếp. Chỉ báo lỗi khi TẤT CẢ model đều không dùng được.
+    let text = '';
+    let usedModel = null;
+    const failures = [];
+    for (const model of MODEL_CHAIN) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+          body: payload,
+          signal: AbortSignal.timeout(MODEL_TIMEOUT_MS)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          failures.push(`${model}: ${response.status} ${(data.error && data.error.message) || ''}`.trim());
+          continue;
+        }
+        if (data.promptFeedback && data.promptFeedback.blockReason) {
+          console.error('Gemini blocked prompt:', data.promptFeedback);
+        }
+        const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+        text = parts.map(p => p.text || '').join('').trim();
+        if (!text) {
+          failures.push(`${model}: empty response`);
+          continue;
+        }
+        usedModel = model;
+        break;
+      } catch (e) {
+        failures.push(`${model}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`);
+      }
     }
-    if (!response.ok) {
-      console.error('Gemini API error:', data);
-      return res.status(502).json({ error: 'upstream_error', detail: data.error && data.error.message });
+    if (failures.length) console.warn('Gemini model fallback:', failures.join(' | '));
+    if (!usedModel) {
+      return res.status(502).json({ error: 'upstream_error', detail: failures.join(' | ') });
     }
-    if (data.promptFeedback && data.promptFeedback.blockReason) {
-      console.error('Gemini blocked prompt:', data.promptFeedback);
-    }
-    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    const text = parts.map(p => p.text || '').join('').trim();
     let reply = text;
     let suggestions = [];
     try {

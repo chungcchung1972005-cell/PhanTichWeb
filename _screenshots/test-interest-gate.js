@@ -25,14 +25,15 @@ const BASE = 'file:///D:/PhanTichWeb/';
     const hasRegister = await page.$('#navAuthArea a[href="login.html?mode=register"]') !== null;
     log('trang chủ hiện nút Đăng nhập/Đăng ký khi chưa đăng nhập', hasLogin && hasRegister);
 
-    // 2) Click album-card -> về login.html
+    // 2) Click album-card -> mở album concept công khai, KHÔNG về login.html
+    // (người dùng đổi yêu cầu 2026-09-25: Album/Concept xem công khai, chỉ Đặt lịch/Ảnh của tôi mới gate).
     await page.click('.album-card');
     await new Promise(r => setTimeout(r, 300));
-    log('click album-card chưa đăng nhập -> về login.html', page.url().includes('login.html'), page.url());
+    log('click album-card chưa đăng nhập -> mở album công khai, không về login', page.url().includes('#/album/') && !page.url().includes('login.html'), page.url());
     await page.close();
   }
 
-  // 3) Click concept-tile -> về login.html
+  // 3) Click concept-tile -> mở trang concept chi tiết công khai (xem ghi chú ở case 2)
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
@@ -41,7 +42,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.reload({ waitUntil: 'networkidle0' });
     await page.click('.concept-tile');
     await new Promise(r => setTimeout(r, 300));
-    log('click concept-tile chưa đăng nhập -> về login.html', page.url().includes('login.html'), page.url());
+    log('click concept-tile chưa đăng nhập -> mở trang concept, không về login', page.url().includes('#/noi-dung/concept-') && !page.url().includes('login.html'), page.url());
     await page.close();
   }
 
@@ -120,9 +121,10 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.goto(BASE + 'index.html', { waitUntil: 'networkidle0' });
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
-    await page.click('.album-card');
-    await new Promise(r => setTimeout(r, 300));
-    log('click album -> login.html?next=chon-anh', page.url().includes('next=chon-anh'), page.url());
+    // Album giờ xem công khai -> lối vào "Ảnh của tôi" khi chưa đăng nhập là route #/chon-anh (router gate).
+    await page.goto(BASE + 'index.html#/chon-anh', { waitUntil: 'networkidle0' });
+    for (let i = 0; i < 25 && !page.url().includes('login.html'); i++) await new Promise(r => setTimeout(r, 200));
+    log('mở #/chon-anh chưa đăng nhập -> login.html?next=chon-anh', page.url().includes('next=chon-anh'), page.url());
     await page.click('#switchToRegister');
     await page.type('#loginName', 'Trần Test 2');
     await page.type('#loginPhone', '0922333444');

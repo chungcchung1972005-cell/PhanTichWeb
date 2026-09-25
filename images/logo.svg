@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 56" role="img" aria-label="ALOHA Baby">
+  <!-- Logo chữ đầy đủ để dùng ngoài website (mạng xã hội, tài liệu, email). Trên website,
+       logo là chữ HTML (.wordmark trong css/style.css) để luôn dùng đúng font Quicksand.
+       File này cần máy có font Quicksand, không có thì trình xem ảnh sẽ thay font khác. -->
+  <text x="8" y="34" font-family="Quicksand, Nunito, 'Segoe UI', sans-serif" font-size="36" font-weight="700" letter-spacing="-0.7" fill="#2c2a3d">aloha</text>
+  <path transform="translate(104 8) scale(1.1)" d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z" fill="#e0417a"/>
+  <text x="10" y="50" font-family="Nunito, 'Segoe UI', sans-serif" font-size="10" font-weight="800" letter-spacing="4.2" fill="#e0417a">BABY STUDIO</text>
+</svg>

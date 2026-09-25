@@ -182,16 +182,22 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   gap: 16px;
 }
 
-.logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-heading); flex-shrink: 0; }
-.logo .mark {
-  width: 42px; height: 42px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
-  display: flex; align-items: center; justify-content: center;
-  color: var(--white); font-weight: 700; font-size: 18px;
+/* Logo chữ (wordmark, người dùng chọn 2026-09-25): "aloha" viết thường + trái tim hồng nhỏ,
+   dòng "BABY STUDIO" giãn chữ bên dưới. Là chữ HTML (không phải ảnh) để luôn đúng font
+   Quicksand và sắc nét; link bọc ngoài có aria-label "ALOHA Baby". Favicon/icon: trái tim
+   images/logo-mark.svg. Cỡ chữ đổi theo --wm-size (nhỏ lại trên mobile/admin). */
+.logo { display: flex; align-items: center; flex-shrink: 0; --wm-size: 30px; }
+.wordmark { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+.wordmark-name {
+  display: flex; align-items: flex-start;
+  font-family: var(--font-heading); font-weight: 700; font-size: var(--wm-size);
+  letter-spacing: -0.02em; color: var(--navy-900);
 }
-.logo .word { font-size: 21px; font-weight: 700; color: var(--navy-900); white-space: nowrap; }
-.logo .word span { color: var(--pink-600); }
+.wordmark-heart { width: 0.37em; height: 0.37em; margin: -0.02em 0 0 0.06em; fill: var(--pink-600); flex-shrink: 0; }
+.wordmark-sub {
+  font-family: var(--font-body); font-weight: 800; font-size: calc(var(--wm-size) * 0.28);
+  letter-spacing: 0.42em; color: var(--pink-600); margin-top: 0.4em; padding-left: 0.15em; white-space: nowrap;
+}
 
 .nav-links {
   display: flex;
@@ -325,12 +331,12 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   gap: 48px;
   align-items: center;
 }
-.hero h1 {
+.hero .hero-title {
   font-size: clamp(34px, 5vw, 52px);
   line-height: 1.15;
   margin-bottom: 20px;
 }
-.hero h1 em { font-style: normal; color: var(--pink-600); }
+.hero .hero-title em { font-style: normal; color: var(--pink-600); }
 .hero p.lead { font-size: 17px; color: var(--navy-500); max-width: 480px; margin-bottom: 32px; }
 .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
 
@@ -375,33 +381,135 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .chip-1 { top: 10%; left: -8%; }
 .chip-2 { bottom: 8%; right: -6%; }
 
-/* ---------------------------------- Services (ảnh lớn + mosaic 5 dịch vụ) ---------------------------------- */
-.services { padding: 96px 0; }
-.services-showcase { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 20px; }
-.showcase-main {
+/* ---------------------------------- Hero Banner: 5 dịch vụ (đầu trang chủ) ----------------------------------
+   Cột chữ (tiêu đề + mô tả + nút đặt lịch) + collage 5 ảnh bất đối xứng, ô Newborn lớn nhất.
+   Mỗi ô ảnh mở album #/album/<dịch vụ> (js/albums.js). Chiếm gần trọn màn hình đầu tiên:
+   100svh trừ topbar (36px) + nav (76px). Thanh "chụp tại nhà" nằm ngay dưới, ngoài màn đầu. */
+.svc-hero {
   position: relative;
-  border-radius: var(--radius-lg);
+  padding: 24px 0 72px;
+  background:
+    radial-gradient(circle at 92% 6%, var(--pink-100) 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%, var(--pink-50) 0%, transparent 50%);
   overflow: hidden;
-  min-height: 420px;
-  background: linear-gradient(160deg, var(--pink-200), var(--pink-500));
+}
+.svc-hero-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.78fr) 1.22fr;
+  gap: 56px;
+  align-items: center;
+  min-height: calc(100vh - 112px - 24px);
+  min-height: calc(100svh - 112px - 24px);
+}
+.svc-hero-text h1 {
+  font-size: clamp(38px, 4.2vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-bottom: 18px;
+}
+.svc-hero-text h1 em { font-style: normal; color: var(--pink-600); }
+.svc-hero-lead { font-size: 17px; color: var(--navy-500); max-width: 420px; margin-bottom: 28px; }
+
+.svc-hero-cta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.svc-hero-hint { font-size: 13px; color: var(--navy-500); }
+
+.svc-collage {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 14px;
+  height: clamp(500px, calc(100svh - 112px - 72px), 760px);
+}
+.svc-tile--newborn   { grid-column: 1; grid-row: 1 / span 3; }
+.svc-tile--bau       { grid-column: 2; grid-row: 1 / span 2; }
+.svc-tile--sinh-nhat { grid-column: 3; grid-row: 1; }
+.svc-tile--be-lon    { grid-column: 2; grid-row: 3; }
+.svc-tile--gia-dinh  { grid-column: 3; grid-row: 2 / span 2; }
+
+.svc-tile {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--pink-200), var(--pink-400));
   box-shadow: var(--shadow-card);
   display: flex; align-items: flex-end;
-  padding: 24px;
+  padding: 18px;
+  color: var(--white);
 }
-.showcase-main::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20,15,25,0.4), transparent 42%); }
-.showcase-caption { position: relative; z-index: 1; color: var(--white); font-weight: 700; font-size: 17px; text-shadow: var(--caption-shadow); }
-.showcase-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.showcase-item {
-  position: relative; border-radius: var(--radius-md); overflow: hidden;
-  aspect-ratio: 1/1;
-  display: flex; align-items: flex-end; padding: 14px;
-  color: var(--white); font-weight: 700; font-size: 14px;
-  transition: transform 0.25s ease;
+.svc-tile img {
+  position: absolute; inset: 0; z-index: -2;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.showcase-item:hover { transform: translateY(-4px); }
-.showcase-item::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20,15,25,0.42), transparent 45%); }
-.showcase-item span { position: relative; z-index: 1; text-shadow: var(--caption-shadow); }
-.showcase-item:nth-child(5) { grid-column: span 2; aspect-ratio: 2.3/1; }
+.svc-tile::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(0deg, rgba(20,15,25,0.55), rgba(20,15,25,0.08) 45%, transparent 70%);
+}
+.svc-tile-body { display: flex; flex-direction: column; gap: 2px; }
+.svc-tile-name { font-family: var(--font-heading); font-size: 19px; font-weight: 700; line-height: 1.2; text-shadow: var(--caption-shadow); }
+.svc-tile-meta { font-size: 12.5px; font-weight: 600; text-shadow: var(--caption-shadow); }
+.svc-tile--newborn { padding: 28px; }
+.svc-tile--newborn .svc-tile-name { font-size: clamp(26px, 2.6vw, 36px); }
+.svc-tile--newborn .svc-tile-meta { font-size: 14px; }
+.svc-tile-arrow {
+  position: absolute; top: 14px; right: 14px;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,0.92); color: var(--pink-600);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.svc-tile-arrow svg { width: 18px; height: 18px; }
+.svc-tile:hover img, .svc-tile:focus-visible img { transform: scale(1.06); }
+.svc-tile:hover .svc-tile-arrow, .svc-tile:focus-visible .svc-tile-arrow { opacity: 1; transform: scale(1); }
+/* Màn cảm ứng không có hover -> luôn hiện nút mũi tên để khách biết ô bấm được. */
+@media (hover: none) {
+  .svc-tile-arrow { opacity: 1; transform: none; }
+}
+
+/* Tablet: chữ lên trên, collage 6 cột bên dưới (Newborn 4x2, Bầu 2x2, 3 ô còn lại 1 hàng). */
+@media (max-width: 1120px) {
+  .svc-hero { padding: 24px 0 56px; }
+  .svc-hero-inner { grid-template-columns: 1fr; gap: 28px; min-height: 0; }
+  .svc-hero-text { text-align: center; }
+  .svc-hero-text h1 { font-size: clamp(32px, 6vw, 48px); }
+  .svc-hero-lead { margin-left: auto; margin-right: auto; margin-bottom: 22px; }
+  .svc-hero-cta { justify-content: center; }
+  .svc-collage { height: auto; grid-template-columns: repeat(6, 1fr); grid-template-rows: none; grid-auto-rows: 180px; }
+  .svc-tile--newborn   { grid-column: 1 / span 4; grid-row: 1 / span 2; }
+  .svc-tile--bau       { grid-column: 5 / span 2; grid-row: 1 / span 2; }
+  .svc-tile--sinh-nhat { grid-column: 1 / span 2; grid-row: 3; }
+  .svc-tile--be-lon    { grid-column: 3 / span 2; grid-row: 3; }
+  .svc-tile--gia-dinh  { grid-column: 5 / span 2; grid-row: 3; }
+}
+
+/* Điện thoại: 2 cột, Newborn chiếm trọn hàng đầu ngay dưới tiêu đề. */
+@media (max-width: 560px) {
+  .svc-hero { padding: 20px 0 48px; }
+  .svc-hero-inner { padding: 0 16px; gap: 22px; }
+  .svc-hero-text h1 { font-size: 32px; margin-bottom: 12px; }
+  .svc-hero-lead { font-size: 15.5px; }
+  .svc-hero-cta { flex-direction: column; gap: 10px; }
+  .svc-collage { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; gap: 10px; }
+  .svc-tile--newborn   { grid-column: 1 / -1; grid-row: 1 / span 2; }
+  .svc-tile--bau       { grid-column: 1; grid-row: 3 / span 2; }
+  .svc-tile--sinh-nhat { grid-column: 2; grid-row: 3; }
+  .svc-tile--be-lon    { grid-column: 2; grid-row: 4; }
+  .svc-tile--gia-dinh  { grid-column: 1 / -1; grid-row: 5; }
+  .svc-tile { padding: 14px; border-radius: var(--radius-md); }
+  .svc-tile--newborn { padding: 20px; }
+  .svc-tile-name { font-size: 17px; }
+  .svc-tile-arrow { width: 32px; height: 32px; top: 10px; right: 10px; }
+  .svc-tile-arrow svg { width: 15px; height: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svc-tile img, .svc-tile-arrow { transition: none; }
+}
 
 /* Dịch vụ chụp ảnh tại nhà — tích hợp gọn vào cuối khối Dịch vụ thay vì section riêng */
 .services-extra {
@@ -572,7 +680,9 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 }
 .news-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-card); }
 .news-card:first-child { grid-row: span 2; }
-.news-card:first-child .news-thumb { aspect-ratio: 4/3; }
+/* Thẻ nổi bật cao bằng 2 thẻ nhỏ: ảnh giãn lấp phần cao dư thay vì để khoảng trắng lớn dưới đoạn mô tả. */
+.news-card:first-child .news-thumb { aspect-ratio: 4/3; flex: 1 0 auto; }
+.news-card:first-child .news-body { flex: none; }
 .news-card:first-child .news-body h3 { font-size: 19px; }
 .news-thumb {
   position: relative;
@@ -586,7 +696,23 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .news-date { font-size: 12px; color: var(--pink-600); font-weight: 700; margin-bottom: 8px; letter-spacing: 0.02em; }
 .news-body h3 { font-size: 15.5px; margin-bottom: 8px; line-height: 1.4; }
 .news-body p { font-size: 13px; color: var(--navy-500); margin-bottom: 12px; }
-.news-body a { font-size: 13px; font-weight: 700; color: var(--pink-600); margin-top: auto; }
+.news-body .news-more { font-size: 13px; font-weight: 700; color: var(--pink-600); margin-top: auto; }
+.news-body h3 a { transition: color 0.2s ease; }
+.news-body h3 a:hover { color: var(--pink-600); }
+
+/* Link "xem thêm" dẫn sang tầng nội dung chi tiết (#/noi-dung/..., js/content.js):
+   Giới thiệu, Video, Quy trình, Chụp tại nhà. */
+.more-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 18px;
+  font-size: 14px; font-weight: 700; color: var(--pink-600);
+}
+.more-link::after { content: "→"; transition: transform 0.2s ease; }
+.more-link:hover { color: var(--pink-700); }
+.more-link:hover::after { transform: translateX(3px); }
+.services-extra-text .more-link { margin-top: 6px; font-size: 13px; }
+.process-more { text-align: center; margin-top: 28px; }
+.process-more .more-link { margin-top: 0; }
 
 /* ---------------------------------- CTA final ---------------------------------- */
 .cta-final { padding: 0 0 96px; }
@@ -613,7 +739,8 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   padding-bottom: 48px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.footer-grid .logo .word { color: var(--white); }
+.footer-grid .wordmark-name { color: var(--white); }
+.footer-grid .wordmark-sub { color: var(--pink-400); } /* hồng đậm chìm trên nền navy */
 .footer-brand p { margin: 16px 0 20px; font-size: 13.5px; line-height: 1.7; max-width: 280px; }
 .social-row { display: flex; gap: 10px; }
 .social-row a {
@@ -710,9 +837,10 @@ body.hide-floating-book .floating-book { display: none; }
   display: flex; align-items: center; gap: 12px;
   flex-shrink: 0;
 }
+/* Logo trong vòng tròn trắng: nền header chat cũng hồng nên logo cần viền trắng mới nổi. */
 .chat-avatar {
   width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
+  background: var(--white);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-heading); font-weight: 700;
   flex-shrink: 0;
@@ -787,12 +915,10 @@ body.hide-floating-book .floating-book { display: none; }
 .chat-send:active { transform: scale(0.94); }
 .chat-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ---------------------------------- Ảnh thật trong các khối showcase/card ----------------------------------
+/* ---------------------------------- Ảnh thật trong các khối card ----------------------------------
    Ảnh tạm thời lấy từ nguồn stock miễn phí bản quyền (Unsplash/Pexels), chờ thay bằng ảnh thật của studio
    khi có — xem .claude/rules/design.md. Gradient nền của từng khối vẫn giữ làm màu dự phòng khi ảnh chưa tải xong. */
 .hero-card img,
-.showcase-main img,
-.showcase-item img,
 .concept-tile img,
 .album-card img,
 .about-visual img,
@@ -845,7 +971,8 @@ body.hide-floating-book .floating-book { display: none; }
   .album-card:nth-child(6) { grid-column: span 1; grid-row: span 1; }
   .news-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: auto; }
   .news-card:first-child { grid-row: auto; }
-  .news-card:first-child .news-thumb { aspect-ratio: 16/10; }
+  .news-card:first-child .news-thumb { aspect-ratio: 16/10; flex: none; }
+  .news-card:first-child .news-body { flex: 1; }
   .news-card:first-child .news-body h3 { font-size: 15.5px; }
   .news-card:nth-child(3) { display: none; }
   .video .container { grid-template-columns: 1fr; }
@@ -880,10 +1007,10 @@ body.hide-floating-book .floating-book { display: none; }
   .nav-links a { display: block; width: 100%; padding: 12px 0; border-bottom: 1px solid var(--pink-50); }
   /* Dropdown "Dịch vụ": ở menu mobile dạng danh sách dọc, hover không khả dụng
      trên cảm ứng nên hiện luôn dạng danh sách con thay vì popup tuyệt đối.
-     visibility/pointer-events để "inherit" (không phải visible/auto): nếu ép
-     visible thì lúc menu đóng, danh sách con vẫn vô hình nhưng chặn mọi thao
-     tác bấm lên nội dung phía dưới (vd bấm ảnh trong "Ảnh của tôi" lại nhảy
-     về trang chủ). */
+     visibility/pointer-events phải "inherit" theo menu cha, KHÔNG đặt cứng
+     visible/auto: nếu đặt cứng, khi menu đang đóng (cha ẩn) danh sách con vẫn
+     nằm vô hình đè lên trang và cướp cú chạm (lỗi thật đã gặp: chạm nút ở vùng
+     y~250-450px trên điện thoại lại nhảy tới #dich-vu). */
   .nav-links .dropdown {
     position: static; opacity: 1; visibility: inherit; pointer-events: inherit;
     transform: none; box-shadow: none; border: none; background: var(--pink-50);
@@ -912,7 +1039,7 @@ body.hide-floating-book .floating-book { display: none; }
      đề mỗi phần cũng gần nội dung của nó hơn thay vì trôi giữa 2 khoảng trắng
      lớn. Giảm thêm 1 nấc nữa ở ≤560px (xem bên dưới). */
   .hero { padding: 56px 0 64px; }
-  .services, .concept, .about, .album, .news { padding: 64px 0; }
+  .concept, .about, .album, .news { padding: 64px 0; }
   .process, .video { padding: 0 0 64px; }
   .section-head { margin-bottom: 36px; }
 
@@ -932,8 +1059,6 @@ body.hide-floating-book .floating-book { display: none; }
   .about-visual { max-width: 340px; margin: 0 auto; }
   .process-grid { grid-template-columns: repeat(2, 1fr); }
   .process-grid::before { display: none; }
-  .services-showcase { grid-template-columns: 1fr; }
-  .showcase-main { min-height: 220px; }
   .services-extra { flex-direction: column; text-align: center; padding: 24px 20px; }
   .cta-box { flex-direction: column; text-align: center; }
 }
@@ -941,15 +1066,14 @@ body.hide-floating-book .floating-book { display: none; }
 @media (max-width: 560px) {
   /* Giảm thêm 1 nấc nữa so với ≤1120px cho màn điện thoại thật. */
   .hero { padding: 44px 0 48px; }
-  .services, .concept, .about, .album, .news { padding: 48px 0; }
+  .concept, .about, .album, .news { padding: 48px 0; }
   .process, .video { padding: 0 0 48px; }
   .section-head { margin-bottom: 28px; }
 
   .container { padding: 0 16px; }
   .topbar .topbar-links { display: none; }
   .nav { height: 66px; gap: 8px; }
-  .logo .word { font-size: 17px; }
-  .logo .mark { width: 36px; height: 36px; font-size: 16px; }
+  .logo { --wm-size: 26px; }
   .icon-btn { width: 36px; height: 36px; }
   .icon-btn svg { width: 16px; height: 16px; }
   .nav-toggle { width: 36px; height: 36px; }
@@ -964,7 +1088,6 @@ body.hide-floating-book .floating-book { display: none; }
   .concept-tile:nth-child(4),
   .concept-tile:nth-child(5) { grid-column: span 2; grid-row: span 1; }
   .process-grid { grid-template-columns: 1fr; }
-  .showcase-grid { grid-template-columns: repeat(2, 1fr); }
   .album-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(7, 140px); }
   .album-card:nth-child(1) { grid-column: span 2; grid-row: span 2; }
   .album-card:nth-child(2),
@@ -996,8 +1119,7 @@ body.hide-floating-book .floating-book { display: none; }
 @media (max-width: 480px) {
   .nav { gap: 4px; }
   .nav-actions { gap: 4px; }
-  .logo .mark { width: 32px; height: 32px; font-size: 14px; }
-  .logo .word { font-size: 15px; }
+  .logo { --wm-size: 24px; }
   .icon-btn, .nav-toggle { width: 32px; height: 32px; }
   #navAuthArea { gap: 4px; }
   #navAuthArea .btn-sm { padding: 6px 10px; font-size: 11.5px; }
