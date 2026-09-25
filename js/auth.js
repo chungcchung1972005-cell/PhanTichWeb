@@ -11,7 +11,7 @@
   const ROLE_HOME = {
     'khach-hang': 'index.html#/chon-anh',
     'tho-anh': 'crm/admin.html',
-    'sale': 'crm/admin.html',
+    'sale': 'crm/sale.html', // Không gian Sale riêng (5 tài khoản sale)
     'sep': 'crm/admin.html'
   };
 

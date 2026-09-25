@@ -95,7 +95,11 @@
       <strong>Tài khoản demo để xem thử:</strong>
       <table>
         <tr><td>Khách hàng</td><td>0900000001 / khach123</td></tr>
-        <tr><td>Sale/CSKH</td><td>0900000002 / sale123</td></tr>
+        <tr><td>Sale · Ngọc Anh</td><td>0900000002 / sale123</td></tr>
+        <tr><td>Sale · Minh Thư</td><td>0900000005 / sale123</td></tr>
+        <tr><td>Sale · Thu Hà</td><td>0900000006 / sale123</td></tr>
+        <tr><td>Sale · Quốc Bảo</td><td>0900000007 / sale123</td></tr>
+        <tr><td>Sale · Hải Yến</td><td>0900000008 / sale123</td></tr>
         <tr><td>Thợ ảnh</td><td>0900000003 / anh123</td></tr>
         <tr><td>Sếp</td><td>0900000004 / sep123</td></tr>
       </table>
@@ -108,7 +112,13 @@
   // Tài khoản demo mô phỏng phía client, KHÔNG phải hệ thống xác thực thật.
   var DEMO_ACCOUNTS = {
     '0900000001': { password: 'khach123', role: 'khach-hang', name: 'Khách demo' },
-    '0900000002': { password: 'sale123', role: 'sale', name: 'Sale demo' },
+    // 5 tài khoản Sale: cùng giao diện Không gian Sale (crm/sale.html), mỗi
+    // người chỉ thấy khách/cọc do mình phụ trách (xem crm/js/sale-data.js).
+    '0900000002': { password: 'sale123', role: 'sale', name: 'Ngọc Anh' },
+    '0900000005': { password: 'sale123', role: 'sale', name: 'Minh Thư' },
+    '0900000006': { password: 'sale123', role: 'sale', name: 'Thu Hà' },
+    '0900000007': { password: 'sale123', role: 'sale', name: 'Quốc Bảo' },
+    '0900000008': { password: 'sale123', role: 'sale', name: 'Hải Yến' },
     '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
     '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
   };

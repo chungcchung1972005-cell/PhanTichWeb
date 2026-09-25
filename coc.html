@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Đặt cọc giữ lịch chụp | ALOHA Baby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/sale.css">
+</head>
+<body class="sw-body coc-body">
+
+<!-- Trang khách mở từ link cọc Sale gửi (Không gian Sale -> Tạo lịch nhanh).
+     Mô phỏng phía client: chưa có cổng thanh toán/đối soát ngân hàng thật, nút
+     "Mô phỏng tiền về" chỉ để demo trạng thái sau khi nhận cọc. Mức cọc, số tài
+     khoản là placeholder chờ studio xác nhận (rules/tech-defaults.md). -->
+<main class="coc">
+  <header class="coc-brand">
+    <span class="sw-brand-mark">A</span>
+    <span><strong>ALOHA Baby</strong><small>Đặt cọc giữ lịch chụp</small></span>
+  </header>
+  <div id="cocView"></div>
+</main>
+<div class="sw-toast" id="swToast" role="status" aria-live="polite"></div>
+
+<script src="crm/js/sale-data.js"></script>
+<script>
+(function () {
+  var D = window.ALOHA_SALE_DATA;
+  var CFG = D.config;
+  var params = new URLSearchParams(location.search);
+  var code = (params.get('ma') || '').toUpperCase();
+  var WEEKDAY = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  var view = document.getElementById('cocView');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function parseKey(k) { var p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function whenText(date, time) { if (!date) return time || ''; var d = parseKey(date); return time + ' ' + WEEKDAY[d.getDay()] + ', ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1); }
+  function icon(p) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>'; }
+
+  // Tìm lịch theo mã trong dữ liệu demo; lịch vừa tạo ở Không gian Sale (chỉ sống
+  // trong bộ nhớ trang Sale) được truyền qua tham số URL.
+  var info = null;
+  var dep = D.deposits.find(function (d) { return d.code === code; });
+  if (dep) {
+    var c = D.customers.find(function (x) { return x.id === dep.customerId; });
+    var ap = D.appointments.find(function (a) { return a.id === dep.appointmentId; });
+    var sale = D.sales.find(function (s) { return s.id === dep.owner; });
+    info = { code: code, who: c.title + ' ' + c.short, title: c.title, service: ap.service, date: ap.date, time: ap.start,
+      hold: dep.holdUntil, sale: sale ? sale.name : '', confirmed: dep.state === 'confirmed' || dep.state === 'paid', paidAt: dep.paidAt };
+  } else if (code && params.get('kh')) {
+    var who = params.get('kh');
+    info = { code: code, who: who, title: /^anh/i.test(who) ? 'anh' : 'chị', service: params.get('dv') || '', date: params.get('ngay') || '',
+      time: params.get('gio') || '', hold: params.get('han') || '', sale: params.get('sale') || '', confirmed: false };
+  }
+
+  function toast(msg) {
+    var el = document.getElementById('swToast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('show'); }, 2500);
+  }
+
+  function renderPending() {
+    var Title = info.title.charAt(0).toUpperCase() + info.title.slice(1);
+    view.innerHTML =
+      '<section class="sw-card coc-card">' +
+        '<small class="sw-muted">Lịch của ' + esc(info.who) + '</small>' +
+        '<h1>' + esc(info.service) + ' · ' + esc(whenText(info.date, info.time)) + '</h1>' +
+        '<p class="sw-muted">' + esc(CFG.studioAddress) + '</p>' +
+        (info.hold ? '<p class="coc-hold">' + icon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>') + 'Lịch được giữ cho ' + esc(info.title) + ' đến ' + esc(info.hold) + ' hôm nay</p>' : '') +
+      '</section>' +
+      '<section class="sw-card coc-card">' +
+        '<div class="coc-qr"><div class="coc-qr-box">' + icon('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3"/>') + '</div>' +
+          '<p class="sw-muted">Quét mã bằng app ngân hàng bất kỳ. Số tiền và nội dung đã điền sẵn.</p></div>' +
+        row('Số tiền cọc', CFG.depositText, '') +
+        row('Nội dung chuyển khoản', info.code, 'coc-code') +
+        row('Số tài khoản', CFG.bankText, '') +
+      '</section>' +
+      '<p class="coc-tip">' + Title + ' giữ nguyên nội dung <strong>' + esc(info.code) + '</strong> để lịch được xác nhận tự động trong vài giây, không cần gửi ảnh chuyển khoản.</p>' +
+      '<div class="coc-foot"><div class="sw-card coc-wait"><i></i>Đang chờ tiền về…</div>' +
+      '<button type="button" class="coc-demo" id="cocSimulate">Mô phỏng tiền về (chỉ để demo)</button></div>';
+    view.querySelectorAll('[data-copy]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var text = b.getAttribute('data-copy');
+        if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function () {});
+        toast('Đã sao chép: ' + text);
+      });
+    });
+    document.getElementById('cocSimulate').addEventListener('click', function () {
+      var n = new Date(); info.paidAt = pad(n.getHours()) + ':' + pad(n.getMinutes()); info.confirmed = true; render();
+    });
+  }
+
+  function row(label, value, cls) {
+    return '<div class="coc-row"><div><small class="sw-muted">' + esc(label) + '</small><strong class="' + cls + '">' + esc(value) + '</strong></div>' +
+      '<button type="button" class="sw-btn" data-copy="' + esc(value) + '">Sao chép</button></div>';
+  }
+
+  function renderConfirmed() {
+    var rows = [['Dịch vụ', info.service], ['Thời gian', whenText(info.date, info.time)], ['Đã cọc', CFG.depositText], ['Mã lịch', info.code], ['Người tư vấn', (info.sale ? info.sale + ' · ' : '') + CFG.hotline]];
+    view.innerHTML =
+      '<div class="coc-done">' + icon('<path d="M20 6 9 17l-5-5"/>') + '</div>' +
+      '<h1 class="coc-done-title">Lịch của ' + esc(info.title) + ' đã được xác nhận</h1>' +
+      '<p class="coc-done-sub">ALOHA Baby đã nhận tiền cọc' + (info.paidAt ? ' lúc ' + esc(info.paidAt) : '') + '. Biên nhận cũng đã gửi qua tin nhắn cho ' + esc(info.title) + '.</p>' +
+      '<section class="sw-card coc-card coc-table">' + rows.map(function (r) { return '<div><span class="sw-muted">' + r[0] + '</span><strong>' + esc(r[1]) + '</strong></div>'; }).join('') + '</section>' +
+      '<section class="sw-card coc-card"><strong>Chuẩn bị cho buổi chụp</strong><p class="sw-muted coc-prep">Studio sẽ nhắc ' + esc(info.title) + ' trước 1 ngày, kèm các lưu ý để bé ngủ ngoan khi chụp.</p></section>' +
+      '<div class="coc-foot"><button type="button" class="sw-btn sw-btn-accent coc-cta" id="cocIcs">Thêm vào lịch điện thoại</button></div>';
+    document.getElementById('cocIcs').addEventListener('click', downloadIcs);
+  }
+
+  function downloadIcs() {
+    if (!info.date) return;
+    var start = info.date.replace(/-/g, '') + 'T' + info.time.replace(':', '') + '00';
+    var endH = pad(Math.min(23, Number(info.time.split(':')[0]) + 2));
+    var end = info.date.replace(/-/g, '') + 'T' + endH + info.time.split(':')[1] + '00';
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ALOHA Baby//Dat coc//VI', 'BEGIN:VEVENT', 'UID:' + info.code + '@alohababy',
+      'DTSTART:' + start, 'DTEND:' + end, 'SUMMARY:Chụp ảnh ' + info.service + ' tại ALOHA Baby (' + info.code + ')',
+      'LOCATION:' + CFG.studioAddress, 'DESCRIPTION:Mã lịch ' + info.code + '. Hotline ' + CFG.hotline, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    a.download = 'aloha-baby-' + info.code + '.ics';
+    a.click();
+  }
+
+  function render() {
+    if (!info) {
+      view.innerHTML = '<section class="sw-card coc-card"><h1>Không tìm thấy lịch</h1><p class="sw-muted">Link đặt cọc không hợp lệ hoặc đã hết hạn. Vui lòng liên hệ hotline ' + esc(CFG.hotline) + ' để được hỗ trợ.</p></section>';
+      return;
+    }
+    if (info.confirmed) renderConfirmed(); else renderPending();
+  }
+  render();
+})();
+</script>
+</body>
+</html>
