@@ -336,6 +336,69 @@ document.addEventListener('DOMContentLoaded', () => {
     { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.' }
   ];
 
+  // Avatar chữ viết tắt: tính lại từ tên MỖI LẦN vẽ bảng, không lưu riêng, nên
+  // đổi tên khách là chữ viết tắt tự đổi theo, không ai phải nhập avatar tay.
+  // Quy tắc: chữ cái đầu của từ đầu (họ) + từ cuối (tên): "Nguyễn Minh Anh" -> NA,
+  // "Lê Thu Hà" -> LH. Bỏ qua từ không bắt đầu bằng chữ cái (vd số "01" trong tên
+  // demo), nên "Khách demo 01" -> KD. Tên chỉ có 1 từ thì lấy 2 chữ đầu của từ đó.
+  function customerInitials(name) {
+    const words = String(name || '').normalize('NFC').trim().split(/\s+/)
+      .filter(w => /^\p{L}/u.test(w));
+    if (!words.length) return '?';
+    const first = words[0];
+    const second = words.length > 1 ? words[words.length - 1][0] : (first[1] || '');
+    return (first[0] + second).toLocaleUpperCase('vi');
+  }
+
+  // Màu avatar: băm theo SĐT (định danh ổn định của khách) chứ không theo tên hay
+  // vị trí dòng, nên cùng một khách luôn giữ một màu dù lọc/tìm kiếm hay đổi tên.
+  // 5 tông pastel tái dùng đúng bảng màu badge sẵn có - xem .cust-av-* trong css/admin.css.
+  const CUST_AV_TONES = 5;
+  function customerTone(key) {
+    let h = 0;
+    for (const ch of String(key)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+    return h % CUST_AV_TONES;
+  }
+
+  // Dòng phụ dưới tên suy ra từ trạng thái phễu, để không ghi "tiềm năng" cho
+  // một khách đã chụp xong.
+  const CUST_STAGE = {
+    'quan-tam': 'Khách hàng tiềm năng', 'tu-van': 'Khách hàng tiềm năng',
+    'dat-lich': 'Đang phục vụ', 'da-chup': 'Đang phục vụ', 'hoan-thanh': 'Khách hàng cũ'
+  };
+
+  const svgIcon = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const CUST_ICON = {
+    phone: svgIcon('<path d="M5 4h3.2l1.6 4-2 1.3a11 11 0 0 0 5 5l1.3-2 4 1.6V17a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
+    calendar: svgIcon('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/>')
+  };
+  // Nguồn khách: icon line-style + màu nhận diện của kênh, nền chip trung tính để
+  // bảng không bị loè loẹt. Nguồn lạ (chưa có trong bảng) vẫn hiện chip chữ.
+  const CUST_SOURCE = {
+    'Facebook': { color: '#1877f2', d: '<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="M13.2 20.5V13.6h2.1l.4-2.6h-2.5V9.5c0-.7.3-1.2 1.3-1.2h1.3V6.1a15 15 0 0 0-2-.1c-2 0-3.2 1.2-3.2 3.3V11H8.5v2.6h2.1v6.9" fill="#fff" stroke="none"/>' },
+    'TikTok': { color: '#2c2a3d', d: '<path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5M14 4c.4 2.4 2 4 4.5 4.3"/>' },
+    'Instagram': { color: '#d6336c', d: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.6 7.4h.01"/>' },
+    'Website': { color: '#4472dd', d: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.3 2.2 3.4 4.9 3.4 8S14.3 17.8 12 20M12 4c-2.3 2.2-3.4 4.9-3.4 8s1.1 5.8 3.4 8"/>' },
+    'Hotline': { color: '#1a9d5c', d: '<path d="M5 4h3.2l1.6 4-2 1.3a11 11 0 0 0 5 5l1.3-2 4 1.6V17a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>' },
+    'Giới thiệu': { color: '#7a5bd6', d: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.8a3 3 0 0 1 0 5.4M17.5 14.2A5.5 5.5 0 0 1 20.5 19"/>' },
+    'Đối tác spa bầu': { color: '#6b6880', d: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>' }
+  };
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+  function custPerson(c, subline) {
+    return `<div class="cust-person">
+      <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.name))}</span>
+      <span class="cust-person-text"><span class="cust-name">${escHtml(c.name)}</span><span class="cust-sub">${escHtml(subline)}</span></span>
+    </div>`;
+  }
+  function custSource(source) {
+    const s = CUST_SOURCE[source];
+    const icon = s ? `<span class="cust-src-ic" style="color:${s.color}">${svgIcon(s.d)}</span>` : '';
+    return `<span class="cust-src">${icon}${escHtml(source)}</span>`;
+  }
+
   const custTable = document.getElementById('custTable');
   if (custTable) {
     const head = document.getElementById('custTableHead');
@@ -343,27 +406,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSep = role === 'sep';
 
     if (isSep) {
-      head.innerHTML = '<tr><th>Tên</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ghi chú</th></tr>';
+      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ghi chú</th></tr>';
     } else {
       document.getElementById('custSectionSub').textContent = 'Thông tin khách hàng để chăm sóc và tư vấn. Không hiển thị dữ liệu thanh toán/doanh thu.';
       head.innerHTML = '<tr><th>Liên hệ</th><th>Nguồn khách</th><th>Lịch sử lịch hẹn</th><th>Ghi chú tư vấn</th></tr>';
     }
 
     function renderCustomers(list) {
+      if (!list.length) {
+        body.innerHTML = `<tr><td colspan="${isSep ? 6 : 4}" class="cust-empty">Không có khách hàng nào khớp bộ lọc.</td></tr>`;
+        return;
+      }
       if (isSep) {
         body.innerHTML = list.map(c => `
           <tr>
-            <td>${c.name}</td><td>${c.phone}</td><td>${c.source}</td>
-            <td><span class="badge ${c.badge}">${c.label}</span></td>
-            <td>${c.created}</td><td>${c.note}</td>
+            <td>${custPerson(c, CUST_STAGE[c.status] || '')}</td>
+            <td><span class="cust-meta">${CUST_ICON.phone}${escHtml(c.phone)}</span></td>
+            <td>${custSource(c.source)}</td>
+            <td><span class="badge badge-dot ${c.badge}">${c.label}</span></td>
+            <td><span class="cust-meta">${CUST_ICON.calendar}${c.created}</span></td>
+            <td class="cust-note">${escHtml(c.note)}</td>
           </tr>`).join('');
       } else {
+        // Sale: cột Liên hệ gộp tên + SĐT, nên dòng phụ dưới tên là SĐT
         body.innerHTML = list.map(c => `
           <tr>
-            <td>${c.name} · ${c.phone}</td>
-            <td>${c.source}</td>
+            <td>${custPerson(c, c.phone)}</td>
+            <td>${custSource(c.source)}</td>
             <td>${c.label} (${c.created})</td>
-            <td>${c.note}</td>
+            <td class="cust-note">${escHtml(c.note)}</td>
           </tr>`).join('');
       }
     }

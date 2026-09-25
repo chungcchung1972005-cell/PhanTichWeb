@@ -262,6 +262,45 @@
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover { background: var(--pink-50); }
 
+/* ---- Bảng Khách hàng / CRM: avatar chữ viết tắt + chip nguồn + icon (2026-09-25) ---- */
+.cust-toolbar .cust-field { position: relative; display: flex; align-items: center; }
+.cust-toolbar .cust-field svg {
+  position: absolute; left: 12px; width: 16px; height: 16px; color: var(--navy-300); pointer-events: none;
+}
+.cust-toolbar .cust-field input, .cust-toolbar .cust-field select { padding-left: 36px; background-color: var(--white); }
+.cust-toolbar .cust-field-search { flex: 0 1 300px; }
+.cust-toolbar .cust-field-search input { width: 100%; }
+
+#custTable td { vertical-align: middle; padding-top: 14px; padding-bottom: 14px; }
+.cust-person { display: flex; align-items: center; gap: 12px; min-width: 190px; }
+.cust-av {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-weight: 700; font-size: 14px; letter-spacing: 0.02em;
+}
+/* 5 tông pastel lấy đúng từ bảng màu badge trạng thái bên dưới, không thêm màu mới */
+.cust-av-0 { background: #eef1ff; color: #4148c9; }
+.cust-av-1 { background: #fff4e0; color: #b06a00; }
+.cust-av-2 { background: var(--pink-100); color: var(--pink-700); }
+.cust-av-3 { background: #e6f4ff; color: var(--blue-600); }
+.cust-av-4 { background: #e6f7ec; color: #1a9d5c; }
+.cust-person-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cust-name { font-weight: 700; color: var(--navy-900); font-size: 14px; }
+.cust-sub { font-size: 12px; color: var(--navy-300); white-space: nowrap; }
+.cust-name { white-space: nowrap; }
+.cust-meta { display: inline-flex; align-items: center; gap: 8px; color: var(--navy-700); white-space: nowrap; }
+.cust-meta svg { width: 16px; height: 16px; color: var(--navy-300); flex-shrink: 0; }
+.cust-src {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  padding: 5px 12px 5px 8px; border-radius: var(--radius-pill);
+  background: #f6f5fa; color: var(--navy-700); font-size: 12.5px; font-weight: 600;
+}
+.cust-src-ic svg { width: 16px; height: 16px; display: block; }
+/* Giữ cột ghi chú đủ rộng: màn hẹp thì bảng cuộn ngang trong khung như cũ,
+   thay vì bóp ghi chú thành nhiều dòng làm mỗi hàng cao vống lên */
+.cust-note { color: var(--navy-500); min-width: 220px; }
+.cust-empty { text-align: center !important; color: var(--navy-300); padding: 28px 16px !important; }
+
 .badge { display: inline-block; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 700; }
 .badge-quan-tam { background: #eef1ff; color: #4148c9; }
 .badge-tu-van { background: #fff4e0; color: #b06a00; }
@@ -269,6 +308,9 @@
 .badge-da-chup { background: #e6f4ff; color: var(--blue-600); }
 .badge-hoan-thanh { background: #e6f7ec; color: #1a9d5c; }
 .badge-huy { background: #f4f4f6; color: var(--navy-500); }
+/* Badge có chấm tròn cùng màu chữ phía trước (bảng Khách hàng) */
+.badge-dot { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 5px 12px 5px 10px; }
+.badge-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 /* Gắn tạm trong đúng một khung hình khi chạy lại hiệu ứng (crm/js/admin.js,
    hàm snapBack): đưa cột/thanh/vạch về vạch xuất phát tức thì thay vì để

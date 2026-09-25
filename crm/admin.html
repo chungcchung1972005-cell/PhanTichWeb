@@ -175,9 +175,14 @@
     <section class="admin-section" id="khach-hang" data-roles="sep sale">
       <h2>Khách hàng / CRM</h2>
       <p class="sub" id="custSectionSub">Toàn bộ hồ sơ khách hàng, tìm kiếm và lọc theo trạng thái.</p>
-      <div class="data-table-toolbar">
-        <input type="text" id="custSearch" placeholder="Tìm theo tên hoặc SĐT...">
-        <select id="custFilter">
+      <div class="data-table-toolbar cust-toolbar">
+        <label class="cust-field cust-field-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <input type="text" id="custSearch" placeholder="Tìm theo tên hoặc SĐT..." aria-label="Tìm khách hàng theo tên hoặc SĐT">
+        </label>
+        <label class="cust-field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.2 7.4V18l-3.6 1.8v-7.4z"/></svg>
+          <select id="custFilter" aria-label="Lọc theo trạng thái">
           <option value="">Tất cả trạng thái</option>
           <option value="quan-tam">Khách quan tâm</option>
           <option value="tu-van">Đã tư vấn</option>
@@ -185,6 +190,7 @@
           <option value="da-chup">Đã chụp</option>
           <option value="hoan-thanh">Hoàn thành</option>
         </select>
+        </label>
       </div>
       <div class="data-table-wrap">
         <table class="data-table" id="custTable">
