@@ -279,7 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // (vd "images/my-photos/photo-1.jpg") - trang này (crm/admin.html) nằm
     // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
     const real = (window.AlohaData ? AlohaData.getEditRequests() : []).map(r => Object.assign({ isStatic: false }, r, {
-      photos: (r.photos || []).map(p => Object.assign({}, p, { src: '../' + p.src }))
+      photos: (r.photos || []).map(p => Object.assign({}, p, {
+        src: (p.src && (p.src.startsWith('data:') || p.src.startsWith('http') || p.src.startsWith('../') || p.src.startsWith('/'))) ? p.src : '../' + p.src
+      }))
     }));
     return STATIC_REQUESTS.concat(real);
   }
@@ -309,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEditRequests() {
     const board = document.querySelector('.kanban');
     if (!board) return;
-    document.querySelectorAll('.kanban-col').forEach(col => {
+    document.querySelectorAll('.kanban-col:not(#kanbanCol-yeu-cau-cho-chinh-sua)').forEach(col => {
       col.querySelectorAll('.kanban-card, .kanban-col-empty').forEach(el => el.remove());
     });
 
@@ -461,6 +463,95 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ------------------------------- Quản lý ảnh: Cột Yêu cầu chờ chỉnh sửa -------------------------------
+  const pendingPhotos = [];
+  const uploadInput = document.getElementById('inputPhotoUpload');
+  const btnUploadPhotos = document.getElementById('btnUploadPhotos');
+  const pendingContainer = document.getElementById('pendingUploadContainer');
+  const pendingCountEl = document.getElementById('kanbanCount-yeu-cau-cho-chinh-sua');
+
+  function renderPendingUploads() {
+    if (!pendingContainer) return;
+    pendingContainer.innerHTML = '';
+    if (pendingCountEl) pendingCountEl.textContent = pendingPhotos.length;
+
+    const addCard = document.createElement('div');
+    addCard.className = 'kanban-upload-btn-card';
+    addCard.setAttribute('role', 'button');
+    addCard.tabIndex = 0;
+    addCard.title = 'Bấm để chọn ảnh từ máy tính';
+    addCard.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Chọn ảnh từ máy tính</span>
+    `;
+    addCard.addEventListener('click', () => { if (uploadInput) uploadInput.click(); });
+    addCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (uploadInput) uploadInput.click(); }
+    });
+    pendingContainer.appendChild(addCard);
+
+    if (pendingPhotos.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'kanban-col-empty';
+      empty.textContent = 'Chưa có ảnh nào. Bấm dấu "+" để chọn ảnh từ máy tính.';
+      pendingContainer.appendChild(empty);
+    } else {
+      pendingPhotos.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'pending-photo-card';
+        card.innerHTML = `
+          <img src="${item.src}" alt="${item.name}">
+          <div class="pending-photo-info">
+            <span class="pending-photo-name" title="${item.name}">${item.name}</span>
+            <span class="pending-photo-meta">${item.size} · Vừa thêm</span>
+          </div>
+        `;
+        pendingContainer.appendChild(card);
+      });
+    }
+  }
+
+  if (btnUploadPhotos && uploadInput) {
+    btnUploadPhotos.addEventListener('click', (e) => {
+      e.stopPropagation();
+      uploadInput.click();
+    });
+  }
+
+  if (uploadInput) {
+    uploadInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+
+      function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      let readCount = 0;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          pendingPhotos.unshift({
+            id: 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+            name: file.name,
+            size: formatBytes(file.size),
+            src: ev.target.result,
+            createdAt: Date.now()
+          });
+          readCount++;
+          if (readCount === files.length) {
+            renderPendingUploads();
+            uploadInput.value = '';
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  }
+
+  renderPendingUploads();
   renderEditRequests();
   // Mô phỏng "real-time" trong cùng trình duyệt: nếu Khách vừa gửi yêu cầu mới
   // (hoặc dữ liệu đổi ở tab/khung khác), board + badge "chưa xem" trên tab tự

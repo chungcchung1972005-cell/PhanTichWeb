@@ -170,6 +170,16 @@
            (bỏ "Chờ QC" riêng 2026-09-19 - Thợ ảnh tự kiểm tra ảnh trước khi tải
            lên, không qua vai trò QC riêng - xem js/data-store.js STATUS_FLOW). -->
       <div class="kanban">
+        <div class="kanban-col" id="kanbanCol-yeu-cau-cho-chinh-sua">
+          <h4>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+            Yêu cầu chờ chỉnh sửa
+            <span class="kanban-col-count" id="kanbanCount-yeu-cau-cho-chinh-sua">0</span>
+            <button type="button" class="kanban-col-add-btn" id="btnUploadPhotos" title="Thêm ảnh từ máy tính" aria-label="Thêm ảnh từ máy tính">+</button>
+          </h4>
+          <input type="file" id="inputPhotoUpload" accept="image/*" multiple style="display:none;">
+          <div class="pending-upload-container" id="pendingUploadContainer"></div>
+        </div>
         <div class="kanban-col" id="kanbanCol-cho-xu-ly">
           <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Chờ xử lý<span class="kanban-col-count" id="kanbanCount-cho-xu-ly"></span></h4>
         </div>
@@ -187,6 +197,63 @@
       <div class="kanban-modal" role="dialog" aria-modal="true" aria-labelledby="kanbanModalTitle">
         <button type="button" class="kanban-modal-close" id="kanbanModalClose" aria-label="Đóng chi tiết">&times;</button>
         <div id="kanbanModalBody"></div>
+      </div>
+    </div>
+
+    <!-- Modal tạo yêu cầu chỉnh sửa từ ảnh đã tải lên -->
+    <div class="kanban-modal-overlay" id="modalCreateRequest" aria-hidden="true">
+      <div class="kanban-modal" role="dialog" aria-modal="true" aria-labelledby="modalCreateTitle">
+        <button type="button" class="kanban-modal-close" id="modalCreateClose" aria-label="Đóng">&times;</button>
+        <h3 id="modalCreateTitle" style="font-size:18px; margin-bottom:6px;">Tạo yêu cầu chỉnh sửa</h3>
+        <p class="kanban-modal-meta">Gom các ảnh vừa tải lên thành 1 hồ sơ công việc chuyển sang cột <strong>Chờ xử lý</strong>.</p>
+        <form id="formCreateRequest" style="margin-top: 16px;">
+          <div style="margin-bottom: 14px;">
+            <label for="reqCustomerName" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:5px; color:var(--navy-700);">Khách hàng</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="reqCustomerName" required placeholder="Nhập tên khách hàng..." style="flex:1; padding:9px 12px; border:1px solid var(--pink-200); border-radius:var(--radius-sm); font-size:13px;">
+              <select id="reqQuickCustomer" style="padding:9px 10px; border:1px solid var(--pink-200); border-radius:var(--radius-sm); font-size:12px; color:var(--navy-700); background:var(--pink-50);">
+                <option value="">-- Chọn khách có sẵn --</option>
+                <option value="Khách demo 01|Newborn">Khách demo 01 (Newborn)</option>
+                <option value="Khách demo 02|Sinh nhật">Khách demo 02 (Sinh nhật)</option>
+                <option value="Khách demo 03|Bầu">Khách demo 03 (Bầu)</option>
+                <option value="Khách demo 05|Gia đình">Khách demo 05 (Gia đình)</option>
+                <option value="Khách demo 06|Bé lớn">Khách demo 06 (Bé lớn)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label for="reqServiceLabel" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:5px; color:var(--navy-700);">Gói dịch vụ</label>
+            <select id="reqServiceLabel" style="width:100%; padding:9px 12px; border:1px solid var(--pink-200); border-radius:var(--radius-sm); font-size:13px;">
+              <option value="Bé lớn">Bé lớn</option>
+              <option value="Newborn">Newborn</option>
+              <option value="Sinh nhật">Sinh nhật</option>
+              <option value="Gia đình">Gia đình</option>
+              <option value="Bầu">Bầu</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label for="reqNote" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:5px; color:var(--navy-700);">Ghi chú chỉnh sửa</label>
+            <textarea id="reqNote" rows="2" placeholder="Ví dụ: Chỉnh sáng da bé, xóa phông nền lộn xộn, tông màu ấm áp..." style="width:100%; padding:9px 12px; border:1px solid var(--pink-200); border-radius:var(--radius-sm); font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+          </div>
+          <div style="background:var(--pink-50); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:18px; font-size:12.5px; color:var(--navy-700); display:flex; justify-content:space-between; align-items:center;">
+            <span>Tổng số ảnh đính kèm:</span>
+            <strong id="reqPhotoCountSummary" style="color:var(--pink-700); font-size:14px;">0 ảnh</strong>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn" id="btnCancelCreateReq" style="padding:8px 16px; border:1px solid var(--pink-200); background:var(--white); border-radius:var(--radius-sm); font-size:13px; cursor:pointer;">Hủy</button>
+            <button type="submit" class="btn btn-primary" style="padding:8px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:700; cursor:pointer; background:linear-gradient(135deg, #7c3aed, #4148c9); color:#fff; border:none;">Xác nhận & Chuyển sang Chờ xử lý →</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal phóng to xem ảnh -->
+    <div class="kanban-modal-overlay" id="modalPhotoPreview" aria-hidden="true">
+      <div class="kanban-modal" style="max-width: 600px; text-align: center; padding: 20px;" role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to">
+        <button type="button" class="kanban-modal-close" id="modalPreviewClose" aria-label="Đóng">&times;</button>
+        <img id="previewModalImg" src="" alt="Ảnh xem trước" style="max-width: 100%; max-height: 65vh; border-radius: var(--radius-sm); object-fit: contain; box-shadow: var(--shadow-card); display: inline-block;">
+        <p id="previewModalCaption" style="font-size: 13px; font-weight: 700; color: var(--navy-900); margin: 12px 0 2px;"></p>
+        <span id="previewModalMeta" style="font-size: 11.5px; color: var(--navy-500);"></span>
       </div>
     </div>
 
