@@ -1,6 +1,6 @@
 ---
 name: verify-ui-change
-description: Quy trình xác minh giao diện sau khi code hoặc sửa bất kỳ màn hình nào trên dự án ALOHA Baby — chụp screenshot, so sánh với 4 ảnh thiết kế gốc, kiểm tra mobile-friendly và animation khi scroll. Dùng skill này sau mỗi thay đổi UI lớn, trước khi báo hoàn thành task.
+description: Quy trình xác minh giao diện sau khi code hoặc sửa bất kỳ màn hình nào trên dự án ALOHA Baby — chụp screenshot, đối chiếu định hướng thiết kế trong rules/design.md, kiểm tra mobile-friendly và animation khi scroll. Dùng skill này sau mỗi thay đổi UI lớn, trước khi báo hoàn thành task.
 ---
 
 # Verify UI Change — ALOHA Baby
@@ -8,7 +8,8 @@ description: Quy trình xác minh giao diện sau khi code hoặc sửa bất k�
 Sau mỗi thay đổi giao diện lớn (thêm/sửa một trang, một component, một luồng có UI), thực hiện đủ các bước sau trước khi báo hoàn thành:
 
 1. **Chụp screenshot** bằng công cụ Puppeteer đã thiết lập sẵn tại `_screenshots/` (xem "Công cụ chụp ảnh" bên dưới) — không dùng `chrome --headless --screenshot` CLI trực tiếp, đã xác nhận cho kết quả sai lệch trên máy này.
-2. **So sánh với thiết kế gốc:** đối chiếu screenshot với 4 ảnh tham chiếu (`w (1).jpg` – `w (4).jpg` ở thư mục gốc dự án) theo tiêu chí trong `rules/design.md` — màu sắc (hồng/rose + trắng + navy), bố cục dạng card, typography, bo góc, component pattern. Nêu rõ điểm khớp/lệch cụ thể, không chỉ kết luận chung chung "giống" hay "ổn".
+2. **Đối chiếu định hướng thiết kế:** 4 ảnh tham chiếu gốc KHÔNG còn trong repo, nên đối chiếu screenshot với mô tả trong `rules/design.md` (mục "UI/UX Direction" + "Chuẩn tinh chỉnh UI/UX"): màu hồng/rose + trắng + navy (dùng token `--pink-*`/`--navy-*` trong `css/style.css`, không thêm màu mới), bố cục dạng card, bo góc mềm, typography, không em-dash trong chữ hiển thị. Trang chủ đối chiếu thêm bố cục với `alohababy.vn.png` (ảnh chụp web thật, độ phân giải thấp, chỉ xem bố cục tổng thể). Với phần sửa trên trang đã có: so với ảnh chụp TRƯỚC khi sửa để chắc không làm hỏng phần khác. Nêu rõ điểm khớp/lệch cụ thể, không chỉ kết luận chung chung "giống" hay "ổn".
+   - Ảnh lazy-load (`loading="lazy"`) và ô masonry chỉ hiện khi tải xong: cuộn qua hết trang (hoặc đặt `loading="eager"`) và chờ trước khi chụp, nếu không sẽ thấy ô trống hồng tưởng là lỗi. Kiểm tra `img.complete && img.naturalWidth > 0` để chắc.
 3. **Kiểm tra mobile-friendly:** chụp ở tối thiểu 3 kích thước (mobile ~390px, tablet ~834px, desktop ~1440px). Đừng chỉ nhìn ảnh — đọc thêm `document.documentElement.scrollWidth` so với `clientWidth` (script `shoot.js` đã tự log điều này); nếu `scrollWidth > clientWidth` là có tràn ngang thật, kể cả khi ảnh chụp trông có vẻ ổn.
 4. **Kiểm tra animation khi scroll:** dùng `shoot.js` (đã tự cuộn chậm qua toàn trang trước khi chụp) để đảm bảo animation `.reveal`/`.stagger-item` có đủ thời gian hoàn tất — chụp ngay lập tức sau khi load sẽ cho thấy nhiều phần tử ở trạng thái "chưa hiện" (mờ/lệch vị trí) và dễ bị hiểu nhầm là lỗi.
 5. Nếu phát hiện lệch thiết kế gốc, hoặc thiếu responsive/animation → sửa trước khi báo hoàn thành. Không báo "xong" khi bước kiểm tra ở trên còn phát hiện vấn đề (nguyên tắc trong `CLAUDE.md`).

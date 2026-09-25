@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Khu vực quản trị | ALOHA Baby</title>
+<link rel="icon" type="image/svg+xml" href="../images/logo-mark.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32.png">
+<link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -39,9 +42,8 @@
   <button type="button" class="admin-menu-btn" id="adminMenuBtn" aria-label="Mở menu" aria-expanded="false" aria-controls="adminSidebar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <a href="admin.html" class="logo">
-    <span class="mark">A</span>
-    <span class="word">ALOHA Baby</span>
+  <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
+    <span class="wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
   </a>
 </header>
 
@@ -49,9 +51,11 @@
 
 <aside class="admin-sidebar" id="adminSidebar">
   <div class="admin-sidebar-head">
-    <a href="admin.html" class="logo">
-      <span class="mark">A</span>
-      <span class="word">ALOHA Baby</span>
+    <!-- Logo chữ mới (wordmark) khi menu mở rộng; khi thu gọn còn 72px thì chỉ
+         hiện biểu tượng trái tim images/logo-mark.svg (css/admin.css đổi qua lại). -->
+    <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
+      <img class="mark" src="../images/logo-mark.svg" alt="" aria-hidden="true">
+      <span class="word wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
     </a>
     <!-- Thu gọn/mở rộng cột menu ở màn rộng; trạng thái được nhớ lại cho lần sau.
          Ở màn hẹp nút này bị ẩn vì đã có nút menu ở thanh trên cùng. -->

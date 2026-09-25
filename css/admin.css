@@ -17,13 +17,10 @@
   padding: 20px 14px 18px; display: flex; flex-direction: column; gap: 22px;
   overflow-y: auto;
 }
-.admin-sidebar .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; padding: 0 6px; flex-shrink: 0; }
-.admin-sidebar .logo .mark {
-  width: 34px; height: 34px; border-radius: 10px; background: var(--pink-600); color: var(--white);
-  display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 700;
-  flex-shrink: 0;
-}
-.admin-sidebar .logo .word { font-family: var(--font-heading); font-weight: 700; color: var(--navy-900); font-size: 16.5px; }
+/* Logo: menu mở rộng hiện logo chữ (wordmark, css/style.css); thu gọn thì chỉ còn
+   biểu tượng trái tim images/logo-mark.svg - xem các rule sidebar-collapsed bên dưới. */
+.admin-sidebar .logo { display: flex; align-items: center; text-decoration: none; padding: 0 6px; flex-shrink: 0; --wm-size: 25px; }
+.admin-sidebar .logo .mark { display: none; width: 36px; height: 36px; flex-shrink: 0; }
 
 .admin-tabs { display: flex; flex-direction: column; gap: 3px; }
 .admin-tabs a {
@@ -91,6 +88,7 @@
 :root.sidebar-collapsed .admin-sidebar { padding-left: 10px; padding-right: 10px; }
 :root.sidebar-collapsed .admin-sidebar-head { flex-direction: column; gap: 10px; padding: 0; }
 :root.sidebar-collapsed .admin-sidebar-head .logo { flex: none; justify-content: center; }
+:root.sidebar-collapsed .admin-sidebar .logo .mark { display: block; }
 :root.sidebar-collapsed .admin-sidebar .logo .word,
 :root.sidebar-collapsed .admin-tabs a span,
 :root.sidebar-collapsed .admin-user-info { display: none; }
@@ -674,12 +672,7 @@
     background: var(--white); border-bottom: 1px solid var(--pink-100);
     padding: 10px 16px;
   }
-  .admin-mobilebar .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-  .admin-mobilebar .logo .mark {
-    width: 30px; height: 30px; border-radius: 9px; background: var(--pink-600); color: var(--white);
-    display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 700;
-  }
-  .admin-mobilebar .logo .word { font-family: var(--font-heading); font-weight: 700; color: var(--navy-900); font-size: 16px; }
+  .admin-mobilebar .logo { text-decoration: none; --wm-size: 23px; }
 
   .admin-sidebar {
     width: 262px; max-width: 84vw;
@@ -695,6 +688,8 @@
   :root.sidebar-collapsed .admin-sidebar .logo .word,
   :root.sidebar-collapsed .admin-tabs a span,
   :root.sidebar-collapsed .admin-user-info { display: block; }
+  :root.sidebar-collapsed .admin-sidebar .logo .word { display: inline-flex; }
+  :root.sidebar-collapsed .admin-sidebar .logo .mark { display: none; }
   :root.sidebar-collapsed .admin-tabs a { justify-content: flex-start; padding: 10px 12px; gap: 11px; }
   :root.sidebar-collapsed .admin-tabs a::after { content: none; }
   :root.sidebar-collapsed .admin-tabs a.active::before { height: 20px; border-radius: 0 3px 3px 0; }

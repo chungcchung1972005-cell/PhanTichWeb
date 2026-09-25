@@ -58,7 +58,7 @@ Widget chat nổi trên toàn bộ trang khách hàng, hỗ trợ tư vấn theo
 3. Báo giá theo dịch vụ/gói đã chọn (tái dùng bảng giá/gói đã cấu hình trong Admin, không hard-code giá trong kịch bản chat).
 4. "Chốt đơn" — không tự chốt lịch/cọc ngay trong khung chat; dẫn khách sang đúng luồng "Đặt lịch & Đặt cọc" ở trên (bước 1 đã có sẵn dịch vụ/concept do chatbot gợi ý), để không tạo luồng đặt lịch song song.
 
-**Ràng buộc:** mọi thông tin khách cung cấp qua chatbot (nhu cầu, SĐT nếu để lại) phải ghi vào cùng hồ sơ CRM — chatbot là một kênh nhập liệu, không phải nguồn dữ liệu riêng (**lưu ý:** phần trả lời tự do hiện gọi Claude API thật qua `server/`, nhưng server đó chưa nối vào CRM nào — đây vẫn là việc cần làm khi có backend CRM thật, không tự coi là đã xong). Bước chọn dịch vụ/gợi ý concept vẫn là quick-reply/kịch bản dựng sẵn; khung nhập tự do đã nối sang AI thật (Claude API) qua server proxy cục bộ — xem giới hạn/kiến trúc trong `tech-defaults.md`.
+**Ràng buộc:** mọi thông tin khách cung cấp qua chatbot (nhu cầu, SĐT nếu để lại) phải ghi vào cùng hồ sơ CRM — chatbot là một kênh nhập liệu, không phải nguồn dữ liệu riêng (**lưu ý:** phần trả lời tự do hiện gọi Gemini API thật qua `server/` (deploy trên Render), nhưng server đó chưa nối vào CRM nào — đây vẫn là việc cần làm khi có backend CRM thật, không tự coi là đã xong). Bước chọn dịch vụ/gợi ý concept vẫn là quick-reply/kịch bản dựng sẵn; khung nhập tự do là AI thật khi server chạy, AI lỗi thì trả lời cục bộ có ghi rõ "Trợ lý AI đang bận" — xem kiến trúc trong `tech-defaults.md`.
 
 ## Tự động hóa CRM
 
@@ -69,8 +69,10 @@ Widget chat nổi trên toàn bộ trang khách hàng, hỗ trợ tư vấn theo
 
 ## Git
 
-Áp dụng khi project đã dùng Git (hiện **chưa** là Git repository):
-- Kiểm tra branch hiện tại trước khi thay đổi lớn.
-- Không tự ý push/merge vào main.
-- Không thao tác Git có nguy cơ mất dữ liệu nếu chưa được yêu cầu rõ ràng.
-- Ưu tiên làm việc trên branch riêng khi team dùng branch workflow.
+Repo GitHub (`origin`), nhóm 3 người, quy trình **branch riêng + Pull Request** (cập nhật 2026-09-25):
+- Mỗi người làm trên nhánh riêng (nhánh của người dùng chính: `Chungcook`), xong thì mở Pull Request vào `main`.
+- `main` có branch protection: phải qua PR, checks phải pass (vd bản preview của Vercel), cần **1 approve** từ người có quyền Write khác tác giả. Admin có ô "bypass rules" dùng cho từng lần merge.
+- Review PR: đọc tab **Files changed**, bấm thử link **Preview của Vercel** trong PR; muốn chạy test thì `git fetch` + `git switch <nhánh>` (commit hoặc `git stash` thay đổi đang dở trước khi đổi nhánh).
+- Push lên `main` (qua merge PR) là GitHub Pages/Vercel/Render tự deploy lại, không cần cấu hình dashboard lại.
+- Người dùng tự commit bằng công cụ riêng: luôn chạy `git status`/`git log` trước khi làm gì với Git.
+- Claude KHÔNG tự commit/push/merge khi chưa được yêu cầu rõ ràng; không thao tác Git có nguy cơ mất dữ liệu (reset --hard, force push...); không bao giờ commit `server/.env`.

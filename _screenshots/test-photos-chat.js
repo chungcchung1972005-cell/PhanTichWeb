@@ -137,7 +137,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.close();
   }
 
-  // 6) Khung chat tự do khi server AI KHÔNG chạy -> báo lỗi thân thiện, không vỡ UI
+  // 6) Khung chat tự do khi server AI KHÔNG chạy -> trả lời cục bộ, không hiện lỗi
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
@@ -152,7 +152,8 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.click('.chat-send');
     await new Promise(r => setTimeout(r, 1500));
     const hasErrorMsg = await page.$('.chat-msg.error') !== null;
-    log('server AI tắt: khung nhập tự do báo lỗi thân thiện, không vỡ UI', hasErrorMsg);
+    const localReply = await page.evaluate(() => document.getElementById('chatBody').textContent.includes('2.200.000đ'));
+    log('server AI tắt: khung nhập tự do trả lời cục bộ, không hiện lỗi', !hasErrorMsg && localReply);
     await page.close();
   }
 

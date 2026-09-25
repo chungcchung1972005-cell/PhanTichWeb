@@ -20,7 +20,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.reload({ waitUntil: 'networkidle0' });
   }
 
-  // 1) Server KHÔNG chạy -> gửi câu hỏi tự do -> báo lỗi thân thiện
+  // 1) Server KHÔNG chạy -> gửi câu hỏi tự do -> trả lời cục bộ, không hiện lỗi
   {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
@@ -33,8 +33,10 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await page.click('.chat-send');
     await new Promise(r => setTimeout(r, 1500));
     const hasErrorMsg = await page.$('.chat-msg.error') !== null;
-    const userMsgShown = await page.evaluate(() => document.getElementById('chatBody').textContent.includes('Chi phi chup newborn'));
-    log('server tắt: hiện tin nhắn lỗi thân thiện, không vỡ UI', hasErrorMsg && userMsgShown);
+    const body = await page.evaluate(() => document.getElementById('chatBody').textContent);
+    const userMsgShown = body.includes('Chi phi chup newborn');
+    const localReply = body.includes('Trợ lý AI đang bận') && body.includes('2.200.000đ');
+    log('server tắt: trả lời cục bộ đúng giá Newborn, không hiện lỗi, không vỡ UI', !hasErrorMsg && userMsgShown && localReply);
     await page.close();
   }
 
