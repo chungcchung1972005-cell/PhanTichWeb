@@ -879,9 +879,13 @@ body.hide-floating-book .floating-book { display: none; }
   }
   .nav-links a { display: block; width: 100%; padding: 12px 0; border-bottom: 1px solid var(--pink-50); }
   /* Dropdown "Dịch vụ": ở menu mobile dạng danh sách dọc, hover không khả dụng
-     trên cảm ứng nên hiện luôn dạng danh sách con thay vì popup tuyệt đối. */
+     trên cảm ứng nên hiện luôn dạng danh sách con thay vì popup tuyệt đối.
+     visibility/pointer-events để "inherit" (không phải visible/auto): nếu ép
+     visible thì lúc menu đóng, danh sách con vẫn vô hình nhưng chặn mọi thao
+     tác bấm lên nội dung phía dưới (vd bấm ảnh trong "Ảnh của tôi" lại nhảy
+     về trang chủ). */
   .nav-links .dropdown {
-    position: static; opacity: 1; visibility: visible; pointer-events: auto;
+    position: static; opacity: 1; visibility: inherit; pointer-events: inherit;
     transform: none; box-shadow: none; border: none; background: var(--pink-50);
     margin: 4px 0 8px; padding: 6px;
   }

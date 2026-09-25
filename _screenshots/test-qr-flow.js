@@ -108,28 +108,64 @@ const path = require('path');
   await page.screenshot({ path: path.resolve(__dirname, 'test-qr-modal.png') });
   console.log('✓ Đã chụp ảnh màn hình modal QR: test-qr-modal.png');
 
-  // 7. Nhấn "Tôi đã chuyển khoản xong"
-  await page.click('#psQrConfirmPaidBtn');
-  await new Promise(r => setTimeout(r, 500));
+  // 7. Đồng hồ đếm ngược 30 phút + không còn nút "đã chuyển khoản"/"thanh toán sau"
+  const countdown = await page.$eval('#psQrCountdownTime', el => el.textContent.trim());
+  const oldBtns = await page.$$eval('#psQrConfirmPaidBtn, #psQrLaterBtn', els => els.length);
+  console.log('\n✓ Đếm ngược:', countdown, (/^(30:00|29:5\d)$/.test(countdown) ? '[ĐÚNG]' : '[SAI]'));
+  console.log('✓ Nút cũ đã bỏ:', oldBtns === 0 ? '[ĐÚNG]' : '[SAI]');
 
+  // Chụp modal ở mobile
+  await page.setViewport({ width: 390, height: 844 });
+  await new Promise(r => setTimeout(r, 300));
+  await page.screenshot({ path: path.resolve(__dirname, 'test-qr-modal-mobile.png') });
+  await page.setViewport({ width: 1440, height: 1200 });
+
+  // 8. Đóng modal khi chưa thanh toán -> KHÔNG được gửi yêu cầu
+  const before = await page.evaluate(() => (JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests?.length || 0);
+  await page.click('#psQrCloseBtn');
+  await new Promise(r => setTimeout(r, 400));
+  const after = await page.evaluate(() => (JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests?.length || 0);
   const bannerText = await page.$eval('#psSubmittedBanner', el => el.textContent.trim().replace(/\s+/g, ' '));
   const submitBtnDisabled = await page.$eval('#psSubmitBtn', el => el.disabled);
-  const submitBtnText = await page.$eval('#psSubmitBtn', el => el.textContent.trim());
-  console.log('\n--- KẾT QUẢ SAU KHI XÁC NHẬN CHUYỂN KHOẢN ---');
-  console.log('✓ Banner xác nhận:', bannerText);
-  console.log('✓ Nút submit disabled:', submitBtnDisabled, 'Text:', submitBtnText);
+  console.log('✓ Đóng khi chưa thanh toán không tạo yêu cầu:', before === after ? '[ĐÚNG]' : '[SAI]');
+  console.log('✓ Banner:', bannerText);
+  console.log('✓ Nút gửi vẫn bấm được:', !submitBtnDisabled ? '[ĐÚNG]' : '[SAI]');
 
-  // Kiểm tra dữ liệu được lưu trong AlohaData / localStorage
-  const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aloha_demo_db')));
-  const lastReq = db.editRequests[db.editRequests.length - 1];
-  console.log('✓ Dữ liệu lưu vào AlohaData:');
-  console.log('  - Mã đơn/Mã KH:', lastReq.orderCode);
-  console.log('  - Tổng số ảnh chọn:', lastReq.photoCount);
-  console.log('  - Số ảnh thêm:', lastReq.extraCount);
-  console.log('  - Phí thêm:', lastReq.extraFee);
-  console.log('  - Trạng thái thanh toán:', lastReq.paymentStatus);
+  // 9. "Tiếp tục thanh toán" mở lại modal, giữ nguyên hạn cũ
+  await page.click('#psContinuePayBtn');
+  await new Promise(r => setTimeout(r, 400));
+  const reopened = await page.$eval('#psQrModalOverlay', el => el.classList.contains('show'));
+  console.log('✓ Mở lại modal:', reopened ? '[ĐÚNG]' : '[SAI]');
+  await page.screenshot({ path: path.resolve(__dirname, 'test-qr-modal-reopened.png') });
 
-  // Chụp màn hình trang sau khi hoàn tất
+  // 10. Giả lập SePay báo tiền về -> ảnh tự gửi tới Thợ ảnh (cần server/ chạy
+  //     local với SEPAY_WEBHOOK_KEY, mặc định 'test-key-123' khi test)
+  const SEPAY_KEY = process.env.SEPAY_WEBHOOK_KEY || 'test-key-123';
+  const payCode = await page.$eval('#psBankContent', el => el.textContent.trim());
+  const heartsLocked = await page.$$eval('.ps-heart', els => els.every(b => b.disabled));
+  console.log('✓ Chọn ảnh bị khoá khi đang chờ tiền:', heartsLocked ? '[ĐÚNG]' : '[SAI]');
+  const hook = (body, key) => fetch('http://localhost:3001/api/sepay-webhook', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Apikey ' + key },
+    body: JSON.stringify(body)
+  });
+  const wrongKey = await hook({ id: 'bad-' + Date.now(), transferType: 'in', transferAmount: 100000, content: payCode }, 'sai-key');
+  console.log('✓ Webhook sai key bị từ chối:', wrongKey.status === 401 ? '[ĐÚNG]' : '[SAI] ' + wrongKey.status);
+  await hook({ id: 'short-' + Date.now(), transferType: 'in', transferAmount: 50000, content: 'MBVCB.123 ' + payCode + ' FT26' }, SEPAY_KEY);
+  await new Promise(r => setTimeout(r, 6000));
+  let sent = await page.evaluate(() => (JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests?.length || 0);
+  console.log('✓ Chuyển THIẾU tiền chưa gửi ảnh:', sent === before ? '[ĐÚNG]' : '[SAI]');
+
+  await hook({ id: 'full-' + Date.now(), transferType: 'in', transferAmount: 100000, content: 'MBVCB.456 ' + payCode + ' FT26' }, SEPAY_KEY);
+  await page.waitForFunction(n => ((JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests?.length || 0) > n, { timeout: 15000 }, before);
+  await new Promise(r => setTimeout(r, 500));
+  const db2 = await page.evaluate(() => JSON.parse(localStorage.getItem('aloha_demo_db')));
+  const req2 = db2.editRequests[db2.editRequests.length - 1];
+  const modalClosed = await page.$eval('#psQrModalOverlay', el => !el.classList.contains('show'));
+  const paidBanner = await page.$eval('#psSubmittedBanner', el => el.textContent.trim().replace(/\s+/g, ' '));
+  console.log('✓ Đủ tiền -> tự gửi yêu cầu:', req2.photoCount, 'ảnh, thêm', req2.extraCount, '-', req2.paymentStatus);
+  console.log('✓ Modal tự đóng:', modalClosed ? '[ĐÚNG]' : '[SAI]');
+  console.log('✓ Banner:', paidBanner);
   await page.screenshot({ path: path.resolve(__dirname, 'test-submitted-page.png') });
 
   await browser.close();

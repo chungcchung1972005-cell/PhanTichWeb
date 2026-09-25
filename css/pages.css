@@ -647,13 +647,12 @@
   line-height: 1.5;
   margin: 10px auto 0;
   max-width: 380px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  text-align: center;
 }
 .ps-qr-hint svg {
-  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 4px;
   color: #e91e8c;
 }
 
@@ -713,48 +712,104 @@
   border-color: #10b981 !important;
 }
 
-/* Nút hành động QR Modal */
-.ps-qr-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ps-qr-confirm-btn {
-  width: 100%;
-  padding: 12px;
-  font-size: .95rem;
-  font-weight: 700;
+/* Đếm ngược thời hạn mã QR */
+.ps-qr-countdown {
+  background: #fff;
+  border: 1.5px dashed rgba(233,30,140,.35);
   border-radius: 14px;
-  background: linear-gradient(135deg, #e91e8c, #ff6b9d);
-  color: #fff;
-  border: none;
-  cursor: pointer;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.ps-qr-countdown-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 15px rgba(233,30,140,.3);
-  transition: all .2s;
-}
-.ps-qr-confirm-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(233,30,140,.4);
-}
-.ps-qr-later-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: .85rem;
-  font-weight: 600;
-  border-radius: 12px;
-  background: transparent;
+  gap: 10px;
+  font-size: .83rem;
   color: #6b7280;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  transition: all .2s;
 }
-.ps-qr-later-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+.ps-qr-countdown-time {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #e91e8c;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+}
+.ps-qr-countdown-bar {
+  height: 5px;
+  border-radius: 99px;
+  background: #fce7f3;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.ps-qr-countdown-bar span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #e91e8c, #ff6b9d);
+  transition: width 1s linear;
+}
+.ps-qr-paystatus {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: #6b7280;
+}
+.ps-qr-paystatus-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: psPayPulse 1.4s ease-in-out infinite;
+}
+.ps-qr-paystatus.is-error { color: #b91c1c; }
+.ps-qr-paystatus.is-error .ps-qr-paystatus-dot { background: #ef4444; }
+.ps-qr-modal.is-expired .ps-qr-paystatus { display: none; }
+@keyframes psPayPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .35; transform: scale(.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ps-qr-paystatus-dot { animation: none; }
+}
+.ps-qr-modal.is-urgent .ps-qr-countdown { border-color: rgba(234,88,12,.5); }
+.ps-qr-modal.is-urgent .ps-qr-countdown-time { color: #ea580c; }
+.ps-qr-modal.is-urgent .ps-qr-countdown-bar span { background: #ea580c; }
+.ps-qr-modal.is-expired .ps-qr-countdown-time { color: #9ca3af; }
+.ps-qr-modal.is-expired .ps-qr-countdown-label { color: #b91c1c; font-weight: 600; }
+.ps-qr-modal.is-expired .ps-qr-img { opacity: .2; filter: grayscale(1); }
+
+/* Thông điệp: ảnh chỉ gửi đi sau khi thanh toán */
+.ps-qr-promise {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, rgba(233,30,140,.08), rgba(255,107,157,.14));
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #1f2937;
+}
+.ps-qr-promise svg {
+  flex-shrink: 0;
+  color: #e91e8c;
+  margin-top: 2px;
+}
+.ps-qr-promise strong {
+  display: block;
+  font-size: .92rem;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+.ps-qr-promise p {
+  margin: 0;
+  font-size: .8rem;
+  color: #6b7280;
+  line-height: 1.5;
 }
 
 /* Banner mở lại QR */
@@ -789,92 +844,129 @@
   background: #059669;
   color: #fff;
 }
-/* ===== Lightbox (xem ảnh lớn, thu phóng, lướt) ===== */
-.ps-lightbox {
-  position: fixed; inset: 0; z-index: 99999;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; visibility: hidden;
-  transition: opacity .3s ease, visibility .3s ease;
-}
-.ps-lightbox.show { opacity: 1; visibility: visible; }
-
-.ps-lb-overlay {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.92);
-  backdrop-filter: blur(8px);
-}
-
-.ps-lb-close {
-  position: absolute; top: 16px; right: 20px; z-index: 10;
-  background: rgba(255,255,255,.15); border: none; color: #fff;
-  font-size: 28px; width: 44px; height: 44px; border-radius: 50%;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background .2s;
-}
-.ps-lb-close:hover { background: rgba(255,255,255,.3); }
-
-.ps-lb-prev, .ps-lb-next {
-  position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
-  background: rgba(255,255,255,.12); border: none; color: #fff;
-  font-size: 24px; width: 48px; height: 48px; border-radius: 50%;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background .2s, transform .2s;
-}
-.ps-lb-prev { left: 16px; }
-.ps-lb-next { right: 16px; }
-.ps-lb-prev:hover, .ps-lb-next:hover { background: rgba(255,255,255,.25); transform: translateY(-50%) scale(1.1); }
-
-.ps-lb-content {
-  position: relative; z-index: 5;
-  max-width: 90vw; max-height: 85vh;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-}
-
-.ps-lb-img {
-  max-width: 90vw; max-height: 85vh;
-  object-fit: contain; border-radius: 6px;
-  transition: transform .25s ease;
-  cursor: grab; user-select: none;
-}
-.ps-lb-img:active { cursor: grabbing; }
-
-.ps-lb-counter {
-  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10;
-  color: rgba(255,255,255,.8); font-size: 14px; font-weight: 500;
-  background: rgba(0,0,0,.5); padding: 6px 16px; border-radius: 20px;
-  letter-spacing: .5px;
-}
-
-.ps-lb-actions {
-  position: absolute; bottom: 20px; right: 20px; z-index: 10;
-  display: flex; gap: 8px;
-}
-.ps-lb-actions button {
-  background: rgba(255,255,255,.15); border: none; color: #fff;
-  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-  font-size: 16px; display: flex; align-items: center; justify-content: center;
-  transition: background .2s;
-}
-.ps-lb-actions button:hover { background: rgba(255,255,255,.3); }
-
-/* Zoom hint icon trên mỗi ảnh */
+/* ===== Lightbox (xem ảnh lớn, thu phóng, lướt, yêu thích + ghi chú) ===== */
+.ps-photo img { cursor: zoom-in; }
 .ps-zoom-hint {
   position: absolute; bottom: 8px; left: 8px;
   background: rgba(0,0,0,.55); color: #fff;
   width: 30px; height: 30px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; cursor: pointer;
   opacity: 0; transition: opacity .2s;
   pointer-events: none;
 }
-.ps-photo:hover .ps-zoom-hint { opacity: 1; pointer-events: auto; }
+.ps-photo:hover .ps-zoom-hint { opacity: 1; }
 
-/* Responsive cho lightbox */
+.ps-lightbox {
+  position: fixed; inset: 0; z-index: 9000;
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+.ps-lightbox.show { opacity: 1; visibility: visible; }
+.ps-lb-overlay {
+  position: absolute; inset: 0;
+  background: rgba(10, 14, 28, .94);
+}
+.ps-lb-shell {
+  position: relative; z-index: 1;
+  height: 100%;
+  display: flex; flex-direction: column;
+  pointer-events: none;
+}
+.ps-lb-shell > * { pointer-events: auto; }
+
+.ps-lb-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px;
+}
+.ps-lb-counter {
+  color: rgba(255,255,255,.85); font-size: 14px; font-weight: 600;
+  background: rgba(255,255,255,.1); padding: 6px 14px; border-radius: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.ps-lb-actions { display: flex; gap: 6px; }
+.ps-lb-actions button, .ps-lb-close, .ps-lb-prev, .ps-lb-next {
+  background: rgba(255,255,255,.14); border: none; color: #fff;
+  border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, transform .2s;
+}
+.ps-lb-actions button { width: 38px; height: 38px; font-size: 20px; }
+.ps-lb-actions .ps-lb-zoom-val { width: auto; min-width: 58px; padding: 0 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.ps-lb-close { width: 42px; height: 42px; font-size: 28px; }
+.ps-lb-actions button:hover, .ps-lb-close:hover, .ps-lb-prev:hover, .ps-lb-next:hover { background: rgba(255,255,255,.28); }
+
+.ps-lb-stage {
+  position: relative; flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+}
+.ps-lb-stage.is-zoomed { cursor: grab; }
+.ps-lb-stage.is-zoomed:active { cursor: grabbing; }
+.ps-lb-img {
+  max-width: calc(100% - 32px); max-height: calc(100% - 16px);
+  object-fit: contain; border-radius: 6px;
+  user-select: none; -webkit-user-drag: none;
+  transition: transform .15s ease-out;
+  transform-origin: center center;
+}
+.ps-lb-prev, .ps-lb-next {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 48px; font-size: 30px; line-height: 1;
+}
+.ps-lb-prev { left: 16px; }
+.ps-lb-next { right: 16px; }
+.ps-lb-prev[hidden], .ps-lb-next[hidden] { display: none; }
+
+.ps-lb-panel {
+  width: min(640px, calc(100% - 32px));
+  margin: 0 auto 16px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.ps-lb-fav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ps-lb-fav {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 999px;
+  border: 1.5px solid var(--pink-500); background: #fff; color: var(--pink-600);
+  font-weight: 700; font-size: .9rem; cursor: pointer;
+  transition: background .2s, color .2s, transform .1s;
+}
+.ps-lb-fav svg { width: 18px; height: 18px; }
+.ps-lb-fav:active { transform: scale(.97); }
+.ps-lb-fav.active { background: var(--pink-600); border-color: var(--pink-600); color: #fff; }
+.ps-lb-fav.active svg { fill: currentColor; }
+.ps-lb-fav:disabled { opacity: .55; cursor: not-allowed; }
+.ps-lb-favinfo { font-size: .8rem; color: #6b7280; }
+.ps-lb-note { margin-top: 10px; }
+.ps-lb-note label {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: .82rem; font-weight: 700; color: var(--navy-900, #1f2937); margin-bottom: 6px;
+}
+.ps-lb-extra {
+  font-size: .7rem; font-weight: 700; color: #fff;
+  background: #ea580c; padding: 2px 8px; border-radius: 999px;
+}
+.ps-lb-note textarea {
+  width: 100%; resize: vertical; min-height: 56px;
+  border: 1.5px solid #e5e7eb; border-radius: 12px;
+  padding: 8px 10px; font: inherit; font-size: .88rem;
+}
+.ps-lb-note textarea:focus { outline: none; border-color: var(--pink-500); }
+
 @media (max-width: 768px) {
-  .ps-lb-prev { left: 8px; width: 36px; height: 36px; font-size: 18px; }
-  .ps-lb-next { right: 8px; width: 36px; height: 36px; font-size: 18px; }
-  .ps-lb-close { top: 10px; right: 10px; width: 36px; height: 36px; font-size: 22px; }
-  .ps-lb-actions { bottom: 14px; right: 10px; }
-  .ps-lb-actions button { width: 34px; height: 34px; font-size: 14px; }
+  .ps-lb-top { padding: 10px; }
+  .ps-lb-actions button { width: 34px; height: 34px; font-size: 18px; }
+  .ps-lb-actions .ps-lb-zoom-val { min-width: 50px; }
+  .ps-lb-close { width: 36px; height: 36px; font-size: 24px; }
+  .ps-lb-prev, .ps-lb-next { width: 38px; height: 38px; font-size: 24px; }
+  .ps-lb-prev { left: 8px; }
+  .ps-lb-next { right: 8px; }
+  .ps-lb-panel { margin-bottom: 10px; padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ps-lb-img, .ps-lightbox { transition: none; }
 }

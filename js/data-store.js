@@ -17,7 +17,7 @@
       serviceLabel: 'Newborn',
       packageLabel: 'Premium',
       packageCount: 10,
-      photoCount: 197
+      photoCount: 192 // = số ảnh trong js/google-photos-data.js
     }
   };
 
