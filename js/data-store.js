@@ -17,7 +17,7 @@
       serviceLabel: 'Newborn',
       packageLabel: 'Premium',
       packageCount: 10,
-      photoCount: 16
+      photoCount: 197
     }
   };
 
@@ -157,3 +157,4 @@
     STATUS_FLOW
   };
 })(window);
+
