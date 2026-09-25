@@ -66,7 +66,7 @@ const ACCOUNTS = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
     'sale': { urlIncludes: 'crm/admin.html', visibleTabs: ['Khách hàng', 'Lịch hẹn'] },
     'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
-    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Concept', 'Doanh thu', 'Cài đặt'] }
+    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
   };
 
   for (const role of Object.keys(ROLE_EXPECT)) {

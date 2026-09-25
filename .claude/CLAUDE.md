@@ -40,7 +40,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 - `js/data-store.js` — `window.AlohaData`: kho dữ liệu demo dùng chung Khách hàng ↔ Admin.
 - `js/dat-lich.js` — logic đặt lịch, mô phỏng khung giờ real-time.
 - `js/chon-anh.js` — logic chọn ảnh, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa.
-- `css/style.css` — design token (`--pink-*`, `--navy-*`, `--radius-*`, `--shadow-*`, `--caption-shadow`) + style dùng chung (nav, hero, logo chữ `.wordmark`, footer, chatbot...).
+- `css/style.css` — design token (`--pink-*`, `--navy-*`, `--radius-*`, `--shadow-*`, `--caption-shadow`, `--font-heading`/`--font-body`) + style dùng chung (nav, hero, logo chữ `.wordmark`, footer, chatbot...).
 - `css/pages.css` — style các view phụ: Đặt lịch, Ảnh của tôi, Album, Nội dung, lightbox.
 
 **Ban quản trị (nội bộ, 1 file dùng chung 3 vai trò Sale/Thợ ảnh/Sếp):** `crm/admin.html`, `crm/js/admin.js`, `css/admin.css`.
@@ -65,6 +65,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 
 **2 "database" mô phỏng (localStorage, KHÔNG phải backend thật — xem guardrail real-time trong `rules/tech-defaults.md`):**
 - **`aloha_auth`** (`js/auth.js`) — 1 object session hiện tại: `{ role: 'khach-hang'|'tho-anh'|'sale'|'sep', name, phone, loginAt }`.
+- **`aloha_admin_ui`** (`crm/admin.html` + `crm/js/admin.js`, thêm 2026-09-25) — 1 chuỗi `collapsed`/`expanded`: cột menu khu quản trị đang thu gọn hay mở rộng. Chỉ là tuỳ chọn hiển thị, không phải dữ liệu nghiệp vụ, mất đi cũng không ảnh hưởng gì (mặc định là mở rộng).
 - **`aloha_demo_db`** (`js/data-store.js`) — `{ customers: { [phone]: { hasShoot, orderCode, serviceLabel, packageLabel, packageCount, photoCount } }, editRequests: [{ id, phone, customerName, orderCode, serviceLabel, photoCount, note, photoNotes: [{id, note}], photos: [{id, src, note}], doneIds: [photoId], staffSeen, customerSeenDone, status, createdAt }] }`. `status` dùng đúng enum trong `rules/tech-defaults.md` — **chỉ còn 3 giá trị** (Chờ xử lý → Đang thực hiện → Hoàn thành; đã bỏ "Chờ QC" riêng ngày 2026-09-19, xem `docs/changelog.md`). `photos` là danh sách ĐẦY ĐỦ ảnh trong yêu cầu (khác `photoNotes` chỉ chứa ảnh có ghi chú riêng); `doneIds` là các `photo.id` Thợ ảnh đã đánh dấu xử lý xong, đổi qua `AlohaData.togglePhotoDone(requestId, photoId)`; `staffSeen`/`customerSeenDone` (thêm 2026-09-19) là 2 cờ thông báo 1 chiều độc lập nhau, đổi qua `AlohaData.markStaffSeen()`/`markCustomerSeenDone()` — xem `docs/changelog.md`.
 
 ## Trạng thái dự án (cập nhật 2026-09-25)
@@ -74,7 +75,7 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 **Đã có:**
 - Trang chủ: Hero Banner 5 dịch vụ (collage 5 ảnh) → album 3 tầng; các thẻ Album/Concept/Video/Tin tức/Giới thiệu/Chụp tại nhà mở tầng nội dung chi tiết; Tìm kiếm + Thông báo dùng thật; logo chữ "aloha ♥ BABY STUDIO".
 - Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 3 bước (mô phỏng real-time); Ảnh của tôi (thả tim, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa).
-- Admin `crm/admin.html`: Dashboard Sếp (KPI, phễu, biểu đồ), CRM + Lịch hẹn (dữ liệu tĩnh), kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
+- Admin `crm/admin.html`: menu dọc bên trái thu gọn/mở rộng được (nhớ trạng thái trong `aloha_admin_ui`); Dashboard Sếp (KPI, phễu, biểu đồ) + mục Doanh thu (KPI sparkline, biểu đồ đường 3 tab, mục tiêu tháng), hiệu ứng chạy lại mỗi lần bấm menu; Lịch hẹn dạng lịch tháng có popup chi tiết, vừa khung màn hình, nổi bật ngày hôm nay; bảng Khách hàng có avatar chữ viết tắt tự sinh từ tên (màu theo SĐT); CRM + Lịch hẹn vẫn là dữ liệu tĩnh; đã bỏ mục Concept khỏi Admin; kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
 - Chatbot: kịch bản quick-reply (tư vấn dịch vụ, concept & ảnh mẫu, quy trình, FAQ, gọi Sale) + khung gõ tự do gọi Gemini qua server Render, AI trả kèm 3 nút gợi ý dẫn trang; AI lỗi thì trả lời cục bộ theo từ khoá (ghi rõ "Trợ lý AI đang bận").
 
 **Quyết định đã chốt (không hỏi lại trừ khi người dùng đổi ý):**
