@@ -1005,6 +1005,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ===== Ô "Đã chọn" nổi theo khi cuộn xem ảnh =====
+  // Ô gốc ở đầu trang cuộn khuất thì chính ô đó chuyển sang position: fixed ngay dưới thanh
+  // menu (giữ nguyên số liệu + nút chọn nhanh); ô giữ chỗ cùng kích thước để trang không giật.
+  const summaryCard = document.getElementById('psSummaryCard');
+  const siteHeader = document.querySelector('.site-header');
+  if (summaryCard) {
+    const slot = document.createElement('div');
+    slot.className = 'ps-summary-slot';
+    summaryCard.parentNode.insertBefore(slot, summaryCard);
+    slot.appendChild(summaryCard);
+    let floating = false, ticking = false;
+
+    function setFloating(on, slotRect) {
+      floating = on;
+      summaryCard.classList.toggle('is-floating', on);
+      slot.style.width = on ? slotRect.width + 'px' : '';
+      slot.style.height = on ? slotRect.height + 'px' : '';
+      if (!on) summaryCard.style.top = summaryCard.style.left = summaryCard.style.width = '';
+    }
+    function placeSummary() {
+      ticking = false;
+      const view = document.getElementById('view-chon-anh');
+      const active = !!view && !view.hidden;
+      const headerBottom = siteHeader ? Math.max(0, siteHeader.getBoundingClientRect().bottom) : 0;
+      const slotRect = slot.getBoundingClientRect();
+      const shouldFloat = active && slotRect.height > 0 && slotRect.bottom < headerBottom + 8;
+      if (shouldFloat !== floating) setFloating(shouldFloat, slotRect);
+      if (!floating) return;
+      summaryCard.style.top = headerBottom + 10 + 'px';
+      // Màn rộng: nổi đúng cột bên phải như vị trí gốc; màn hẹp: trải ngang (xem CSS)
+      const wide = window.innerWidth > 768;
+      summaryCard.style.left = wide ? slotRect.left + 'px' : '';
+      summaryCard.style.width = wide ? slotRect.width + 'px' : '';
+    }
+    const requestPlace = () => { if (!ticking) { ticking = true; requestAnimationFrame(placeSummary); } };
+    window.addEventListener('scroll', requestPlace, { passive: true });
+    window.addEventListener('resize', () => { if (floating) setFloating(false); requestPlace(); });
+    window.addEventListener('hashchange', requestPlace);
+    requestPlace();
+  }
+
   updateSummary();
   applyFilter('all');
 });
