@@ -1,10 +1,11 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH } = require('./test-env');
 const path = require('path');
 
 (async () => {
   const htmlPath = path.resolve(__dirname, '..', 'login.html').replace(/\\/g, '/');
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Users\\DELL\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });

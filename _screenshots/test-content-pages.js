@@ -1,3 +1,4 @@
+const { CHROME_PATH, ROOT_POSIX } = require('./test-env');
 // Test "tầng nội dung" của Trang chủ (js/content.js, route #/noi-dung/<slug> trong js/router.js):
 // thẻ Album -> album concept, ô Concept / Video / Tin tức / Giới thiệu / Chụp tại nhà -> trang chi tiết,
 // ảnh + video mở lightbox dùng chung (js/albums.js), video dừng khi rời trang.
@@ -6,7 +7,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = 'D:/PhanTichWeb/';
+const ROOT = ROOT_POSIX;
 const BASE = 'file:///' + ROOT + 'index.html';
 const results = [];
 const log = (name, ok, extra) => { results.push({ name, ok }); console.log((ok ? 'PASS' : 'FAIL') + ' - ' + name + (extra ? ' (' + extra + ')' : '')); };
@@ -53,7 +54,7 @@ const missingFiles = (files) => files.filter((f) => !fs.existsSync(path.join(ROO
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
   });
 
@@ -179,8 +180,10 @@ const missingFiles = (files) => files.filter((f) => !fs.existsSync(path.join(ROO
     if (vp.name === 'desktop') {
       await page.click('#searchBtn');
       await page.type('#searchInput', 'newborn khi nao');
-      await wait(150);
+      // Chờ theo điều kiện thật thay vì chờ cố định (máy chậm thì 150-300ms không đủ)
+      await page.waitForSelector('#searchResults button', { timeout: 5000 });
       await page.evaluate(() => document.querySelector('#searchResults button').click());
+      await page.waitForFunction(() => location.hash === '#/noi-dung/newborn-thoi-diem', { timeout: 5000 }).catch(() => {});
       await wait(300);
       st = await contentState(page);
       log(P('Tìm "newborn khi nao" mở bài Nên chụp ảnh newborn...'), st.found && st.hash === '#/noi-dung/newborn-thoi-diem', st.hash);

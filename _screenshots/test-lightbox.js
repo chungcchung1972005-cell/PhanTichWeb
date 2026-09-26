@@ -3,6 +3,7 @@
 // sửa ngay trong lightbox. Cần mạng (ảnh tải từ lh3.googleusercontent.com).
 //   node _screenshots/test-lightbox.js
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH } = require('./test-env');
 const path = require('path');
 
 let pass = 0, fail = 0;
@@ -13,7 +14,7 @@ function check(name, ok, extra) {
 (async () => {
   const root = path.resolve(__dirname, '..').replace(/\\/g, '/');
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Users\\DELL\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });

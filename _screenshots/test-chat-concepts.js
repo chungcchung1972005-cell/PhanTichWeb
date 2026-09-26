@@ -1,8 +1,9 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test logo mới + kịch bản chatbot cho concept album (js/albums.js).
 // Phản hồi AI là giả (chặn :3001) nên không cần server, không tốn hạn mức Gemini.
 // Chạy: node _screenshots/test-chat-concepts.js
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' };
 // AI trả lời chung chung, KHÔNG có nút album -> nút album concept phải do frontend tự gắn.
@@ -18,7 +19,7 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];
@@ -34,21 +35,30 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
     }
     await page.goto(BASE + url, { waitUntil: 'networkidle0' });
     const r = await page.evaluate(() => ({
-      // Logo chữ: "aloha" + trái tim + "BABY STUDIO", nhìn thấy được, link có aria-label ALOHA Baby.
-      logos: [...document.querySelectorAll('.logo')].map((l) => {
+      // Logo chữ: "aloha" + trái tim + "BABY STUDIO", link có aria-label ALOHA Baby. Chỉ xét logo
+      // đang hiện trên màn hình (vd trang quản trị có 1 logo ở thanh trên chỉ dành cho màn hẹp).
+      logos: [...document.querySelectorAll('.logo')].filter((l) => l.getClientRects().length > 0).map((l) => {
         const name = l.querySelector('.wordmark-name');
         const box = name && name.getBoundingClientRect();
         return !!name && name.textContent.trim() === 'aloha' && !!l.querySelector('.wordmark-heart') &&
           (l.querySelector('.wordmark-sub') || {}).textContent === 'BABY STUDIO' && box.width > 40 &&
           /ALOHA Baby/.test(l.getAttribute('aria-label') || '');
       }),
-      font: (() => { const n = document.querySelector('.wordmark-name'); return n ? getComputedStyle(n).fontFamily : ''; })(),
+      // Logo dùng đúng font tiêu đề đang khai báo trong CSS (--font-heading), không ghi cứng tên font
+      font: (() => {
+        const n = document.querySelector('.wordmark-name');
+        const heading = getComputedStyle(document.documentElement).getPropertyValue('--font-heading').split(',')[0].replace(/['"]/g, '').trim();
+        return !!n && !!heading && getComputedStyle(n).fontFamily.includes(heading);
+      })(),
       avatar: [...document.querySelectorAll('.chat-avatar img')].every((m) => m.complete && m.naturalWidth > 0),
-      oldLogo: !!document.querySelector('.logo .mark, .logo .word') || [...document.querySelectorAll('.chat-avatar')].some((m) => m.textContent.trim() === 'A'),
+      // Logo cũ = ô chữ "A" (span.mark) + chữ "ALOHA Baby" (span.word không phải wordmark).
+      // Menu dọc quản trị cố ý có img.mark (icon hiện khi thu gọn menu) nên không tính là logo cũ.
+      oldLogo: [...document.querySelectorAll('.logo .mark')].some((m) => m.tagName !== 'IMG') ||
+        [...document.querySelectorAll('.logo .word')].some((w) => !w.classList.contains('wordmark')) || [...document.querySelectorAll('.chat-avatar')].some((m) => m.textContent.trim() === 'A'),
       favicon: !!document.querySelector('link[rel="icon"][href$="logo-mark.svg"]') && !!document.querySelector('link[rel="apple-touch-icon"]')
     }));
-    log(`[${name}] logo chữ "aloha · BABY STUDIO" hiện đúng (${r.logos.length} chỗ), font Quicksand, có favicon, không còn logo cũ`,
-      r.logos.length > 0 && r.logos.every(Boolean) && r.font.includes('Quicksand') && r.avatar && !r.oldLogo && r.favicon);
+    log(`[${name}] logo chữ "aloha · BABY STUDIO" hiện đúng (${r.logos.length} chỗ), dùng font tiêu đề của site, có favicon, không còn logo cũ`,
+      r.logos.length > 0 && r.logos.every(Boolean) && r.font && r.avatar && !r.oldLogo && r.favicon);
     await page.close();
   }
 

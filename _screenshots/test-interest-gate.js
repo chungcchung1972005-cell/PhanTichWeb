@@ -1,11 +1,12 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test: nút Đăng nhập/Đăng ký ở trang chủ, gate các thao tác thể hiện quan tâm
 // (album, concept, chat) về login.html khi chưa đăng nhập, và luồng đăng ký demo.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];

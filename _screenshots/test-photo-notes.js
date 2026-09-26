@@ -1,12 +1,13 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test: ảnh thật hiển thị trong "Ảnh của tôi" (không còn icon/gradient), và
 // ghi chú riêng cho từng ảnh đã chọn (cạnh ghi chú chung) được lưu đúng vào
 // request gửi sang Thợ ảnh.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];
@@ -22,16 +23,19 @@ const BASE = 'file:///D:/PhanTichWeb/';
   await page.type('#loginPassword', 'khach123');
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#loginSubmitBtn')]);
 
-  // 1) Ảnh thật (thẻ <img>) thay vì icon/gradient placeholder
+  // 1) Ảnh thật (thẻ <img>) thay vì icon/gradient placeholder: đủ số ảnh của album
+  //    Google Photos (js/google-photos-data.js), hoặc bộ ảnh demo local nếu không có album
   const imgCheck = await page.evaluate(() => {
     const imgs = Array.from(document.querySelectorAll('.ps-photo img'));
+    const expected = typeof GOOGLE_PHOTOS_DATA !== 'undefined' ? GOOGLE_PHOTOS_DATA.length : 16;
     return {
       count: imgs.length,
-      allHaveRealSrc: imgs.every(img => /images\/my-photos\/photo-\d+\.jpg$/.test(img.getAttribute('src'))),
+      expected,
+      allHaveRealSrc: imgs.every(img => /googleusercontent\.com\/|images\/my-photos\/photo-\d+\.jpg$/.test(img.getAttribute('src'))),
       noPlaceholderDiv: document.querySelectorAll('.ps-photo-ph').length === 0
     };
   });
-  log('16 ảnh thật hiển thị, không còn icon/gradient placeholder', imgCheck.count === 16 && imgCheck.allHaveRealSrc && imgCheck.noPlaceholderDiv, JSON.stringify(imgCheck));
+  log('hiện đủ ảnh thật của album, không còn icon/gradient placeholder', imgCheck.count === imgCheck.expected && imgCheck.allHaveRealSrc && imgCheck.noPlaceholderDiv, JSON.stringify(imgCheck));
 
   // 2) Chưa chọn ảnh -> chưa thấy khối ghi chú riêng từng ảnh
   const notesHiddenInitially = await page.$eval('#psPhotoNotes', el => el.hidden);
@@ -40,6 +44,8 @@ const BASE = 'file:///D:/PhanTichWeb/';
   // 3) Chọn 2 ảnh -> hiện 2 dòng ghi chú riêng, kèm đúng ảnh
   await page.click('.ps-photo[data-id="ph-1"] .ps-heart');
   await page.click('.ps-photo[data-id="ph-5"] .ps-heart');
+  // Ghi chú riêng từng ảnh + ghi chú chung chỉ hiện ở tab Yêu thích
+  await page.click('.ps-tab[data-filter="liked"]');
   const rows = await page.$$eval('.ps-photo-note-row', els => els.map(el => el.dataset.id));
   log('chọn 2 ảnh -> hiện đúng 2 dòng ghi chú riêng tương ứng', rows.length === 2 && rows.includes('ph-1') && rows.includes('ph-5'), rows.join(','));
 

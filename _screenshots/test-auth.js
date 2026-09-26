@@ -1,8 +1,9 @@
+const { CHROME_PATH, ROOT_URL, shot } = require('./test-env');
 // Test luồng đăng nhập tài khoản/mật khẩu + phân quyền 3 vai trò nội bộ dùng
 // chung crm/admin.html, và gate 2 trang khách hàng hiện có.
 const puppeteer = require('puppeteer-core');
 
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 const ACCOUNTS = {
   'khach-hang': { phone: '0900000001', password: 'khach123' },
@@ -13,7 +14,7 @@ const ACCOUNTS = {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
@@ -96,23 +97,23 @@ const ACCOUNTS = {
         });
       };
       await scrollReveal();
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-sep-desktop.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-sep-desktop.png'), fullPage: true });
       await page.setViewport({ width: 390, height: 844 });
       await page.reload({ waitUntil: 'networkidle0' });
       await scrollReveal();
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-sep-mobile.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-sep-mobile.png'), fullPage: true });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       log('admin sếp mobile không tràn ngang', !overflow);
     }
     if (role === 'sale') {
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-sale-desktop.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-sale-desktop.png'), fullPage: true });
       // Sale không được thấy cột doanh thu/thanh toán trong bảng khách hàng
       const headText = await page.$eval('#custTableHead', el => el.textContent);
       const noRevenueLeak = !/doanh thu|thanh toán/i.test(headText);
       log('sale không thấy cột doanh thu/thanh toán', noRevenueLeak, headText.trim());
     }
     if (role === 'tho-anh') {
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-thoanh-desktop.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-thoanh-desktop.png'), fullPage: true });
       const hasKanban = await page.$('.kanban') !== null;
       const hasCustomerTable = await page.$('#khach-hang') !== null;
       log('thợ ảnh chỉ thấy kanban ảnh, không thấy CRM khách hàng', hasKanban && !hasCustomerTable);

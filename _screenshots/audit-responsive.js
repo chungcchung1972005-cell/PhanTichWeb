@@ -1,8 +1,9 @@
+const { CHROME_PATH, ROOT_URL, shot } = require('./test-env');
 // Audit responsive: chụp + kiểm tra overflow ngang ở nhiều kích thước cho
 // mọi màn hình thật (kể cả các view cần đăng nhập) — không sửa gì, chỉ khảo sát.
 const puppeteer = require('puppeteer-core');
 
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 const ACCOUNTS = {
   'khach-hang': { phone: '0900000001', password: 'khach123' },
   'sale': { phone: '0900000002', password: 'sale123' },
@@ -66,7 +67,7 @@ async function scrollThrough(page) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
@@ -105,7 +106,7 @@ async function scrollThrough(page) {
         overflow.overflowEls.forEach(e => console.log(`    - <${e.tag} class="${e.cls}"> right=${e.right} width=${e.width}`));
       }
       if (consoleErrors.length) console.log('    console errors:', consoleErrors.slice(0, 3));
-      await page.screenshot({ path: `D:\\PhanTichWeb\\_screenshots\\audit-${t.name}-${s.name}.png`, fullPage: true });
+      await page.screenshot({ path: shot(`audit-${t.name}-${s.name}.png`), fullPage: true });
       await page.close();
     }
   }

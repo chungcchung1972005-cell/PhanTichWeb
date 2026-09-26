@@ -1,3 +1,4 @@
+const { CHROME_PATH } = require('./test-env');
 // Xuất PNG từ images/logo-mark.svg cho những nơi không nhận SVG:
 //   images/apple-touch-icon.png (180x180, icon khi lưu web ra màn hình iPhone)
 //   images/favicon-32.png (32x32, favicon dự phòng cho trình duyệt cũ)
@@ -11,7 +12,7 @@ const svg = fs.readFileSync(path.join(IMAGES, 'logo-mark.svg'), 'utf8');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   for (const [file, size, pad] of [['apple-touch-icon.png', 180, 0], ['favicon-32.png', 32, 0]]) {

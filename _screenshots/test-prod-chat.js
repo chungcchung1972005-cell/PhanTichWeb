@@ -1,3 +1,4 @@
+const { CHROME_PATH } = require('./test-env');
 // Test đầu-cuối trên site ĐÃ PUBLIC thật (GitHub Pages + server Render), không phải
 // file:// local. Xác nhận: mở trang chủ -> chat -> gõ câu hỏi -> AI thật trả lời
 // đúng qua server production, không lỗi CORS/kết nối.
@@ -7,7 +8,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];

@@ -1,9 +1,10 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test Hero Banner 5 dịch vụ + album 3 tầng (js/albums.js, route trong js/router.js):
 //   Trang chủ -> #/album/<dịch vụ> (danh sách concept) -> #/album/<dịch vụ>/<concept> (ảnh).
 // Chạy: node _screenshots/test-service-albums.js (không cần server, không cần đăng nhập).
 const puppeteer = require('puppeteer-core');
 
-const BASE = 'file:///D:/PhanTichWeb/index.html';
+const BASE = ROOT_URL + 'index.html';
 const results = [];
 const log = (name, ok, extra) => { results.push({ name, ok }); console.log((ok ? 'PASS' : 'FAIL') + ' - ' + name + (extra ? ' (' + extra + ')' : '')); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -45,7 +46,7 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
 
