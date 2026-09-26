@@ -327,13 +327,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sếp: xem đầy đủ hồ sơ. Sale: chỉ xem phần cần để chăm sóc khách, không có
   // trạng thái nội bộ dạng badge riêng của vận hành, gộp lịch sử ngắn gọn.
   const CUSTOMERS = [
-    { name: 'Khách demo 01', phone: '0987 xxx 321', source: 'Facebook', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '12/09/2026', note: 'Quan tâm gói Newborn.' },
-    { name: 'Khách demo 02', phone: '0912 xxx 456', source: 'Giới thiệu', status: 'da-chup', label: 'Đã chụp', badge: 'badge-da-chup', created: '05/09/2026', note: 'Hỏi thêm về album in.' },
-    { name: 'Khách demo 03', phone: '0977 xxx 789', source: 'TikTok', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '18/09/2026', note: 'Mới để lại số điện thoại.' },
-    { name: 'Khách demo 04', phone: '0901 xxx 234', source: 'Website', status: 'hoan-thanh', label: 'Hoàn thành', badge: 'badge-hoan-thanh', created: '20/08/2026', note: 'Đã nhận ảnh, hẹn chụp 6 tháng tuổi.' },
-    { name: 'Khách demo 05', phone: '0933 xxx 567', source: 'Instagram', status: 'tu-van', label: 'Đã tư vấn', badge: 'badge-tu-van', created: '15/09/2026', note: 'Đang cân nhắc gói Gia đình.' },
-    { name: 'Khách demo 06', phone: '0966 xxx 890', source: 'Hotline', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '10/09/2026', note: 'Chụp Bé lớn, concept Hàn Quốc.' },
-    { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.' }
+    { name: 'Khách demo 01', phone: '0987 xxx 321', source: 'Facebook', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '12/09/2026', note: 'Quan tâm gói Newborn.', saleName: 'Sale demo' },
+    { name: 'Khách demo 02', phone: '0912 xxx 456', source: 'Giới thiệu', status: 'da-chup', label: 'Đã chụp', badge: 'badge-da-chup', created: '05/09/2026', note: 'Hỏi thêm về album in.', saleName: 'Sale demo' },
+    { name: 'Khách demo 03', phone: '0977 xxx 789', source: 'TikTok', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '18/09/2026', note: 'Mới để lại số điện thoại.', saleName: '' },
+    { name: 'Khách demo 04', phone: '0901 xxx 234', source: 'Website', status: 'hoan-thanh', label: 'Hoàn thành', badge: 'badge-hoan-thanh', created: '20/08/2026', note: 'Đã nhận ảnh, hẹn chụp 6 tháng tuổi.', saleName: 'Sale demo' },
+    { name: 'Khách demo 05', phone: '0933 xxx 567', source: 'Instagram', status: 'tu-van', label: 'Đã tư vấn', badge: 'badge-tu-van', created: '15/09/2026', note: 'Đang cân nhắc gói Gia đình.', saleName: 'Sale demo' },
+    { name: 'Khách demo 06', phone: '0966 xxx 890', source: 'Hotline', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '10/09/2026', note: 'Chụp Bé lớn, concept Hàn Quốc.', saleName: 'Sale demo' },
+    { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.', saleName: '' }
   ];
 
   // Avatar chữ viết tắt: tính lại từ tên MỖI LẦN vẽ bảng, không lưu riêng, nên
@@ -406,15 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSep = role === 'sep';
 
     if (isSep) {
-      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ghi chú</th></tr>';
+      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ghi chú</th><th>Sale phụ trách</th></tr>';
     } else {
       document.getElementById('custSectionSub').textContent = 'Thông tin khách hàng để chăm sóc và tư vấn. Không hiển thị dữ liệu thanh toán/doanh thu.';
-      head.innerHTML = '<tr><th>Liên hệ</th><th>Nguồn khách</th><th>Lịch sử lịch hẹn</th><th>Ghi chú tư vấn</th></tr>';
+      head.innerHTML = '<tr><th>Liên hệ</th><th>Nguồn khách</th><th>Lịch sử lịch hẹn</th><th>Ghi chú tư vấn</th><th>Sale phụ trách</th></tr>';
     }
 
     function renderCustomers(list) {
       if (!list.length) {
-        body.innerHTML = `<tr><td colspan="${isSep ? 6 : 4}" class="cust-empty">Không có khách hàng nào khớp bộ lọc.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="${isSep ? 7 : 5}" class="cust-empty">Không có khách hàng nào khớp bộ lọc.</td></tr>`;
         return;
       }
       if (isSep) {
@@ -426,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><span class="badge badge-dot ${c.badge}">${c.label}</span></td>
             <td><span class="cust-meta">${CUST_ICON.calendar}${c.created}</span></td>
             <td class="cust-note">${escHtml(c.note)}</td>
+            <td class="cust-sale">${escHtml(c.saleName || 'Chưa phân công')}</td>
           </tr>`).join('');
       } else {
         // Sale: cột Liên hệ gộp tên + SĐT, nên dòng phụ dưới tên là SĐT
@@ -435,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${custSource(c.source)}</td>
             <td>${c.label} (${c.created})</td>
             <td class="cust-note">${escHtml(c.note)}</td>
+            <td class="cust-sale">${escHtml(c.saleName || 'Chưa phân công')}</td>
           </tr>`).join('');
       }
     }
@@ -526,11 +528,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const calCount = document.getElementById('calCount');
     const calAgenda = document.getElementById('calAgenda');
 
-    function apptChip(a, showDate) {
+    // Dùng cùng người phụ trách với hồ sơ CRM, không lưu tên Sale riêng ở lịch hẹn.
+    function apptSaleName(a) {
+      const customer = CUSTOMERS.find(c => c.phone === a.phone);
+      return customer && customer.saleName ? customer.saleName : 'Chưa phân công';
+    }
+
+    function apptChip(a, showDate, showSale = false) {
       return '<button type="button" class="cal-appt" data-id="' + a.id + '" data-status="' + a.status + '">' +
         '<span class="cal-appt-time">' + (showDate ? fmtDate(a.date).slice(0, 5) + ' · ' : '') + a.time + '</span>' +
         '<span class="cal-appt-name">' + a.cust + '</span>' +
         '<span class="cal-appt-service">' + a.service + '</span>' +
+        (showSale ? '<span class="cal-appt-sale">Sale phụ trách: ' + escHtml(apptSaleName(a)) + '</span>' : '') +
         '</button>';
     }
 
@@ -640,7 +649,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ['Dịch vụ', a.service],
         ['Gói chụp', a.pkg],
         ['Concept', a.concept],
-        ['Ekip phụ trách', a.crew]
+        ['Ekip phụ trách', a.crew],
+        ['Sale phụ trách', escHtml(apptSaleName(a))]
       ];
       apptBody.innerHTML =
         '<h3 id="apptModalTitle">' + a.cust + ' · ' + a.service + '</h3>' +
@@ -663,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
       apptBody.innerHTML =
         '<h3 id="apptModalTitle">Lịch hẹn ' + DOW[d.getDay()] + ', ' + fmtDate(d) + '</h3>' +
         '<p class="appt-modal-sub">' + list.length + ' buổi chụp trong ngày, xếp theo giờ.</p>' +
-        '<div class="cal-day-list appt-day-list">' + list.map(a => apptChip(a, false)).join('') + '</div>';
+        '<div class="cal-day-list appt-day-list">' + list.map(a => apptChip(a, false, true)).join('') + '</div>';
       apptOverlay.classList.add('open');
       apptOverlay.setAttribute('aria-hidden', 'false');
     }

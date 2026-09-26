@@ -11,6 +11,7 @@ Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`
 ## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-09-25)
 
 **Cách người dùng muốn Claude làm việc (áp dụng mặc định, không cần nhắc lại):**
+- Sau mỗi lần sửa xong, tự mở trang web vừa sửa trong trình duyệt cho người dùng (yêu cầu ngày 2026-09-26).
 - Câu hỏi dạng hỏi đáp/tư vấn ("làm sao để...", "sao nó lại...", "có nên...") -> **chỉ trả lời bằng chữ, KHÔNG tự sửa file/chạy thao tác** ("t hỏi m chỉ cần trả lời thôi, đừng làm"). Chỉ làm khi người dùng giao việc rõ ràng.
 - **Không bịa, không đánh giá lạc quan.** Chưa kiểm chứng thì nói rõ là chưa kiểm chứng (từng bị hỏi "m có bịa thông tin không" khi báo model Gemini chạy ổn nhưng thực tế không).
 - Trả lời tiếng Việt, ngắn gọn; thinking bằng tiếng Việt.
