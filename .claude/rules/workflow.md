@@ -12,7 +12,7 @@ Lịch chỉ chính thức khi đã cọc; trước khi cọc, khung giờ chỉ
 
 **Form thông tin (bước 4) bắt buộc:** dịch vụ, gói, concept, ngày, giờ, ngày sinh/dự sinh của bé, số người trong ảnh, lưu ý sức khỏe, ghi chú. Validate đủ trường trước khi sang bước cọc; tự tính tuổi bé tại ngày chụp nếu đủ dữ liệu; cấp mã đơn duy nhất (dùng xuyên suốt, kể cả đặt tên folder ảnh gốc ở khâu chụp).
 
-**Đặt cọc (bước 5):** QR chuyển khoản/ví điện tử chứa đúng số tiền + nội dung theo mã đơn, có đếm ngược giữ khung giờ, mức cọc là tham số cấu hình (không hard-code). Thất bại/hết giờ giữ → nhả khung giờ, lịch về trạng thái chưa cọc, khách thanh toán lại được nếu khung giờ còn trống.
+**Đặt cọc (bước 5):** QR chuyển khoản/ví điện tử chứa đúng số tiền + nội dung theo mã đơn, có đếm ngược giữ khung giờ, mức cọc là tham số cấu hình (không hard-code; đã chốt 50% giá chụp ngày 2026-09-25, xem `tech-defaults.md`). Bản demo: bấm "Xác nhận đặt lịch" chuyển sang bước Đặt cọc hiện mã đơn, giá, tiền cọc, còn lại + 4 phương thức (chuyển khoản VietQR, MoMo, ZaloPay, thẻ qua VNPay), QR/số tài khoản là minh hoạ, chưa nối cổng thanh toán thật. Từ 2026-09-26 không còn nút "Tôi đã chuyển khoản": trang tự chờ và tự nhận diện tiền về, nhưng là mô phỏng (8 giây); cách làm thật: `.claude/docs/tich-hop-thanh-toan.md`. Thất bại/hết giờ giữ → nhả khung giờ, lịch về trạng thái chưa cọc, khách thanh toán lại được nếu khung giờ còn trống.
 
 **Đặt lịch hộ qua hotline/inbox:** Sales/CSKH tạo hồ sơ khách (ghi nguồn) rồi tạo lịch hộ theo đúng bước 1–4 trong Admin; hệ thống gửi link/QR đặt cọc qua Zalo hoặc SMS cho khách. Khách cọc xong thì đơn tiếp tục quy trình như đặt online — cùng một chuẩn dữ liệu, không tách luồng riêng.
 

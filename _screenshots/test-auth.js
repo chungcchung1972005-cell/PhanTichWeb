@@ -137,10 +137,12 @@ const ACCOUNTS = {
     await page.setViewport({ width: 1440, height: 900 });
     await loginAs(page, 'khach-hang');
     await page.goto(BASE + 'index.html#/dat-lich', { waitUntil: 'networkidle0' });
-    await page.click('.bk-service[data-service="Newborn"]');
-    await page.click('#bkNextBtn');
+    await page.$eval('.bk-service[data-service="Newborn"]', el => el.click());
+    // Bước 1 giờ phải chọn thêm concept (xem js/dat-lich.js) mới bấm Tiếp tục được
+    await page.$eval('.bk-concept[data-concept="cuon-u"] .bk-concept-pick', el => el.click());
+    await page.$eval('#bkNextBtn', el => el.click());
     await page.waitForSelector('#bkSlotGrid .bk-slot.free', { timeout: 5000 });
-    await page.click('#bkSlotGrid .bk-slot.free');
+    await page.$eval('#bkSlotGrid .bk-slot.free', el => el.click());
     const nextEnabled = await page.$eval('#bkNextBtn', el => !el.disabled);
     log('luồng đặt lịch vẫn hoạt động sau khi gate', nextEnabled);
     await page.close();

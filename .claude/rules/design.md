@@ -22,7 +22,7 @@
 - **Bo góc & spacing:** bo góc mềm (rounded), khoảng cách khối gọn, tối ưu hiển thị nhiều thông tin trong một màn hình.
 - **Phân hệ khách hàng:** cùng ngôn ngữ màu sắc/typography với Admin nhưng layout thoáng và đơn giản hơn — "Trải nghiệm đơn giản – Đẹp mắt – Dễ sử dụng".
 
-Danh mục dịch vụ chính hiển thị trên trang khách hàng: xem `CLAUDE.md` (5 nhóm cố định, ưu tiên hơn ảnh tham chiếu nếu có xung đột).
+Danh mục dịch vụ chính hiển thị trên trang khách hàng: xem `.claude/CLAUDE.md` (5 nhóm cố định, ưu tiên hơn ảnh tham chiếu nếu có xung đột).
 
 ## Responsive & Animation (bắt buộc)
 

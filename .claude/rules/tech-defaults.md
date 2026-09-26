@@ -45,7 +45,7 @@ Số liệu dashboard/phễu phải giảm dần hợp lý qua từng trạng th
 
 Các thông số sau **chưa được xác định** trong tài liệu nghiệp vụ — coi là cấu hình cần business xác nhận trước khi hard-code hoặc thiết kế UI phụ thuộc vào giá trị cụ thể:
 
-- Mức cọc (số tiền hoặc phần trăm).
+- ~~Mức cọc~~ **ĐÃ CHỐT 2026-09-25: cọc 50% giá chụp** (người dùng quyết định). Vẫn để dạng cấu hình `BOOKING_CONFIG.depositRate` trong `js/dat-lich.js`. Giá chụp theo concept khách chọn (`BOOKING_CONFIG.conceptPrice`, GIÁ MINH HOẠ chờ bảng giá thật); concept "Khác" (ý tưởng riêng) thì cọc tạm tính theo giá khởi điểm dịch vụ (`basePrice`), Sale báo giá chính xác sau khi trao đổi.
 - Thời gian giữ khung giờ trước khi cọc.
 - Thời hạn cho phép dời lịch ("trong hạn" là bao nhiêu ngày/giờ trước buổi chụp).
 - Số lần khách được dời lịch miễn phí.
