@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = document.getElementById('psSubmitBtn');
   const banner = document.getElementById('psSubmittedBanner');
   const generalNoteBox = document.getElementById('psGeneralNote');
+  const selectAllBtn = document.getElementById('psSelectAllBtn');
+  const clearAllBtn = document.getElementById('psClearAllBtn');
+  const bulkUndo = document.getElementById('psBulkUndo');
 
   // ===== Tạo popup hỏi chỉnh sửa thêm =====
   const overlay = document.createElement('div');
@@ -293,6 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Khoá chọn ảnh khi đang chờ tiền, để danh sách gửi đi khớp đúng số tiền đã trả
   function lockSelection(locked) {
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = locked; });
+    if (locked) hideUndo();
+    syncBulkButtons();
   }
 
   function setPayStatus(text, isError) {
@@ -468,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     submitBtn.disabled = n === 0;
     syncLightbox();
+    syncBulkButtons();
   }
 
   // ===== Xử lý click: tim = chọn ảnh, bấm vào ảnh = mở xem ảnh lớn =====
@@ -483,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = grid.querySelector(`.ps-photo[data-id="${id}"]`);
     const heartBtn = card && card.querySelector('.ps-heart');
     if (!heartBtn || heartBtn.disabled) return;
+    hideUndo(); // đã tự chọn/bỏ chọn tiếp thì không Hoàn tác "Bỏ chọn tất cả" được nữa
 
     // Nếu đang bỏ chọn
     if (selected.has(id)) {
@@ -526,6 +533,141 @@ document.addEventListener('DOMContentLoaded', () => {
     heartBtn.setAttribute('aria-pressed', 'true');
     selected.add(id);
     updateSummary();
+  }
+
+  // ===== Chọn / bỏ chọn nhanh (2 nút dưới bộ đếm "Đã chọn") =====
+  // "Chọn tất cả" luôn báo trước số ảnh vượt gói + phí dự kiến (album có thể vài trăm ảnh,
+  // lỡ tay là phát sinh phí lớn). "Bỏ chọn tất cả" không hỏi lại nhưng cho Hoàn tác vài giây.
+  const fmtVnd = (n) => n.toLocaleString('vi-VN') + 'đ';
+  let pendingSelectAll = null;
+  let undoSnapshot = null, undoTimer = null;
+
+  const selectAllModal = document.createElement('div');
+  selectAllModal.className = 'ps-modal-overlay';
+  selectAllModal.id = 'psSelectAllModal';
+  selectAllModal.innerHTML = `
+    <div class="ps-modal ps-modal--confirm" role="dialog" aria-modal="true" aria-labelledby="psSelectAllTitle">
+      <div class="ps-modal-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="3"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/><path d="m6.5 16 3-3 2.5 2.5 1.5-1.5 2 2"/></svg>
+      </div>
+      <h3 class="ps-modal-title" id="psSelectAllTitle"></h3>
+      <p class="ps-modal-text" id="psSelectAllText"></p>
+      <div class="ps-modal-cost"><span>Chi phí chỉnh sửa thêm dự kiến</span><strong id="psSelectAllFee"></strong></div>
+      <p class="ps-modal-hint">Bạn vẫn có thể bỏ bớt ảnh trước khi gửi yêu cầu.</p>
+      <div class="ps-modal-actions">
+        <button type="button" class="ps-modal-btn ps-modal-no" id="psSelectAllCancel">Để mình tự chọn</button>
+        <button type="button" class="ps-modal-btn ps-modal-yes" id="psSelectAllConfirm">Chọn tất cả</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(selectAllModal);
+
+  function isSelectionLocked() {
+    const heart = grid.querySelector('.ps-heart');
+    return !heart || heart.disabled;
+  }
+  // Ảnh đang hiện trong lưới (theo tab đang xem) mà chưa được chọn
+  function visibleUnselectedIds() {
+    return Array.from(grid.querySelectorAll('.ps-photo:not(.hidden-by-filter)'), (c) => c.dataset.id)
+      .filter((id) => !selected.has(id));
+  }
+  function syncBulkButtons() {
+    if (!selectAllBtn || !clearAllBtn) return;
+    const locked = isSelectionLocked();
+    selectAllBtn.disabled = locked || visibleUnselectedIds().length === 0;
+    clearAllBtn.disabled = locked || selected.size === 0;
+  }
+  function setCardSelected(id, on, extra) {
+    const card = grid.querySelector(`.ps-photo[data-id="${id}"]`);
+    if (!card) return;
+    card.classList.toggle('selected', on);
+    card.classList.toggle('ps-extra-photo', on && extra);
+    card.querySelector('.ps-heart').setAttribute('aria-pressed', String(on));
+  }
+  function hideUndo() {
+    undoSnapshot = null;
+    clearTimeout(undoTimer);
+    if (bulkUndo) bulkUndo.innerHTML = '';
+  }
+
+  // Chọn thêm các ảnh: ảnh vượt quá số ảnh trong gói được đánh dấu "chỉnh sửa thêm"
+  function applySelectAll(ids) {
+    hideUndo();
+    ids.forEach((id) => {
+      const extra = selected.size >= PACKAGE_COUNT;
+      if (extra) extraPhotos.add(id);
+      selected.add(id);
+      setCardSelected(id, true, extra);
+    });
+    if (selected.size > PACKAGE_COUNT) extraModeActive = true;
+    updateSummary();
+    applyFilter(currentFilter);
+  }
+  function closeSelectAllModal() {
+    selectAllModal.classList.remove('show');
+    pendingSelectAll = null;
+    if (selectAllBtn && !selectAllBtn.disabled) selectAllBtn.focus();
+  }
+
+  if (selectAllBtn) selectAllBtn.addEventListener('click', () => {
+    const ids = visibleUnselectedIds();
+    if (!ids.length || isSelectionLocked()) return;
+    const total = selected.size + ids.length;
+    const extra = Math.max(0, total - PACKAGE_COUNT);
+    if (extra === 0) { applySelectAll(ids); return; }
+    pendingSelectAll = ids;
+    document.getElementById('psSelectAllTitle').textContent = `Chọn tất cả ${total} ảnh?`;
+    document.getElementById('psSelectAllText').innerHTML =
+      `Gói của bạn có <strong>${PACKAGE_COUNT} ảnh</strong> chỉnh sửa miễn phí. <strong>${extra} ảnh</strong> còn lại sẽ tính phí chỉnh sửa thêm ${fmtVnd(EXTRA_PRICE)}/ảnh.`;
+    document.getElementById('psSelectAllFee').textContent = fmtVnd(extra * EXTRA_PRICE);
+    selectAllModal.classList.add('show');
+    document.getElementById('psSelectAllCancel').focus(); // mặc định là lựa chọn an toàn
+  });
+  document.getElementById('psSelectAllCancel').addEventListener('click', closeSelectAllModal);
+  document.getElementById('psSelectAllConfirm').addEventListener('click', () => {
+    const ids = pendingSelectAll;
+    closeSelectAllModal();
+    if (ids && !isSelectionLocked()) applySelectAll(ids);
+  });
+  selectAllModal.addEventListener('click', (e) => { if (e.target === selectAllModal) closeSelectAllModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && selectAllModal.classList.contains('show')) closeSelectAllModal();
+  });
+
+  if (clearAllBtn) clearAllBtn.addEventListener('click', () => {
+    if (!selected.size || isSelectionLocked()) return;
+    const snapshot = { ids: [...selected], extra: new Set(extraPhotos), mode: extraModeActive };
+    snapshot.ids.forEach((id) => setCardSelected(id, false, false));
+    selected.clear();
+    extraPhotos.clear();
+    extraModeActive = false;
+    updateSummary();
+    applyFilter(currentFilter);
+    showUndo(snapshot);
+  });
+
+  function showUndo(snapshot) {
+    hideUndo();
+    if (!bulkUndo) return;
+    undoSnapshot = snapshot;
+    bulkUndo.innerHTML = `<span>Đã bỏ chọn ${snapshot.ids.length} ảnh.</span><button type="button" class="ps-bulk-undo-btn">Hoàn tác</button>`;
+    const undoBtn = bulkUndo.querySelector('button');
+    undoBtn.addEventListener('click', () => {
+      const s = undoSnapshot;
+      hideUndo();
+      if (!s || isSelectionLocked()) return;
+      s.ids.forEach((id) => {
+        selected.add(id);
+        if (s.extra.has(id)) extraPhotos.add(id);
+        setCardSelected(id, true, s.extra.has(id));
+      });
+      extraModeActive = s.mode;
+      updateSummary();
+      applyFilter(currentFilter);
+      if (clearAllBtn) clearAllBtn.focus();
+    });
+    undoBtn.focus();
+    undoTimer = setTimeout(hideUndo, 8000);
   }
 
   // ===== Lightbox: xem ảnh lớn, thu phóng, lướt, yêu thích + ghi chú chỉnh sửa =====
@@ -786,6 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generalNoteBox) {
       generalNoteBox.hidden = (filter === 'all');
     }
+    syncBulkButtons();
   }
 
   // ===== Tabs =====
@@ -800,6 +943,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===== Hàm thực thi gửi yêu cầu lên hệ thống =====
   function executeSubmit(extraCount, extraFee, paymentStatus) {
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
+    hideUndo();
+    syncBulkButtons();
     submitBtn.disabled = true;
     submitBtn.textContent = 'Đã gửi yêu cầu';
 
