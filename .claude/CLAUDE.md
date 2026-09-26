@@ -56,7 +56,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 - Toàn bộ ảnh/video là **stock miễn phí bản quyền (Pexels License)**, là ảnh MINH HOẠ, không phải khách hàng thật.
 
 **Test/tiện ích (`_screenshots/*.js`, chạy tay, Puppeteer điều khiển Chrome cài sẵn):**
-- Test không cần server (ưu tiên chạy): `test-auth` (17 case), `test-interest-gate` (11), `test-photos-chat` (9), `test-photo-notes` (5), `test-ai-chat` (1), `test-suggestion-nav` (9), `test-service-albums` (130), `test-chat-concepts` (25), `test-content-pages` (59).
+- Test không cần server (ưu tiên chạy): `test-auth` (17 case), `test-interest-gate` (11), `test-photos-chat` (9), `test-photo-notes` (5), `test-ai-chat` (1), `test-suggestion-nav` (9), `test-service-albums` (130), `test-chat-concepts` (25), `test-content-pages` (59), `test-booking-required` (68).
 - Test cần server/AI thật (tốn hạn mức Gemini): `test-ai-faq-menu`, `test-chat-navigate`, `test-prod-chat` (chạy trên bản public).
 - Chụp/kiểm tra: `shoot.js`, `shoot-all.js`, `shoot-viewport.js`, `audit-responsive.js`, `inspect.js`.
 - Tải ảnh/xuất logo: `fetch-album-photos.js` (ảnh album), `fetch-images.js`, `fetch-my-photos.js` (đã dùng xong, giữ tham khảo), `make-logo-png.js` (xuất PNG favicon từ SVG).
@@ -73,7 +73,7 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 
 **Đã có:**
 - Trang chủ: Hero Banner 5 dịch vụ (collage 5 ảnh) → album 3 tầng; các thẻ Album/Concept/Video/Tin tức/Giới thiệu/Chụp tại nhà mở tầng nội dung chi tiết; Tìm kiếm + Thông báo dùng thật; logo chữ "aloha ♥ BABY STUDIO".
-- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 3 bước (mô phỏng real-time); Ảnh của tôi (thả tim, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa).
+- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 4 bước: Dịch vụ & concept (giá riêng từng concept + "Khác" tự lên ý tưởng cùng Sale), Ngày giờ, Xác nhận (validate ô bắt buộc), Đặt cọc 50% (tự nhận diện thanh toán nhưng là MÔ PHỎNG, chưa có cổng/webhook thật, xem `docs/tich-hop-thanh-toan.md`); Ảnh của tôi (thả tim, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa).
 - Admin `crm/admin.html`: Dashboard Sếp (KPI, phễu, biểu đồ), CRM + Lịch hẹn (dữ liệu tĩnh), kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
 - Chatbot: kịch bản quick-reply (tư vấn dịch vụ, concept & ảnh mẫu, quy trình, FAQ, gọi Sale) + khung gõ tự do gọi Gemini qua server Render, AI trả kèm 3 nút gợi ý dẫn trang; AI lỗi thì trả lời cục bộ theo từ khoá (ghi rõ "Trợ lý AI đang bận").
 
@@ -121,7 +121,7 @@ Chưa được chỉ định trong tài liệu nghiệp vụ. **Không tự ch�
 - **Thương hiệu luôn là ALOHA Baby**, không dùng tên/logo "Memory Studio".
 - **Trạng thái (status) dùng chung một bộ tên** giữa Admin và khách hàng; số liệu dashboard/phễu phải giảm dần hợp lý và nhất quán.
 - **Ảnh trẻ em là dữ liệu nhạy cảm** — chỉ xem qua tài khoản chính chủ, chỉ dùng marketing khi có văn bản đồng ý, không public không xác thực. Chi tiết: `rules/workflow.md`.
-- **Không tự đặt thông số nghiệp vụ chưa xác định** (mức cọc, thời gian giữ chỗ, thời hạn dời lịch...) — để dạng cấu hình. Danh sách đầy đủ: `rules/tech-defaults.md`.
+- **Không tự đặt thông số nghiệp vụ chưa xác định** (thời gian giữ chỗ, thời hạn dời lịch...) — để dạng cấu hình. Danh sách đầy đủ: `rules/tech-defaults.md`.
 - **UI/UX theo đúng định hướng đã có** (hồng-trắng-navy, dashboard dạng card, mô tả trong `rules/design.md`) — không tự tạo design system khác. Chi tiết: `rules/design.md`.
 - **Giao diện phải mobile-friendly và mọi section phải có animation khi scroll** — bắt buộc cho cả hai phân hệ, không phải tùy chọn. Chi tiết: `rules/design.md`.
 - **Đặt lịch real-time hiện chỉ là UI + mô phỏng bằng JS phía client** (site tĩnh, chưa có backend CRM/booking) — không được báo cáo hay hiển thị như thể đã đồng bộ real-time thật giữa nhiều người dùng. **Chatbot AI:** quick-reply là kịch bản dựng sẵn; khung nhập tự do gọi **Gemini API thật** qua server riêng (`server/`, deploy trên Render, local chạy `npm start`, cần `GEMINI_API_KEY`). Chỉ được gọi là "AI thật" khi server chạy và key hợp lệ; khi AI lỗi, frontend trả lời cục bộ theo từ khoá và **phải ghi rõ "Trợ lý AI đang bận"**, không giả vờ đó là câu trả lời của AI. Chi tiết: `rules/tech-defaults.md`.

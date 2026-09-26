@@ -400,9 +400,10 @@
         <h1>Đặt lịch chụp ảnh</h1>
         <p>Khung giờ cập nhật theo thời gian thực, không lo trùng lịch với khách khác.</p>
         <div class="bk-stepper" id="bkStepper">
-          <div class="bk-step active" data-step="1"><span>1</span>Dịch vụ</div>
+          <div class="bk-step active" data-step="1"><span>1</span>Dịch vụ & concept</div>
           <div class="bk-step" data-step="2"><span>2</span>Ngày & giờ</div>
           <div class="bk-step" data-step="3"><span>3</span>Xác nhận</div>
+          <div class="bk-step" data-step="4"><span>4</span>Đặt cọc</div>
         </div>
       </div>
     </section>
@@ -437,6 +438,20 @@
                 <span>Newborn</span>
               </button>
             </div>
+
+            <!-- Chọn concept (hiện sau khi chọn dịch vụ). Danh sách concept lấy từ js/albums.js (cùng nguồn trang chủ/album),
+                 giá từng concept ở BOOKING_CONFIG.conceptPrice trong js/dat-lich.js (giá minh hoạ). -->
+            <div class="bk-concept-wrap" id="bkConceptWrap" hidden>
+              <h3 class="bk-sub">Chọn concept <span id="bkConceptSvc"></span></h3>
+              <p class="bk-concept-hint">Mỗi concept một mức giá (giá minh hoạ). Chưa ưng concept nào thì chọn "Khác" để tự lên ý tưởng cùng Sale.</p>
+              <div class="bk-concept-grid" id="bkConceptGrid"></div>
+              <div class="bk-custom" id="bkCustomBox" hidden>
+                <label for="bkCustomIdea">Mô tả ý tưởng concept của bạn <span class="bk-req">*</span></label>
+                <textarea id="bkCustomIdea" placeholder="VD: chụp theo chủ đề phim hoạt hình bé thích, tông xanh pastel, có cả ông bà trong ảnh..."></textarea>
+                <small class="bk-err" id="bkCustomIdeaErr" hidden></small>
+                <p class="bk-custom-note">Sale sẽ liên hệ trao đổi ý tưởng, đạo cụ và báo giá chính xác. Tiền cọc tạm tính theo giá khởi điểm của dịch vụ, phần chênh lệch (nếu có) Sale báo rõ trước khi chốt.</p>
+              </div>
+            </div>
           </div>
 
           <!-- Bước 2: ngày & giờ (real-time) -->
@@ -456,34 +471,75 @@
           <!-- Bước 3: xác nhận -->
           <div class="bk-panel" id="step3" hidden>
             <h2>Thông tin của bé & xác nhận</h2>
-            <form class="bk-form" id="bkForm">
+            <!-- Ô có dấu * là bắt buộc (kiểm tra trong js/dat-lich.js); Lưu ý sức khỏe + Ghi chú để trống được -->
+            <p class="bk-form-hint">Ô có dấu <span class="bk-req">*</span> là bắt buộc.</p>
+            <form class="bk-form" id="bkForm" novalidate>
               <div class="bk-field">
-                <label for="bkChildName">Tên bé</label>
-                <input type="text" id="bkChildName" placeholder="VD: Bé Sữa">
+                <label for="bkChildName">Tên bé <span class="bk-req">*</span></label>
+                <input type="text" id="bkChildName" placeholder="VD: Bé Sữa" required>
+                <small class="bk-err" id="bkChildNameErr" hidden></small>
               </div>
               <div class="bk-field">
-                <label for="bkChildDob">Ngày sinh / dự sinh</label>
-                <input type="date" id="bkChildDob">
+                <label for="bkChildDob">Ngày sinh / dự sinh <span class="bk-req">*</span></label>
+                <input type="date" id="bkChildDob" required>
+                <small class="bk-err" id="bkChildDobErr" hidden></small>
               </div>
               <div class="bk-field">
-                <label for="bkPeople">Số người trong ảnh</label>
-                <input type="number" id="bkPeople" min="1" value="1">
+                <label for="bkPeople">Số người trong ảnh <span class="bk-req">*</span></label>
+                <input type="number" id="bkPeople" min="1" value="1" required>
+                <small class="bk-err" id="bkPeopleErr" hidden></small>
               </div>
               <div class="bk-field">
-                <label for="bkPhone">Số điện thoại</label>
-                <input type="tel" id="bkPhone" placeholder="VD: 0987 654 321">
+                <label for="bkPhone">Số điện thoại <span class="bk-req">*</span></label>
+                <input type="tel" id="bkPhone" placeholder="VD: 0987 654 321" required>
+                <small class="bk-err" id="bkPhoneErr" hidden></small>
               </div>
               <div class="bk-field bk-field-full">
-                <label for="bkHealth">Lưu ý sức khỏe</label>
+                <label for="bkHealth">Lưu ý sức khỏe <span class="bk-opt">(không bắt buộc)</span></label>
                 <textarea id="bkHealth" placeholder="Dị ứng, lưu ý đặc biệt cho bé (nếu có)"></textarea>
               </div>
               <div class="bk-field bk-field-full">
-                <label for="bkNote">Ghi chú thêm</label>
+                <label for="bkNote">Ghi chú thêm <span class="bk-opt">(không bắt buộc)</span></label>
                 <textarea id="bkNote" placeholder="Yêu cầu khác gửi tới studio..."></textarea>
-                <!-- Bước Đặt cọc: xem .claude/rules/workflow.md -->
-                <small>Bước tiếp theo là Đặt cọc để giữ lịch chính thức. Bản demo này chưa tích hợp cổng thanh toán thật.</small>
+                <small>Bấm "Xác nhận đặt lịch" để sang bước Đặt cọc, lịch chỉ chính thức khi đã cọc.</small>
               </div>
             </form>
+          </div>
+
+          <!-- Bước 4: đặt cọc (xem .claude/rules/workflow.md). Tỉ lệ cọc + giá tham khảo: BOOKING_CONFIG trong js/dat-lich.js.
+               DEMO: chưa nối cổng thanh toán thật, QR và số tài khoản là minh hoạ. -->
+          <div class="bk-panel" id="step4" hidden>
+            <h2>Đặt cọc giữ lịch</h2>
+            <div class="bk-deposit-box">
+              <div class="bk-deposit-row"><span>Mã đơn</span><strong id="depOrderCode">—</strong></div>
+              <div class="bk-deposit-row"><span>Giá chụp: <span id="depServiceName">—</span></span><strong id="depPrice">—</strong></div>
+              <div class="bk-deposit-row bk-deposit-main"><span id="depRateLabel">Tiền cọc (50%)</span><strong id="depAmount">—</strong></div>
+              <div class="bk-deposit-row"><span>Còn lại thanh toán sau buổi chụp</span><strong id="depRemain">—</strong></div>
+              <p class="bk-deposit-note" id="depNote"></p>
+            </div>
+
+            <h3 class="bk-sub">Chọn phương thức thanh toán</h3>
+            <div class="bk-pay-grid" id="bkPayGrid" role="radiogroup" aria-label="Phương thức thanh toán">
+              <button type="button" class="bk-pay" data-method="bank" role="radio" aria-checked="false">
+                <strong>Chuyển khoản ngân hàng</strong><span>Quét mã VietQR bằng app ngân hàng</span>
+              </button>
+              <button type="button" class="bk-pay" data-method="momo" role="radio" aria-checked="false">
+                <strong>Ví MoMo</strong><span>Quét mã bằng ứng dụng MoMo</span>
+              </button>
+              <button type="button" class="bk-pay" data-method="zalopay" role="radio" aria-checked="false">
+                <strong>ZaloPay</strong><span>Quét mã bằng ứng dụng ZaloPay</span>
+              </button>
+              <button type="button" class="bk-pay" data-method="card" role="radio" aria-checked="false">
+                <strong>Thẻ ATM / Visa / Mastercard</strong><span>Thanh toán qua cổng VNPay</span>
+              </button>
+            </div>
+
+            <div class="bk-pay-detail" id="bkPayDetail" hidden>
+              <div class="bk-pay-qr" id="bkPayQr"></div>
+              <div class="bk-pay-info" id="bkPayInfo"></div>
+            </div>
+            <!-- Trạng thái chờ tiền về (tự nhận diện thanh toán, xem PaymentStatus trong js/dat-lich.js) -->
+            <div class="bk-pay-status" id="bkPayStatus" role="status" aria-live="polite" hidden></div>
           </div>
 
         </div>
@@ -493,8 +549,11 @@
             <h3>Tóm tắt đặt lịch</h3>
             <dl>
               <div><dt>Dịch vụ</dt><dd id="sumService">—</dd></div>
+              <div><dt>Concept</dt><dd id="sumConcept">—</dd></div>
               <div><dt>Ngày</dt><dd id="sumDate">—</dd></div>
               <div><dt>Khung giờ</dt><dd id="sumTime">—</dd></div>
+              <div><dt>Giá chụp</dt><dd id="sumPrice">—</dd></div>
+              <div class="bk-sum-deposit"><dt>Tiền cọc (<span id="sumRate">50</span>%)</dt><dd id="sumDeposit">—</dd></div>
             </dl>
             <div class="bk-hold-timer" id="bkHoldTimer" hidden>
               Giữ chỗ còn: <strong id="bkCountdown">5:00</strong>
@@ -505,8 +564,8 @@
 
           <div class="bk-success" id="bkSuccess">
             <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-            <h2>Đã ghi nhận thông tin!</h2>
-            <p>Bước tiếp theo là đặt cọc để giữ lịch chính thức. Sales sẽ liên hệ xác nhận trong ít phút.</p>
+            <h2>Đã nhận tiền cọc!</h2>
+            <p id="bkSuccessText">Studio đang đối soát tiền cọc. Lịch ở trạng thái Chờ xác nhận, Sales sẽ gọi xác nhận lại với bạn.</p>
             <a href="#/" class="btn btn-outline">Về trang chủ</a>
           </div>
         </aside>
