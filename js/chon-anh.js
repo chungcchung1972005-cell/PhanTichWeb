@@ -659,6 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeLightbox() {
     lb.classList.remove('show');
     if (document.activeElement === lbNote) lbNote.blur();
+    pointers.clear();
+    dragStart = pinchStart = null;
     document.body.style.overflow = '';
     lbImg.removeAttribute('src');
   }
@@ -679,17 +681,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: false });
   lbImg.addEventListener('dblclick', (e) => setZoom(lbScale > 1 ? 1 : 2.5, e.clientX, e.clientY));
 
-  // Kéo để di chuyển khi đang phóng to, vuốt ngang để lướt ảnh, 2 ngón để thu phóng
+  // Kéo để di chuyển khi đang phóng to, vuốt ngang để lướt ảnh, 2 ngón để thu phóng.
+  // Bấm (không kéo) vào vùng tối quanh ảnh thì đóng lightbox, quay lại lưới ảnh.
   const pointers = new Map();
   let dragStart = null, pinchStart = null;
+  let downOnBackdrop = false; // cú chạm bắt đầu ở vùng tối (không phải ảnh, không phải nút)
+  let gestured = false;       // cú chạm vừa rồi đã kéo/vuốt/chụm 2 ngón nên không tính là "bấm"
   lbStage.addEventListener('pointerdown', (e) => {
     if (e.target.closest('button')) return;
+    if (pointers.size === 0) { downOnBackdrop = e.target === lbStage; gestured = false; }
     lbStage.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale: lbScale };
       dragStart = null;
+      gestured = true;
     } else {
       dragStart = { x: e.clientX, y: e.clientY, lbX, lbY, t: Date.now() };
     }
@@ -697,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lbStage.addEventListener('pointermove', (e) => {
     if (!pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (dragStart && Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) > 6) gestured = true;
     if (pinchStart && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       setZoom(pinchStart.scale * Math.hypot(a.x - b.x, a.y - b.y) / pinchStart.dist, (a.x + b.x) / 2, (a.y + b.y) / 2);
@@ -720,6 +728,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   lbStage.addEventListener('pointerup', endPointer);
   lbStage.addEventListener('pointercancel', endPointer);
+
+  // Trình duyệt vẫn phát "click" sau khi kéo/vuốt, và do setPointerCapture nên click có thể
+  // rơi vào chính lbStage dù bấm trên ảnh -> xét nơi BẮT ĐẦU chạm, không xét e.target.
+  lbStage.addEventListener('click', (e) => {
+    if (e.target.closest('button') || gestured || !downOnBackdrop) return;
+    closeLightbox();
+  });
+  // Thanh trên cùng: bấm chỗ trống (kể cả ô đếm ảnh) cũng đóng, trừ các nút
+  lb.querySelector('.ps-lb-top').addEventListener('click', (e) => {
+    if (!e.target.closest('button, .ps-lb-actions')) closeLightbox();
+  });
 
   document.addEventListener('keydown', (e) => {
     if (!isLightboxOpen()) return;

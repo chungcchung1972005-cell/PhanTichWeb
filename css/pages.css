@@ -874,7 +874,9 @@
   background: rgba(255,255,255,.1); padding: 6px 14px; border-radius: 20px;
   font-variant-numeric: tabular-nums;
 }
-.ps-lb-actions { display: flex; gap: 6px; }
+/* padding + margin âm: nới vùng bấm quanh nhóm nút phóng to (không đổi bố cục), bấm hơi lệch
+   nút không bị tính là bấm vào chỗ trống của thanh trên (sẽ đóng lightbox) */
+.ps-lb-actions { display: flex; gap: 6px; padding: 8px; margin: -8px; }
 .ps-lb-actions button, .ps-lb-close, .ps-lb-prev, .ps-lb-next {
   background: rgba(255,255,255,.14); border: none; color: #fff;
   border-radius: 50%; cursor: pointer;
@@ -891,16 +893,17 @@
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
   touch-action: none;
-  cursor: zoom-in;
+  cursor: default; /* bấm vùng tối quanh ảnh = đóng */
 }
-.ps-lb-stage.is-zoomed { cursor: grab; }
-.ps-lb-stage.is-zoomed:active { cursor: grabbing; }
+.ps-lb-stage.is-zoomed, .ps-lb-stage.is-zoomed .ps-lb-img { cursor: grab; }
+.ps-lb-stage.is-zoomed:active, .ps-lb-stage.is-zoomed:active .ps-lb-img { cursor: grabbing; }
 .ps-lb-img {
   max-width: calc(100% - 32px); max-height: calc(100% - 16px);
   object-fit: contain; border-radius: 6px;
   user-select: none; -webkit-user-drag: none;
   transition: transform .15s ease-out;
   transform-origin: center center;
+  cursor: zoom-in; /* nhấp đúp để phóng to */
 }
 .ps-lb-prev, .ps-lb-next {
   position: absolute; top: 50%; transform: translateY(-50%);
@@ -909,6 +912,8 @@
 .ps-lb-prev { left: 16px; }
 .ps-lb-next { right: 16px; }
 .ps-lb-prev[hidden], .ps-lb-next[hidden] { display: none; }
+/* Nới vùng bấm quanh nút ‹ › 12px: bấm hơi lệch vẫn chuyển ảnh, không bị đóng lightbox */
+.ps-lb-prev::before, .ps-lb-next::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; }
 
 .ps-lb-panel {
   width: min(640px, calc(100% - 32px));
