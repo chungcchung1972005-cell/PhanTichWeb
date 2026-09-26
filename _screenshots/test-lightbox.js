@@ -93,8 +93,7 @@ function check(name, ok, extra) {
 
   await page.click('.ps-tab[data-filter="liked"]');
   await new Promise(r => setTimeout(r, 200));
-  const noteInList = await page.$eval('.ps-photo-note-row[data-id="ph-5"] textarea', el => el.value).catch(() => null);
-  check('Ghi chú hiện ở mục Ghi chú riêng từng ảnh (tab Yêu thích)', noteInList === 'Làm sáng da, xoá vết đỏ trên má', noteInList);
+  check('Không còn khung danh sách ghi chú riêng dưới lưới ảnh', await page.evaluate(() => !document.getElementById('psPhotoNotes') && !document.querySelector('.ps-photo-note-row')));
 
   // Gửi yêu cầu: ghi chú đi kèm tới Thợ ảnh
   await page.click('#psSubmitBtn');

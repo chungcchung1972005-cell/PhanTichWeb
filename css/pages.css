@@ -86,18 +86,6 @@
 }
 .ps-note-box textarea:focus { outline: none; border-color: var(--pink-500); }
 
-.ps-photo-note-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
-.ps-photo-note-row:last-child { margin-bottom: 0; }
-.ps-photo-note-row img {
-  width: 56px; height: 56px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0;
-  box-shadow: var(--shadow-soft);
-}
-.ps-photo-note-row textarea {
-  flex: 1; min-height: 56px; border: 1px solid var(--pink-200); border-radius: var(--radius-sm);
-  padding: 10px 12px; font-family: var(--font-body); font-size: 13.5px; resize: vertical;
-}
-.ps-photo-note-row textarea:focus { outline: none; border-color: var(--pink-500); }
-
 .ps-submit-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
   background: var(--pink-50); border-radius: var(--radius-lg); padding: 20px 24px;
@@ -862,6 +850,9 @@
   transition: opacity .25s ease, visibility .25s ease;
 }
 .ps-lightbox.show { opacity: 1; visibility: visible; }
+/* Đang mờ dần khi đóng (0,25s) thì không nhận thao tác nữa, tránh "nuốt" cú bấm
+   ngay sau khi đóng (con .ps-lb-shell > * đặt pointer-events: auto nên phải ghi đè cả con). */
+.ps-lightbox:not(.show), .ps-lightbox:not(.show) * { pointer-events: none !important; }
 .ps-lb-overlay {
   position: absolute; inset: 0;
   background: rgba(10, 14, 28, .94);

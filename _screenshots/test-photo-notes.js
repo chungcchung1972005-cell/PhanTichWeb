@@ -1,7 +1,8 @@
 const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test: ảnh thật hiển thị trong "Ảnh của tôi" (không còn icon/gradient), và
-// ghi chú riêng cho từng ảnh đã chọn (cạnh ghi chú chung) được lưu đúng vào
-// request gửi sang Thợ ảnh.
+// ghi chú riêng cho từng ảnh (nhập trong lightbox, 2026-09-26 đã bỏ khung danh
+// sách ghi chú riêng dưới lưới ảnh) + ghi chú chung được lưu đúng vào request
+// gửi sang Thợ ảnh.
 const puppeteer = require('puppeteer-core');
 const BASE = ROOT_URL;
 
@@ -37,22 +38,25 @@ const BASE = ROOT_URL;
   });
   log('hiện đủ ảnh thật của album, không còn icon/gradient placeholder', imgCheck.count === imgCheck.expected && imgCheck.allHaveRealSrc && imgCheck.noPlaceholderDiv, JSON.stringify(imgCheck));
 
-  // 2) Chưa chọn ảnh -> chưa thấy khối ghi chú riêng từng ảnh
-  const notesHiddenInitially = await page.$eval('#psPhotoNotes', el => el.hidden);
-  log('chưa chọn ảnh nào -> khối ghi chú riêng đang ẩn', notesHiddenInitially);
+  // 2) Không còn khung danh sách "Ghi chú riêng cho từng ảnh" dưới lưới ảnh
+  const noNotesList = await page.$eval('body', () => !document.getElementById('psPhotoNotes') && !document.querySelector('.ps-photo-note-row'));
+  log('đã bỏ khung danh sách ghi chú riêng từng ảnh', noNotesList);
 
-  // 3) Chọn 2 ảnh -> hiện 2 dòng ghi chú riêng, kèm đúng ảnh
+  // 3) Chọn 2 ảnh, ghi chú riêng từng ảnh ngay trong lightbox
   await page.click('.ps-photo[data-id="ph-1"] .ps-heart');
   await page.click('.ps-photo[data-id="ph-5"] .ps-heart');
-  // Ghi chú riêng từng ảnh + ghi chú chung chỉ hiện ở tab Yêu thích
-  await page.click('.ps-tab[data-filter="liked"]');
-  const rows = await page.$$eval('.ps-photo-note-row', els => els.map(el => el.dataset.id));
-  log('chọn 2 ảnh -> hiện đúng 2 dòng ghi chú riêng tương ứng', rows.length === 2 && rows.includes('ph-1') && rows.includes('ph-5'), rows.join(','));
+  async function noteInLightbox(id, text) {
+    await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);
+    await page.waitForFunction(() => !document.getElementById('psLbNoteWrap').hidden, { timeout: 3000 });
+    await page.type('#psLbNote', text);
+    await page.keyboard.press('Escape');
+  }
+  await noteInLightbox('ph-1', 'Xoa vet do tren ma');
+  await noteInLightbox('ph-5', 'Lam sang vung mat');
+  log('ảnh đã chọn -> lightbox hiện ô ghi chú riêng cho ảnh đó', true);
 
-  // 4) Nhập ghi chú riêng cho từng ảnh + ghi chú chung, gửi yêu cầu
-  const textareas = await page.$$('.ps-photo-note-row textarea');
-  await textareas[0].type('Xoa vet do tren ma');
-  await textareas[1].type('Lam sang vung mat');
+  // 4) Ghi chú chung (hiện ở tab Yêu thích), gửi yêu cầu
+  await page.click('.ps-tab[data-filter="liked"]');
   await page.type('#psNote', 'Giu tong mau am cho ca bo');
   await page.click('#psSubmitBtn');
   await new Promise(r => setTimeout(r, 300));
