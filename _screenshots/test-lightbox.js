@@ -91,6 +91,48 @@ function check(name, ok, extra) {
   await page.keyboard.press('Escape');
   check('Esc đóng lightbox', !(await page.$eval('#psLightbox', el => el.classList.contains('show'))));
 
+  // Bấm vùng tối quanh ảnh thì đóng; bấm vào ảnh, vuốt, bấm hơi lệch nút › thì không đóng
+  const isOpen = () => page.$eval('#psLightbox', el => el.classList.contains('show'));
+  const counterText = () => page.$eval('#psLbCounter', el => el.textContent);
+  const rectOf = (sel) => page.$eval(sel, el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+  async function openAt(id) {
+    await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);
+    await page.waitForFunction(() => { const i = document.getElementById('psLbImg'); return i.complete && i.naturalWidth > 0; }, { timeout: 15000 });
+    await new Promise(r => setTimeout(r, 350));
+  }
+  await openAt('ph-5');
+  const img = await rectOf('#psLbImg');
+  const stageBox = await rectOf('#psLbStage');
+  await page.mouse.click(img.x + img.w / 2, img.y + img.h / 2);
+  await new Promise(r => setTimeout(r, 200));
+  check('Bấm vào ảnh không đóng lightbox', await isOpen());
+
+  const bx = stageBox.x + (img.x - stageBox.x) / 2, by = stageBox.y + stageBox.h * 0.2; // vùng tối bên trái ảnh, tránh nút ‹
+  await page.mouse.move(bx, by);
+  await page.mouse.down();
+  await page.mouse.move(bx - 60, by, { steps: 4 });
+  await page.mouse.move(bx - 120, by, { steps: 4 });
+  await page.mouse.up();
+  await new Promise(r => setTimeout(r, 300));
+  check('Vuốt bắt đầu từ vùng tối thì chuyển ảnh, không đóng', (await isOpen()) && (await counterText()) === `6 / ${total}`, await counterText());
+
+  const nextBtn = await rectOf('#psLbNext');
+  await page.mouse.click(nextBtn.x - 6, nextBtn.y + nextBtn.h / 2);
+  await new Promise(r => setTimeout(r, 300));
+  check('Bấm hơi lệch nút › vẫn chuyển ảnh, không đóng', (await isOpen()) && (await counterText()) === `7 / ${total}`, await counterText());
+
+  await page.mouse.click(bx, by);
+  await new Promise(r => setTimeout(r, 350));
+  check('Bấm vùng tối quanh ảnh thì đóng lightbox', !(await isOpen()));
+  check('Đóng xong bấm được ngay vào lưới ảnh', await page.evaluate(() => { const c = document.querySelector('.ps-photo[data-id="ph-2"]').getBoundingClientRect(); const el = document.elementFromPoint(c.x + c.width / 2, c.y + c.height / 2); return !!el && !!el.closest('.ps-photo'); }));
+
+  await openAt('ph-5');
+  const cnt = await rectOf('#psLbCounter');
+  const actionsBox = await rectOf('.ps-lb-actions');
+  await page.mouse.click((cnt.x + cnt.w + actionsBox.x) / 2, cnt.y + cnt.h / 2);
+  await new Promise(r => setTimeout(r, 350));
+  check('Bấm chỗ trống trên thanh trên cùng cũng đóng', !(await isOpen()));
+
   await page.click('.ps-tab[data-filter="liked"]');
   await new Promise(r => setTimeout(r, 200));
   check('Không còn khung danh sách ghi chú riêng dưới lưới ảnh', await page.evaluate(() => !document.getElementById('psPhotoNotes') && !document.querySelector('.ps-photo-note-row')));
@@ -118,6 +160,11 @@ function check(name, ok, extra) {
   const overflow = await page.evaluate(() => document.getElementById('psLightbox').scrollWidth > window.innerWidth);
   check('Mobile: lightbox không tràn ngang', !overflow);
   await page.screenshot({ path: path.resolve(__dirname, 'test-lightbox-mobile.png') });
+  await page.waitForFunction(() => { const i = document.getElementById('psLbImg'); return i.complete && i.naturalWidth > 0; }, { timeout: 15000 });
+  const mStage = await rectOf('#psLbStage'), mImg = await rectOf('#psLbImg');
+  await page.mouse.click(mStage.x + mStage.w / 2, mStage.y + Math.max(3, (mImg.y - mStage.y) / 2));
+  await new Promise(r => setTimeout(r, 350));
+  check('Mobile: chạm vùng tối phía trên ảnh thì đóng', !(await isOpen()));
 
   check('Không có lỗi JS', errors.length === 0, errors.join(' | '));
   await browser.close();

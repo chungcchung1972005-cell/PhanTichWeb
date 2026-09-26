@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260926">
-<link rel="stylesheet" href="css/pages.css?v=20260926b">
+<link rel="stylesheet" href="css/pages.css?v=20260926f">
 </head>
 <body>
 
@@ -609,6 +609,18 @@
               Vượt <span id="extraCount">0</span> ảnh, phí thêm dự kiến <strong id="extraFee">0đ</strong>
               <div style="margin-top:4px; opacity:.75; font-size:11px;">(Đơn giá: 50.000đ / ảnh chỉnh sửa thêm ngoài gói 10 ảnh)</div>
             </div>
+            <!-- Chọn / bỏ chọn nhanh (js/chon-anh.js): "Chọn tất cả" luôn báo trước phí ảnh vượt gói, "Bỏ chọn tất cả" cho Hoàn tác -->
+            <div class="ps-bulk" role="group" aria-label="Chọn nhanh">
+              <button type="button" class="ps-bulk-btn" id="psSelectAllBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="m8 12.5 2.8 2.8 5.7-5.8"/></svg>
+                <span>Chọn tất cả</span>
+              </button>
+              <button type="button" class="ps-bulk-btn ps-bulk-btn--clear" id="psClearAllBtn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg>
+                <span>Bỏ chọn tất cả</span>
+              </button>
+            </div>
+            <div class="ps-bulk-undo" id="psBulkUndo" aria-live="polite"></div>
           </div>
         </div>
       </div>
@@ -898,7 +910,7 @@
 <script src="js/script.js"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
-<script src="js/chon-anh.js?v=20260926"></script>
+<script src="js/chon-anh.js?v=20260926e"></script>
 </body>
 </html>
 

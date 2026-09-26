@@ -10,8 +10,9 @@
 .page-header > .container > p { color: var(--navy-500); font-size: 14.5px; }
 
 /* ---------------------------------- Ảnh của tôi (chọn ảnh hậu kỳ) ---------------------------------- */
+/* Canh theo đỉnh: ô "Đã chọn" cao lên (dòng phí + nút chọn nhanh) không đẩy tiêu đề xuống thấp */
 .ps-head-row {
-  display: flex; align-items: flex-end; justify-content: space-between;
+  display: flex; align-items: flex-start; justify-content: space-between;
   gap: 24px; flex-wrap: wrap; padding-bottom: 28px;
 }
 .ps-head-row h1 { margin-bottom: 4px; }
@@ -20,7 +21,7 @@
 
 .ps-summary {
   background: var(--white); border: 1px solid var(--pink-100); border-radius: var(--radius-md);
-  padding: 16px 20px; min-width: 260px; box-shadow: var(--shadow-soft);
+  padding: 16px 20px; min-width: 320px; box-shadow: var(--shadow-soft);
 }
 .ps-summary-count { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--navy-500); margin-bottom: 8px; }
 .ps-summary-count strong { font-size: 16px; color: var(--navy-900); font-family: var(--font-heading); }
@@ -29,6 +30,59 @@
 .ps-progress-bar.over { background: linear-gradient(90deg, #f6a723, #e0417a); }
 .ps-extra { margin-top: 10px; font-size: 12.5px; color: var(--pink-700); background: var(--pink-50); border-radius: 8px; padding: 8px 10px; }
 .ps-extra strong { font-family: var(--font-heading); }
+
+/* Ô "Đã chọn" nổi theo khi cuộn (js/chon-anh.js thêm .is-floating + ô giữ chỗ .ps-summary-slot) */
+.ps-summary-slot { flex: 0 0 auto; }
+.ps-summary.is-floating {
+  position: fixed; z-index: 90;
+  box-shadow: 0 12px 32px rgba(44, 42, 61, 0.18);
+  animation: psFloatIn .25s ease;
+}
+@keyframes psFloatIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 768px) {
+  .ps-summary.is-floating { left: 12px; right: 12px; width: auto; min-width: 0; padding: 10px 14px; }
+  .ps-summary.is-floating .ps-extra { margin-top: 8px; padding: 6px 10px; }
+  .ps-summary.is-floating .ps-extra > div { display: none; } /* ẩn dòng "(Đơn giá...)" cho gọn */
+  .ps-summary.is-floating .ps-bulk { margin-top: 10px; padding-top: 10px; }
+  .ps-summary.is-floating .ps-bulk-btn { min-height: 32px; padding: 5px 10px; font-size: 12.5px; }
+}
+@media (max-width: 560px) { .ps-summary-slot { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .ps-summary.is-floating { animation: none; } }
+
+/* Chọn / bỏ chọn nhanh (dưới bộ đếm "Đã chọn") */
+.ps-bulk {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--pink-100);
+}
+.ps-bulk-btn {
+  flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 7px 12px; border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pink-200); background: var(--white); color: var(--pink-600);
+  font-family: var(--font-body); font-size: 13px; font-weight: 700; white-space: nowrap;
+  cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease, transform .1s ease;
+}
+.ps-bulk-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ps-bulk-btn:hover:not(:disabled) { background: var(--pink-50); border-color: var(--pink-400); }
+.ps-bulk-btn:active:not(:disabled) { transform: scale(.97); }
+.ps-bulk-btn--clear { border-color: #e6e4ee; color: var(--navy-700); }
+.ps-bulk-btn--clear:hover:not(:disabled) { background: #f6f5fa; border-color: var(--navy-300); color: var(--navy-900); }
+.ps-bulk-btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Dòng "Đã bỏ chọn X ảnh · Hoàn tác" (tự ẩn sau vài giây) */
+.ps-bulk-undo {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 10px; padding: 8px 8px 8px 12px; border-radius: var(--radius-sm);
+  background: var(--navy-900); color: var(--white); font-size: 12.5px;
+  animation: psUndoIn .25s ease;
+}
+.ps-bulk-undo:empty { display: none; }
+.ps-bulk-undo-btn {
+  flex-shrink: 0; background: rgba(255,255,255,.12); border: none; border-radius: var(--radius-pill);
+  color: var(--pink-200); font-family: var(--font-body); font-size: 12.5px; font-weight: 800;
+  padding: 5px 12px; cursor: pointer; transition: background .2s ease;
+}
+.ps-bulk-undo-btn:hover { background: rgba(255,255,255,.22); }
+@keyframes psUndoIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ps-bulk-undo { animation: none; } }
 
 .ps-empty-state {
   background: var(--white); border: 1.5px dashed var(--pink-200); border-radius: var(--radius-lg);
@@ -570,6 +624,28 @@
   background: #e0e0e0;
 }
 
+/* Hộp xác nhận "Chọn tất cả" (dùng chung khung .ps-modal, thêm phần chi phí dự kiến) */
+.ps-modal--confirm { max-width: 420px; padding: 28px 24px 24px; }
+.ps-modal-icon {
+  width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--pink-50); color: var(--pink-600);
+}
+.ps-modal-icon svg { width: 26px; height: 26px; }
+.ps-modal-title { font-size: 1.15rem; color: var(--navy-900); margin: 0 0 8px; }
+.ps-modal--confirm .ps-modal-text { font-size: .9rem; margin-bottom: 14px; }
+.ps-modal--confirm .ps-modal-text strong { font-size: inherit; color: var(--navy-900); }
+.ps-modal-cost {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: var(--pink-50); border: 1px solid var(--pink-100); border-radius: 12px;
+  padding: 12px 14px; text-align: left;
+}
+.ps-modal-cost span { font-size: .82rem; color: var(--navy-500); }
+.ps-modal-cost strong { font-family: var(--font-heading); font-size: 1.2rem; color: var(--pink-600); white-space: nowrap; }
+.ps-modal-hint { font-size: .8rem; color: var(--navy-500); margin: 10px 0 18px; }
+.ps-modal--confirm .ps-modal-actions { flex-wrap: wrap; }
+.ps-modal--confirm .ps-modal-btn { flex: 1 1 140px; padding: 11px 12px; font-size: .86rem; }
+
 /* ===== Modal QR Chuyển Khoản Cá Nhân Hóa ===== */
 .ps-qr-overlay {
   position: fixed;
@@ -984,7 +1060,9 @@
   background: rgba(255,255,255,.1); padding: 6px 14px; border-radius: 20px;
   font-variant-numeric: tabular-nums;
 }
-.ps-lb-actions { display: flex; gap: 6px; }
+/* padding + margin âm: nới vùng bấm quanh nhóm nút phóng to (không đổi bố cục), bấm hơi lệch
+   nút không bị tính là bấm vào chỗ trống của thanh trên (sẽ đóng lightbox) */
+.ps-lb-actions { display: flex; gap: 6px; padding: 8px; margin: -8px; }
 .ps-lb-actions button, .ps-lb-close, .ps-lb-prev, .ps-lb-next {
   background: rgba(255,255,255,.14); border: none; color: #fff;
   border-radius: 50%; cursor: pointer;
@@ -1001,16 +1079,17 @@
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
   touch-action: none;
-  cursor: zoom-in;
+  cursor: default; /* bấm vùng tối quanh ảnh = đóng */
 }
-.ps-lb-stage.is-zoomed { cursor: grab; }
-.ps-lb-stage.is-zoomed:active { cursor: grabbing; }
+.ps-lb-stage.is-zoomed, .ps-lb-stage.is-zoomed .ps-lb-img { cursor: grab; }
+.ps-lb-stage.is-zoomed:active, .ps-lb-stage.is-zoomed:active .ps-lb-img { cursor: grabbing; }
 .ps-lb-img {
   max-width: calc(100% - 32px); max-height: calc(100% - 16px);
   object-fit: contain; border-radius: 6px;
   user-select: none; -webkit-user-drag: none;
   transition: transform .15s ease-out;
   transform-origin: center center;
+  cursor: zoom-in; /* nhấp đúp để phóng to */
 }
 .ps-lb-prev, .ps-lb-next {
   position: absolute; top: 50%; transform: translateY(-50%);
@@ -1019,6 +1098,8 @@
 .ps-lb-prev { left: 16px; }
 .ps-lb-next { right: 16px; }
 .ps-lb-prev[hidden], .ps-lb-next[hidden] { display: none; }
+/* Nới vùng bấm quanh nút ‹ › 12px: bấm hơi lệch vẫn chuyển ảnh, không bị đóng lightbox */
+.ps-lb-prev::before, .ps-lb-next::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; }
 
 .ps-lb-panel {
   width: min(640px, calc(100% - 32px));
