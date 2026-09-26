@@ -74,7 +74,7 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 
 **Đã có:**
 - Trang chủ: Hero Banner 5 dịch vụ (collage 5 ảnh) → album 3 tầng; các thẻ Album/Concept/Video/Tin tức/Giới thiệu/Chụp tại nhà mở tầng nội dung chi tiết; Tìm kiếm + Thông báo dùng thật; logo chữ "aloha ♥ BABY STUDIO".
-- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 3 bước (mô phỏng real-time); Ảnh của tôi (thả tim, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa).
+- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 3 bước (mô phỏng real-time); Ảnh của tôi (toàn bộ album Google Photos, lightbox xem/thu phóng/lướt, thả tim + ghi chú ngay trong lightbox, gửi yêu cầu chỉnh sửa; chọn quá 10 ảnh thì phải thanh toán qua QR, SePay báo tiền về thì ảnh tự gửi tới Thợ ảnh).
 - Admin `crm/admin.html`: menu dọc bên trái thu gọn/mở rộng được (nhớ trạng thái trong `aloha_admin_ui`); Dashboard Sếp (KPI, phễu, biểu đồ) + mục Doanh thu (KPI sparkline, biểu đồ đường 3 tab, mục tiêu tháng), hiệu ứng chạy lại mỗi lần bấm menu; Lịch hẹn dạng lịch tháng có popup chi tiết, vừa khung màn hình, nổi bật ngày hôm nay; bảng Khách hàng có avatar chữ viết tắt tự sinh từ tên (màu theo SĐT); CRM + Lịch hẹn vẫn là dữ liệu tĩnh; đã bỏ mục Concept khỏi Admin; kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
 - Chatbot: kịch bản quick-reply (tư vấn dịch vụ, concept & ảnh mẫu, quy trình, FAQ, gọi Sale) + khung gõ tự do gọi Gemini qua server Render, AI trả kèm 3 nút gợi ý dẫn trang; AI lỗi thì trả lời cục bộ theo từ khoá (ghi rõ "Trợ lý AI đang bận").
 
@@ -91,8 +91,9 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 1. Người dùng tự đổi `GEMINI_API_KEY` (đã lộ) trên Render + `server/.env`; merge PR vào `main` để Render deploy server mới.
 2. Nối bảng CRM/Lịch hẹn của Sale (`CUSTOMERS`/`APPOINTMENTS` trong `crm/js/admin.js`, đang là mảng tĩnh) vào `aloha_demo_db`.
 3. Thợ ảnh: chưa có tải ảnh gốc / công cụ chỉnh sửa thật. Sale: chưa có ghi chú tư vấn / đổi trạng thái phễu.
-4. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau".
-5. Tab "Đổi lịch hẹn" chưa có màn hình thật.
+4. Người dùng tự cài SePay: liên kết MB `0967237146`, tạo webhook `https://phantichweb.onrender.com/api/sepay-webhook`, đặt `SEPAY_WEBHOOK_KEY` trên Render (từng bước: `server/DEPLOY.md`).
+5. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau".
+6. Tab "Đổi lịch hẹn" chưa có màn hình thật.
 
 ## Mục tiêu & Context quan trọng
 
@@ -118,7 +119,7 @@ Chưa được chỉ định trong tài liệu nghiệp vụ. **Không tự ch�
 
 ## Guardrail bắt buộc
 
-- **[Quyết định quan trọng nhất, do người dùng chốt trực tiếp] Giữ nguyên kiến trúc hệ thống hiện tại và các "database" (localStorage) đã thiết kế** — KHÔNG tái cấu trúc, đổi kiến trúc, đổi lược đồ dữ liệu, gộp/tách lại file nếu không có yêu cầu mới rõ ràng từ người dùng. Kiến trúc hiện tại: site tĩnh HTML/CSS/JS thuần (không framework), `index.html` là SPA nhỏ dùng `location.hash` cho 3 view khách hàng, `crm/admin.html` là 1 file dùng chung cho 3 vai trò nội bộ, `server/` là server Node/Express riêng chỉ phục vụ chatbot AI (tách biệt hoàn toàn khỏi CRM/booking), dữ liệu mô phỏng lưu trong 2 key localStorage `aloha_auth` và `aloha_demo_db`. Danh sách đầy đủ file đã tạo + lược đồ 2 "database" này: xem mục "Kiến trúc hệ thống & danh sách file" ngay bên dưới.
+- **[Quyết định quan trọng nhất, do người dùng chốt trực tiếp] Giữ nguyên kiến trúc hệ thống hiện tại và các "database" (localStorage) đã thiết kế** — KHÔNG tái cấu trúc, đổi kiến trúc, đổi lược đồ dữ liệu, gộp/tách lại file nếu không có yêu cầu mới rõ ràng từ người dùng. Kiến trúc hiện tại: site tĩnh HTML/CSS/JS thuần (không framework), `index.html` là SPA nhỏ dùng `location.hash` cho 3 view khách hàng, `crm/admin.html` là 1 file dùng chung cho 3 vai trò nội bộ, `server/` là server Node/Express riêng phục vụ chatbot AI + nhận webhook thanh toán SePay cho phí ảnh chọn thêm (người dùng chọn 2026-09-25; vẫn tách biệt khỏi CRM/booking, không có database), dữ liệu mô phỏng lưu trong 2 key localStorage `aloha_auth` và `aloha_demo_db`. Danh sách đầy đủ file đã tạo + lược đồ 2 "database" này: xem mục "Kiến trúc hệ thống & danh sách file" ngay bên dưới.
 - **Thương hiệu luôn là ALOHA Baby**, không dùng tên/logo "Memory Studio".
 - **Trạng thái (status) dùng chung một bộ tên** giữa Admin và khách hàng; số liệu dashboard/phễu phải giảm dần hợp lý và nhất quán.
 - **Ảnh trẻ em là dữ liệu nhạy cảm** — chỉ xem qua tài khoản chính chủ, chỉ dùng marketing khi có văn bản đồng ý, không public không xác thực. Chi tiết: `rules/workflow.md`.

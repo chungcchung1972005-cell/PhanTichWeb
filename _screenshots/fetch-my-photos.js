@@ -1,3 +1,4 @@
+const { CHROME_PATH, fromRoot } = require('./test-env');
 // Tải 16 ảnh newborn thật (Pexels License, miễn phí thương mại) làm ảnh "gốc"
 // cho buổi chụp demo của tài khoản khách hàng mẫu trong chon-anh.html.
 const puppeteer = require('puppeteer-core');
@@ -5,7 +6,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const OUT_DIR = 'D:\\PhanTichWeb\\images\\my-photos';
+const OUT_DIR = fromRoot('images', 'my-photos');
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const QUERIES = [
@@ -35,7 +36,7 @@ function download(url, dest) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
 

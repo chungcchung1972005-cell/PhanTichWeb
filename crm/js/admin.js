@@ -890,6 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${!req.isStatic ? '<span class="badge badge-hoan-thanh">Mới</span>' : ''}
           </div>
           <span>${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · ${total || req.photoCount || 0} ảnh</span>
+          ${req.extraCount > 0 ? `<div style="margin:4px 0;"><span class="badge" style="background:#fdf2f8;color:#e91e8c;border:1px solid rgba(233,30,140,.3);font-size:11px;font-weight:700;">+${req.extraCount} ảnh thêm (${(req.extraFee || 0).toLocaleString('vi-VN')}đ)</span></div>` : ''}
           <span class="kanban-card-time">Gửi ${formatRelativeTime(req.createdAt)}</span>
           ${req.photoNotes && req.photoNotes.length ? `<span class="kanban-card-notes-hint">+${req.photoNotes.length} ảnh có ghi chú riêng</span>` : ''}
           ${total > 0 ? `
@@ -960,6 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <h3 id="kanbanModalTitle">${req.orderCode || req.id}</h3>
       <p class="kanban-modal-meta">${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${req.status}</span></p>
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
+      ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${req.paymentStatus || 'Chờ chuyển khoản'}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${req.note}"</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">

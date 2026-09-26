@@ -1,12 +1,13 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test: "Ảnh của tôi" phân biệt đã/chưa chụp, request chỉnh sửa chuyển thật
 // sang Thợ ảnh, chatbot đa nhánh, nút liên hệ Sale, khung chat tự do khi
 // server AI tắt.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];
@@ -64,6 +65,9 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await loginDemo(page);
     await page.click('.ps-photo[data-id="ph-1"] .ps-heart');
     await page.click('.ps-photo[data-id="ph-2"] .ps-heart');
+    // Ô ghi chú chung chỉ hiện ở tab Yêu thích (ẩn ở tab Tất cả): gõ khi ô đang ẩn
+    // thì chữ rơi vào nút tim vừa bấm, dấu cách bấm lại tim và bỏ chọn ảnh.
+    await page.click('.ps-tab[data-filter="liked"]');
     await page.type('#psNote', 'Lam da be sang tu nhien');
     await page.click('#psSubmitBtn');
     await new Promise(r => setTimeout(r, 300));

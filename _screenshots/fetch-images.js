@@ -1,3 +1,4 @@
+const { CHROME_PATH, fromRoot } = require('./test-env');
 // Tải ảnh stock miễn phí bản quyền (Pexels License) đúng theo kết quả tìm kiếm
 // thật (không lấy nhầm khối "Discover/Featured" cố định) - lọc qua a[href*="/photo/"].
 const puppeteer = require('puppeteer-core');
@@ -5,7 +6,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const OUT_DIR = 'D:\\PhanTichWeb\\images';
+const OUT_DIR = fromRoot('images');
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const TARGETS = [
@@ -36,7 +37,7 @@ function download(url, dest) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
 
