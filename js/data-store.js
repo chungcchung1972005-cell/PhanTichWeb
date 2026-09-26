@@ -1,3 +1,4 @@
+
 // ALOHA Baby — kho dữ liệu demo dùng chung giữa Khách hàng và Ban quản trị
 // (window.AlohaData), lưu trong localStorage CỦA CÙNG TRÌNH DUYỆT. Đây vẫn là
 // mô phỏng phía client (site tĩnh, chưa có backend/CRM thật) — dữ liệu KHÔNG
@@ -17,7 +18,7 @@
       serviceLabel: 'Newborn',
       packageLabel: 'Premium',
       packageCount: 10,
-      photoCount: 192 // = số ảnh trong js/google-photos-data.js
+      photoCount: 16
     }
   };
 
@@ -157,4 +158,3 @@
     STATUS_FLOW
   };
 })(window);
-

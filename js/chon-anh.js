@@ -63,8 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const extraFeeEl = document.getElementById('extraFee');
   const submitBtn = document.getElementById('psSubmitBtn');
   const banner = document.getElementById('psSubmittedBanner');
-  const photoNotesSection = document.getElementById('psPhotoNotes');
-  const photoNotesList = document.getElementById('psPhotoNotesList');
   const generalNoteBox = document.getElementById('psGeneralNote');
 
   // ===== Tạo popup hỏi chỉnh sửa thêm =====
@@ -96,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('.ps-heart').setAttribute('aria-pressed', 'true');
       }
       updateSummary();
-      renderPhotoNotes();
       // Chuyển sang tab Yêu thích (trừ khi đang xem ảnh lớn trong lightbox)
       if (!isLightboxOpen()) switchToTab('liked');
       pendingExtraId = null;
@@ -451,34 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentFilter = 'all';
 
-  function renderPhotoNotes() {
-    if (!photoNotesSection || !photoNotesList) return;
-    const ids = Array.from(selected);
-
-    // Ẩn mục ghi chú riêng khi ở tab "Ảnh gốc" hoặc "Tất cả", chỉ hiển thị ở tab "Yêu thích" khi có ảnh chọn
-    if (currentFilter === 'original' || currentFilter === 'all' || ids.length === 0) {
-      photoNotesSection.hidden = true;
-    } else {
-      photoNotesSection.hidden = false;
-    }
-
-    if (ids.length === 0) return;
-
-    photoNotesList.innerHTML = ids.map(id => `
-      <div class="ps-photo-note-row" data-id="${id}">
-        <img src="${photoById[id].src}" alt="Ảnh ${id}">
-        ${extraPhotos.has(id) ? '<span class="ps-extra-tag">Chỉnh sửa thêm +50K</span>' : ''}
-        <textarea placeholder="Ghi chú riêng cho ảnh này (vd: xoá vết đỏ trên má)...">${photoNotes.get(id) || ''}</textarea>
-      </div>
-    `).join('');
-    photoNotesList.querySelectorAll('textarea').forEach(ta => {
-      ta.addEventListener('input', () => {
-        const id = ta.closest('.ps-photo-note-row').dataset.id;
-        photoNotes.set(id, ta.value);
-      });
-    });
-  }
-
   packageEl.textContent = PACKAGE_COUNT;
 
   function updateSummary() {
@@ -532,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       updateSummary();
-      renderPhotoNotes();
       return;
     }
 
@@ -545,7 +513,6 @@ document.addEventListener('DOMContentLoaded', () => {
         card.classList.add('selected', 'ps-extra-photo');
         heartBtn.setAttribute('aria-pressed', 'true');
         updateSummary();
-        renderPhotoNotes();
       } else {
         // Chưa đồng ý -> hiện popup hỏi
         pendingExtraId = id;
@@ -559,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
     heartBtn.setAttribute('aria-pressed', 'true');
     selected.add(id);
     updateSummary();
-    renderPhotoNotes();
   }
 
   // ===== Lightbox: xem ảnh lớn, thu phóng, lướt, yêu thích + ghi chú chỉnh sửa =====
@@ -642,6 +608,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = photoById[id];
     lbScale = 1; lbX = 0; lbY = 0;
     lbImg.dataset.res = 'large';
+    // Luôn nạp đúng ghi chú của ảnh mới (syncLightbox bỏ qua khi ô ghi chú đang được
+    // chọn, nên nếu không nạp ở đây thì chữ của ảnh trước sẽ "dính" sang ảnh này)
+    lbNote.value = photoNotes.get(id) || '';
     lbImg.src = p.large;
     lbImg.alt = `Ảnh số ${photos.indexOf(p) + 1}`;
     applyLbTransform();
@@ -689,9 +658,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeLightbox() {
     lb.classList.remove('show');
+    if (document.activeElement === lbNote) lbNote.blur();
     document.body.style.overflow = '';
     lbImg.removeAttribute('src');
-    renderPhotoNotes(); // đồng bộ ghi chú vừa nhập vào mục "Ghi chú riêng cho từng ảnh"
   }
 
   lb.querySelector('#psLbClose').addEventListener('click', closeLightbox);
@@ -798,9 +767,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generalNoteBox) {
       generalNoteBox.hidden = (filter === 'all');
     }
-
-    // Ẩn mục ghi chú riêng khi ở tab "Ảnh gốc" (và "Tất cả"), chỉ hiện ở tab "Yêu thích"
-    renderPhotoNotes();
   }
 
   // ===== Tabs =====
@@ -857,8 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
         photos: allSelectedPhotos
       });
     }
-
-    if (photoNotesSection) photoNotesSection.hidden = true;
   }
 
   // ===== Submit =====
