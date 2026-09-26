@@ -1,11 +1,12 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test khung chat tự do: server tắt -> báo lỗi thân thiện; server chạy nhưng
 // thiếu API key -> vẫn báo lỗi thân thiện (không vỡ UI, không giả vờ có AI).
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];

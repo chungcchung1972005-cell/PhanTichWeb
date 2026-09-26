@@ -1,8 +1,9 @@
-// ALOHA Baby — server proxy nhỏ cho chatbot tư vấn.
-// Nhiệm vụ DUY NHẤT: nhận tin nhắn từ chatbot trên trình duyệt, gọi Gemini API
-// (Google Gemini) bằng API key giữ ở đây (biến môi trường, không bao giờ gửi về
-// client), rồi trả lời về. Các trang HTML khác của site (đặt lịch, chọn ảnh,
-// CRM...) vẫn là site tĩnh như cũ, KHÔNG đi qua server này.
+// ALOHA Baby — server nhỏ, 2 nhiệm vụ:
+// 1. Proxy chatbot tư vấn: nhận tin nhắn từ trình duyệt, gọi Gemini API bằng
+//    API key giữ ở đây (biến môi trường, không bao giờ gửi về client).
+// 2. Nhận báo tiền về từ SePay (webhook) để trang "Ảnh của tôi" tự gửi yêu cầu
+//    chỉnh sửa ảnh tới Thợ ảnh ngay khi khách chuyển khoản phí ảnh chọn thêm.
+// Các phần khác của site (đặt lịch, CRM...) vẫn là site tĩnh, KHÔNG đi qua đây.
 //
 // Chạy:
 //   copy .env.example -> .env, điền GEMINI_API_KEY thật vào .env
@@ -28,6 +29,9 @@ const API_KEY = process.env.GEMINI_API_KEY;
 // "https://ten-nguoi-dung.github.io"). Để trống thì mở cho mọi origin (chỉ
 // chấp nhận được khi test local) - xem server/DEPLOY.md.
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+// API key tự đặt trong trang cấu hình webhook của SePay (my.sepay.vn), SePay gửi
+// kèm header "Authorization: Apikey <key>" mỗi lần báo tiền về.
+const SEPAY_WEBHOOK_KEY = process.env.SEPAY_WEBHOOK_KEY;
 
 // Dữ liệu dịch vụ/giá THAM KHẢO — khớp với SERVICE_INFO trong js/script.js
 // (kịch bản quick-reply) để chatbot AI không tư vấn lệch với UI kịch bản có
@@ -182,7 +186,49 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY }));
+// ===== Thanh toán tự động qua SePay =====
+// Giao dịch tiền VÀO lưu trong bộ nhớ (không có database): đủ cho luồng
+// "khách chuyển khoản -> trang tự nhận ra trong vài giây", nhưng server khởi
+// động lại (vd Render free ngủ sau 15 phút không có request) là mất lịch sử.
+const MAX_TX = 500;
+const incomingTx = []; // [{ id, content, amount, at }]
+
+// Bỏ dấu cách/ký tự lạ, viết hoa: ngân hàng hay tự chèn tiền tố/đổi định dạng
+// nội dung chuyển khoản, chỉ cần mã thanh toán nằm đâu đó trong nội dung là khớp.
+const normalize = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+app.post('/api/sepay-webhook', (req, res) => {
+  if (!SEPAY_WEBHOOK_KEY) {
+    console.error('SePay webhook bị từ chối: chưa đặt SEPAY_WEBHOOK_KEY.');
+    return res.status(503).json({ success: false, error: 'webhook_not_configured' });
+  }
+  if ((req.get('authorization') || '').trim() !== `Apikey ${SEPAY_WEBHOOK_KEY}`) {
+    return res.status(401).json({ success: false, error: 'unauthorized' });
+  }
+  const tx = req.body || {};
+  if (tx.transferType !== 'in') return res.json({ success: true, ignored: 'not_incoming' });
+  const amount = Number(tx.transferAmount);
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ success: false, error: 'bad_amount' });
+  // SePay có thể gửi lại cùng giao dịch khi thử lại: bỏ qua bản trùng id.
+  if (tx.id != null && incomingTx.some(t => t.id === tx.id)) return res.json({ success: true, duplicate: true });
+
+  incomingTx.push({ id: tx.id, content: normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at: Date.now() });
+  if (incomingTx.length > MAX_TX) incomingTx.splice(0, incomingTx.length - MAX_TX);
+  console.log(`SePay: nhận ${amount}đ, nội dung "${tx.content}"`);
+  return res.json({ success: true });
+});
+
+app.get('/api/payment-status', (req, res) => {
+  const code = normalize(req.query.code);
+  const amount = Number(req.query.amount);
+  if (code.length < 8 || code.length > 40 || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'bad_request' });
+  }
+  const paid = incomingTx.some(t => t.content.includes(code) && t.amount >= amount);
+  return res.json({ paid });
+});
+
+app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY }));
 
 app.listen(PORT, () => {
   console.log(`ALOHA Baby chat server đang chạy tại http://localhost:${PORT}`);

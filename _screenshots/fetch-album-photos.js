@@ -1,3 +1,4 @@
+const { CHROME_PATH, fromRoot } = require('./test-env');
 // Tải ảnh stock miễn phí bản quyền (Pexels License, dùng thương mại được, không bắt
 // buộc ghi nguồn) cho album concept (js/albums.js). Mỗi concept 1 từ khoá tìm kiếm,
 // lấy N ảnh đầu tiên trong KẾT QUẢ TÌM KIẾM thật (lọc a[href*="/photo/"], giống
@@ -11,7 +12,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = 'D:\\PhanTichWeb\\images\\albums';
+const ROOT = fromRoot('images', 'albums');
 const PER_CONCEPT = Number(process.argv[2]) || 8;
 // Độ rộng ảnh tải về (px). Đợt 1 dùng 1200, từ đợt 2 dùng 1000 cho nhẹ repo.
 const WIDTH = Number(process.argv[3]) || 1000;
@@ -75,7 +76,7 @@ function download(url, dest) {
   const usedIds = new Set(Object.values(sources).map((s) => s.pexelsId));
 
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
 

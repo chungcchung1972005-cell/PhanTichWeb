@@ -40,7 +40,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 - `js/data-store.js` — `window.AlohaData`: kho dữ liệu demo dùng chung Khách hàng ↔ Admin.
 - `js/dat-lich.js` — logic đặt lịch, mô phỏng khung giờ real-time.
 - `js/chon-anh.js` — logic chọn ảnh, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa.
-- `css/style.css` — design token (`--pink-*`, `--navy-*`, `--radius-*`, `--shadow-*`, `--caption-shadow`) + style dùng chung (nav, hero, logo chữ `.wordmark`, footer, chatbot...).
+- `css/style.css` — design token (`--pink-*`, `--navy-*`, `--radius-*`, `--shadow-*`, `--caption-shadow`, `--font-heading`/`--font-body`) + style dùng chung (nav, hero, logo chữ `.wordmark`, footer, chatbot...).
 - `css/pages.css` — style các view phụ: Đặt lịch, Ảnh của tôi, Album, Nội dung, lightbox.
 
 **Ban quản trị (nội bộ, 1 file dùng chung 3 vai trò Sale/Thợ ảnh/Sếp):** `crm/admin.html`, `crm/js/admin.js`, `css/admin.css`.
@@ -65,6 +65,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 
 **2 "database" mô phỏng (localStorage, KHÔNG phải backend thật — xem guardrail real-time trong `rules/tech-defaults.md`):**
 - **`aloha_auth`** (`js/auth.js`) — 1 object session hiện tại: `{ role: 'khach-hang'|'tho-anh'|'sale'|'sep', name, phone, loginAt }`.
+- **`aloha_admin_ui`** (`crm/admin.html` + `crm/js/admin.js`, thêm 2026-09-25) — 1 chuỗi `collapsed`/`expanded`: cột menu khu quản trị đang thu gọn hay mở rộng. Chỉ là tuỳ chọn hiển thị, không phải dữ liệu nghiệp vụ, mất đi cũng không ảnh hưởng gì (mặc định là mở rộng).
 - **`aloha_demo_db`** (`js/data-store.js`) — `{ customers: { [phone]: { hasShoot, orderCode, serviceLabel, packageLabel, packageCount, photoCount } }, editRequests: [{ id, phone, customerName, orderCode, serviceLabel, photoCount, note, photoNotes: [{id, note}], photos: [{id, src, note}], doneIds: [photoId], staffSeen, customerSeenDone, status, createdAt }] }`. `status` dùng đúng enum trong `rules/tech-defaults.md` — **chỉ còn 3 giá trị** (Chờ xử lý → Đang thực hiện → Hoàn thành; đã bỏ "Chờ QC" riêng ngày 2026-09-19, xem `docs/changelog.md`). `photos` là danh sách ĐẦY ĐỦ ảnh trong yêu cầu (khác `photoNotes` chỉ chứa ảnh có ghi chú riêng); `doneIds` là các `photo.id` Thợ ảnh đã đánh dấu xử lý xong, đổi qua `AlohaData.togglePhotoDone(requestId, photoId)`; `staffSeen`/`customerSeenDone` (thêm 2026-09-19) là 2 cờ thông báo 1 chiều độc lập nhau, đổi qua `AlohaData.markStaffSeen()`/`markCustomerSeenDone()` — xem `docs/changelog.md`.
 
 ## Trạng thái dự án (cập nhật 2026-09-25)
@@ -73,8 +74,8 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 
 **Đã có:**
 - Trang chủ: Hero Banner 5 dịch vụ (collage 5 ảnh) → album 3 tầng; các thẻ Album/Concept/Video/Tin tức/Giới thiệu/Chụp tại nhà mở tầng nội dung chi tiết; Tìm kiếm + Thông báo dùng thật; logo chữ "aloha ♥ BABY STUDIO".
-- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 4 bước: Dịch vụ & concept (giá riêng từng concept + "Khác" tự lên ý tưởng cùng Sale), Ngày giờ, Xác nhận (validate ô bắt buộc), Đặt cọc 50% (tự nhận diện thanh toán nhưng là MÔ PHỎNG, chưa có cổng/webhook thật, xem `docs/tich-hop-thanh-toan.md`); Ảnh của tôi (thả tim, ghi chú chung + riêng từng ảnh, gửi yêu cầu chỉnh sửa).
-- Admin `crm/admin.html`: Dashboard Sếp (KPI, phễu, biểu đồ), CRM + Lịch hẹn (dữ liệu tĩnh), kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
+- Đăng nhập/phân quyền demo 4 vai trò (`login.html`, `js/auth.js`); Đặt lịch 4 bước: Dịch vụ & concept (giá riêng từng concept + "Khác" tự lên ý tưởng cùng Sale), Ngày giờ, Xác nhận (validate ô bắt buộc), Đặt cọc 50% (tự nhận diện thanh toán nhưng là MÔ PHỎNG, chưa có cổng/webhook thật, xem `docs/tich-hop-thanh-toan.md`); Ảnh của tôi (toàn bộ album Google Photos, lightbox xem/thu phóng/lướt, thả tim + ghi chú ngay trong lightbox, gửi yêu cầu chỉnh sửa; chọn quá 10 ảnh thì phải thanh toán qua QR, SePay báo tiền về thì ảnh tự gửi tới Thợ ảnh).
+- Admin `crm/admin.html`: menu dọc bên trái thu gọn/mở rộng được (nhớ trạng thái trong `aloha_admin_ui`); Dashboard Sếp (KPI, phễu, biểu đồ) + mục Doanh thu (KPI sparkline, biểu đồ đường 3 tab, mục tiêu tháng), hiệu ứng chạy lại mỗi lần bấm menu; Lịch hẹn dạng lịch tháng có popup chi tiết, vừa khung màn hình, nổi bật ngày hôm nay; bảng Khách hàng có avatar chữ viết tắt tự sinh từ tên (màu theo SĐT); CRM + Lịch hẹn vẫn là dữ liệu tĩnh; đã bỏ mục Concept khỏi Admin; kanban chỉnh ảnh 3 bước nối dữ liệu thật (Thợ ảnh tick từng ảnh, Sếp xem chỉ đọc), thông báo 2 chiều Khách ↔ Thợ ảnh (polling 5 giây, chỉ trong cùng trình duyệt).
 - Chatbot: kịch bản quick-reply (tư vấn dịch vụ, concept & ảnh mẫu, quy trình, FAQ, gọi Sale) + khung gõ tự do gọi Gemini qua server Render, AI trả kèm 3 nút gợi ý dẫn trang; AI lỗi thì trả lời cục bộ theo từ khoá (ghi rõ "Trợ lý AI đang bận").
 
 **Quyết định đã chốt (không hỏi lại trừ khi người dùng đổi ý):**
@@ -90,8 +91,9 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 1. Người dùng tự đổi `GEMINI_API_KEY` (đã lộ) trên Render + `server/.env`; merge PR vào `main` để Render deploy server mới.
 2. Nối bảng CRM/Lịch hẹn của Sale (`CUSTOMERS`/`APPOINTMENTS` trong `crm/js/admin.js`, đang là mảng tĩnh) vào `aloha_demo_db`.
 3. Thợ ảnh: chưa có tải ảnh gốc / công cụ chỉnh sửa thật. Sale: chưa có ghi chú tư vấn / đổi trạng thái phễu.
-4. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau".
-5. Tab "Đổi lịch hẹn" chưa có màn hình thật.
+4. Người dùng tự cài SePay: liên kết MB `0967237146`, tạo webhook `https://phantichweb.onrender.com/api/sepay-webhook`, đặt `SEPAY_WEBHOOK_KEY` trên Render (từng bước: `server/DEPLOY.md`).
+5. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau".
+6. Tab "Đổi lịch hẹn" chưa có màn hình thật.
 
 ## Mục tiêu & Context quan trọng
 
@@ -117,7 +119,7 @@ Chưa được chỉ định trong tài liệu nghiệp vụ. **Không tự ch�
 
 ## Guardrail bắt buộc
 
-- **[Quyết định quan trọng nhất, do người dùng chốt trực tiếp] Giữ nguyên kiến trúc hệ thống hiện tại và các "database" (localStorage) đã thiết kế** — KHÔNG tái cấu trúc, đổi kiến trúc, đổi lược đồ dữ liệu, gộp/tách lại file nếu không có yêu cầu mới rõ ràng từ người dùng. Kiến trúc hiện tại: site tĩnh HTML/CSS/JS thuần (không framework), `index.html` là SPA nhỏ dùng `location.hash` cho 3 view khách hàng, `crm/admin.html` là 1 file dùng chung cho 3 vai trò nội bộ, `server/` là server Node/Express riêng chỉ phục vụ chatbot AI (tách biệt hoàn toàn khỏi CRM/booking), dữ liệu mô phỏng lưu trong 2 key localStorage `aloha_auth` và `aloha_demo_db`. Danh sách đầy đủ file đã tạo + lược đồ 2 "database" này: xem mục "Kiến trúc hệ thống & danh sách file" ngay bên dưới.
+- **[Quyết định quan trọng nhất, do người dùng chốt trực tiếp] Giữ nguyên kiến trúc hệ thống hiện tại và các "database" (localStorage) đã thiết kế** — KHÔNG tái cấu trúc, đổi kiến trúc, đổi lược đồ dữ liệu, gộp/tách lại file nếu không có yêu cầu mới rõ ràng từ người dùng. Kiến trúc hiện tại: site tĩnh HTML/CSS/JS thuần (không framework), `index.html` là SPA nhỏ dùng `location.hash` cho 3 view khách hàng, `crm/admin.html` là 1 file dùng chung cho 3 vai trò nội bộ, `server/` là server Node/Express riêng phục vụ chatbot AI + nhận webhook thanh toán SePay cho phí ảnh chọn thêm (người dùng chọn 2026-09-25; vẫn tách biệt khỏi CRM/booking, không có database), dữ liệu mô phỏng lưu trong 2 key localStorage `aloha_auth` và `aloha_demo_db`. Danh sách đầy đủ file đã tạo + lược đồ 2 "database" này: xem mục "Kiến trúc hệ thống & danh sách file" ngay bên dưới.
 - **Thương hiệu luôn là ALOHA Baby**, không dùng tên/logo "Memory Studio".
 - **Trạng thái (status) dùng chung một bộ tên** giữa Admin và khách hàng; số liệu dashboard/phễu phải giảm dần hợp lý và nhất quán.
 - **Ảnh trẻ em là dữ liệu nhạy cảm** — chỉ xem qua tài khoản chính chủ, chỉ dùng marketing khi có văn bản đồng ý, không public không xác thực. Chi tiết: `rules/workflow.md`.

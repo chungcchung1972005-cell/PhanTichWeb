@@ -34,8 +34,12 @@
      tối phủ lên ảnh (từng khiến vài caption gần như biến mất trên ảnh sáng). */
   --caption-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 2px 12px rgba(0, 0, 0, 0.5);
 
-  --font-heading: 'Quicksand', 'Nunito', sans-serif;
-  --font-body: 'Nunito', 'Segoe UI', sans-serif;
+  /* Montserrat cho cả tiêu đề lẫn nội dung (người dùng chốt 2026-09-26, thay
+     Quicksand + Nunito). Phân biệt tiêu đề với nội dung bằng độ đậm và cỡ chữ
+     chứ không bằng hai họ chữ khác nhau. Vẫn giữ 2 token riêng để sau này muốn
+     quay lại dùng 2 họ chữ thì không phải sửa khắp file. */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Montserrat', 'Segoe UI', sans-serif;
 
   --container: 1180px;
 }

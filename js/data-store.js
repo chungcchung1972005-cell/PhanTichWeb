@@ -1,3 +1,4 @@
+
 // ALOHA Baby — kho dữ liệu demo dùng chung giữa Khách hàng và Ban quản trị
 // (window.AlohaData), lưu trong localStorage CỦA CÙNG TRÌNH DUYỆT. Đây vẫn là
 // mô phỏng phía client (site tĩnh, chưa có backend/CRM thật) — dữ liệu KHÔNG
@@ -16,7 +17,7 @@
       orderCode: '#AB240915',
       serviceLabel: 'Newborn',
       packageLabel: 'Premium',
-      packageCount: 15,
+      packageCount: 10,
       photoCount: 16
     }
   };
@@ -40,7 +41,14 @@
   function getCustomerRecord(phone) {
     if (!phone) return null;
     const db = readDb();
-    if (db.customers[phone]) return db.customers[phone];
+    if (db.customers[phone]) {
+      // Đảm bảo số ảnh trong gói cập nhật chuẩn 10 ảnh theo quy định mới
+      if (db.customers[phone].packageCount === 15) {
+        db.customers[phone].packageCount = 10;
+        writeDb(db);
+      }
+      return db.customers[phone];
+    }
     if (SEED_CUSTOMERS[phone]) {
       db.customers[phone] = Object.assign({}, SEED_CUSTOMERS[phone]);
       writeDb(db);
@@ -58,6 +66,9 @@
       orderCode: data.orderCode || '',
       serviceLabel: data.serviceLabel || '',
       photoCount: data.photoCount || 0,
+      extraCount: data.extraCount || 0,
+      extraFee: data.extraFee || 0,
+      paymentStatus: data.paymentStatus || (data.extraCount > 0 ? 'Chờ kiểm tra chuyển khoản' : 'Trong gói (0đ)'),
       note: data.note || '',
       photoNotes: Array.isArray(data.photoNotes) ? data.photoNotes : [],
       // Danh sách ĐẦY ĐỦ ảnh trong yêu cầu (không chỉ ảnh có ghi chú riêng như

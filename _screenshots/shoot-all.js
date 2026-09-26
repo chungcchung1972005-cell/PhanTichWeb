@@ -1,3 +1,4 @@
+const { CHROME_PATH, ROOT_URL, shot } = require('./test-env');
 const puppeteer = require('puppeteer-core');
 
 // Đặt lịch/Ảnh của tôi đã gộp vào index.html (route hash, xem js/router.js)
@@ -5,7 +6,7 @@ const puppeteer = require('puppeteer-core');
 // đăng nhập); dùng test-auth.js/test-photos-chat.js để chụp các view đó sau
 // khi đăng nhập đúng vai trò.
 const pages = [
-  { name: 'index', url: 'file:///D:/PhanTichWeb/index.html' },
+  { name: 'index', url: ROOT_URL + 'index.html' },
 ];
 const sizes = [
   { name: 'desktop', width: 1440, height: 900 },
@@ -14,7 +15,7 @@ const sizes = [
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
@@ -42,7 +43,7 @@ const sizes = [
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
       }));
-      await page.screenshot({ path: `D:\\PhanTichWeb\\_screenshots\\${p.name}-${s.name}.png`, fullPage: true });
+      await page.screenshot({ path: shot(`${p.name}-${s.name}.png`), fullPage: true });
       const overflowFlag = overflow.scrollWidth > overflow.clientWidth ? '*** OVERFLOW ***' : 'OK';
       console.log(`${p.name} / ${s.name}: ${overflowFlag} (scrollWidth=${overflow.scrollWidth}, clientWidth=${overflow.clientWidth})`);
       if (consoleErrors.length) {

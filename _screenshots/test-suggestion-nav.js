@@ -1,8 +1,9 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test menu gợi ý dưới câu trả lời AI: gợi ý có action -> bấm là chuyển thẳng trang
 // (KHÔNG gọi AI thêm), gợi ý action "none" -> gửi như khách gõ. Dùng phản hồi giả
 // cho /api/chat nên không cần server và không tốn hạn mức Gemini.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' };
@@ -19,7 +20,7 @@ const REPLIES = [
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];
