@@ -12,7 +12,7 @@ Sau mỗi thay đổi giao diện lớn (thêm/sửa một trang, một componen
    - Ảnh lazy-load (`loading="lazy"`) và ô masonry chỉ hiện khi tải xong: cuộn qua hết trang (hoặc đặt `loading="eager"`) và chờ trước khi chụp, nếu không sẽ thấy ô trống hồng tưởng là lỗi. Kiểm tra `img.complete && img.naturalWidth > 0` để chắc.
 3. **Kiểm tra mobile-friendly:** chụp ở tối thiểu 3 kích thước (mobile ~390px, tablet ~834px, desktop ~1440px). Đừng chỉ nhìn ảnh — đọc thêm `document.documentElement.scrollWidth` so với `clientWidth` (script `shoot.js` đã tự log điều này); nếu `scrollWidth > clientWidth` là có tràn ngang thật, kể cả khi ảnh chụp trông có vẻ ổn.
 4. **Kiểm tra animation khi scroll:** dùng `shoot.js` (đã tự cuộn chậm qua toàn trang trước khi chụp) để đảm bảo animation `.reveal`/`.stagger-item` có đủ thời gian hoàn tất — chụp ngay lập tức sau khi load sẽ cho thấy nhiều phần tử ở trạng thái "chưa hiện" (mờ/lệch vị trí) và dễ bị hiểu nhầm là lỗi.
-5. Nếu phát hiện lệch thiết kế gốc, hoặc thiếu responsive/animation → sửa trước khi báo hoàn thành. Không báo "xong" khi bước kiểm tra ở trên còn phát hiện vấn đề (nguyên tắc trong `CLAUDE.md`).
+5. Nếu phát hiện lệch thiết kế gốc, hoặc thiếu responsive/animation → sửa trước khi báo hoàn thành. Không báo "xong" khi bước kiểm tra ở trên còn phát hiện vấn đề (nguyên tắc trong `.claude/CLAUDE.md`).
 
 ## Công cụ chụp ảnh (đã thiết lập, dùng lại thay vì viết mới)
 
