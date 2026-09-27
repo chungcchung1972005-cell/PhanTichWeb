@@ -8,7 +8,7 @@ Website studio chụp ảnh **ALOHA Baby** (35 Lê Văn Thiêm, Thanh Xuân, Hà
 
 Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`ahola-baby.vercel.app`), server chatbot trên Render. HTML/CSS/JS thuần, chưa có backend CRM/booking thật. Quy trình Git và cách làm việc với người dùng: xem "Ghi nhớ nhanh" ngay bên dưới.
 
-## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-09-25)
+## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-09-27)
 
 **Cách người dùng muốn Claude làm việc (áp dụng mặc định, không cần nhắc lại):**
 - Sau mỗi lần sửa xong, tự mở trang web vừa sửa trong trình duyệt cho người dùng (yêu cầu ngày 2026-09-26).
@@ -24,7 +24,14 @@ Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`
 
 **Quyết định đã chốt gần đây:** logo là wordmark chữ "aloha ♥ BABY STUDIO" (không dùng biểu tượng máy ảnh); khối đầu trang = "DỊCH VỤ" theo bố cục alohababy.vn (tiêu đề giữa, dòng 5 dịch vụ, lưới ảnh 3 cột ô Bầu cao gấp đôi; đổi 2026-09-27), không có danh sách đánh số 01-05; album 3 tầng Dịch vụ -> Concept -> Ảnh (`js/albums.js`); tầng nội dung chi tiết `#/noi-dung/<slug>` (`js/content.js`); nội dung chi tiết xem công khai; **từ 2026-09-27: 5 ảnh + dòng dịch vụ đầu trang dẫn tới `#/chat-sale/<dịch vụ>` (bắt đăng nhập) -> vào thẳng chat trực tiếp với Sale; Đặt lịch, trang album, chatbot AI TẠM TẮT bằng cờ `js/features.js`** (chỉ ẩn, code giữ nguyên để bật lại).
 
-**Việc người dùng tự làm, nhắc lại nếu chưa xong:** đổi `GEMINI_API_KEY` (đã lộ trong ảnh chụp dashboard Render gửi vào chat) trên Render + `server/.env`; push lên `main` (qua PR) để Render deploy server mới (prompt 35 concept, action `album-*`, chuỗi model dự phòng, **chat thật Khách ↔ Sale**); **tạo MongoDB Atlas + đặt `MONGODB_URI`, `AUTH_SECRET`, `ALLOWED_ORIGINS` trên Render** (từng bước: `server/DEPLOY.md` mục "Chat thật"), chưa đặt thì chat trên bản public lưu tạm trong bộ nhớ, Render ngủ là mất tin.
+**Phiên 2026-09-27 đã làm (chi tiết từng lượt: `docs/changelog.md`):**
+1. Khối đầu trang chủ theo bố cục "DỊCH VỤ" của alohababy.vn (tiêu đề giữa + dòng 5 dịch vụ + lưới ảnh 3 cột).
+2. Tạm tắt Đặt lịch, trang album, chatbot AI bằng cờ `js/features.js` (chỉ ẩn; bật lại = đổi `false` -> `true`).
+3. Bấm 5 ảnh / dòng dịch vụ -> đăng nhập -> màn chat riêng `#/chat-sale/<dịch vụ>` với Sale: ảnh phóng to chuyển trang, 3 tin chào tự động đến lần lượt có "Tư vấn viên đang trả lời…", 4 nút gợi ý; đã bỏ cột trái theo yêu cầu.
+4. **Chat THẬT qua server** (`server/sale-chat.js` + MongoDB Atlas, người dùng chọn): đăng nhập/đăng ký kiểm tra ở server, Admin có mục "Tin nhắn" (Sale trả lời, Sếp chỉ xem), thêm 2 tài khoản Sale demo `0900000005`/`0900000006` (`sale123`).
+5. Git: commit `188ca83` + merge `origin/main` (13 commit của nhóm: "Chat với thợ chỉnh ảnh", tab "Ảnh đã chỉnh"...) thành `55aed00`, xử lý conflict giữ cả 2 phía, đã **push lên `origin/Chungcook`**. **CHƯA mở Pull Request vào `main`.**
+
+**Việc người dùng tự làm, nhắc lại nếu chưa xong:** mở PR `Chungcook` -> `main` trên GitHub, nhờ 1 người trong nhóm duyệt rồi merge (Claude tạo PR giúp được nếu người dùng yêu cầu, KHÔNG tự merge); đổi `GEMINI_API_KEY` (đã lộ trong ảnh chụp dashboard Render gửi vào chat) trên Render + `server/.env`; push lên `main` (qua PR) để Render deploy server mới (prompt 35 concept, action `album-*`, chuỗi model dự phòng, **chat thật Khách ↔ Sale**); **tạo MongoDB Atlas + đặt `MONGODB_URI`, `AUTH_SECRET`, `ALLOWED_ORIGINS` trên Render** (từng bước: `server/DEPLOY.md` mục "Chat thật"), chưa đặt thì chat trên bản public lưu tạm trong bộ nhớ, Render ngủ là mất tin.
 
 ## Kiến trúc hệ thống & danh sách file (giữ nguyên — xem guardrail đầu tiên bên dưới)
 
@@ -73,7 +80,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 
 **Dữ liệu chat trên server** (MongoDB, `server/sale-chat.js`): `chats` = `{ _id: phone, phone, customerName, topic, messages: [{ id, from: 'khach'|'sale', senderName, text, at }] (giữ 500 tin gần nhất), staffUnread, customerUnread, updatedAt, createdAt }`; `users` (khách tự đăng ký) = `{ _id: phone, phone, name, salt, hash, role: 'khach-hang', createdAt }`. **Chưa nối vào hồ sơ CRM** (`customers`/bảng Khách hàng tĩnh), cùng việc mở #2.
 
-## Trạng thái dự án (cập nhật 2026-09-25)
+## Trạng thái dự án (cập nhật 2026-09-27)
 
 Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định: **`docs/changelog.md`** (đọc khi cần bối cảnh; ghi mục mới lên đầu file đó sau mỗi thay đổi đáng kể).
 
@@ -95,13 +102,15 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 - Logo chỉ dùng chữ (wordmark); khối Dịch vụ đầu trang theo bố cục alohababy.vn, không có danh sách đánh số 01-05.
 
 **Việc còn mở (theo thứ tự ưu tiên gợi ý):**
-1. Người dùng tự đổi `GEMINI_API_KEY` (đã lộ) trên Render + `server/.env`; merge PR vào `main` để Render deploy server mới.
+1. Người dùng tự làm (xem "Ghi nhớ nhanh"): mở + merge PR `Chungcook` -> `main` để Vercel/Render deploy bản mới; tạo MongoDB Atlas + đặt `MONGODB_URI`, `AUTH_SECRET`, `ALLOWED_ORIGINS` trên Render; đổi `GEMINI_API_KEY` (đã lộ). Sau khi deploy: mở `https://phantichweb.onrender.com/api/health` kiểm tra `"chatStore":"mongodb"`, rồi thử chat khách (điện thoại) <-> Sale (máy tính) trên bản public - việc này Claude CHƯA kiểm chứng được (chỉ test local + MongoDB giả lập).
 2. Nối bảng CRM/Lịch hẹn của Sale (`CUSTOMERS`/`APPOINTMENTS` trong `crm/js/admin.js`, đang là mảng tĩnh) vào `aloha_demo_db`.
 3. Thợ ảnh: chưa có tải ảnh gốc / công cụ chỉnh sửa thật. Sale: chưa có ghi chú tư vấn / đổi trạng thái phễu.
 4. Người dùng tự cài SePay: liên kết MB `0967237146`, tạo webhook `https://phantichweb.onrender.com/api/sepay-webhook`, đặt `SEPAY_WEBHOOK_KEY` trên Render (từng bước: `server/DEPLOY.md`).
-5. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau".
+5. **Chưa chốt, không tự làm:** đồng bộ real-time đa thiết bị cho ĐẶT LỊCH/CRM cần backend thật (server + database + WebSocket/SSE), người dùng nói "để sau". (Riêng chat Sale đã có server + MongoDB từ 2026-09-27, cập nhật bằng polling 2.5-3 giây.)
 6. Tab "Đổi lịch hẹn" chưa có màn hình thật.
 7. Chat Sale: đã chạy thật qua server nhưng **bản public cần người dùng cài Atlas + biến môi trường Render** (việc tự làm ở đầu file). Chưa làm: tin nhắn ghi vào hồ sơ CRM, tài khoản nhân viên thật thay tài khoản demo (mật khẩu demo đang công khai trên trang đăng nhập), thông báo đẩy khi Sale không mở trang.
+8. Sau khi tạm tắt Đặt lịch/album/chatbot (2026-09-27), vẫn còn chữ nhắc tới chúng, **cần hỏi người dùng có sửa không**: chip "Đặt lịch & cọc online" ở phần giới thiệu, section "Đặt lịch chỉ trong 4 bước", meta description, các bài trong `js/content.js` ("đặt lịch online", "trợ lý trong khung chat"), thẻ "Xem trọn album" trong trang nội dung còn mũi tên nhưng không bấm được.
+9. `test-qr-flow` cần server thanh toán chạy ở cổng 3001 (không thuộc nhóm test không cần server); `test-sale-chat` tự bật server nên phải tắt `npm start` trước khi chạy.
 
 ## Mục tiêu & Context quan trọng
 
