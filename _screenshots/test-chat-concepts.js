@@ -18,7 +18,7 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
   { label: 'Đặt cọc thế nào?', action: 'none' }] };
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });

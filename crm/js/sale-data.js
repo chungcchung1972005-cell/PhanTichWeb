@@ -96,6 +96,21 @@
       service: 'Gia đình', source: 'Hotline', stage: null, since: '2 tuần trước', status: { text: 'Không mua', tone: 'muted' },
       lost: { reason: 'Chê giá' }, tags: [], note: 'Thấy gói gia đình cao hơn dự tính, hẹn báo lại khi có khuyến mại.' },
 
+    // Khách của các lịch chụp trước đây chưa gắn hồ sơ (thêm 2026-09-27 để bấm lịch nào
+    // cũng xem được liên hệ và tin nhắn).
+    { id: 'na-bo', owner: 'ngoc-anh', name: 'Chị Quỳnh Anh', short: 'Quỳnh Anh', title: 'chị', phone: '0967120451', area: 'Thanh Xuân, Hà Nội',
+      service: 'Newborn', source: 'Messenger', stage: 'da-chot', since: 'Chụp 25/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: '' },
+    { id: 'na-mai', owner: 'ngoc-anh', name: 'Chị Tuyết Mai', short: 'Mai', title: 'chị', phone: '0985330712', area: 'Đống Đa, Hà Nội',
+      service: 'Gia đình', source: 'Hotline', stage: 'da-chot', since: 'Chụp 25/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: 'Gia đình 4 người.' },
+    { id: 'na-huy', owner: 'ngoc-anh', name: 'Anh Quốc Huy', short: 'Huy', title: 'anh', phone: '0912840236', area: 'Hà Đông, Hà Nội',
+      service: 'Gia đình', source: 'Form đặt lịch', stage: 'da-chot', since: 'Chụp 26/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: '' },
+    { id: 'na-soc', owner: 'ngoc-anh', name: 'Chị Diễm', short: 'Diễm', title: 'chị', phone: '0936215870', area: 'Cầu Giấy, Hà Nội',
+      service: 'Newborn', source: 'Khách giới thiệu', stage: 'da-chot', since: 'Chụp 26/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: '' },
+    { id: 'na-lua', owner: 'ngoc-anh', name: 'Chị Lụa', short: 'Lụa', title: 'chị', phone: '0978603194', area: 'Long Biên, Hà Nội',
+      service: 'Bầu', source: 'Chat trực tiếp', stage: 'da-chot', since: 'Chụp 26/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: '' },
+    { id: 'na-xoai', owner: 'ngoc-anh', name: 'Chị Phương Anh', short: 'Phương Anh', title: 'chị', phone: '0903478125', area: 'Nam Từ Liêm, Hà Nội',
+      service: 'Bé lớn', source: 'Messenger', stage: 'da-chot', since: 'Chụp 26/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: '' },
+
     // ---------- Minh Thư ----------
     { id: 'mt-dieulinh', owner: 'minh-thu', name: 'Chị Diệu Linh', short: 'Diệu Linh', title: 'chị', phone: '0913555666', area: 'Đống Đa, Hà Nội',
       service: 'Newborn', source: 'Trợ lý web', stage: 'moi', since: '40 phút trước', status: { text: 'Chưa liên hệ', tone: 'red' },
@@ -109,6 +124,10 @@
       service: 'Sinh nhật', source: 'Chat trực tiếp', stage: 'cho-coc', since: 'Giữ 30/09 15:00', status: { text: 'Hết hạn giữ 13:00', tone: 'amber' }, tags: [], note: '' },
     { id: 'mt-haianh', owner: 'minh-thu', name: 'Chị Hải Anh', short: 'Hải Anh', title: 'chị', phone: '0981999000', area: 'Ba Đình, Hà Nội',
       service: 'Newborn', source: 'Khách giới thiệu', stage: 'da-chot', since: 'Chụp 21/09', status: { text: 'Đã chụp', tone: 'green' }, tags: [], note: '' },
+    { id: 'mt-com', owner: 'minh-thu', name: 'Chị Bích Hạnh', short: 'Bích Hạnh', title: 'chị', phone: '0949215367', area: 'Hai Bà Trưng, Hà Nội',
+      service: 'Sinh nhật', source: 'Form đặt lịch', stage: 'da-chot', since: 'Chụp 23/09', status: { text: 'Đã chụp', tone: 'green' }, tags: [], note: '' },
+    { id: 'mt-mit', owner: 'minh-thu', name: 'Chị Thanh Nga', short: 'Nga', title: 'chị', phone: '0931576420', area: 'Cầu Giấy, Hà Nội',
+      service: 'Tại nhà', source: 'Hotline', stage: 'da-chot', since: 'Chụp 25/09', status: { text: 'Đã cọc', tone: 'green' }, tags: [], note: 'Chụp tại nhà, nhà có mèo.' },
 
     // ---------- Thu Hà ----------
     { id: 'th-phuongthao', owner: 'thu-ha', name: 'Chị Phương Thảo', short: 'Thảo', title: 'chị', phone: '0917333222', area: 'Tây Hồ, Hà Nội',
@@ -172,18 +191,18 @@
     { id: 'ap2',  date: '2026-09-21', start: '14:00', dur: 1.5, service: 'Bầu', label: 'C. Hoa', room: 'P3', photographer: 'Hùng', status: 'da-coc', owner: 'thu-ha', customerId: 'th-hoa' },
     { id: 'ap3',  date: '2026-09-22', start: '10:00', dur: 2, service: 'Gia đình', label: 'A. Sơn', room: 'P2', photographer: 'Long', status: 'da-coc', owner: 'quoc-bao', customerId: 'qb-son' },
     { id: 'ap4',  date: '2026-09-23', start: '08:30', dur: 1.5, service: 'Newborn', label: 'Bé Tôm', room: 'P1', photographer: 'Tuấn', status: 'da-coc', owner: 'hai-yen', customerId: 'hy-uyen' },
-    { id: 'ap5',  date: '2026-09-23', start: '15:00', dur: 1.5, service: 'Sinh nhật', label: 'Bé Cốm', room: 'P2', photographer: 'Hùng', status: 'chua-thu-du', owner: 'minh-thu' },
+    { id: 'ap5',  date: '2026-09-23', start: '15:00', dur: 1.5, service: 'Sinh nhật', label: 'Bé Cốm', room: 'P2', photographer: 'Hùng', status: 'chua-thu-du', owner: 'minh-thu', customerId: 'mt-com' },
     { id: 'ap6',  date: '2026-09-24', start: '09:00', dur: 1.5, service: 'Bé lớn', label: 'Bé Khoai', room: 'P2', photographer: 'Minh', status: 'da-coc', owner: 'thu-ha', customerId: 'th-khanhvy' },
     { id: 'ap7',  date: '2026-09-24', start: '16:00', dur: 1.5, service: 'Tại nhà', label: 'Tây Hồ', room: 'Ngoài', photographer: 'Long', status: 'da-coc', owner: 'quoc-bao', customerId: 'qb-tam' },
-    { id: 'ap8',  date: '2026-09-25', start: '08:30', dur: 1.5, service: 'Newborn', label: 'Bé Bơ', room: 'P1', photographer: 'Tuấn', status: 'checkin', owner: 'ngoc-anh' },
-    { id: 'ap9',  date: '2026-09-25', start: '10:00', dur: 2, service: 'Gia đình', label: 'Nhà chị Mai', room: 'P2', photographer: 'Hùng', status: 'da-coc', owner: 'ngoc-anh' },
+    { id: 'ap8',  date: '2026-09-25', start: '08:30', dur: 1.5, service: 'Newborn', label: 'Bé Bơ', room: 'P1', photographer: 'Tuấn', status: 'checkin', owner: 'ngoc-anh', customerId: 'na-bo' },
+    { id: 'ap9',  date: '2026-09-25', start: '10:00', dur: 2, service: 'Gia đình', label: 'Nhà chị Mai', room: 'P2', photographer: 'Hùng', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-mai' },
     { id: 'ap10', date: '2026-09-25', start: '13:30', dur: 1.5, service: 'Bầu', label: 'Chị Ngân', room: 'P3', photographer: 'Tuấn', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-ngan' },
     { id: 'ap11', date: '2026-09-25', start: '15:00', dur: 1.5, service: 'Sinh nhật', label: 'Bé Gạo', room: 'P2', photographer: 'Hùng', status: 'chua-thu-du', owner: 'hai-yen', customerId: 'hy-hongvan' },
-    { id: 'ap12', date: '2026-09-25', start: '17:00', dur: 1, service: 'Tại nhà', label: 'Bé Mít', room: 'Ngoài', place: 'Cầu Giấy', photographer: 'Long', status: 'da-coc', owner: 'minh-thu' },
-    { id: 'ap13', date: '2026-09-26', start: '09:00', dur: 2, service: 'Gia đình', label: 'A. Huy', room: 'P2', photographer: 'Hùng', status: 'da-coc', owner: 'ngoc-anh' },
-    { id: 'ap14', date: '2026-09-26', start: '09:00', dur: 1.5, service: 'Newborn', label: 'Bé Sóc', room: 'P1', photographer: 'Tuấn', status: 'da-coc', owner: 'ngoc-anh' },
-    { id: 'ap15', date: '2026-09-26', start: '10:30', dur: 1.5, service: 'Bầu', label: 'C. Lụa', room: 'P3', photographer: 'Minh', status: 'da-coc', owner: 'ngoc-anh' },
-    { id: 'ap16', date: '2026-09-26', start: '14:00', dur: 1.5, service: 'Bé lớn', label: 'Bé Xoài', room: 'P3', photographer: 'Minh', status: 'da-coc', owner: 'ngoc-anh' },
+    { id: 'ap12', date: '2026-09-25', start: '17:00', dur: 1, service: 'Tại nhà', label: 'Bé Mít', room: 'Ngoài', place: 'Cầu Giấy', photographer: 'Long', status: 'da-coc', owner: 'minh-thu', customerId: 'mt-mit' },
+    { id: 'ap13', date: '2026-09-26', start: '09:00', dur: 2, service: 'Gia đình', label: 'A. Huy', room: 'P2', photographer: 'Hùng', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-huy' },
+    { id: 'ap14', date: '2026-09-26', start: '09:00', dur: 1.5, service: 'Newborn', label: 'Bé Sóc', room: 'P1', photographer: 'Tuấn', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-soc' },
+    { id: 'ap15', date: '2026-09-26', start: '10:30', dur: 1.5, service: 'Bầu', label: 'C. Lụa', room: 'P3', photographer: 'Minh', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-lua' },
+    { id: 'ap16', date: '2026-09-26', start: '14:00', dur: 1.5, service: 'Bé lớn', label: 'Bé Xoài', room: 'P3', photographer: 'Minh', status: 'da-coc', owner: 'ngoc-anh', customerId: 'na-xoai' },
     { id: 'ap17', date: '2026-09-27', start: '09:00', dur: 1.5, service: 'Newborn', label: 'Chị Hà Linh', room: 'P1', photographer: 'Tuấn', status: 'giu-cho', owner: 'ngoc-anh', customerId: 'na-linh', depositCode: 'AB240931' },
     { id: 'ap18', date: '2026-09-27', start: '15:00', dur: 2, service: 'Gia đình', label: 'C. Hạnh', room: 'P2', photographer: 'Hùng', status: 'da-coc', owner: 'quoc-bao', customerId: 'qb-hanh' },
     { id: 'ap19', date: '2026-09-28', start: '09:00', dur: 1.5, service: 'Sinh nhật', label: 'A. Minh Đức', room: 'P2', photographer: 'Hùng', status: 'giu-cho', owner: 'ngoc-anh', customerId: 'na-duc', depositCode: 'AB240933' },
@@ -249,7 +268,7 @@
     { code: 'AB240879', owner: 'ngoc-anh', customer: 'Anh Khoa', service: 'Gia đình', pkg: 'Tiêu chuẩn', date: '05/09', status: 'da-giao', progress: 'In album · nhận 28/09', due: 0, action: 'Báo lịch nhận' },
 
     { code: 'AB240905', owner: 'minh-thu', customer: 'Chị Hải Anh', customerId: 'mt-haianh', service: 'Newborn', pkg: 'Premium', date: '21/09', status: 'cho-chon', progress: '2/15 ảnh · 2 ngày chưa chọn', picked: 2, total: 15, idleDays: 2, due: 0 },
-    { code: 'AB240906', owner: 'minh-thu', customer: 'Bé Cốm', service: 'Sinh nhật', pkg: 'Tiêu chuẩn', date: '23/09', status: 'dang-chinh', progress: '3/12 ảnh xong · hạn 30/09', due: 900000 },
+    { code: 'AB240906', owner: 'minh-thu', customer: 'Bé Cốm', customerId: 'mt-com', service: 'Sinh nhật', pkg: 'Tiêu chuẩn', date: '23/09', status: 'dang-chinh', progress: '3/12 ảnh xong · hạn 30/09', due: 900000 },
     { code: 'AB240883', owner: 'minh-thu', customer: 'Chị Mỹ Duyên', service: 'Bầu', pkg: 'Tiêu chuẩn', date: '06/09', status: 'da-giao', progress: 'Khách đã tải về', due: 0, action: 'Xin đánh giá' },
 
     { code: 'AB240904', owner: 'thu-ha', customer: 'Chị Hoa', customerId: 'th-hoa', service: 'Bầu', pkg: 'Tiêu chuẩn', date: '21/09', status: 'dang-chinh', progress: '5/10 ảnh xong · hạn 28/09', due: 600000 },

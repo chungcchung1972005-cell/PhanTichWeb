@@ -13,7 +13,7 @@ function check(name, ok, extra) {
 
 (async () => {
   const root = path.resolve(__dirname, '..').replace(/\\/g, '/');
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']

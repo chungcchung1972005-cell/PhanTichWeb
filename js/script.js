@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // concept #/album/..., trang concept #/noi-dung/...), xem công khai không cần đăng
   // nhập (người dùng chốt 2026-09-25, thay cho gate "bấm là phải đăng nhập" trước đây).
   // Đặt lịch / Ảnh của tôi vẫn gate trong js/router.js như cũ.
+  // Từ 2026-09-27: 5 ảnh + dòng 5 dịch vụ đầu trang dẫn tới #/chat-sale/<dịch vụ>
+  // (bắt đăng nhập, js/router.js + js/sale-chat.js); trang album và nút Đặt lịch
+  // tạm tắt bằng cờ trong js/features.js.
 
   // Mobile menu toggle
   const navToggle = document.getElementById('navToggle');
@@ -87,11 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const SEARCH_INDEX = [
-    { label: 'Chụp ảnh Bé lớn', sub: 'Dịch vụ', section: 'dich-vu', match: 'Bé lớn' },
-    { label: 'Chụp ảnh Sinh nhật', sub: 'Dịch vụ', section: 'dich-vu', match: 'Sinh nhật' },
-    { label: 'Chụp ảnh Bầu', sub: 'Dịch vụ', section: 'dich-vu', match: 'Bầu' },
-    { label: 'Chụp ảnh Gia đình', sub: 'Dịch vụ', section: 'dich-vu', match: 'Gia đình' },
-    { label: 'Chụp ảnh Newborn', sub: 'Dịch vụ', section: 'dich-vu', match: 'Newborn' },
+    { label: 'Chụp ảnh Bé lớn', sub: 'Dịch vụ', section: 'dich-vu', match: 'Chụp ảnh bé lớn' },
+    { label: 'Chụp ảnh Sinh nhật', sub: 'Dịch vụ', section: 'dich-vu', match: 'Chụp ảnh sinh nhật' },
+    { label: 'Chụp ảnh Bầu', sub: 'Dịch vụ', section: 'dich-vu', match: 'Chụp ảnh bầu' },
+    { label: 'Chụp ảnh Gia đình', sub: 'Dịch vụ', section: 'dich-vu', match: 'Chụp ảnh gia đình' },
+    { label: 'Chụp ảnh Newborn', sub: 'Dịch vụ', section: 'dich-vu', match: 'Chụp ảnh Newborn' },
     { label: 'Concept Biển', sub: 'Thư viện concept', route: 'noi-dung/concept-bien' },
     { label: 'Concept Noel', sub: 'Thư viện concept', route: 'noi-dung/concept-noel' },
     { label: 'Concept Sinh nhật', sub: 'Thư viện concept', route: 'noi-dung/concept-sinh-nhat' },
@@ -106,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { label: 'Vì sao chọn ALOHA Baby?', sub: 'Tin tức', route: 'noi-dung/vi-sao-chon-aloha' },
     { label: 'Tin tức, kinh nghiệm chụp ảnh', sub: 'Trang chủ', section: 'tin-tuc' },
     { label: 'Đặt lịch chụp ảnh', sub: 'Đặt lịch', route: 'dat-lich' },
+    { label: 'Nhắn tin cho Sale', sub: 'Tư vấn trực tiếp', route: 'chat-sale' },
     { label: 'Ảnh của tôi', sub: 'Sau khi chụp', route: 'chon-anh' },
   ];
 
@@ -142,7 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const box = document.getElementById('searchResults');
     if (!box) return;
     const q = stripDiacritics(query.trim());
-    const items = q ? SEARCH_INDEX.filter((it) => stripDiacritics(it.label).includes(q)) : SEARCH_INDEX;
+    // Mục trỏ tới tính năng đang tạm tắt (js/features.js) thì không đưa vào kết quả.
+    const F = window.ALOHA_FEATURES || {};
+    const enabled = SEARCH_INDEX.filter((it) => !(it.route === 'dat-lich' && F.booking === false) && !(it.route === 'chat-sale' && F.aiChat !== false));
+    const items = q ? enabled.filter((it) => stripDiacritics(it.label).includes(q)) : enabled;
     if (items.length === 0) {
       box.innerHTML = '<div class="nav-util-empty">Không tìm thấy kết quả phù hợp. Thử từ khóa khác hoặc gọi hotline 0938.125.222.</div>';
       return;
@@ -299,7 +306,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const isLocalHost = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const CHAT_API_URL = isLocalHost ? 'http://localhost:3001/api/chat' : PROD_CHAT_API_URL;
 
-  if (chatToggle && chatPanel && chatClose && chatBody) {
+  // Chatbot đang tạm tắt (js/features.js, 2026-09-27) -> không gắn gì vào khung
+  // chat; js/sale-chat.js dùng lại đúng khung này để khách chat với Sale.
+  const aiChatOn = !window.ALOHA_FEATURES || window.ALOHA_FEATURES.aiChat !== false;
+  if (aiChatOn && chatToggle && chatPanel && chatClose && chatBody) {
     // Giá/concept/số ảnh gói dưới đây là MINH HỌA (số ảnh gói dùng lại đúng
     // giá trị mặc định trong js/chon-anh.js để nhất quán trong toàn demo) —
     // mức cọc, chính sách chi tiết là cấu hình chưa xác định (xem

@@ -456,11 +456,7 @@
   let lastFocus = null;
 
   // ---------------------------------------------------------------- Hero trang chủ
-  // Số concept/số ảnh và ảnh bìa từng ô dịch vụ đọc từ dữ liệu, không viết cứng.
-  document.querySelectorAll('[data-album-count]').forEach((el) => {
-    const s = serviceBySlug(el.dataset.albumCount);
-    if (s) el.textContent = conceptsOf(s).length + ' concept';
-  });
+  // Ảnh bìa từng ô dịch vụ đọc từ dữ liệu album, không viết cứng.
   document.querySelectorAll('.svc-tile[data-album] img').forEach((img) => {
     const s = serviceBySlug(img.closest('.svc-tile').dataset.album);
     const cover = s && coverOf(s);

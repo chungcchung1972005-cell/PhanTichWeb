@@ -385,63 +385,65 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .chip-1 { top: 10%; left: -8%; }
 .chip-2 { bottom: 8%; right: -6%; }
 
-/* ---------------------------------- Hero Banner: 5 dịch vụ (đầu trang chủ) ----------------------------------
-   Cột chữ (tiêu đề + mô tả + nút đặt lịch) + collage 5 ảnh bất đối xứng, ô Newborn lớn nhất.
-   Mỗi ô ảnh mở album #/album/<dịch vụ> (js/albums.js). Chiếm gần trọn màn hình đầu tiên:
-   100svh trừ topbar (36px) + nav (76px). Thanh "chụp tại nhà" nằm ngay dưới, ngoài màn đầu. */
+/* ---------------------------------- Khối Dịch vụ: 5 dịch vụ (đầu trang chủ) ----------------------------------
+   Bố cục theo khối "DỊCH VỤ" của alohababy.vn (2026-09-27, người dùng yêu cầu), giữ bảng màu hồng/navy:
+   tiêu đề giữa có gạch 2 bên -> dòng 5 dịch vụ -> lưới ảnh 3 cột: cột trái Bé lớn + Sinh nhật,
+   cột giữa Bầu cao gấp đôi, cột phải Gia đình + Newborn. Nhãn chữ in hoa nằm giữa ảnh, nền tối trong.
+   Mỗi ô ảnh / mỗi dòng dịch vụ mở album #/album/<dịch vụ> (js/albums.js). */
 .svc-hero {
   position: relative;
-  padding: 24px 0 72px;
+  padding: 44px 0 72px;
   background:
     radial-gradient(circle at 92% 6%, var(--pink-100) 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, var(--pink-50) 0%, transparent 50%);
   overflow: hidden;
 }
-.svc-hero-inner {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: grid;
-  grid-template-columns: minmax(320px, 0.78fr) 1.22fr;
-  gap: 56px;
-  align-items: center;
-  min-height: calc(100vh - 112px - 24px);
-  min-height: calc(100svh - 112px - 24px);
+.svc-title {
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy-900);
+  margin-bottom: 16px;
 }
-.svc-hero-text h1 {
-  font-size: clamp(38px, 4.2vw, 60px);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  margin-bottom: 18px;
+.svc-title::before, .svc-title::after {
+  content: ""; width: 52px; height: 2px; border-radius: 2px; background: var(--pink-600);
 }
-.svc-hero-text h1 em { font-style: normal; color: var(--pink-600); }
-.svc-hero-lead { font-size: 17px; color: var(--navy-500); max-width: 420px; margin-bottom: 28px; }
-
-.svc-hero-cta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.svc-hero-hint { font-size: 13px; color: var(--navy-500); }
+.svc-list {
+  list-style: none; margin: 0 auto 32px; padding: 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 30px;
+}
+.svc-list a {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--navy-700);
+  transition: color 0.2s ease;
+}
+.svc-list a::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pink-600); flex-shrink: 0;
+}
+.svc-list a:hover, .svc-list a:focus-visible { color: var(--pink-600); }
 
 .svc-collage {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
-  grid-template-rows: repeat(3, 1fr);
-  gap: 14px;
-  height: clamp(500px, calc(100svh - 112px - 72px), 760px);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, clamp(220px, 24vw, 330px));
+  gap: 20px;
 }
-.svc-tile--newborn   { grid-column: 1; grid-row: 1 / span 3; }
+.svc-tile--be-lon    { grid-column: 1; grid-row: 1; }
+.svc-tile--sinh-nhat { grid-column: 1; grid-row: 2; }
 .svc-tile--bau       { grid-column: 2; grid-row: 1 / span 2; }
-.svc-tile--sinh-nhat { grid-column: 3; grid-row: 1; }
-.svc-tile--be-lon    { grid-column: 2; grid-row: 3; }
-.svc-tile--gia-dinh  { grid-column: 3; grid-row: 2 / span 2; }
+.svc-tile--gia-dinh  { grid-column: 3; grid-row: 1; }
+.svc-tile--newborn   { grid-column: 3; grid-row: 2; }
 
 .svc-tile {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: linear-gradient(160deg, var(--pink-200), var(--pink-400));
   box-shadow: var(--shadow-card);
-  display: flex; align-items: flex-end;
-  padding: 18px;
   color: var(--white);
 }
 .svc-tile img {
@@ -451,68 +453,53 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 }
 .svc-tile::after {
   content: ""; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(0deg, rgba(20,15,25,0.55), rgba(20,15,25,0.08) 45%, transparent 70%);
+  background: rgba(20, 15, 25, 0.12);
+  transition: background 0.3s ease;
 }
-.svc-tile-body { display: flex; flex-direction: column; gap: 2px; }
-.svc-tile-name { font-family: var(--font-heading); font-size: 19px; font-weight: 700; line-height: 1.2; text-shadow: var(--caption-shadow); }
-.svc-tile-meta { font-size: 12.5px; font-weight: 600; text-shadow: var(--caption-shadow); }
-.svc-tile--newborn { padding: 28px; }
-.svc-tile--newborn .svc-tile-name { font-size: clamp(26px, 2.6vw, 36px); }
-.svc-tile--newborn .svc-tile-meta { font-size: 14px; }
-.svc-tile-arrow {
-  position: absolute; top: 14px; right: 14px;
-  width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(255,255,255,0.92); color: var(--pink-600);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transform: scale(0.8);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+/* Nhãn in hoa giữa ảnh (khoảng 70% chiều cao ô), giống khối Dịch vụ bản gốc. */
+.svc-tile-name {
+  position: absolute; left: 50%; top: 72%;
+  transform: translate(-50%, -50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  background: rgba(44, 42, 61, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  font-family: var(--font-heading);
+  font-size: 17px; font-weight: 600; line-height: 1.3;
+  text-transform: uppercase; text-align: center;
+  white-space: nowrap;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
-.svc-tile-arrow svg { width: 18px; height: 18px; }
+.svc-tile--bau .svc-tile-name { top: 84%; }
 .svc-tile:hover img, .svc-tile:focus-visible img { transform: scale(1.06); }
-.svc-tile:hover .svc-tile-arrow, .svc-tile:focus-visible .svc-tile-arrow { opacity: 1; transform: scale(1); }
-/* Màn cảm ứng không có hover -> luôn hiện nút mũi tên để khách biết ô bấm được. */
-@media (hover: none) {
-  .svc-tile-arrow { opacity: 1; transform: none; }
+.svc-tile:hover::after, .svc-tile:focus-visible::after { background: rgba(20, 15, 25, 0.22); }
+.svc-tile:hover .svc-tile-name, .svc-tile:focus-visible .svc-tile-name { background: var(--pink-600); border-color: var(--pink-600); }
+
+/* Tablet: vẫn 3 cột, ô thấp và chữ nhỏ lại. */
+@media (max-width: 900px) {
+  .svc-collage { grid-template-rows: repeat(2, 220px); gap: 14px; }
+  .svc-tile-name { font-size: 13.5px; padding: 8px 12px; white-space: normal; }
 }
 
-/* Tablet: chữ lên trên, collage 6 cột bên dưới (Newborn 4x2, Bầu 2x2, 3 ô còn lại 1 hàng). */
-@media (max-width: 1120px) {
-  .svc-hero { padding: 24px 0 56px; }
-  .svc-hero-inner { grid-template-columns: 1fr; gap: 28px; min-height: 0; }
-  .svc-hero-text { text-align: center; }
-  .svc-hero-text h1 { font-size: clamp(32px, 6vw, 48px); }
-  .svc-hero-lead { margin-left: auto; margin-right: auto; margin-bottom: 22px; }
-  .svc-hero-cta { justify-content: center; }
-  .svc-collage { height: auto; grid-template-columns: repeat(6, 1fr); grid-template-rows: none; grid-auto-rows: 180px; }
-  .svc-tile--newborn   { grid-column: 1 / span 4; grid-row: 1 / span 2; }
-  .svc-tile--bau       { grid-column: 5 / span 2; grid-row: 1 / span 2; }
-  .svc-tile--sinh-nhat { grid-column: 1 / span 2; grid-row: 3; }
-  .svc-tile--be-lon    { grid-column: 3 / span 2; grid-row: 3; }
-  .svc-tile--gia-dinh  { grid-column: 5 / span 2; grid-row: 3; }
-}
-
-/* Điện thoại: 2 cột, Newborn chiếm trọn hàng đầu ngay dưới tiêu đề. */
-@media (max-width: 560px) {
-  .svc-hero { padding: 20px 0 48px; }
-  .svc-hero-inner { padding: 0 16px; gap: 22px; }
-  .svc-hero-text h1 { font-size: 32px; margin-bottom: 12px; }
-  .svc-hero-lead { font-size: 15.5px; }
-  .svc-hero-cta { flex-direction: column; gap: 10px; }
-  .svc-collage { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; gap: 10px; }
-  .svc-tile--newborn   { grid-column: 1 / -1; grid-row: 1 / span 2; }
-  .svc-tile--bau       { grid-column: 1; grid-row: 3 / span 2; }
-  .svc-tile--sinh-nhat { grid-column: 2; grid-row: 3; }
-  .svc-tile--be-lon    { grid-column: 2; grid-row: 4; }
-  .svc-tile--gia-dinh  { grid-column: 1 / -1; grid-row: 5; }
-  .svc-tile { padding: 14px; border-radius: var(--radius-md); }
-  .svc-tile--newborn { padding: 20px; }
-  .svc-tile-name { font-size: 17px; }
-  .svc-tile-arrow { width: 32px; height: 32px; top: 10px; right: 10px; }
-  .svc-tile-arrow svg { width: 15px; height: 15px; }
+/* Điện thoại: 2 cột - trái Bé lớn + Sinh nhật, phải Bầu cao gấp đôi, hàng dưới Gia đình + Newborn. */
+@media (max-width: 640px) {
+  .svc-hero { padding: 32px 0 48px; }
+  .svc-title { font-size: 24px; gap: 12px; margin-bottom: 12px; }
+  .svc-title::before, .svc-title::after { width: 32px; }
+  .svc-list { gap: 6px 18px; margin-bottom: 22px; }
+  .svc-list a { font-size: 12.5px; gap: 7px; }
+  .svc-collage { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 170px); gap: 10px; }
+  .svc-tile--be-lon    { grid-column: 1; grid-row: 1; }
+  .svc-tile--sinh-nhat { grid-column: 1; grid-row: 2; }
+  .svc-tile--bau       { grid-column: 2; grid-row: 1 / span 2; }
+  .svc-tile--gia-dinh  { grid-column: 1; grid-row: 3; }
+  .svc-tile--newborn   { grid-column: 2; grid-row: 3; }
+  .svc-tile { border-radius: var(--radius-sm); }
+  .svc-tile-name { font-size: 11.5px; padding: 6px 8px; max-width: calc(100% - 16px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .svc-tile img, .svc-tile-arrow { transition: none; }
+  .svc-tile img, .svc-tile::after, .svc-tile-name, .svc-list a { transition: none; }
 }
 
 /* Dịch vụ chụp ảnh tại nhà — tích hợp gọn vào cuối khối Dịch vụ thay vì section riêng */
@@ -1137,3 +1124,12 @@ body.hide-floating-book .floating-book { display: none; }
 @media (max-width: 360px) {
   #notifBtn { display: none; }
 }
+
+/* ---------------------------------- Tính năng đang tạm tắt (js/features.js, 2026-09-27) ----------------------------------
+   Chỉ ẩn, code giữ nguyên; bật lại bằng cờ trong js/features.js là các khối dưới đây tự hết tác dụng.
+   - Đặt lịch: mọi nút/link tới #/dat-lich (kể cả nút nổi, nút trong nav khi đã đăng nhập) + khối CTA cuối trang
+     (khối đó chỉ có mỗi nút đặt lịch). Trang #/dat-lich bị js/router.js đưa về Trang chủ.
+   - Album: thẻ ảnh còn trỏ #/album/... vẫn hiện ảnh bìa nhưng không bấm được (trang album đã tắt trong router). */
+.feat-no-booking a[href="#/dat-lich"],
+.feat-no-booking .cta-final { display: none !important; }
+.feat-no-album a[href^="#/album"] { pointer-events: none; cursor: default; }

@@ -52,7 +52,7 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  page.on('console', m => { if (m.type() === 'error' && !/fonts\.g/.test(m.text())) errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !/fonts\.g|ERR_CONNECTION_REFUSED/.test(m.text())) errors.push(m.text()); });
   await page.setViewport({ width: 1440, height: 900 });
 
   for (const s of SALES) {
@@ -130,7 +130,7 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   await showEv(page, 'ap21');
   await page.click('[data-id="ap21"]');
   t = await page.$eval('#swModalBody', el => el.innerText);
-  log('Lịch sale khác: xem được phụ trách, liên hệ, cọc và tin nhắn', t.includes('Minh Thư') && t.includes('Liên hệ') && t.includes('AB240927') && t.includes('Tin nhắn gần đây'), t.slice(0, 300));
+  log('Lịch sale khác: xem được phụ trách, liên hệ, cọc và tin nhắn', t.includes('Minh Thư') && t.includes('Liên hệ') && t.includes('AB240927') && /tin nhắn gần đây/i.test(t), t.replace(/\n+/g, ' | ').slice(0, 600));
   const noReply = await page.evaluate(() => !document.querySelector('#swModalBody [data-act="msg"], #swModalBody [data-act="call"]') && !!document.querySelector('#swModalBody .sw-readonly'));
   log('Lịch sale khác: không có nút Nhắn/Gọi, có ghi chú chỉ xem', noReply);
   await page.screenshot({ path: OUT('sale-calendar-other-modal.png') });
@@ -336,11 +336,56 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
     await go(p2, '#dat-coc');
     t2 = await p2.evaluate(() => document.getElementById('swView').innerText);
     log('Quá 1 tiếng chưa cọc: yêu cầu chuyển "Hết giờ giữ", đã nhả khung giờ', t2.includes('Hết giờ giữ') && t2.includes('đã nhả khung giờ'), t2.slice(0, 300));
-    await p2.click('[data-act="select-deposit"][data-code="AB240933"]');
-    t2 = await p2.$eval('.dp-profile', el => el.innerText);
+    await p2.click('[data-act="view-dep-profile"][data-code="AB240933"]');
+    t2 = await p2.$eval('#swModalBody .dp-profile', el => el.innerText);
     log('Quá 1 tiếng: nhật ký ghi tự nhả khung giờ', t2.includes('tự nhả khung giờ'), t2.slice(0, 300));
     await p2.close();
   }
+
+  // ---- Chỉnh sửa theo yêu cầu 2026-09-27 (6 mục) ----
+  await page.setViewport({ width: 1440, height: 900 });
+  await login(page, '0900000002');
+  await go(page, '#hop-thu');
+  t = await text(page);
+  log('Hộp thư: bỏ nhóm "Đã xong"', !t.includes('Đã xong') && !(await page.$('[data-act="inbox-filter"][data-id="da-xong"]')));
+  await go(page, '#khach-hang');
+  let sub2 = await page.$eval('#swSub', el => el.textContent);
+  log('Khách hàng: bỏ dòng mô tả "Khách của ..."', sub2 === '', sub2);
+  await go(page, '#dat-coc');
+  sub2 = await page.$eval('#swSub', el => el.textContent);
+  log('Đặt cọc: bỏ dòng "Tiền vào tài khoản studio..."', sub2 === '', sub2);
+  log('Đặt cọc: hồ sơ khách không tự hiện', !(await page.$('#swView .dp-profile')));
+  await page.click('[data-act="view-dep-profile"][data-code="AB240931"]');
+  t = await page.$eval('#swModalBody', el => el.innerText);
+  log('Đặt cọc: bấm nút mắt mới mở hồ sơ khách', !(await page.$eval('#swModal', el => el.hidden)) && /Chị Hà Linh/i.test(t) && /Nhật ký/i.test(t), t.replace(/\n+/g, ' | ').slice(0, 300));
+  await page.click('[data-act="close-modal"]');
+  await go(page, '#lich-chup');
+  await showEv(page, 'ap5');
+  await page.click('[data-id="ap5"]');
+  t = await page.$eval('#swModalBody', el => el.innerText);
+  const ro5 = await page.evaluate(() => !document.querySelector('#swModalBody [data-act="msg"], #swModalBody [data-act="call"]') && !!document.querySelector('#swModalBody .sw-readonly'));
+  log('Lịch sale khác (trước chưa gắn hồ sơ): có Liên hệ + Tin nhắn, chỉ xem', t.includes('Liên hệ') && /tin nhắn gần đây/i.test(t) && ro5, t.replace(/\n+/g, ' | ').slice(0, 300));
+  await page.click('[data-act="close-modal"]');
+  await go(page, '#don-anh');
+  await page.click('[data-act="view-order-progress"][data-code="AB240902"]');
+  t = await page.$eval('#swModalBody', el => el.innerText);
+  const ownNote = await page.$eval('#swModalBody [data-order-note]', el => !el.readOnly).catch(() => false);
+  log('Đơn ảnh: bỏ khối tiến độ, có Ghi chú sửa được (đơn của mình)', !/Tiến độ thực hiện|Khách chọn ảnh|Ảnh còn thiếu/.test(t) && /Ghi chú/i.test(t) && ownNote, t.slice(0, 300));
+  await page.type('#swModalBody [data-order-note]', 'Khách muốn in 1 ảnh khổ lớn');
+  await page.click('[data-act="close-modal"]');
+  await page.click('[data-act="view-order-progress"][data-code="AB240902"]');
+  log('Đơn ảnh: ghi chú được giữ khi mở lại', (await page.$eval('#swModalBody [data-order-note]', el => el.value)).includes('in 1 ảnh khổ lớn'));
+  await page.click('[data-act="close-modal"]');
+  await page.click('[data-act="view-order-progress"][data-code="AB240905"]');
+  log('Đơn ảnh: ghi chú đơn của sale khác chỉ đọc', await page.$eval('#swModalBody [data-order-note]', el => el.readOnly));
+  await page.click('[data-act="close-modal"]');
+  await go(page, '#chuyen-giao');
+  const trTabs = await page.$$eval('[data-act="tr-tab"]', els => els.map(e => e.textContent));
+  log('Chuyển giao: tab chỉ đếm yêu cầu đang chờ', trTabs[1] === 'Chuyển đến tôi · 1 chờ bạn nhận' && trTabs[2] === 'Tôi đã gửi', trTabs.join(' / '));
+  await page.click('[data-act="tr-tab"][data-id="gui"]');
+  t = await text(page);
+  log('Chuyển giao: "Tôi đã gửi" tách Đang chờ / Đã chuyển xong', /Đang chờ/i.test(t) && /Đã chuyển xong/i.test(t) && t.includes('Chị Kim Bích'), t.replace(/\n+/g, ' | ').slice(0, 300));
+  await page.screenshot({ path: OUT('sale-transfer-sent.png') });
 
   // ---- Trang cọc cho khách ----
   await page.setViewport({ width: 390, height: 844, isMobile: true });
@@ -353,11 +398,15 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   log('coc.html: chuyển sang đã xác nhận', t.includes('đã được xác nhận') && t.includes('Ngọc Anh'));
   await page.screenshot({ path: OUT('coc-confirmed-mobile.png') });
 
-  // Sale vào admin.html bị đẩy về sale.html
+  // Sale vẫn vào được admin.html để dùng mục Tin nhắn (chat thật với khách, gộp từ main
+  // 2026-09-27), nhưng không thấy các mục chỉ dành cho Sếp/Thợ ảnh.
+  // (Lỗi kết nối server chat bị bỏ qua ở trên: test này không bật server.)
   await login(page, '0900000006');
-  await page.goto(ROOT + '/crm/admin.html');
+  log('Sale đăng nhập vào sale.html', page.url().includes('sale.html'), page.url());
+  await page.goto(ROOT + '/crm/admin.html#tin-nhan');
   await new Promise(r => setTimeout(r, 300));
-  log('Sale mở admin.html bị đẩy về sale.html', page.url().includes('sale.html'), page.url());
+  const adm = await page.evaluate(() => ({ chat: !!document.getElementById('tin-nhan'), dash: !!document.getElementById('kpi'), anh: !!document.querySelector('#adminTabs a[href="#anh"]') }));
+  log('Sale mở admin.html: có Tin nhắn, không có Dashboard/Ảnh & chỉnh sửa', page.url().includes('admin.html') && adm.chat && !adm.dash && !adm.anh, JSON.stringify(adm));
 
   log('Không có lỗi JS/console', errors.length === 0, errors.join(' | '));
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

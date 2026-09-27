@@ -7,7 +7,7 @@ const SITE = 'https://chungcchung1972005-cell.github.io/PhanTichWeb/';
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });

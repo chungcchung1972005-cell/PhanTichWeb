@@ -441,10 +441,11 @@
     const convs = scoped(db.conversations);
     const filters = {
       'chua-tra-loi': v => v.unread && !v.done,
-      'cua-toi': v => !v.bot && !v.done,
-      'bot': v => v.bot && !v.done,
-      'da-xong': v => v.done
+      // Bỏ nhóm "Đã xong" (người dùng yêu cầu 2026-09-27): hội thoại đã xong vẫn nằm trong 2 nhóm dưới.
+      'cua-toi': v => !v.bot,
+      'bot': v => v.bot
     };
+    if (!filters[ui.inbox.filter]) ui.inbox.filter = 'chua-tra-loi';
     if (param && convs.some(v => v.id === param)) { ui.inbox.active = param; ui.inbox.mobileChat = true; }
     const list = convs.filter(filters[ui.inbox.filter]);
     if (!ui.inbox.active || !convs.some(v => v.id === ui.inbox.active)) ui.inbox.active = (list[0] || convs[0] || {}).id || null;
@@ -467,7 +468,7 @@
     return '<div class="ib' + (ui.inbox.mobileChat ? ' show-chat' : '') + '">' +
       '<section class="ib-list">' +
         '<div class="ib-list-head"><h1>Hộp thư</h1><p>Tin nhắn khách gửi trên website ALOHA Baby</p>' +
-        '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Đang trao đổi') + chip('bot', 'Bot đã chuyển') + chip('da-xong', 'Đã xong') + '</div>' + ownerSelect() + '</div>' +
+        '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Đang trao đổi') + chip('bot', 'Bot đã chuyển') + '</div>' + ownerSelect() + '</div>' +
         '<div class="ib-items">' + listHtml + '</div>' +
       '</section>' +
       (active ? chatPane(active) + '<aside class="ib-info">' + customerPanel(customer(active.customerId)) + '</aside>'
@@ -676,11 +677,7 @@
     const board = f.mode === 'bang';
     const all = scoped(db.customers);
     const leads = all.filter(c => c.stage);
-    const openLeads = leads.filter(c => c.stage !== 'da-chot').length;
-    const who = ui.owner === 'all' ? 'cả studio' : ui.owner === me.id ? 'bạn' : saleName(ui.owner);
-    setHead('Khách hàng', board
-      ? 'Khách của ' + who + ' · Bảng giai đoạn hiện ' + openLeads + ' khách đang tư vấn, kéo thẻ khách của bạn sang cột kế tiếp khi khách tiến thêm một bước'
-      : 'Khách của ' + who + ', từ lúc mới hỏi đến khi đã chụp và quay lại · Khách của sale khác chỉ xem');
+    setHead('Khách hàng', '');
     const sel = (name, label, opts, val) => '<label class="sw-pill-select">' + icon('filter') + '<span>' + label + ':</span><select data-lead-filter="' + name + '"><option value="">Tất cả</option>' +
       opts.map(o => '<option' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></label>';
     const seg = '<div class="cu-seg" role="tablist" aria-label="Kiểu xem">' + [['bang', 'Bảng giai đoạn', 'filter'], ['danh-sach', 'Danh sách', 'users']].map(([k, l, ic]) =>
@@ -895,8 +892,8 @@
     const msgs = conv ? conv.messages.slice(-4) : [];
     openModal(a.service + ' · ' + a.label,
       '<dl class="sw-dl">' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl>' +
-      (conv ? '<small class="sw-label ap-msgs-label">Tin nhắn gần đây · qua ' + esc(conv.channel) + '</small>' +
-        '<div class="ap-msgs">' + (msgs.length ? msgs.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(conv.owner)) : '') + '</small></div>').join('') : emptyState('Chưa có tin nhắn.')) + '</div>' : '') +
+      (c ? '<small class="sw-label ap-msgs-label">Tin nhắn gần đây' + (conv ? ' · qua ' + esc(conv.channel) : '') + '</small>' +
+        '<div class="ap-msgs">' + (msgs.length ? msgs.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(conv.owner)) : '') + '</small></div>').join('') : emptyState('Chưa có tin nhắn với khách này.')) + '</div>' : '') +
       (own
         ? (c ? '<div class="sw-modal-actions">' + (dep ? '<button type="button" class="sw-btn" data-act="view-deposit" data-code="' + dep.code + '">' + icon('qr') + 'Xem cọc</button>' : '') +
             '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn khách</button><button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button></div>' : '')
@@ -1069,18 +1066,28 @@
     if (d.state === 'short') return badge('Nhận ' + money(d.received) + ' · thiếu so với số tiền cọc', 'red');
     return badge('Chưa mở link · hết hạn giữ ' + d.holdUntil, 'amber');
   }
+  // Nút mắt: hồ sơ khách của yêu cầu cọc chỉ mở khi bấm (người dùng yêu cầu 2026-09-27).
+  function depEye(d) {
+    return '<button type="button" class="sw-eye-btn" data-act="view-dep-profile" data-code="' + d.code + '" title="Xem hồ sơ khách" aria-label="Xem hồ sơ khách ' + esc(customer(d.customerId).name) + '">' + icon('eye') + '</button>';
+  }
   function depAction(d) {
-    if (!isMine(d)) return '<button type="button" class="sw-btn" data-act="select-deposit" data-code="' + d.code + '">Xem</button>';
+    if (!isMine(d)) return '';
     if (d.state === 'paid') return '<button type="button" class="sw-btn sw-btn-teal" data-act="confirm-deposit" data-code="' + d.code + '">' + icon('check') + 'Xác nhận</button>';
     if (d.state === 'opened') return '<button type="button" class="sw-btn" data-act="resend-deposit" data-code="' + d.code + '">' + icon('send') + 'Nhắc lại</button>';
     if (d.state === 'sent') return '<button type="button" class="sw-btn" data-act="resend-sms" data-code="' + d.code + '">' + icon('send') + 'Gửi lại qua SMS</button>';
     if (d.state === 'expired') return '<button type="button" class="sw-btn sw-btn-accent" data-act="book-for" data-id="' + d.customerId + '">' + icon('calendar') + 'Giữ lịch lại</button>';
     if (d.state === 'short') return '<button type="button" class="sw-btn sw-btn-accent" data-act="check-short" data-code="' + d.code + '">Kiểm tra</button>';
-    return '<button type="button" class="sw-btn" data-act="select-deposit" data-code="' + d.code + '">Xem hồ sơ</button>';
+    return '';
+  }
+  function showDepProfile(code) {
+    const d = db.deposits.find(x => x.code === code);
+    if (!d) return;
+    ui.dep.selected = code;
+    openModal('Cọc ' + d.code, '<div class="dp-profile">' + depProfile(d) + '</div>');
   }
 
   function viewDeposits() {
-    setHead('Đặt cọc và đối soát tự động', 'Tiền vào tài khoản studio là lịch tự xác nhận và hồ sơ khách tự cập nhật, Sale không phải xem bill');
+    setHead('Đặt cọc và đối soát tự động', '');
     const deps = scoped(db.deposits);
     const waiting = deps.filter(d => d.state === 'sent' || d.state === 'opened');
     const arrived = deps.filter(d => ['paid', 'confirmed', 'short'].includes(d.state));
@@ -1094,8 +1101,6 @@
       'da-khop': d => d.state === 'paid' || d.state === 'confirmed'
     };
     const shown = deps.filter(groups[ui.dep.filter]);
-    if (!ui.dep.selected || !deps.some(d => d.code === ui.dep.selected)) ui.dep.selected = (deps.find(d => d.state === 'paid' || d.state === 'confirmed') || deps[0] || {}).code;
-    const sel = deps.find(d => d.code === ui.dep.selected);
     const chip = (k, l) => '<button type="button" class="sw-chip' + (ui.dep.filter === k ? ' on' : '') + '" data-act="dep-filter" data-id="' + k + '">' + l + ' ' + (k === 'kiem-tra' ? manual : deps.filter(groups[k]).length) + '</button>';
 
     return '<div class="sw-kpis sw-kpis-4">' +
@@ -1104,24 +1109,21 @@
         '<div class="sw-card sw-kpi"><small>Cần kiểm tra tay</small><strong>' + manual + '</strong><span class="c-red">' + shortOnes.length + ' thiếu tiền · ' + db.unmatched.length + ' sai mã' + (expiredOnes.length ? ' · ' + expiredOnes.length + ' hết giờ giữ' : '') + '</span></div>' +
         '<div class="sw-card sw-kpi"><small>Thời gian khớp TB</small><strong>8 giây</strong><span class="c-teal">Từ lúc tiền vào tới lúc xác nhận</span></div>' +
       '</div>' +
-      '<div class="sw-grid-2">' +
-        '<section class="sw-card sw-pad">' +
+      '<section class="sw-card sw-pad">' +
           '<div class="sw-card-head"><h2>Yêu cầu đặt cọc hôm nay</h2><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-coc', 'Chờ cọc') + chip('kiem-tra', 'Cần kiểm tra') + chip('da-khop', 'Đã khớp') + '</div>' + ownerSelect() + '</div>' +
           db.unmatched.map(tx => '<div class="dp-unmatched"><div><strong>1 giao dịch chưa khớp mã</strong><small>' + money(tx.amount) + ' lúc ' + tx.time + ' · nội dung "' + esc(tx.content) + '" · không có mã đơn</small></div>' +
             '<button type="button" class="sw-btn" data-act="assign-tx" data-id="' + tx.id + '">' + icon('userPlus') + 'Gán cho khách</button></div>').join('') +
           (shown.length ? shown.map(d => {
             const c = customer(d.customerId); const ap = appointmentOf(d); const n = depStepCount(d);
-            return '<div class="dp-row' + (d.code === ui.dep.selected ? ' on' : '') + '" data-act="select-deposit" data-code="' + d.code + '">' +
+            return '<div class="dp-row' + (d.code === ui.dep.selected ? ' on' : '') + '">' +
               '<div class="dp-main"><strong class="dp-code">' + d.code + '</strong>' +
                 '<div class="dp-who"><strong>' + esc(c.name) + '</strong>' + ownerTag(d.owner) + '<small>' + esc((ap ? ap.service : c.service) + ' · ' + (ap ? fmtDM(ap.date) + ' ' + ap.start : '')) + '</small></div>' +
                 '<div class="dp-meta">' + d.channels.map(ch => '<span class="sw-tag tone-beige">' + esc(ch) + '</span>').join('') + depBadge(d) + '</div>' +
-                '<div class="dp-action">' + depAction(d) + '</div></div>' +
+                '<div class="dp-action">' + depAction(d) + depEye(d) + '</div></div>' +
               '<ol class="dp-steps">' + DEP_STEPS.map((s, i) => '<li class="' + (i < n ? (d.state === 'short' && i === 2 ? 'warn' : 'done') : '') + '"><i>' + (i < n ? icon('check') : '') + '</i>' + s + '</li>').join('') + '</ol>' +
             '</div>';
           }).join('') : emptyState('Không có yêu cầu đặt cọc nào trong nhóm này.')) +
-        '</section>' +
-        '<aside class="sw-card sw-pad dp-profile">' + (sel ? depProfile(sel) : emptyState('Chưa có yêu cầu đặt cọc nào.')) + '</aside>' +
-      '</div>';
+        '</section>';
   }
 
   function depProfile(d) {
@@ -1186,13 +1188,13 @@
         '<div class="sw-card-head"><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-chon', 'Chờ chọn ảnh') + chip('dang-chinh', 'Đang chỉnh') + chip('qua-han', 'Quá hạn') + chip('cong-no', 'Còn công nợ') + chip('da-giao', 'Đã giao') + '</div>' +
           '<div class="od-tools">' + ownerSelect() + '<button type="button" class="sw-btn" data-act="remind-all">' + icon('send') + 'Nhắc khách của tôi chưa chọn ảnh</button></div></div>' +
         '<div class="sw-table-wrap"><table class="sw-table">' +
-          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Phụ trách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th class="sw-center">Tiến độ</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
+          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Phụ trách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th class="sw-center">Chi tiết</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
           (shown.length ? shown.map(o => {
             const st = ORD_STATUS[o.status];
             const action = o.status === 'dang-chinh' && o.due > 0 ? 'Nhắc thanh toán' : (o.action || st.action || 'Xem');
             return '<tr><td><strong>#' + o.code + '</strong></td><td><strong>' + esc(o.customer) + '</strong></td><td>' + esc(saleName(o.owner)) + (isMine(o) ? ' (tôi)' : '') + '</td><td>' + esc(o.service + ' · ' + o.pkg) + '</td><td>' + o.date + '</td>' +
               '<td>' + badge(st.text, st.tone) + '</td>' +
-              '<td class="sw-center"><button type="button" class="sw-eye-btn" data-act="view-order-progress" data-code="' + o.code + '" title="Xem chi tiết tiến độ: ' + esc(o.progress) + '" aria-label="Xem tiến độ đơn #' + o.code + '">' + icon('eye') + '</button></td>' +
+              '<td class="sw-center"><button type="button" class="sw-eye-btn" data-act="view-order-progress" data-code="' + o.code + '" title="Xem chi tiết và ghi chú đơn" aria-label="Xem chi tiết đơn #' + o.code + '">' + icon('eye') + '</button></td>' +
               '<td>' + (o.due > 0 ? '<strong class="c-red">Còn ' + money(o.due) + '</strong>' : '<strong class="c-teal">Đã thanh toán đủ</strong>') + '</td>' +
               '<td class="sw-right">' + (isMine(o) ? '<button type="button" class="sw-btn" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button>' : '<span class="sw-muted sw-ro-inline">' + icon('lock') + 'Chỉ xem</span>') + '</td></tr>';
           }).join('') : '<tr><td colspan="9">' + emptyState('Không có đơn nào trong nhóm này.') + '</td></tr>') +
@@ -1229,68 +1231,13 @@
       ['Liên hệ', fullPhone(c.phone) + (c.area ? ' · ' + c.area : '')]
     ];
 
-    const curStep = st.step || 2;
-    const stepsList = [
-      { num: 1, name: 'Đã chụp' },
-      { num: 2, name: 'Khách chọn ảnh' },
-      { num: 3, name: 'Thợ chỉnh sửa' },
-      { num: 4, name: 'Khách duyệt' },
-      { num: 5, name: 'Giao ảnh' }
-    ];
-
-    const stepperHtml = '<div class="sw-mini-steps">' + stepsList.map(s => {
-      const isDone = s.num < curStep || o.status === 'da-giao';
-      const isCur = s.num === curStep && o.status !== 'da-giao';
-      const isWarn = isCur && o.status === 'qua-han';
-      const cls = isDone ? 'step-done' : (isWarn ? 'step-warn' : (isCur ? 'step-cur' : ''));
-      return '<div class="sw-mini-step ' + cls + '">' +
-        '<span class="step-dot">' + (isDone ? icon('check') : s.num) + '</span>' +
-        '<span class="step-label">' + esc(s.name) + '</span>' +
-      '</div>';
-    }).join('<div class="step-line"></div>') + '</div>';
-
-    let progressBox = '';
-    if (o.status === 'cho-chon') {
-      const picked = o.picked != null ? o.picked : 4;
-      const total = o.total != null ? o.total : 15;
-      const days = o.idleDays != null ? o.idleDays : 5;
-      progressBox = '<div class="sw-prog-box">' +
-        '<div class="sw-prog-head"><span class="sw-prog-badge tone-amber">Bước 2: Chờ khách chọn ảnh</span><small class="sw-muted">' + (o.remindedAt ? 'Đã nhắc lúc ' + o.remindedAt : 'Chưa nhắc hôm nay') + '</small></div>' +
-        '<div class="sw-prog-stat">' +
-          '<div class="sw-prog-num"><strong>' + picked + ' / ' + total + '</strong><span>Ảnh đã chọn</span></div>' +
-          '<div class="sw-prog-num"><strong class="c-amber">' + days + ' ngày</strong><span>Chưa chọn xong</span></div>' +
-          '<div class="sw-prog-num"><strong class="c-teal">' + (total - picked) + '</strong><span>Ảnh còn thiếu</span></div>' +
-        '</div>' +
-        '<p class="sw-prog-desc">Khách đã hoàn tất buổi chụp ngày <strong>' + o.date + '</strong>. Hiện đã chọn được <strong>' + picked + '/' + total + ' ảnh</strong>. Đang đợi khách chọn nốt <strong>' + (total - picked) + ' ảnh</strong> còn lại để chuyển cho thợ photoshop blend màu & làm da.</p>' +
-      '</div>';
-    } else if (o.status === 'dang-chinh') {
-      progressBox = '<div class="sw-prog-box">' +
-        '<div class="sw-prog-head"><span class="sw-prog-badge tone-blue">Bước 3: Thợ ảnh đang chỉnh sửa</span><small class="sw-muted">' + esc(o.progress) + '</small></div>' +
-        '<p class="sw-prog-desc">Thợ ảnh đang tiến hành hậu kỳ photoshop kỹ lưỡng (cắt cúp bố cục, chỉnh tone màu ấm áp và làm mịn da bé). Tiến độ: <strong>' + esc(o.progress) + '</strong>. Đảm bảo đúng hẹn gửi bản xem trước cho khách.</p>' +
-      '</div>';
-    } else if (o.status === 'qua-han') {
-      progressBox = '<div class="sw-prog-box warn">' +
-        '<div class="sw-prog-head"><span class="sw-prog-badge tone-red">Bước 3: Quá hạn giao ảnh</span><strong class="c-red">' + esc(o.progress) + '</strong></div>' +
-        '<p class="sw-prog-desc">Đơn ảnh đã quá hạn so với cam kết ban đầu (<strong>' + esc(o.progress) + '</strong>). Thợ ảnh đang dồn sức hoàn thiện gấp. Sale phụ trách cần chủ động liên hệ thợ giục tiến độ và báo lại khách hàng.</p>' +
-      '</div>';
-    } else if (o.status === 'cho-duyet') {
-      progressBox = '<div class="sw-prog-box">' +
-        '<div class="sw-prog-head"><span class="sw-prog-badge tone-blue">Bước 4: Đã gửi bản chỉnh · Chờ khách duyệt</span><small class="sw-muted">' + esc(o.progress) + '</small></div>' +
-        '<p class="sw-prog-desc">Studio đã hoàn thành bản chỉnh lần 1 và gửi link demo cho khách qua tin nhắn. Đang đợi khách xác nhận ưng ý hoặc phản hồi chi tiết để chỉnh sửa thêm trước khi xuất in album.</p>' +
-      '</div>';
-    } else if (o.status === 'da-giao') {
-      progressBox = '<div class="sw-prog-box done">' +
-        '<div class="sw-prog-head"><span class="sw-prog-badge tone-teal">Bước 5: Đã bàn giao ảnh</span><small class="sw-muted">Hoàn thành 100%</small></div>' +
-        '<p class="sw-prog-desc">Đơn hàng đã bàn giao trọn vẹn tới gia đình (<strong>' + esc(o.progress) + '</strong>). Khách đã nhận đầy đủ file gốc dung lượng cao và album hoàn thiện.</p>' +
-      '</div>';
-    }
-
     const action = o.status === 'dang-chinh' && o.due > 0 ? 'Nhắc thanh toán' : (o.action || st.action || '');
     const modalBody =
       '<dl class="sw-dl">' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl>' +
-      '<small class="sw-modal-section-title">Tiến độ thực hiện</small>' +
-      stepperHtml +
-      progressBox +
+      // Bỏ khối tiến độ 5 bước, chỉ giữ Ghi chú đơn (người dùng yêu cầu 2026-09-27).
+      // Ghi chú sống trong bộ nhớ trang như mọi thao tác khác ở Không gian Sale.
+      '<small class="sw-modal-section-title">Ghi chú</small>' +
+      '<textarea class="ci-note" data-order-note="' + o.code + '" rows="4" placeholder="' + (own ? 'Ghi chú về đơn: khách dặn gì, cần lưu ý gì khi chỉnh và giao ảnh' : 'Chưa có ghi chú') + '"' + (own ? '' : ' readonly') + '>' + esc(o.note || '') + '</textarea>' +
       (own
         ? '<div class="sw-modal-actions">' +
             (action ? '<button type="button" class="sw-btn sw-btn-accent" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button>' : '') +
@@ -1389,16 +1336,26 @@
     setHead('Chuyển giao khách', 'Chuyển khách cho Sale khác khi nghỉ phép, quá tải hoặc khách yêu cầu · Quản lý duyệt rồi khách mới được chuyển');
     const t = ui.tr;
     const inc = trIncoming(); const outg = trOutgoing();
-    const tabs = '<div class="sw-chips tr-tabs">' + [['tao', 'Tạo yêu cầu'], ['den', 'Chuyển đến tôi · ' + inc.length], ['gui', 'Đã gửi · ' + outg.length]].map(([k, l]) =>
-      '<button type="button" class="sw-chip' + (t.tab === k ? ' on' : (k === 'den' && trWaitingMe() ? ' tone-chip-amber' : '')) + '" data-act="tr-tab" data-id="' + k + '">' + l + '</button>').join('') + '</div>';
+    // Số trên tab chỉ đếm yêu cầu còn đang chờ (người dùng yêu cầu 2026-09-27): trước đây
+    // đếm cả yêu cầu đã xong nên "Đã gửi · 2" không cho biết còn việc gì cần theo dõi.
+    const incOpen = inc.filter(r => TR_OPEN.includes(r.status)); const outOpen = outg.filter(r => TR_OPEN.includes(r.status));
+    const tabs = '<div class="sw-chips tr-tabs">' + [
+      ['tao', 'Tạo yêu cầu', ''],
+      ['den', 'Chuyển đến tôi', trWaitingMe() ? trWaitingMe() + ' chờ bạn nhận' : ''],
+      ['gui', 'Tôi đã gửi', outOpen.length ? outOpen.length + ' đang chờ' : '']
+    ].map(([k, l, n]) =>
+      '<button type="button" class="sw-chip' + (t.tab === k ? ' on' : (k === 'den' && trWaitingMe() ? ' tone-chip-amber' : '')) + '" data-act="tr-tab" data-id="' + k + '">' + l + (n ? ' · ' + n : '') + '</button>').join('') + '</div>';
 
     if (t.tab !== 'tao') {
       const den = t.tab === 'den';
-      const list = den ? inc : outg;
+      const open = den ? incOpen : outOpen;
+      const done = (den ? inc : outg).filter(r => !TR_OPEN.includes(r.status));
+      const group = (title, list, empty) => '<small class="sw-label">' + title + ' · ' + list.length + '</small>' +
+        (list.length ? '<div class="tr-reqs">' + list.map(r => trRow(r, true)).join('') + '</div>' : emptyState(empty));
       return tabs + '<section class="sw-card sw-pad">' +
-        '<div class="sw-card-head"><h2>' + (den ? 'Khách chuyển đến tôi' : 'Yêu cầu tôi đã gửi') + '</h2></div>' +
-        (list.length ? '<div class="tr-reqs">' + list.map(r => trRow(r, true)).join('') + '</div>'
-          : emptyState(den ? 'Chưa có khách nào được chuyển đến bạn.' : 'Bạn chưa gửi yêu cầu chuyển giao nào.')) +
+        '<div class="sw-card-head"><h2>' + (den ? 'Khách sale khác chuyển cho tôi' : 'Yêu cầu chuyển khách tôi đã gửi') + '</h2></div>' +
+        group('Đang chờ', open, 'Không có yêu cầu nào đang chờ.') +
+        group(den ? 'Đã nhận' : 'Đã chuyển xong', done, den ? 'Bạn chưa nhận khách nào từ sale khác.' : 'Chưa có yêu cầu nào hoàn tất.') +
       '</section>';
     }
 
@@ -1575,7 +1532,7 @@
       db.conversations.unshift(v);
     }
     if (ui.owner !== 'all' && ui.owner !== v.owner) ui.owner = 'all';
-    ui.inbox.filter = v.done ? 'da-xong' : (v.unread ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi'));
+    ui.inbox.filter = v.unread && !v.done ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi');
     closeModal();
     location.hash = '#hop-thu/' + v.id;
   }
@@ -1685,16 +1642,16 @@
       case 'view-deposit': case 'select-deposit-go': {
         const d = db.deposits.find(x => x.code === (code || id));
         if (d && ui.owner !== 'all' && ui.owner !== d.owner) ui.owner = 'all';
-        ui.dep.selected = code || id; ui.dep.filter = 'all'; closeModal(); location.hash = '#dat-coc'; return render();
+        ui.dep.selected = code || id; ui.dep.filter = 'all'; closeModal(); location.hash = '#dat-coc'; render(); return showDepProfile(code || id);
       }
       // Xem hội thoại của khách sale khác (chỉ đọc, không có ô trả lời).
       case 'view-conv': {
         const v = db.conversations.find(x => x.id === id); if (!v) return;
         if (ui.owner !== 'all' && ui.owner !== v.owner) ui.owner = 'all';
-        ui.inbox.filter = v.done ? 'da-xong' : (v.unread ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi'));
+        ui.inbox.filter = v.unread && !v.done ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi');
         closeModal(); location.hash = '#hop-thu/' + v.id; return;
       }
-      case 'select-deposit': if (e.target.closest('button') && e.target.closest('button') !== el) return; ui.dep.selected = code; return render();
+      case 'view-dep-profile': return showDepProfile(code);
       case 'dep-filter': ui.dep.filter = id; return render();
       case 'check-short': {
         const d = myDeposits().find(x => x.code === code); if (!d) return;
@@ -1871,6 +1828,7 @@
   document.addEventListener('input', (e) => {
     const t = e.target;
     if (t.dataset.note) { const c = myCustomer(t.dataset.note); if (c) c.note = t.value; return; }
+    if (t.dataset.orderNote) { const o = myOrders().find(x => x.code === t.dataset.orderNote); if (o) o.note = t.value; return; }
     if (t.hasAttribute('data-tr-note')) { ui.tr.note = t.value; ui.tr.noteTouched = t.value.trim() !== ''; return; }
     if (t.dataset.qb) {
       ui.qb[t.dataset.qb] = t.value;

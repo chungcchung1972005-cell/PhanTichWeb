@@ -379,6 +379,7 @@ button.sw-pill-select { cursor: pointer; color: var(--s-text); }
 .dp-who small { color: var(--s-muted); font-size: 12.5px; }
 .dp-meta { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .dp-action .sw-btn { height: 34px; }
+.dp-action { display: flex; align-items: center; gap: 8px; }
 .dp-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); margin: 12px 0 0; padding: 0 0 0 94px; }
 .dp-steps li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--s-muted); position: relative; }
 .dp-steps li:not(:last-child)::after { content: ''; flex: 1; height: 2px; background: var(--s-line-2); margin: 0 8px; }
@@ -529,7 +530,7 @@ button.sw-pill-select { cursor: pointer; color: var(--s-text); }
   height: 17px;
 }
 
-/* Modal chi tiết tiến độ */
+/* Tiêu đề mục trong modal (vd Ghi chú đơn ảnh) */
 .sw-modal-section-title {
   display: block;
   font-size: 12px;
@@ -538,140 +539,6 @@ button.sw-pill-select { cursor: pointer; color: var(--s-text); }
   text-transform: uppercase;
   color: var(--s-muted);
   margin: 16px 0 10px;
-}
-.sw-mini-steps {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 12px 0 16px;
-  padding: 10px 12px;
-  background: var(--s-soft);
-  border-radius: 12px;
-  overflow-x: auto;
-}
-.sw-mini-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  min-width: 58px;
-  text-align: center;
-}
-.sw-mini-step .step-dot {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--s-line-2);
-  color: var(--s-muted);
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  transition: all .2s;
-}
-.sw-mini-step .step-dot svg {
-  width: 12px;
-  height: 12px;
-}
-.sw-mini-step .step-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--s-muted);
-  line-height: 1.2;
-}
-.sw-mini-step.step-done .step-dot {
-  background: var(--s-teal);
-  color: #fff;
-}
-.sw-mini-step.step-done .step-label {
-  color: var(--s-text);
-  font-weight: 600;
-}
-.sw-mini-step.step-cur .step-dot {
-  background: var(--s-accent);
-  color: #fff;
-  box-shadow: 0 0 0 3px var(--s-accent-soft);
-}
-.sw-mini-step.step-cur .step-label {
-  color: var(--s-accent-600);
-  font-weight: 700;
-}
-.sw-mini-step.step-warn .step-dot {
-  background: #E5484D;
-  color: #fff;
-  box-shadow: 0 0 0 3px #FFE5E5;
-}
-.sw-mini-step.step-warn .step-label {
-  color: #E5484D;
-  font-weight: 700;
-}
-.sw-mini-steps .step-line {
-  flex: 0 0 14px;
-  height: 2px;
-  background: var(--s-line-2);
-  margin-top: -16px;
-}
-
-.sw-prog-box {
-  background: #FCFAF7;
-  border: 1px solid var(--s-line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-top: 10px;
-}
-.sw-prog-box.warn {
-  background: #FFF8F8;
-  border-color: #F8D2D2;
-}
-.sw-prog-box.done {
-  background: #F3FAF8;
-  border-color: #CEECE5;
-}
-.sw-prog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-.sw-prog-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-.sw-prog-badge.tone-amber { background: #FEF3D6; color: #8F5B00; }
-.sw-prog-badge.tone-blue { background: #E6F1FA; color: #0C5E8A; }
-.sw-prog-badge.tone-red { background: #FDE8E8; color: #B81414; }
-.sw-prog-badge.tone-teal { background: #E2F5F0; color: #0C6B58; }
-.sw-prog-stat {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: var(--s-surface);
-  border: 1px solid var(--s-line-2);
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin: 8px 0;
-  text-align: center;
-}
-.sw-prog-num strong {
-  display: block;
-  font-size: 16px;
-  font-weight: 700;
-}
-.sw-prog-num span {
-  display: block;
-  font-size: 11px;
-  color: var(--s-muted);
-}
-.sw-prog-desc {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--s-text);
 }
 
 @media (prefers-reduced-motion: reduce) {

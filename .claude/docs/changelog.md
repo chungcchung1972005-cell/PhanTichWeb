@@ -6,8 +6,129 @@ Nhật ký chi tiết từng lượt thay đổi (KHÔNG nằm trong `rules/` đ
 
 ## Nhật ký (mới nhất ở trên)
 
+- **Không gian Sale: 6 chỉnh sửa (2026-09-27):** (1) Hộp thư bỏ nhóm "Đã xong"; hội thoại đã xong vẫn nằm trong "Đang trao đổi"/"Bot đã chuyển". (2) Khách hàng bỏ dòng mô tả dưới tiêu đề ("Khách của ... · Bảng giai đoạn hiện ..."). (3) Lịch chụp: 8 lịch demo chưa gắn hồ sơ (ap5, ap8, ap9, ap12–ap16) được gắn khách mới trong `sale-data.js` (`na-bo`, `na-mai`, `na-huy`, `na-soc`, `na-lua`, `na-xoai`, `mt-com`, `mt-mit`; đơn AB240906 gắn `mt-com`), nên bấm lịch nào cũng thấy Liên hệ + mục Tin nhắn gần đây (chưa có thì "Chưa có tin nhắn với khách này"); lịch của sale khác vẫn chỉ xem, không Nhắn/Gọi. (4) Đặt cọc bỏ dòng "Tiền vào tài khoản studio là lịch tự xác nhận..."; bỏ cột hồ sơ bên phải tự hiện, mỗi dòng có nút mắt (`view-dep-profile`) mở hồ sơ trong popup; "Xem cọc" từ lịch/tìm kiếm cũng mở luôn popup. (5) Popup Đơn & ảnh bỏ khối "Tiến độ thực hiện" (5 bước + ô số liệu + đoạn mô tả), thay bằng ô **Ghi chú** đơn (`o.note`, sale phụ trách sửa được, sale khác chỉ đọc; chỉ sống trong bộ nhớ trang như mọi thao tác khác); cột "Tiến độ" đổi tên "Chi tiết"; xoá CSS `.sw-mini-step*`/`.sw-prog*` không còn dùng. (6) Chuyển giao: tab đổi thành "Chuyển đến tôi · N chờ bạn nhận" / "Tôi đã gửi · N đang chờ" (chỉ đếm yêu cầu còn đang chờ, 0 thì không hiện số; trước đây đếm cả yêu cầu đã xong), trong tab tách 2 nhóm "Đang chờ" và "Đã nhận"/"Đã chuyển xong". `test-sale.js` thêm 11 case, 137/137 pass (case "Lịch sale khác" lỗi trước đây là do so chữ thường với nhãn in hoa bằng CSS, đã sửa test).
+
+- **Gộp `main` (PR #16) vào nhánh `maihoa` (2026-09-27):** xung đột giữa Không gian Sale riêng (`crm/sale.html`, 5 tài khoản sale) và mục Tin nhắn chat thật trong `crm/admin.html` (3 tài khoản "Sale demo"). Cách gộp: giữ 5 tài khoản sale tên thật ở `login.html` VÀ `server/sale-chat.js` (2 danh sách phải khớp); Sale đăng nhập vẫn vào `sale.html` nhưng `admin.html` cho phép role `sale` (`requireRole(['sale','tho-anh','sep'])`) để dùng Tin nhắn. **Còn thiếu:** `sale.html` chưa có link sang Tin nhắn, Sale phải tự mở `crm/admin.html#tin-nhan`. Test: `test-sale-chat` (43) mở thẳng `admin.html#tin-nhan` sau khi Sale đăng nhập; `test-sale` đổi case "bị đẩy về sale.html" thành "có Tin nhắn, không có Dashboard", bỏ qua lỗi kết nối server chat. Kết quả: `test-auth`, `test-interest-gate`, `test-service-albums` (133), `test-edited-photos` (47), `test-google-login` (19), `test-sale-chat` (43) đều pass; `test-sale` 125/126, case lỗi "Lịch sale khác" đã lỗi từ trước khi gộp; `test-booking-required` lỗi sẵn (đường dẫn `D:/` viết cứng trong test, `main` cũng vậy).
+
 - **Không gian Sale: giữ lịch 1 tiếng, bỏ lời chào, ngày theo đồng hồ thật (2026-09-27):** (1) `config.holdHours` = 1 (người dùng chốt), yêu cầu cọc đang chờ có `holdEnd`; nhịp 30 giây `tick()` trong `crm/js/sale.js` gọi `expireHolds()`: quá giờ chưa cọc thì yêu cầu chuyển trạng thái `expired` ("Hết giờ giữ · đã nhả khung giờ"), lịch giữ chỗ bị gỡ khỏi lịch chung, khách về "Hết giờ giữ lịch", có việc "Hết giờ giữ lịch" + nút "Giữ lịch lại"; nằm trong chip "Cần kiểm tra". Dữ liệu demo cho số phút còn lại qua `holdLeftMin`. (2) Tiêu đề Tổng quan đổi từ "Chào <tên>, hôm nay có N việc..." thành "Tổng quan", số việc chuyển xuống dòng phụ. (3) Bỏ đồng hồ demo cố định 25/09/2026 10:30: dùng giờ thật, `shiftDemoDates()` dời mọi ngày trong dữ liệu (ISO và dd/mm, bỏ qua chuỗi đếm ảnh "4/15 ảnh") theo số ngày từ 25/09/2026 tới hôm nay; qua nửa đêm `TODAY` tự đổi, lịch đang xem tuần/ngày hiện tại thì nhảy theo. "Còn N ngày" ở Mục tiêu tháng tính thật. `test-sale.js` 121 case pass (thêm test tua đồng hồ quá 1 tiếng để thấy lịch tự nhả; test lịch tự tìm tuần chứa lịch cần kiểm tra vì ngày dời theo hôm nay).
 - **Không gian Sale: xem khách của mọi sale + lọc theo sale (2026-09-27):** người dùng muốn Hộp thư, Khách hàng, Đặt cọc, Đơn & ảnh, Chuyển giao hiện tất cả khách, có bộ lọc theo từng sale. Đã hỏi và chốt: mặc định "Tất cả sale"; khách của sale khác CHỈ XEM (không trả lời tin, không gọi, không xác nhận cọc, không kéo phễu, không chọn để chuyển giao, ghi chú chỉ đọc, SĐT vẫn che, xem hội thoại không làm mất trạng thái chưa đọc). Bộ lọc `ui.owner` dùng chung 5 trang (`ownerSelect()`, `scoped()`, `isMine()` trong `crm/js/sale.js`, CSS cuối `css/sale.css`). Tổng quan/Việc cần làm/số đếm menu/Báo cáo của tôi/Tìm kiếm vẫn chỉ tính khách của mình. Đơn & ảnh thêm cột Phụ trách; chip Hộp thư "Của tôi" đổi tên "Đang trao đổi" để khỏi nhầm với bộ lọc. `test-sale.js` sửa theo hành vi mới, 107 case pass.
+- **Đăng nhập/đăng ký bằng Google (2026-09-27, lượt 7):**
+  - **Yêu cầu:** "phương thức đăng kí bằng google, fb, sđt thêm vào". Hỏi trước (vì SĐT đang là mã khách ở mọi nơi, OTP SMS tốn tiền, Google/FB cần người dùng tự tạo app): người dùng chọn **Google trước, Facebook sau**; Google lần đầu **bắt nhập SĐT 1 lần**; **giữ SĐT + mật khẩu** như cũ (không làm OTP).
+  - **Server** (`server/sale-chat.js`): `GET /auth/config` (trả `GOOGLE_CLIENT_ID`, null = ẩn nút); `POST /auth/google` (kiểm tra ID token qua Google tokeninfo: đúng `aud` = Client ID, đúng `iss`; có tài khoản theo `googleSub` thì cấp mã, chưa có thì trả "vé" 15 phút không có role); `POST /auth/google/complete` (vé + tên + SĐT → tạo user `provider: 'google'`, không có mật khẩu). SĐT đã có tài khoản (kể cả demo) → 409, KHÔNG gắn Google vào (chống người khác gõ SĐT để chiếm tài khoản). Tài khoản Google đăng nhập bằng mật khẩu → `use_google`. `checkPassword` không còn lỗi 503 với user không có `salt`. MongoDB có index unique sparse `googleSub`. Biến mới `GOOGLE_CLIENT_ID` (+ `GOOGLE_TOKENINFO_URL` chỉ để test). Không thêm dependency.
+  - **Web:** `login.html` thêm "hoặc" + nút Google (thư viện Google Identity Services, nạp chỉ khi server trả Client ID; nút đổi chữ Đăng nhập/Đăng ký theo chế độ), bước "Hoàn tất đăng ký" (email Google, tên điền sẵn, SĐT, "Dùng cách khác"). Lần đầu xong → đi như khách mới đăng ký (`registerHome` / `next`); lần sau → như đăng nhập thường. `js/auth.js` thêm `serverConfig/serverGoogle/serverGoogleComplete`; hỏi cấu hình thay `wakeServer` ở trang đăng nhập (vẫn đánh thức server). Nâng `auth.js?v=20260927n` ở 3 file HTML.
+  - **Tài liệu:** `server/DEPLOY.md` mục "Đăng nhập bằng Google" (từng bước Google Cloud, chưa kiểm chứng tên menu), `server/.env.example`.
+  - **Đã kiểm chứng:** `test-google-login.js` 19/19 (giả lập máy chủ Google + nút Google; kể cả chống chiếm tài khoản, vé giả, token của web khác, mobile 390px không tràn). Chạy lại `test-auth`, `test-interest-gate`, `test-sale-chat` (43) đều PASS. **CHƯA kiểm chứng với Google thật** (cần Client ID thật + domain public), code chưa commit/push.
+
+- **Cài MongoDB Atlas cho chat Sale trên bản public (2026-09-27, lượt 6):**
+  - **Bối cảnh:** PR #15 (`Chungcook` → `main`) đã merge, Render chạy bản mới nhưng `/api/health` báo `"chatStore":"memory"` (chưa có `MONGODB_URI`).
+  - **Người dùng tự làm (Claude hướng dẫn):**
+    - Atlas: cluster M0 `Chungcook`, vùng AWS Hong Kong. User DB `chungcchung1972005_db_user` do trình hướng dẫn Atlas tự tạo (quyền Atlas Admin). IP Access List có `0.0.0.0/0` (Render free không có IP cố định). Atlas có nạp sample dataset, web không dùng (server lưu vào database `aloha_baby`).
+    - Render: đặt `MONGODB_URI`, `AUTH_SECRET` (Claude tạo bằng `crypto.randomBytes(32)`), `ALLOWED_ORIGINS=https://ahola-baby.vercel.app,https://chungcchung1972005-cell.github.io` (thay biến `ALLOWED_ORIGINS` cũ bị trùng key).
+  - **Mật khẩu/key:** mật khẩu user DB và `GEMINI_API_KEY` từng lộ trong chat; người dùng chốt KHÔNG đổi và yêu cầu Claude không nhắc lại (đã ghi vào "Ghi nhớ nhanh" của CLAUDE.md).
+  - **Giao diện Atlas mới khác hướng dẫn trong `server/DEPLOY.md`:** bấm Connect lần đầu là trình hướng dẫn tự tạo user + chỉ thêm IP máy đang dùng; phải tự vào Network Access thêm `0.0.0.0/0`. Người dùng từng gõ nhầm chữ trên nút ("ADD CURRENT IP ADDRESS") vào ô nhập IP.
+  - **Đã kiểm chứng trên bản public (trình duyệt thật, Puppeteer):** `/api/health` → `"chatStore":"mongodb"`. Trên CẢ Vercel lẫn GitHub Pages, khách `0900000001` (cửa sổ ẩn danh, giả lập điện thoại) và Sale `0900000005` (cửa sổ ẩn danh khác, máy tính): khách gửi → Sale thấy trong hộp thư → Sale trả lời → khách nhận không cần tải lại → tải lại trang tin vẫn còn; không lỗi CORS/JS. 16/16 PASS. Script test để ở thư mục tạm của phiên, không thêm vào repo.
+  - **Dữ liệu test còn lại trong Atlas:** cuộc trò chuyện của `0900000001` có 5 tin test ("Kiem tra ket noi MongoDB" + 4 tin `[TEST ...]`). Xoá bằng Atlas → Browse Collections → `aloha_baby.chats` → document `_id: "0900000001"`.
+
+- **Chat THẬT Khách <-> Sale qua server + MongoDB Atlas (2026-09-27, lượt 5):**
+  - **Yêu cầu:** người dùng muốn tài khoản Sale "kết nối" với khung chat, Sale chat trực tiếp được với khách.
+  - **Đã hỏi:** hướng chat → "chỉ chat với Sale như hiện tại" (không bật lại bot); cách kết nối → "làm chat thật qua server"; database → "MongoDB Atlas".
+  - **Server** - `server/sale-chat.js` (mới, mount `/api/sale-chat`):
+    - Đăng nhập/đăng ký kiểm tra ở server: tài khoản demo khớp `login.html`; khách đăng ký thật có mật khẩu băm scrypt, chặn trùng SĐT, chặn SĐT của tài khoản demo.
+    - Token HMAC `AUTH_SECRET`, hạn 30 ngày.
+    - API: `/me` (khách, SĐT lấy từ token); `/inbox`, `/inbox/:phone` (Sale + Sếp); gửi + đánh dấu đã đọc (Sale); Sếp chỉ xem, Thợ ảnh bị chặn.
+    - Giới hạn 30 tin/phút, tin ≤ 2000 ký tự, giữ 500 tin/cuộc trò chuyện.
+    - Lưu MongoDB (`MONGODB_URI`, `MONGODB_DB`), không có thì lưu bộ nhớ.
+    - Thêm dependency `mongodb`. `/api/health` báo `chatStore`.
+  - **Web:**
+    - `js/auth.js` có `api/serverLogin/serverRegister/wakeServer`, `logout(next)`; session có thêm `token`.
+    - `login.html` đánh thức server khi mở trang; đăng nhập/đăng ký gọi server. Tài khoản demo vẫn vào được khi server tắt (chỉ chat báo "Đăng nhập lại"). Khách đăng ký thật đăng nhập lại được. Đăng ký lúc server tắt vẫn vào web như bản demo cũ.
+    - `js/sale-chat.js` đọc/ghi qua server:
+      - Hỏi tin mới 2,5 giây khi mở màn chat, 20 giây ở trang khác (để bật chấm đỏ).
+      - Tin đang gửi mờ đi; tin gửi lỗi có "Gửi lại".
+      - Dòng trạng thái "Đang kết nối…" hoặc "Đăng nhập lại".
+      - Lời chào tự động vẫn chỉ hiển thị, không lưu.
+    - `crm/js/admin.js` mục Tin nhắn đọc/ghi qua server, hỏi 3 giây/lần, có dòng trạng thái.
+    - `js/data-store.js` bỏ chat localStorage (`getChats`...), tự xoá key `chats` cũ.
+  - **Đã kiểm chứng:**
+    - `test-sale-chat.js` viết lại, 43 case, tự bật server cổng 3001 lưu bộ nhớ. Khách + Sale ở các cửa sổ ẩn danh riêng (như 2 máy) chat qua lại không cần tải lại trang; chấm đỏ; mất server → gửi lại; đăng ký chặn trùng; quyền ở server.
+    - Nhánh MongoDB kiểm bằng mongodb-memory-server (mongod thật, cài trong thư mục nháp, không thêm vào dự án): lưu/đọc, số chưa đọc, **tắt server bật lại vẫn còn tin + tài khoản**, Mongo không kết nối được thì trả 503 không sập.
+    - CHƯA kiểm với Atlas thật và Render thật (người dùng cần tự tạo, xem `server/DEPLOY.md`).
+    - 10 bộ test cũ vẫn pass khi không bật server (đăng nhập tự bỏ qua bước lấy mã).
+  - **Việc người dùng tự làm:** tạo Atlas, đặt `MONGODB_URI` + `AUTH_SECRET` + `ALLOWED_ORIGINS` trên Render, merge PR để Render deploy.
+
+- **Tin chào Sale luôn đến lần lượt + dọn tin "điền sẵn" cũ (2026-09-27, lượt 4):**
+  - **Người dùng báo:** chưa thấy tin đến lần lượt, và muốn bỏ "tin nhắn demo của khách".
+  - **Nguyên nhân:**
+    - Tin "Mình muốn được tư vấn dịch vụ Chụp ảnh bầu." là tin THẬT còn trong localStorage của người dùng, do bản chat đầu tiên điền sẵn câu này vào ô nhập và người dùng đã gửi.
+    - Cuộc trò chuyện đã có tin nên chuỗi chào không chạy.
+    - Chuỗi chào còn bị giới hạn "1 lần mỗi lần tải trang" và tắt hẳn khi máy bật giảm hiệu ứng.
+  - **Đã sửa:**
+    - `js/data-store.js` `dropOldPrefill()` chạy khi nạp: xoá tin khách đúng mẫu câu cũ, gửi trước 28/09/2026. Cuộc trò chuyện rỗng thì xoá hẳn; tin gõ sau mốc giữ nguyên.
+    - Chuỗi chào chạy MỖI lần mở màn chat khi khách chưa nhắn gì. Chạy cả khi giảm hiệu ứng (chỉ bỏ chuyển động).
+    - Dấu "…" đang trả lời có thêm dòng "Tư vấn viên đang trả lời…".
+    - Tăng số phiên bản cache `pages.css`/`data-store.js`/`sale-chat.js`.
+  - **Test:** `test-sale-chat.js` lên 50 case.
+
+- **Màn chat Sale: bỏ cột trái, ảnh phóng to chuyển trang, tin chào đến lần lượt (2026-09-27, lượt 3):**
+  - **Yêu cầu:** bỏ cột bên trái; bấm ảnh ở trang chủ thì chuyển mượt sang trang nhắn tin; từng tin tự động ban đầu của Sale đến "như thật".
+  - **Bỏ cột trái:** bỏ luôn chức năng đổi dịch vụ trên màn chat. Khung chat ở giữa, rộng tối đa 900px; nút quay lại luôn ở đầu khung.
+  - **Chuyển trang:** đã đăng nhập mà bấm ảnh thì có bản sao ảnh phóng từ ô ảnh ra phủ màn hình (0,48 giây, phủ dần lớp hồng nhạt), đổi sang màn chat rồi mờ đi (0,32 giây); khung chat trượt lên (`.sc-in`). Chưa đăng nhập thì vẫn sang trang đăng nhập; đăng nhập xong khung chat trượt lên.
+  - **Tin chào:** "đang nhập" trước mỗi tin, thời gian gõ 0,7 - 1,6 giây tuỳ độ dài câu, nghỉ 0,4 giây giữa các tin, xong mới hiện nút gợi ý. Mỗi tin và tin mới đến sau (khách gửi, Sale trả lời) có hiệu ứng "bật lên". Quay lại màn chat thì lời chào hiện đủ ngay.
+  - **Sửa kèm:** giờ của lời chào có lúc muộn hơn tin khách (sau khi tải lại trang). Nay lời chào lấy giờ tin đầu nếu sớm hơn, dòng ngày đặt trên lời chào.
+  - **Test:** `test-sale-chat.js` lên 48 case (ảnh phóng, thứ tự tin chào, nhịp đang nhập, nút gợi ý sau tin cuối).
+
+- **Chat với Sale thành màn hình riêng + lời chào tự động (2026-09-27, lượt sau):**
+  - **Yêu cầu:** bấm ảnh + đăng nhập xong thì ra "1 giao diện khác" để chat với Sale, mở đầu bằng tin nhắn tự động kiểu "tôi có thể giúp gì cho bạn" nhưng hay hơn.
+  - **Đã làm:**
+    - `#/chat-sale[/<dịch vụ>]` từ "mở khung chat nổi trên Trang chủ" thành view riêng `#view-chat` trong `index.html` (vẫn 3 file HTML).
+    - Desktop 2 cột: trái là đội tư vấn, chọn dịch vụ quan tâm (đổi ngay trên màn, thay địa chỉ không thêm lịch sử), hotline, địa chỉ; phải là cuộc trò chuyện.
+    - Màn ≤860px bỏ cột trái, có nút quay lại.
+    - Chiều cao vừa khung nhìn (JS đo header). Ẩn footer + nút nổi.
+  - **Lời chào tự động:**
+    - Hiện sau nhịp "đang nhập" 0.9 giây, chỉ lần đầu, và chỉ khi không bật giảm hiệu ứng.
+    - 3 bong bóng: chào theo tên + buổi trong ngày, giới thiệu, hỏi nhu cầu nhắc đúng dịch vụ vừa bấm.
+    - 4 nút gợi ý câu hỏi theo dịch vụ, bấm là gửi thành tin của khách; ẩn khi khách đã nhắn.
+    - Lời chào CHỈ hiển thị (không lưu vào `db.chats`, nên Sale không thấy tin giả) và ghi rõ "Tin nhắn tự động". Không hứa thời gian phản hồi.
+  - **Tin nhắn:** gom nhóm theo người gửi, có dòng ngày, avatar Sale + tên Sale trả lời. Ô nhập nhiều dòng: Enter gửi, Shift+Enter xuống dòng. Trên điện thoại không tự bật bàn phím.
+  - **Phần khung chat nổi:** `js/sale-chat.js` viết lại, không dùng `#chatPanel` nữa (khung đó chỉ còn cho chatbot khi bật lại `aiChat`). Router bỏ `openSaleChat`.
+  - **CSS:** trong `css/pages.css` (`.sc-*`). Đã bỏ các class chat Sale cũ trong `style.css`.
+  - **Test:** `test-sale-chat.js` lên 42 case.
+
+- **Bấm ảnh dịch vụ -> đăng nhập -> chat trực tiếp với Sale; tạm tắt Đặt lịch / album / chatbot AI (2026-09-27):**
+  - **Yêu cầu:** khách chưa đăng nhập vẫn lướt được web; bấm ảnh ở khối đầu trang thì sang đăng nhập, xong thì vào thẳng chat với "các tài khoản Sale"; tạm ẩn ảnh album, các nút đặt lịch, chatbot AI.
+  - **Đã hỏi và người dùng chọn:**
+    - Gate cả 5 ảnh lẫn dòng chữ 5 dịch vụ.
+    - "Ẩn ảnh album" = ẩn lối vào trang album.
+    - Ẩn hết nhưng giữ code, dùng 1 cờ.
+    - Chat: tin khách "nhảy sang Sale để trả lời ngay tại web". Làm bằng localStorage, vì site chưa có backend.
+  - **Cờ tắt tính năng:**
+    - `js/features.js` (mới): `booking/aiChat/albumPages` mặc định `false`, đặt class `feat-no-*` lên `<html>`.
+    - CSS cuối `style.css` ẩn mọi `a[href="#/dat-lich"]` + khối `.cta-final`; thẻ `a[href^="#/album"]` không bấm được.
+    - Router đưa `#/dat-lich`, `#/album/...` về Trang chủ.
+    - `script.js` bỏ qua khối chatbot khi `aiChat` tắt; ô tìm kiếm ẩn mục "Đặt lịch", thêm mục "Nhắn tin cho Sale".
+  - **Luồng đăng nhập -> chat:**
+    - Route mới `#/chat-sale[/<dịch vụ>]` bắt đăng nhập khách hàng: `login.html?next=chat-sale/<slug>`, `isValidNext` nhận dạng này.
+    - Đăng ký mới khi Đặt lịch tắt thì vào chat thay vì trang đặt lịch.
+    - Đăng nhập xong: Trang chủ, khung chat mở sẵn, ô nhập điền "Mình muốn được tư vấn dịch vụ <dịch vụ>.", địa chỉ về `#/`.
+  - **Khung chat phía khách:** `js/sale-chat.js` (mới) dùng lại `#chatPanel`, có tên Sale trả lời + giờ gửi, chấm đỏ trên nút chat khi Sale đã trả lời, ghi rõ "bản demo, lưu trên trình duyệt này".
+  - **Dữ liệu:** `db.chats` trong `aloha_demo_db` (lược đồ ở CLAUDE.md).
+  - **Admin:** mục "Tin nhắn" (Sale + Sếp, Sếp chỉ xem). Thêm 2 tài khoản Sale demo `0900000005`/`0900000006` (mật khẩu `sale123`).
+  - **Giới hạn đã báo người dùng:**
+    - Chỉ thấy nhau trong cùng 1 trình duyệt.
+    - `aloha_auth` là 1 phiên chung nên khách và Sale không đăng nhập song song được.
+    - Trên bản public, khách thật nhắn sẽ không có Sale nào nhận.
+    - Tin nhắn chưa ghi vào hồ sơ CRM.
+    - Trang nội dung vẫn còn chữ nhắc "đặt lịch online", "trợ lý trong khung chat"; thẻ "Xem trọn album" trong trang nội dung không bấm được.
+    - Trạng thái rỗng "Ảnh của tôi" thêm nút "Nhắn tin cho Sale".
+  - **Test:**
+    - `test-sale-chat.js` mới, 31 case.
+    - Test cũ mở trình duyệt bằng `launchAllFeatures` (test-env) để bật lại đủ cờ.
+    - `test-service-albums` sửa link ảnh đầu trang, mở album bằng địa chỉ.
+    - `test-auth` thêm tab "Tin nhắn".
+  - **Rà soát:** agent reviewer. Đã sửa câu chữ hứa "trả lời ngay", cache-bust `style.css`/`data-store.js`, fallback khi bật lại `aiChat`.
+
+- **Khối Dịch vụ đầu trang chủ theo bố cục alohababy.vn (2026-09-27):** người dùng gửi ảnh khối "DỊCH VỤ" của alohababy.vn, yêu cầu bố cục + chữ giống vậy (chỉ lấy phần chữ, không lấy ảnh). Đã làm trong `#dich-vu` (`index.html`, `css/style.css`): bỏ cột chữ "5 dịch vụ đồng hành cùng con lớn khôn" + mô tả + nút "Đặt lịch chụp ngay" (còn nút Đặt lịch nổi và CTA ở section Giới thiệu ngắn bên dưới); thay bằng h1 "Dịch vụ" in hoa giữa trang có gạch hồng 2 bên, dòng 5 link "Chụp ảnh bé lớn / sinh nhật / bầu / gia đình / Newborn" (chấm hồng, mở album), lưới 3 cột: trái Bé lớn + Sinh nhật, giữa Bầu cao gấp đôi, phải Gia đình + Newborn; nhãn "CHỤP ẢNH ..." nằm giữa ảnh trong khung tối trong viền trắng, rê chuột đổi hồng. Bỏ nút mũi tên và dòng "Xem album · 7 concept" (bản gốc không có) nên xoá đoạn điền `data-album-count` trong `js/albums.js`. Điện thoại: 2 cột (Bầu cao gấp đôi bên phải, Gia đình + Newborn hàng cuối). Giữ bảng màu hồng/navy và ảnh stock hiện có. Ô tìm kiếm: `match` của 5 dịch vụ trong `js/script.js` đổi theo nhãn mới. Test: `test-service-albums.js` sửa case tiêu đề/ô ảnh, thêm case dòng 5 dịch vụ và bố cục ô Bầu, 133/133 pass.
+
 - **"Chat với thợ chỉnh ảnh" nổi bật hơn + câu hỏi nhanh (2026-09-27):** người dùng muốn khung chat nổi bật hơn. Đầu khung nền gradient hồng đậm chữ trắng, avatar nền trắng, chấm xanh "Thợ chỉnh ảnh ALOHA · luôn sẵn sàng hỗ trợ bạn"; viền 2px hồng + bóng hồng; nền danh sách tin có hoạ tiết chấm nhẹ; hàng câu hỏi nhanh (`#psChatQuick`: Khi nào có ảnh? / Cách tải ảnh / Muốn chỉnh thêm / In ảnh khổ lớn, bấm là gửi luôn câu hỏi đầy đủ, khoá khi đang chờ trả lời; điện thoại vuốt ngang); ô nhập + nút gửi lớn hơn. CSS đè ở cuối `css/pages.css`. Cùng lúc xác nhận PR #11 đã merge vào `main`: Render có `/api/edit-chat` (gọi thử trả lời đúng giọng thợ) và GitHub Pages có tab "Ảnh đã chỉnh". Commit tinh chỉnh prompt (`8ccf849`) và phần giao diện này chưa vào `main`, cần PR mới. `test-edited-photos.js` 47 case pass.
 - **Thử thật "Chat với thợ chỉnh ảnh" với Gemini trên máy + tinh chỉnh prompt (2026-09-27):** người dùng tạo key Gemini riêng, dán vào `server/.env` (đã nằm trong `server/.gitignore`). **Lưu ý khi chạy server local:** phải chạy trong thư mục `server/` (`npm start` hoặc `cd server; node server.js`), vì `dotenv` đọc `.env` theo thư mục đang đứng; chạy `node server/server.js` từ thư mục gốc thì `hasKey: false`. Chạy 11 tình huống thật (tiến độ, chuyên môn da bé/in ấn, khen ảnh, yêu cầu chỉnh cụ thể, hỏi phí/số lần chỉnh, hỏi người hay máy, chấm 3 điểm, chấm 5 điểm, nhiều lượt, ngoài lề), phản hồi 1 đến 6 giây. Lượt đầu phát hiện 3 điểm và đã sửa trong `editChatPrompt`: (1) câu nào cũng lặp "đơn Newborn mã ... 12 ảnh" -> chỉ nhắc khi khách hỏi đơn/tiến độ, chỉ chào ở tin đầu; (2) hỏi khảo sát cả khi khách đang hỏi việc khác -> chỉ hỏi khi đã có link và khách vừa khen/cảm ơn/báo đã xem, mỗi cuộc chỉ hỏi 1 lần; (3) chấm 3 điểm không chuyển thợ -> chấm từ 3 trở xuống hoặc chưa ưng thì forward = true. Thêm: khen mà chưa chấm điểm thì hỏi thang 5 trước rồi mới gợi ý mốc chụp; không chêm tiếng Anh ("retoucher"). Kết quả lượt cuối đều đúng ý; hỏi thẳng người hay máy thì trợ lý trả lời trung thực là trợ lý tự động của studio.
 - **"Ảnh của tôi" nhớ yêu cầu đã gửi khi tải lại trang (2026-09-27):** người dùng thấy tab "Ảnh đã chỉnh" báo "đã gửi 13 ảnh lúc 10:20 25-09" dù nghĩ mình chưa gửi. **Nguồn gốc dữ liệu:** yêu cầu đó được tạo hôm 25/9 bằng code cũ, lúc đó đóng popup QR ("Thanh toán sau & Đóng"/dấu X) là tự gửi yêu cầu dù chưa thanh toán; lỗi này đã sửa cùng ngày nhưng bản ghi cũ vẫn nằm trong localStorage trình duyệt của người dùng. **Lỗi thật đi kèm:** trang chỉ khoá lưới ảnh trong phiên vừa gửi; tải lại trang là mở khoá, cho chọn và gửi thêm yêu cầu, trong khi tab "Ảnh đã chỉnh" báo đã gửi. Đã thêm `restoreSentRequest()` (`js/chon-anh.js`, chạy lúc khởi tạo): có yêu cầu của số điện thoại này thì đánh dấu lại đúng ảnh đã gửi (ảnh vượt gói theo cờ `isExtra`, yêu cầu cũ chưa có cờ thì coi ảnh thứ 11 trở đi là vượt gói; ghi chú từng ảnh + ghi chú chung, ô ghi chú chỉ đọc), khoá tim + nút gửi ("Đã gửi yêu cầu") + nút chọn nhanh, hiện thông báo "Bạn đã gửi N ảnh cho thợ chỉnh ảnh lúc ..." kèm nút "Xem tiến độ" mở tab "Ảnh đã chỉnh". Thêm cờ `requestSent` vì `updateSummary()` vốn tự bật lại nút gửi mỗi khi có ảnh được chọn. **Test đạt nhầm đã phát hiện:** trong `test-edited-photos.js`, bước tải lại trang của khách chạy sau khi Thợ ảnh đăng nhập cùng trình duyệt (phiên `aloha_auth` dùng chung) nên trang khách bị chuyển sang trang quản trị, case "không hiện lại chấm báo" pass vì không có tab nào; giờ đặt lại phiên khách trước khi tải lại và kiểm tra đang ở `#/chon-anh`. 45 case pass.

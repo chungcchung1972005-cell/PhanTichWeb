@@ -13,7 +13,7 @@ const ACCOUNTS = {
 };
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
@@ -67,7 +67,7 @@ const ACCOUNTS = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
     'sale': { urlIncludes: 'crm/sale.html' }, // Không gian Sale riêng, test chi tiết ở test-sale.js
     'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
-    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
+    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
   };
 
   for (const role of Object.keys(ROLE_EXPECT)) {
