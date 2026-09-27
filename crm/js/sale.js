@@ -6,7 +6,11 @@
 // Phân quyền dữ liệu (mô phỏng phía client, site tĩnh chưa có backend):
 // - Sale đang đăng nhập được nhận diện qua số điện thoại trong session (js/auth.js)
 //   rồi đối chiếu với ALOHA_SALE_DATA.sales.
-// - Khách hàng, hộp thư, cọc, đơn & ảnh: CHỈ bản ghi có owner = sale đó.
+// - Hộp thư, Khách hàng, Đặt cọc, Đơn & ảnh, Chuyển giao: hiện khách của MỌI sale
+//   (người dùng đổi 2026-09-27), có bộ lọc "Sale phụ trách" dùng chung cho 5 trang,
+//   mặc định "Tất cả sale". Khách của sale khác CHỈ XEM: không trả lời tin, không gọi,
+//   không xác nhận cọc, không kéo phễu, không chọn để chuyển giao; SĐT vẫn che.
+// - Tổng quan, Việc cần làm, số đếm trên menu, Báo cáo của tôi, Tìm kiếm: chỉ khách của mình.
 // - Lịch chụp: lịch chung của studio, mọi sale thấy cả tuần; thông tin liên hệ
 //   của khách chỉ hiện với sale phụ trách.
 // Mọi thao tác chỉ thay đổi bản sao dữ liệu trong bộ nhớ trang (không lưu lại).
@@ -19,12 +23,73 @@
   const session = window.AlohaAuth.getSession() || {};
   const me = db.sales.find(s => s.phone === session.phone) || db.sales[0];
 
-  // Đồng hồ demo: bắt đầu 25/09/2026 10:30 rồi chạy theo thời gian thật kể từ lúc mở trang.
-  const DEMO_START = new Date(db.now).getTime();
-  const PAGE_START = Date.now();
-  const demoNow = () => new Date(DEMO_START + (Date.now() - PAGE_START));
-  const TODAY = dateKey(new Date(DEMO_START));
-  const TOMORROW = dateKey(addDays(new Date(DEMO_START), 1));
+  // Đồng hồ: dùng ngày giờ thật của máy. "Hôm nay" tự đổi khi qua nửa đêm (xem tick()).
+  const demoNow = () => new Date();
+  let TODAY = dateKey(new Date());
+  let TOMORROW = dateKey(addDays(new Date(), 1));
+  shiftDemoDates(db, Math.round((parseKey(TODAY) - parseKey(db.now.slice(0, 10))) / 864e5));
+  startHolds();
+
+  // Dữ liệu demo viết quanh ngày gốc db.now: dời mọi ngày (2026-09-25, 25/09, 25/09/2026)
+  // thêm `days` ngày để lịch và các mốc luôn tính từ hôm nay thật. Chuỗi kiểu "4/15 ảnh"
+  // (đếm ảnh) không bị đụng vì ngày luôn viết đủ 2 chữ số.
+  function shiftDemoDates(obj, days) {
+    if (!days) return;
+    const baseYear = Number(db.now.slice(0, 4));
+    const iso = (s) => s.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => dateKey(addDays(new Date(+y, mo - 1, +d), days)));
+    const dm = (s) => s.replace(/\b(\d{2})\/(\d{2})(\/(\d{4}))?\b(?!\s*ảnh)/g, (m, d, mo, _, y) => {
+      if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+      const x = addDays(new Date(y ? +y : baseYear, mo - 1, +d), days);
+      return pad(x.getDate()) + '/' + pad(x.getMonth() + 1) + (y ? '/' + x.getFullYear() : '');
+    });
+    const walk = (o) => {
+      Object.keys(o).forEach(k => {
+        const v = o[k];
+        if (typeof v === 'string') o[k] = dm(iso(v));
+        else if (v && typeof v === 'object') walk(v);
+      });
+    };
+    ['customers', 'appointments', 'deposits', 'unmatched', 'orders', 'conversations', 'transfers', 'sales'].forEach(k => walk(db[k]));
+  }
+
+  // Yêu cầu cọc đang chờ: giữ lịch tối đa CFG.holdHours (1 tiếng) kể từ lúc gửi link.
+  // Dữ liệu demo cho biết còn bao nhiêu phút (holdLeftMin) -> tính lại giờ gửi / hết hạn
+  // theo giờ thật, rồi thay giờ cũ trong trạng thái khách + tin nhắn cho khớp.
+  function startHolds() {
+    const now = Date.now(); const HOLD = CFG.holdHours * 3600e3;
+    db.deposits.forEach(d => {
+      if (d.state !== 'sent' && d.state !== 'opened') return;
+      const oldHold = d.holdUntil;
+      d.holdEnd = now + (d.holdLeftMin || 30) * 60e3;
+      const sent = d.holdEnd - HOLD;
+      d.sentAt = hm(new Date(sent)); d.holdUntil = hm(new Date(d.holdEnd));
+      if (d.openedAt) d.openedAt = hm(new Date(sent + (now - sent) / 2));
+      d.log.forEach(l => { l.time = l.who === 'sale' ? d.sentAt : d.openedAt || l.time; });
+      const c = db.customers.find(x => x.id === d.customerId);
+      if (c && oldHold) c.status.text = c.status.text.replace(oldHold, d.holdUntil);
+      db.conversations.filter(v => v.customerId === d.customerId).forEach(v => v.messages.forEach(m => {
+        if (oldHold) m.text = m.text.replace('tới ' + oldHold, 'tới ' + d.holdUntil);
+      }));
+    });
+  }
+
+  // Hết giờ giữ mà chưa cọc: nhả khung giờ (xoá lịch giữ chỗ khỏi lịch chung), yêu cầu cọc
+  // chuyển "Hết giờ giữ", khách về trạng thái chưa cọc (rules/workflow.md: Đặt cọc bước 5).
+  function expireHolds() {
+    const now = Date.now(); let changed = false;
+    db.deposits.forEach(d => {
+      if ((d.state !== 'sent' && d.state !== 'opened') || !d.holdEnd || now < d.holdEnd) return;
+      const ap = appointmentOf(d);
+      d.state = 'expired';
+      d.releasedSlot = ap ? fmtDM(ap.date) + ' ' + ap.start : '';
+      if (ap) db.appointments = db.appointments.filter(a => a !== ap);
+      d.log.unshift({ time: d.holdUntil, who: 'auto', text: 'Hết ' + CFG.holdHours + ' tiếng giữ lịch mà chưa nhận cọc, tự nhả khung giờ ' + d.releasedSlot });
+      const c = customer(d.customerId);
+      if (c) { c.status = { text: 'Hết giờ giữ lịch', tone: 'red' }; c.since = 'Nhả lịch ' + d.holdUntil; }
+      changed = true;
+    });
+    return changed;
+  }
 
   // ---------- Hằng số ----------
   const STAGES = [
@@ -105,6 +170,19 @@
   function svcTag(s) { return '<span class="sw-tag tone-' + (SVC_TONE[s] || 'beige') + '">' + esc(s) + '</span>'; }
   function badge(text, tone) { return '<span class="sw-badge tone-' + (tone || 'muted') + '">' + esc(text) + '</span>'; }
 
+  function ownerSelect() {
+    return '<label class="sw-pill-select sw-owner-select">' + icon('users') + '<span>Sale phụ trách:</span><select data-owner-filter aria-label="Lọc theo sale phụ trách">' +
+      '<option value="all">Tất cả sale</option>' +
+      db.sales.map(s => '<option value="' + s.id + '"' + (ui.owner === s.id ? ' selected' : '') + '>' + esc(s.name) + (s.id === me.id ? ' (tôi)' : '') + '</option>').join('') +
+      '</select></label>';
+  }
+  function readOnlyNote(ownerId) {
+    return '<p class="sw-note sw-readonly">' + icon('lock') + '<span>Khách do <strong>' + esc(saleName(ownerId)) + '</strong> phụ trách · bạn chỉ xem được, mọi thao tác do sale phụ trách thực hiện.</span></p>';
+  }
+  function ownerTag(ownerId) {
+    return ownerId === me.id ? '' : '<span class="sw-tag tone-beige sw-owner-tag">' + esc(saleName(ownerId)) + '</span>';
+  }
+
   // ---------- Truy vấn theo quyền ----------
   const mine = (arr) => arr.filter(x => x.owner === me.id);
   const myCustomers = () => mine(db.customers);
@@ -114,6 +192,9 @@
   const myOrders = () => mine(db.orders);
   const customer = (id) => db.customers.find(c => c.id === id);
   const myCustomer = (id) => { const c = customer(id); return c && c.owner === me.id ? c : null; };
+  // Bộ lọc "Sale phụ trách" (ui.owner: 'all' hoặc id sale) cho 5 trang xem chung.
+  const scoped = (arr) => ui.owner === 'all' ? arr : arr.filter(x => x.owner === ui.owner);
+  const isMine = (x) => !!x && x.owner === me.id;
   const stageLabel = (id) => (STAGES.find(s => s.id === id) || { label: 'Khách cũ' }).label;
   const convOf = (customerId) => myConversations().find(v => v.customerId === customerId);
   const appointmentOf = (dep) => db.appointments.find(a => a.id === dep.appointmentId);
@@ -121,10 +202,11 @@
   // ---------- Trạng thái giao diện ----------
   const ui = {
     taskFilter: 'all',
+    owner: 'all',
     inbox: { filter: 'chua-tra-loi', active: null, mobileChat: false },
     lead: { source: '', service: '' },
     cal: { weekStart: mondayOf(parseKey(TODAY)), mode: 'tuan', day: TODAY },
-    qb: { phone: '', name: '', service: 'Newborn', date: '2026-09-27', time: '16:00', room: '', pkg: '', channels: ['Chat web', 'SMS'] },
+    qb: { phone: '', name: '', service: 'Newborn', date: dateKey(addDays(parseKey(TODAY), 2)), time: '16:00', room: '', pkg: '', channels: ['Chat web', 'SMS'] },
     dep: { filter: 'all', selected: null, fresh: {} },
     ord: { filter: 'all' },
     cus: { mode: 'bang', group: 'all', bday: false, selected: null },
@@ -169,6 +251,14 @@
           desc: 'Chuyển khoản lúc ' + d.paidAt + ' · nội dung khớp mã ' + d.code,
           mDesc: money(d.received) + ' · ' + d.paidAt, customerId: c.id, code: d.code,
           actions: [{ act: 'confirm-deposit', label: 'Xác nhận', icon: 'check', style: 'teal' }, { act: 'view-deposit', label: 'Xem' }]
+        });
+      } else if (d.state === 'expired') {
+        tasks.push({
+          key: 'dep:' + d.code, kind: 'coc', prio: 4, badge: 'Hết giờ giữ lịch', tone: 'red',
+          title: c.name + ' · ' + d.code, mTitle: c.name,
+          desc: 'Quá ' + CFG.holdHours + ' tiếng chưa cọc, đã nhả khung ' + d.releasedSlot, mDesc: 'Đã nhả khung ' + d.releasedSlot,
+          customerId: c.id, code: d.code,
+          actions: [{ act: 'call', label: 'Gọi', icon: 'phone', style: 'teal' }, { act: 'book-for', label: 'Giữ lịch lại', icon: 'calendar' }]
         });
       } else if (d.state === 'short') {
         tasks.push({
@@ -233,7 +323,7 @@
       '<small>Mục tiêu tháng ' + (parseKey(TODAY).getMonth() + 1) + '</small>' +
       '<strong>' + me.achieved + ' / ' + me.target + ' triệu</strong>' +
       '<span class="sw-goal-bar"><i style="width:' + pct + '%"></i></span>' +
-      '<small>Còn 5 ngày · cần thêm ' + Math.max(0, me.target - me.achieved) + ' triệu</small>';
+      '<small>Còn ' + Math.round((parseKey(endOfMonth(TODAY)) - parseKey(TODAY)) / 864e5) + ' ngày · cần thêm ' + Math.max(0, me.target - me.achieved) + ' triệu</small>';
     document.getElementById('swMeName').textContent = me.name;
     document.getElementById('swMeAvatar').textContent = initials(me.name);
     document.querySelectorAll('#swBottom a').forEach(a => a.classList.toggle('active', a.dataset.route === route));
@@ -249,8 +339,7 @@
   function viewOverview() {
     const tasks = buildTasks();
     const d = parseKey(TODAY);
-    setHead('Chào ' + me.name + ', hôm nay có ' + tasks.length + ' việc cần xử lý',
-      WEEKDAY[d.getDay()] + ', ' + fmtDMY(TODAY) + ' · Ca 08:00–17:00 · Việc được xếp theo mức gấp');
+    setHead('Tổng quan', WEEKDAY[d.getDay()] + ', ' + fmtDMY(TODAY) + ' · ' + tasks.length + ' việc cần xử lý · Ca 08:00–17:00 · Việc được xếp theo mức gấp');
 
     const leads = myLeads();
     const newLeads = leads.filter(c => c.stage === 'moi');
@@ -348,7 +437,7 @@
 
   // ---------- Trang: Hộp thư ----------
   function viewInbox(param) {
-    const convs = myConversations();
+    const convs = scoped(db.conversations);
     const filters = {
       'chua-tra-loi': v => v.unread && !v.done,
       'cua-toi': v => !v.bot && !v.done,
@@ -371,13 +460,13 @@
         '<span class="sw-avatar">' + initials(c.name) + '</span>' +
         '<span class="ib-item-body"><span class="ib-item-top"><strong>' + esc(c.name) + '</strong><small>' + esc(v.time) + '</small></span>' +
         '<span class="ib-preview">' + esc(last.text) + '</span>' +
-        '<span class="sw-tag ' + (v.bot ? 'tone-peach' : 'tone-blue') + '">' + esc(v.channel) + '</span></span></button>';
+        '<span class="ib-item-tags"><span class="sw-tag ' + (v.bot ? 'tone-peach' : 'tone-blue') + '">' + esc(v.channel) + '</span>' + ownerTag(v.owner) + '</span></span></button>';
     }).join('') : emptyState('Không có hội thoại nào.');
 
     return '<div class="ib' + (ui.inbox.mobileChat ? ' show-chat' : '') + '">' +
       '<section class="ib-list">' +
         '<div class="ib-list-head"><h1>Hộp thư</h1><p>Tin nhắn khách gửi trên website ALOHA Baby</p>' +
-        '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Của tôi') + chip('bot', 'Bot đã chuyển') + chip('da-xong', 'Đã xong') + '</div></div>' +
+        '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Đang trao đổi') + chip('bot', 'Bot đã chuyển') + chip('da-xong', 'Đã xong') + '</div>' + ownerSelect() + '</div>' +
         '<div class="ib-items">' + listHtml + '</div>' +
       '</section>' +
       (active ? chatPane(active) + '<aside class="ib-info">' + customerPanel(customer(active.customerId)) + '</aside>'
@@ -387,28 +476,29 @@
 
   function chatPane(v) {
     const c = customer(v.customerId);
+    const own = isMine(v);
     const quick = ['Bảng giá ' + c.service, 'Concept đang được chọn nhiều', 'Khung giờ còn trống', 'Hướng dẫn đặt cọc', 'Lưu ý chuẩn bị cho bé'];
     return '<section class="ib-chat">' +
       '<header class="ib-chat-head">' +
         '<button type="button" class="sw-icon-btn ib-back" data-act="inbox-back" aria-label="Quay lại danh sách">' + icon('back') + '</button>' +
         '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + '</small></div>' +
         '<div class="ib-chat-actions">' +
-          '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' +
+          (own ? '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' : '') +
           '<button type="button" class="sw-btn ib-profile-btn" data-act="profile" data-id="' + c.id + '">' + icon('user') + 'Hồ sơ</button>' +
-          '<button type="button" class="sw-btn" data-act="transfer" data-id="' + c.id + '">Chuyển người khác</button>' +
+          (own ? '<button type="button" class="sw-btn" data-act="transfer" data-id="' + c.id + '">Chuyển người khác</button>' : '') +
         '</div>' +
       '</header>' +
       '<div class="ib-msgs" id="ibMsgs">' +
         (v.bot && v.botSummary ? '<div class="ib-bot">' + icon('bot') + '<div><strong>Trợ lý ALOHA đã hỏi sẵn và chuyển cho bạn</strong><span>' + esc(v.botSummary) + '</span></div></div>' : '') +
-        v.messages.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || me.name) : '') + '</small></div>').join('') +
+        v.messages.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>').join('') +
       '</div>' +
-      '<div class="ib-compose">' +
+      (own ? '<div class="ib-compose">' +
         '<div class="ib-quick">' + quick.map(q => '<button type="button" class="sw-chip sw-chip-outline" data-act="quick-reply" data-id="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>' +
         '<form class="ib-form" data-form="send-msg" data-id="' + v.id + '">' +
           '<input id="ibInput" type="text" placeholder="Nhập tin nhắn, gõ / để chèn mẫu trả lời" autocomplete="off">' +
           '<button type="submit" class="sw-btn sw-btn-accent">' + icon('send') + 'Gửi</button>' +
         '</form>' +
-      '</div>' +
+      '</div>' : '<div class="ib-compose">' + readOnlyNote(v.owner) + '</div>') +
     '</section>';
   }
 
@@ -455,21 +545,26 @@
 
   function customerPanel(c) {
     const idx = STAGES.findIndex(s => s.id === c.stage);
+    const own = isMine(c);
     return '<div class="ci">' +
       '<h2>' + esc(c.name) + '</h2>' +
       '<p class="sw-muted">' + maskPhone(c.phone) + ' · ' + esc(c.area) + '</p>' +
       '<div class="ci-tags">' + c.tags.map(t => '<span class="sw-tag tone-peach">' + esc(t) + '</span>').join('') + svcTag(c.service) + '</div>' +
       babyBlock(c) +
-      '<button type="button" class="sw-btn sw-btn-accent sw-btn-block" data-act="book-for" data-id="' + c.id + '">' + icon('calendar') + 'Tạo lịch và gửi link cọc</button>' +
+      (own ? '<button type="button" class="sw-btn sw-btn-accent sw-btn-block" data-act="book-for" data-id="' + c.id + '">' + icon('calendar') + 'Tạo lịch và gửi link cọc</button>' +
       '<button type="button" class="sw-btn sw-btn-block" data-act="send-quote" data-id="' + c.id + '">' + icon('send') + 'Gửi báo giá gói ' + esc(c.service) + '</button>' +
-      '<button type="button" class="sw-btn sw-btn-block" data-act="callback" data-id="' + c.id + '">' + icon('clock') + 'Hẹn gọi lại</button>' +
+      '<button type="button" class="sw-btn sw-btn-block" data-act="callback" data-id="' + c.id + '">' + icon('clock') + 'Hẹn gọi lại</button>' : readOnlyNote(c.owner)) +
       '<small class="sw-label">Giai đoạn</small>' +
       '<div class="ci-stage">' + STAGES.map((s, i) => '<i class="' + (i <= idx ? 'on' : '') + '"></i>').join('') + '</div>' +
       '<p class="ci-stage-text">' + (idx >= 0 ? stageLabel(c.stage) + ' · bước ' + (idx + 1) + '/5' : 'Khách cũ · đã hoàn thành phễu') + '</p>' +
       '<small class="sw-label">Ghi chú nội bộ</small>' +
-      '<textarea class="ci-note" data-note="' + c.id + '" rows="3" placeholder="Ghi chú chỉ nhân sự studio thấy">' + esc(c.note) + '</textarea>' +
+      noteBox(c) +
       '<p class="sw-muted ci-owner">Phụ trách: <strong>' + esc(saleName(c.owner)) + '</strong></p>' +
     '</div>';
+  }
+
+  function noteBox(c) {
+    return '<textarea class="ci-note" data-note="' + c.id + '" rows="3" placeholder="Ghi chú chỉ nhân sự studio thấy"' + (isMine(c) ? '' : ' readonly') + '>' + esc(c.note) + '</textarea>';
   }
 
   // ---------- Trang: Khách hàng (gộp Bảng giai đoạn + Danh sách) ----------
@@ -524,6 +619,7 @@
     if (dep && (dep.state === 'sent' || dep.state === 'opened')) return { text: 'Nhắc cọc trước ' + dep.holdUntil, tone: 'red' };
     if (dep && dep.state === 'paid') return { text: 'Xác nhận cọc ' + money(dep.received), tone: 'blue' };
     if (dep && dep.state === 'short') return { text: 'Kiểm tra cọc thiếu', tone: 'red' };
+    if (dep && dep.state === 'expired') return { text: 'Hết giờ giữ, giữ lịch lại', tone: 'red' };
     const ap = nextAppointment(c);
     if (ap && ap.status !== 'giu-cho') return { text: 'Chụp ' + ap.service + ' ' + fmtDM(ap.date) + ' ' + ap.start, tone: '' };
     const o = db.orders.find(x => x.customerId === c.id && x.status === 'cho-chon');
@@ -552,15 +648,15 @@
     return '<div class="cu-detail">' +
       '<div class="cu-id"><span class="sw-avatar cu-avatar">' + initials(c.name) + '</span><div><h2>' + esc(c.name) + '</h2><p class="sw-muted">' + maskPhone(c.phone) + ' · ' + esc(c.area) + '</p></div></div>' +
       '<div class="ci-tags">' + badge(g.label, g.tone) + '<span class="sw-tag tone-beige">Phụ trách: ' + esc(saleName(c.owner)) + '</span></div>' +
-      '<div class="cu-actions">' +
+      (isMine(c) ? '<div class="cu-actions">' +
         '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' +
         '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn</button>' +
         '<button type="button" class="sw-btn sw-btn-accent" data-act="book-for" data-id="' + c.id + '">' + icon('calendar') + 'Tạo lịch</button>' +
-      '</div>' +
+      '</div>' : readOnlyNote(c.owner)) +
       '<div class="sw-soft"><small class="sw-label">Các bé</small>' +
         (b ? '<div class="cu-baby"><strong>' + esc(b.name || 'Bé') + '</strong><span class="sw-muted">' +
             (b.kind === 'due' ? 'dự sinh ' + fmtDMY(b.date) : 'sinh ' + fmtDMY(b.date) + ' · ' + ageText(b.date)) + '</span></div>' +
-          (m && !offerDone ? '<div class="cu-offer">' + icon('gift') + '<span>Bé sắp ' + m.label + ' (' + fmtDM(m.key) + '). Gợi ý gói ' + (m.birthday ? 'Sinh nhật' : 'chụp 100 ngày') + '.</span>' +
+          (m && !offerDone && isMine(c) ? '<div class="cu-offer">' + icon('gift') + '<span>Bé sắp ' + m.label + ' (' + fmtDM(m.key) + '). Gợi ý gói ' + (m.birthday ? 'Sinh nhật' : 'chụp 100 ngày') + '.</span>' +
             '<button type="button" class="sw-btn" data-act="offer" data-key="cus:' + c.id + '">Gửi ưu đãi</button></div>' : '')
           : '<p class="sw-muted">Chưa có thông tin bé</p>') +
       '</div>' +
@@ -570,29 +666,32 @@
       '<small class="sw-label">Lịch sử với studio</small>' +
       '<ol class="dp-log cu-hist">' + cusHistory(c).map(h => '<li class="' + (h.shoot ? '' : 'sale') + '"><div><time>' + esc(h.date) + '</time></div><p>' + esc(h.text) + '</p></li>').join('') + '</ol>' +
       '<small class="sw-label">Ghi chú</small>' +
-      '<textarea class="ci-note" data-note="' + c.id + '" rows="3" placeholder="Ghi chú chỉ nhân sự studio thấy">' + esc(c.note) + '</textarea>' +
+      noteBox(c) +
     '</div>';
   }
 
   function viewCustomers() {
     const f = ui.cus; const lf = ui.lead;
     const board = f.mode === 'bang';
-    const all = myCustomers();
-    const openLeads = myLeads().filter(c => c.stage !== 'da-chot').length;
+    const all = scoped(db.customers);
+    const leads = all.filter(c => c.stage);
+    const openLeads = leads.filter(c => c.stage !== 'da-chot').length;
+    const who = ui.owner === 'all' ? 'cả studio' : ui.owner === me.id ? 'bạn' : saleName(ui.owner);
     setHead('Khách hàng', board
-      ? 'Mọi khách của bạn ở một chỗ · Bảng giai đoạn hiện ' + openLeads + ' khách đang tư vấn, kéo thẻ sang cột kế tiếp khi khách tiến thêm một bước'
-      : 'Một danh sách cho mọi khách, từ lúc mới hỏi đến khi đã chụp và quay lại · Chỉ hiện khách bạn phụ trách');
+      ? 'Khách của ' + who + ' · Bảng giai đoạn hiện ' + openLeads + ' khách đang tư vấn, kéo thẻ khách của bạn sang cột kế tiếp khi khách tiến thêm một bước'
+      : 'Khách của ' + who + ', từ lúc mới hỏi đến khi đã chụp và quay lại · Khách của sale khác chỉ xem');
     const sel = (name, label, opts, val) => '<label class="sw-pill-select">' + icon('filter') + '<span>' + label + ':</span><select data-lead-filter="' + name + '"><option value="">Tất cả</option>' +
       opts.map(o => '<option' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></label>';
     const seg = '<div class="cu-seg" role="tablist" aria-label="Kiểu xem">' + [['bang', 'Bảng giai đoạn', 'filter'], ['danh-sach', 'Danh sách', 'users']].map(([k, l, ic]) =>
       '<button type="button" role="tab" aria-selected="' + (f.mode === k) + '" class="' + (f.mode === k ? 'on' : '') + '" data-act="cus-mode" data-id="' + k + '">' + icon(ic) + l + '</button>').join('') + '</div>';
-    const leads = myLeads();
     const rate = leads.length ? Math.round(leads.filter(c => c.stage === 'da-chot').length / leads.length * 100) : 0;
-    const toolbar = '<div class="kb-toolbar">' + seg +
+    const rs = ui.owner === 'all' ? null : db.sales.find(s => s.id === ui.owner);
+    const respMin = rs ? rs.responseMin : Math.round(db.sales.reduce((t, s) => t + s.responseMin, 0) / db.sales.length);
+    const toolbar = '<div class="kb-toolbar">' + seg + ownerSelect() +
       sel('source', 'Nguồn', SOURCES, lf.source) + sel('service', 'Dịch vụ', SERVICES.concat(['Tại nhà']), lf.service) +
       (board
         ? '<span class="sw-pill-select">' + icon('filter') + '<span>Tuần này</span></span>' +
-          '<p class="kb-stats">Tỉ lệ chốt 30 ngày: <strong>' + rate + '%</strong> · Thời gian phản hồi TB: <strong>' + me.responseMin + ' phút</strong></p>'
+          '<p class="kb-stats">Tỉ lệ chốt 30 ngày: <strong>' + rate + '%</strong> · Thời gian phản hồi TB: <strong>' + respMin + ' phút</strong></p>'
         : '<button type="button" class="sw-pill-select' + (f.bday ? ' on' : '') + '" data-act="cus-bday" aria-pressed="' + f.bday + '">' + icon('gift') + '<span>Có bé sắp sinh nhật</span></button>' +
           '<button type="button" class="sw-btn cu-add" data-act="add-lead" data-id="moi">' + icon('userPlus') + 'Thêm khách</button>') +
     '</div>';
@@ -625,7 +724,7 @@
             const g = groupOf(c); const n = nextStep(c); const s = sub(c);
             return '<tr class="cu-row' + (c.id === f.selected ? ' on' : '') + '" data-act="cus-select" data-id="' + c.id + '">' +
               '<td><button type="button" class="sw-linkbtn" data-act="cus-select" data-id="' + c.id + '"><strong>' + esc(c.name) + '</strong></button>' +
-                '<small class="sw-muted sw-block">' + maskPhone(c.phone) + ' · ' + esc(c.source) + ' · ' + esc(c.since) + '</small></td>' +
+                '<small class="sw-muted sw-block">' + maskPhone(c.phone) + ' · ' + esc(c.source) + ' · ' + esc(c.since) + '</small>' + ownerTag(c.owner) + '</td>' +
               '<td>' + badge(g.label, g.tone) + (s ? '<small class="sw-muted sw-block">' + esc(s) + '</small>' : '') + '</td>' +
               '<td>' + esc(babyText(c)) + '</td>' +
               '<td><strong class="cu-next' + (n.tone ? ' c-' + n.tone : '') + '">' + esc(n.text) + '</strong></td></tr>';
@@ -648,6 +747,13 @@
   }
 
   function leadCard(c, stageIdx) {
+    if (!isMine(c)) {
+      return '<article class="sw-card kb-card kb-card-ro">' +
+        '<div class="kb-card-top"><strong>' + esc(c.name) + '</strong>' + svcTag(c.service) + '</div>' +
+        '<small class="sw-muted">' + esc(c.source) + ' · ' + esc(c.since) + '</small>' +
+        '<p class="kb-status c-' + c.status.tone + '">' + icon('clock') + esc(c.status.text) + '</p>' +
+        '<p class="kb-owner">' + icon('lock') + 'Của ' + esc(saleName(c.owner)) + ' · chỉ xem</p></article>';
+    }
     return '<article class="sw-card kb-card" draggable="true" data-drag="' + c.id + '">' +
       '<div class="kb-card-top"><strong>' + esc(c.name) + '</strong>' + svcTag(c.service) + '</div>' +
       '<small class="sw-muted">' + esc(c.source) + ' · ' + esc(c.since) + '</small>' +
@@ -779,12 +885,32 @@
       ['Phòng · Thợ ảnh', (a.room === 'Ngoài' ? 'Tại nhà khách' + (a.place ? ' (' + a.place + ')' : '') : roomLabel(a.room)) + ' · Thợ ' + a.photographer],
       ['Trạng thái', st.text], ['Phụ trách', saleName(a.owner) + (own ? ' (tôi)' : '')]
     ];
-    if (own && c) rows.push(['Liên hệ', fullPhone(c.phone)]);
+    // Mọi sale xem được liên hệ, cọc và tin nhắn của lịch (người dùng đổi 2026-09-27);
+    // chỉ sale phụ trách mới nhắn, gọi, xác nhận cọc.
+    if (c) rows.push(['Liên hệ', fullPhone(c.phone) + (c.area ? ' · ' + c.area : '')]);
+    const dep = db.deposits.find(d => d.appointmentId === a.id || (a.depositCode && d.code === a.depositCode));
+    if (dep) rows.push(['Đặt cọc', dep.code + ' · ' + depStateText(dep)]);
+    const conv = c && db.conversations.find(v => v.customerId === c.id);
+    const msgs = conv ? conv.messages.slice(-4) : [];
     openModal(a.service + ' · ' + a.label,
       '<dl class="sw-dl">' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl>' +
+      (conv ? '<small class="sw-label ap-msgs-label">Tin nhắn gần đây · qua ' + esc(conv.channel) + '</small>' +
+        '<div class="ap-msgs">' + (msgs.length ? msgs.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(conv.owner)) : '') + '</small></div>').join('') : emptyState('Chưa có tin nhắn.')) + '</div>' : '') +
       (own
-        ? (c ? '<div class="sw-modal-actions"><button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn khách</button><button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button></div>' : '')
-        : '<p class="sw-note">Khách do ' + esc(saleName(a.owner)) + ' phụ trách. Thông tin liên hệ và cọc chỉ sale phụ trách xem được.</p>'));
+        ? (c ? '<div class="sw-modal-actions">' + (dep ? '<button type="button" class="sw-btn" data-act="view-deposit" data-code="' + dep.code + '">' + icon('qr') + 'Xem cọc</button>' : '') +
+            '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn khách</button><button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button></div>' : '')
+        : (c ? readOnlyNote(a.owner) + '<div class="sw-modal-actions">' +
+            (dep ? '<button type="button" class="sw-btn" data-act="view-deposit" data-code="' + dep.code + '">' + icon('qr') + 'Xem cọc</button>' : '') +
+            (conv ? '<button type="button" class="sw-btn" data-act="view-conv" data-id="' + conv.id + '">' + icon('chat') + 'Xem hội thoại</button>' : '') + '</div>'
+          : '<p class="sw-note">Lịch do ' + esc(saleName(a.owner)) + ' phụ trách, chưa gắn hồ sơ khách trong CRM.</p>')));
+  }
+  function depStateText(d) {
+    if (d.state === 'confirmed') return 'Đã xác nhận · ' + money(d.received);
+    if (d.state === 'paid') return 'Tiền đã về ' + d.paidAt + ' · ' + money(d.received) + ', chờ xác nhận';
+    if (d.state === 'short') return 'Nhận ' + money(d.received) + ', thiếu so với số tiền cọc';
+    if (d.state === 'expired') return 'Hết giờ giữ ' + d.holdUntil + ', đã nhả khung giờ';
+    if (d.state === 'opened') return 'Khách đã mở link, giữ đến ' + d.holdUntil;
+    return 'Đã gửi link, chưa cọc · giữ đến ' + d.holdUntil;
   }
 
   // ----- Tạo lịch nhanh -----
@@ -860,7 +986,7 @@
         '<p class="qb-hint c-teal">Tự gợi ý: ' + (q.service === 'Newborn' ? 'phòng ấm cho newborn, ' : '') + 'thợ còn trống</p>' +
         '<label class="qb-field"><span>Gói</span><select data-qb="pkg"><option value="">[Tên gói] · ' + CFG.packagePriceText + '</option>' +
           ['Cơ bản', 'Tiêu chuẩn', 'Premium'].map(p => '<option' + (q.pkg === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select></label>' +
-        '<div class="qb-deposit">' + icon('qr') + '<span>Cọc <strong>' + CFG.depositText + '</strong> · Mã <strong>' + nextCode() + '</strong> · giữ lịch ' + CFG.holdHours + ' giờ</span></div>' +
+        '<div class="qb-deposit">' + icon('qr') + '<span>Cọc <strong>' + CFG.depositText + '</strong> · Mã <strong>' + nextCode() + '</strong> · giữ lịch ' + CFG.holdHours + ' tiếng, quá giờ chưa cọc tự nhả</span></div>' +
         '<div class="qb-field"><span>Gửi link cọc qua (chọn được nhiều kênh)</span><div class="qb-channels">' +
           CHANNELS.map(ch => '<button type="button" class="qb-ch' + (q.channels.includes(ch) ? ' on' : '') + '" data-act="qb-channel" data-id="' + ch + '">' + (q.channels.includes(ch) ? icon('check') : '') + ch + '</button>').join('') +
           '<button type="button" class="qb-ch" data-act="qb-copy">Sao chép link</button>' +
@@ -910,7 +1036,7 @@
     const hold = holdUntilText();
     const apId = 'ap-' + Date.now();
     db.appointments.push({ id: apId, date: q.date, start: q.time, dur, service: q.service, label: c.name.replace(/^Chị /, 'C. ').replace(/^Anh /, 'A. '), room, photographer: ph, status: 'giu-cho', owner: me.id, customerId: c.id, depositCode: code });
-    db.deposits.unshift({ code, owner: me.id, customerId: c.id, appointmentId: apId, channels: q.channels.slice(), state: 'sent', sentAt: hm(demoNow()), holdUntil: hold,
+    db.deposits.unshift({ code, owner: me.id, customerId: c.id, appointmentId: apId, channels: q.channels.slice(), state: 'sent', sentAt: hm(demoNow()), holdUntil: hold, holdEnd: Date.now() + CFG.holdHours * 3600e3,
       log: [{ time: hm(demoNow()), who: 'sale', text: me.name + ' gửi link cọc qua ' + q.channels.join(', ') }] });
     c.stage = 'cho-coc';
     c.status = { text: 'Hết hạn giữ ' + hold, tone: 'amber' };
@@ -933,33 +1059,37 @@
 
   // ---------- Trang: Đặt cọc & đối soát ----------
   const DEP_STEPS = ['Đã gửi link', 'Khách mở link', 'Tiền về', 'Lịch xác nhận'];
-  function depStepCount(d) { return { sent: 1, opened: 2, short: 3, paid: 3, confirmed: 4 }[d.state] || 1; }
+  function depStepCount(d) { return { expired: 2, sent: 1, opened: 2, short: 3, paid: 3, confirmed: 4 }[d.state] || 1; }
   function depBadge(d) {
     if (d.state === 'confirmed') return badge('Đã xác nhận lịch · ' + money(d.received), 'green');
     if (d.state === 'paid') return badge('Tự khớp lúc ' + d.paidAt + ' · ' + money(d.received), 'green');
+    if (d.state === 'expired') return badge('Hết giờ giữ ' + d.holdUntil + ' · đã nhả khung giờ', 'red');
     if (d.state === 'opened') return badge('Khách đã mở link ' + d.openedAt + ' · giữ đến ' + d.holdUntil, 'blue');
     if (d.state === 'short') return badge('Nhận ' + money(d.received) + ' · thiếu so với số tiền cọc', 'red');
     return badge('Chưa mở link · hết hạn giữ ' + d.holdUntil, 'amber');
   }
   function depAction(d) {
+    if (!isMine(d)) return '<button type="button" class="sw-btn" data-act="select-deposit" data-code="' + d.code + '">Xem</button>';
     if (d.state === 'paid') return '<button type="button" class="sw-btn sw-btn-teal" data-act="confirm-deposit" data-code="' + d.code + '">' + icon('check') + 'Xác nhận</button>';
     if (d.state === 'opened') return '<button type="button" class="sw-btn" data-act="resend-deposit" data-code="' + d.code + '">' + icon('send') + 'Nhắc lại</button>';
     if (d.state === 'sent') return '<button type="button" class="sw-btn" data-act="resend-sms" data-code="' + d.code + '">' + icon('send') + 'Gửi lại qua SMS</button>';
+    if (d.state === 'expired') return '<button type="button" class="sw-btn sw-btn-accent" data-act="book-for" data-id="' + d.customerId + '">' + icon('calendar') + 'Giữ lịch lại</button>';
     if (d.state === 'short') return '<button type="button" class="sw-btn sw-btn-accent" data-act="check-short" data-code="' + d.code + '">Kiểm tra</button>';
     return '<button type="button" class="sw-btn" data-act="select-deposit" data-code="' + d.code + '">Xem hồ sơ</button>';
   }
 
   function viewDeposits() {
     setHead('Đặt cọc và đối soát tự động', 'Tiền vào tài khoản studio là lịch tự xác nhận và hồ sơ khách tự cập nhật, Sale không phải xem bill');
-    const deps = myDeposits();
+    const deps = scoped(db.deposits);
     const waiting = deps.filter(d => d.state === 'sent' || d.state === 'opened');
     const arrived = deps.filter(d => ['paid', 'confirmed', 'short'].includes(d.state));
     const shortOnes = deps.filter(d => d.state === 'short');
-    const manual = shortOnes.length + db.unmatched.length;
+    const expiredOnes = deps.filter(d => d.state === 'expired');
+    const manual = shortOnes.length + expiredOnes.length + db.unmatched.length;
     const groups = {
       all: () => true,
       'cho-coc': d => d.state === 'sent' || d.state === 'opened',
-      'kiem-tra': d => d.state === 'short',
+      'kiem-tra': d => d.state === 'short' || d.state === 'expired',
       'da-khop': d => d.state === 'paid' || d.state === 'confirmed'
     };
     const shown = deps.filter(groups[ui.dep.filter]);
@@ -970,19 +1100,19 @@
     return '<div class="sw-kpis sw-kpis-4">' +
         '<div class="sw-card sw-kpi"><small>Chờ khách cọc</small><strong>' + waiting.length + '</strong><span class="c-amber">' + waiting.length + ' đang giữ lịch</span></div>' +
         '<div class="sw-card sw-kpi"><small>Tiền cọc về hôm nay</small><strong>' + arrived.length + ' khoản</strong><span class="c-teal">' + (shortOnes.length ? (arrived.length - shortOnes.length) + ' khoản tự khớp' : 'Tất cả đã tự khớp') + '</span></div>' +
-        '<div class="sw-card sw-kpi"><small>Cần kiểm tra tay</small><strong>' + manual + '</strong><span class="c-red">' + shortOnes.length + ' thiếu tiền · ' + db.unmatched.length + ' sai mã</span></div>' +
+        '<div class="sw-card sw-kpi"><small>Cần kiểm tra tay</small><strong>' + manual + '</strong><span class="c-red">' + shortOnes.length + ' thiếu tiền · ' + db.unmatched.length + ' sai mã' + (expiredOnes.length ? ' · ' + expiredOnes.length + ' hết giờ giữ' : '') + '</span></div>' +
         '<div class="sw-card sw-kpi"><small>Thời gian khớp TB</small><strong>8 giây</strong><span class="c-teal">Từ lúc tiền vào tới lúc xác nhận</span></div>' +
       '</div>' +
       '<div class="sw-grid-2">' +
         '<section class="sw-card sw-pad">' +
-          '<div class="sw-card-head"><h2>Yêu cầu đặt cọc hôm nay</h2><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-coc', 'Chờ cọc') + chip('kiem-tra', 'Cần kiểm tra') + chip('da-khop', 'Đã khớp') + '</div></div>' +
+          '<div class="sw-card-head"><h2>Yêu cầu đặt cọc hôm nay</h2><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-coc', 'Chờ cọc') + chip('kiem-tra', 'Cần kiểm tra') + chip('da-khop', 'Đã khớp') + '</div>' + ownerSelect() + '</div>' +
           db.unmatched.map(tx => '<div class="dp-unmatched"><div><strong>1 giao dịch chưa khớp mã</strong><small>' + money(tx.amount) + ' lúc ' + tx.time + ' · nội dung "' + esc(tx.content) + '" · không có mã đơn</small></div>' +
             '<button type="button" class="sw-btn" data-act="assign-tx" data-id="' + tx.id + '">' + icon('userPlus') + 'Gán cho khách</button></div>').join('') +
           (shown.length ? shown.map(d => {
             const c = customer(d.customerId); const ap = appointmentOf(d); const n = depStepCount(d);
             return '<div class="dp-row' + (d.code === ui.dep.selected ? ' on' : '') + '" data-act="select-deposit" data-code="' + d.code + '">' +
               '<div class="dp-main"><strong class="dp-code">' + d.code + '</strong>' +
-                '<div class="dp-who"><strong>' + esc(c.name) + '</strong><small>' + esc((ap ? ap.service : c.service) + ' · ' + (ap ? fmtDM(ap.date) + ' ' + ap.start : '')) + '</small></div>' +
+                '<div class="dp-who"><strong>' + esc(c.name) + '</strong>' + ownerTag(d.owner) + '<small>' + esc((ap ? ap.service : c.service) + ' · ' + (ap ? fmtDM(ap.date) + ' ' + ap.start : '')) + '</small></div>' +
                 '<div class="dp-meta">' + d.channels.map(ch => '<span class="sw-tag tone-beige">' + esc(ch) + '</span>').join('') + depBadge(d) + '</div>' +
                 '<div class="dp-action">' + depAction(d) + '</div></div>' +
               '<ol class="dp-steps">' + DEP_STEPS.map((s, i) => '<li class="' + (i < n ? (d.state === 'short' && i === 2 ? 'warn' : 'done') : '') + '"><i>' + (i < n ? icon('check') : '') + '</i>' + s + '</li>').join('') + '</ol>' +
@@ -1006,6 +1136,7 @@
         '<div><dt>Liên hệ</dt><dd>' + maskPhone(c.phone) + ' · ' + esc(d.channels[0]) + '</dd></div>' +
         '<div><dt>Phụ trách</dt><dd>' + esc(saleName(d.owner)) + '</dd></div>' +
       '</dl>' +
+      (isMine(d) ? '' : readOnlyNote(d.owner)) +
       '<a class="sw-link dp-link" href="' + esc(cocLink(d)) + '" target="_blank" rel="noopener">' + icon('link') + 'Xem trang đặt cọc của khách</a>' +
       '<small class="sw-label">Nhật ký</small>' +
       '<ol class="dp-log">' + d.log.map(l => '<li class="' + l.who + '"><div><time>' + esc(l.time) + '</time>' + badge(l.who === 'auto' ? 'Tự động' : 'Sale', l.who === 'auto' ? 'teal' : 'peach') + '</div><p>' + esc(l.text) + '</p></li>').join('') + '</ol>';
@@ -1039,7 +1170,7 @@
   };
   function viewOrders() {
     setHead('Đơn và tiến độ ảnh', 'Theo dõi từ sau buổi chụp tới khi khách nhận ảnh · Sale lo phần nhắc khách và thu tiền');
-    const orders = myOrders();
+    const orders = scoped(db.orders);
     const groups = {
       all: () => true, 'cho-chon': o => o.status === 'cho-chon', 'dang-chinh': o => o.status === 'dang-chinh',
       'qua-han': o => o.status === 'qua-han', 'cong-no': o => o.due > 0, 'da-giao': o => o.status === 'da-giao'
@@ -1052,17 +1183,17 @@
     return '<div class="sw-card od-steps">' + steps.map((s, i) => '<span><b>' + (i + 1) + '</b>' + s + '</span>').join('<i></i>') + '</div>' +
       '<section class="sw-card sw-pad">' +
         '<div class="sw-card-head"><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-chon', 'Chờ chọn ảnh') + chip('dang-chinh', 'Đang chỉnh') + chip('qua-han', 'Quá hạn') + chip('cong-no', 'Còn công nợ') + chip('da-giao', 'Đã giao') + '</div>' +
-          '<button type="button" class="sw-btn" data-act="remind-all">' + icon('send') + 'Nhắc tất cả khách chưa chọn ảnh</button></div>' +
+          '<div class="od-tools">' + ownerSelect() + '<button type="button" class="sw-btn" data-act="remind-all">' + icon('send') + 'Nhắc khách của tôi chưa chọn ảnh</button></div></div>' +
         '<div class="sw-table-wrap"><table class="sw-table">' +
-          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th>Tiến độ</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
+          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Phụ trách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th>Tiến độ</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
           (shown.length ? shown.map(o => {
             const st = ORD_STATUS[o.status];
             const action = o.status === 'dang-chinh' && o.due > 0 ? 'Nhắc thanh toán' : (o.action || st.action || 'Xem');
-            return '<tr><td><strong>#' + o.code + '</strong></td><td><strong>' + esc(o.customer) + '</strong></td><td>' + esc(o.service + ' · ' + o.pkg) + '</td><td>' + o.date + '</td>' +
+            return '<tr><td><strong>#' + o.code + '</strong></td><td><strong>' + esc(o.customer) + '</strong></td><td>' + esc(saleName(o.owner)) + (isMine(o) ? ' (tôi)' : '') + '</td><td>' + esc(o.service + ' · ' + o.pkg) + '</td><td>' + o.date + '</td>' +
               '<td>' + badge(st.text, st.tone) + '</td><td class="sw-muted">' + esc(o.remindedAt ? o.progress + ' · đã nhắc ' + o.remindedAt : o.progress) + '</td>' +
               '<td>' + (o.due > 0 ? '<strong class="c-red">Còn ' + money(o.due) + '</strong>' : '<strong class="c-teal">Đã thanh toán đủ</strong>') + '</td>' +
-              '<td class="sw-right"><button type="button" class="sw-btn" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button></td></tr>';
-          }).join('') : '<tr><td colspan="8">' + emptyState('Không có đơn nào trong nhóm này.') + '</td></tr>') +
+              '<td class="sw-right">' + (isMine(o) ? '<button type="button" class="sw-btn" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button>' : '<span class="sw-muted sw-ro-inline">' + icon('lock') + 'Chỉ xem</span>') + '</td></tr>';
+          }).join('') : '<tr><td colspan="9">' + emptyState('Không có đơn nào trong nhóm này.') + '</td></tr>') +
           '</tbody></table></div>' +
       '</section>';
   }
@@ -1163,11 +1294,12 @@
       '</section>';
     }
 
-    const all = myCustomers();
+    const all = scoped(db.customers);
+    const mineCount = myCustomers().length;
     Object.keys(t.selected).forEach(id => { if (!myCustomer(id) || trLocked(id)) delete t.selected[id]; });
     const shown = all.filter(trFilter(t.filter));
-    const picked = all.filter(c => t.selected[c.id]);
-    const selectable = shown.filter(c => !trLocked(c.id));
+    const picked = myCustomers().filter(c => t.selected[c.id]);
+    const selectable = shown.filter(c => isMine(c) && !trLocked(c.id));
     const allOn = selectable.length > 0 && selectable.every(c => t.selected[c.id]);
 
     const others = db.sales.filter(s => s.id !== me.id);
@@ -1178,11 +1310,12 @@
     const recent = db.transfers.filter(r => (r.from === me.id || r.to === me.id) && r.status !== 'da-huy').slice(0, 4);
 
     const custRow = (c) => {
-      const locked = trLocked(c.id); const sub = trSubline(c);
+      const other = !isMine(c);
+      const locked = other || trLocked(c.id); const sub = trSubline(c);
       return '<label class="tr-item' + (t.selected[c.id] ? ' on' : '') + (locked ? ' locked' : '') + '">' +
         '<input type="checkbox" data-tr-pick="' + c.id + '"' + (t.selected[c.id] ? ' checked' : '') + (locked ? ' disabled' : '') + '>' +
         '<span class="tr-item-body"><strong>' + esc(c.name) + '</strong><small>' + esc(sub + (sub.includes(c.service) ? '' : ' · ' + c.service)) + '</small></span>' +
-        (locked ? badge('Đang chờ chuyển', 'muted') : trBadge(c)) +
+        (other ? badge('Của ' + saleName(c.owner), 'muted') : locked ? badge('Đang chờ chuyển', 'muted') : trBadge(c)) +
       '</label>';
     };
     const radio = (name, value, title, sub, extra) => '<label class="tr-radio"><input type="radio" name="tr-' + name + '" data-tr-field="' + name + '" value="' + value + '"' + (t[name] === value ? ' checked' : '') + '>' +
@@ -1192,8 +1325,9 @@
       '<div class="sw-stack">' +
         '<section class="sw-card sw-pad">' +
           '<div class="sw-card-head"><h2>1. Chọn khách cần chuyển</h2>' +
-            '<div class="tr-count"><span class="sw-muted">Đã chọn <strong>' + picked.length + '</strong> / ' + all.length + ' khách</span>' +
+            '<div class="tr-count"><span class="sw-muted">Đã chọn <strong>' + picked.length + '</strong> / ' + mineCount + ' khách của bạn</span>' +
             '<button type="button" class="sw-btn" data-act="tr-all"' + (selectable.length ? '' : ' disabled') + '>' + (allOn ? 'Bỏ chọn' : 'Chọn tất cả') + '</button></div></div>' +
+          '<div class="kb-toolbar tr-toolbar">' + ownerSelect() + '<span class="sw-muted tr-hint">Chỉ chọn được khách bạn phụ trách, khách của sale khác hiện để tham khảo.</span></div>' +
           '<div class="sw-chips tr-filters">' + [['all', 'Tất cả'], ['lich-7', 'Có lịch 7 ngày tới'], ['tu-van', 'Đang tư vấn'], ['cho-coc', 'Chờ cọc']].map(([k, l]) =>
             '<button type="button" class="sw-chip' + (t.filter === k ? ' on' : '') + '" data-act="tr-filter" data-id="' + k + '">' + l + '</button>').join('') + '</div>' +
           (shown.length ? '<div class="tr-list">' + shown.map(custRow).join('') + '</div>' : emptyState('Không có khách nào trong nhóm này.')) +
@@ -1308,11 +1442,11 @@
   }
 
   function showProfile(id) {
-    const c = myCustomer(id);
+    const c = customer(id);
     if (!c) return;
-    openModal('Hồ sơ khách', customerPanel(c) +
+    openModal('Hồ sơ khách', customerPanel(c) + (!isMine(c) ? '' :
       '<div class="sw-modal-actions"><button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' +
-      '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn</button></div>');
+      '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn</button></div>'));
   }
 
   function showCall(id, key) {
@@ -1332,6 +1466,7 @@
       v = { id: 'cv-' + Date.now(), owner: me.id, customerId: c.id, channel: 'Chat trực tiếp', time: 'Vừa xong', messages: [] };
       db.conversations.unshift(v);
     }
+    if (ui.owner !== 'all' && ui.owner !== me.id) ui.owner = 'all';
     ui.inbox.filter = v.done ? 'da-xong' : (v.unread ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi'));
     closeModal();
     location.hash = '#hop-thu/' + v.id;
@@ -1392,7 +1527,7 @@
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
     if (route === 'hop-thu' && ui.inbox.active) {
       const v = db.conversations.find(x => x.id === ui.inbox.active);
-      if (v && v.unread && ui.inbox.mobileChat !== false) { v.unread = false; renderChrome(route); }
+      if (v && v.unread && v.owner === me.id && ui.inbox.mobileChat !== false) { v.unread = false; renderChrome(route); }
     }
   }
   window.addEventListener('hashchange', render);
@@ -1439,7 +1574,18 @@
         render(); return toast('Đã gửi lại link cọc ' + d.code + ' qua ' + ch);
       }
       case 'confirm-deposit': closeModal(); return confirmDeposit(code);
-      case 'view-deposit': case 'select-deposit-go': ui.dep.selected = code || id; ui.dep.filter = 'all'; location.hash = '#dat-coc'; return render();
+      case 'view-deposit': case 'select-deposit-go': {
+        const d = db.deposits.find(x => x.code === (code || id));
+        if (d && ui.owner !== 'all' && ui.owner !== d.owner) ui.owner = 'all';
+        ui.dep.selected = code || id; ui.dep.filter = 'all'; closeModal(); location.hash = '#dat-coc'; return render();
+      }
+      // Xem hội thoại của khách sale khác (chỉ đọc, không có ô trả lời).
+      case 'view-conv': {
+        const v = db.conversations.find(x => x.id === id); if (!v) return;
+        if (ui.owner !== 'all' && ui.owner !== v.owner) ui.owner = 'all';
+        ui.inbox.filter = v.done ? 'da-xong' : (v.unread ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi'));
+        closeModal(); location.hash = '#hop-thu/' + v.id; return;
+      }
       case 'select-deposit': if (e.target.closest('button') && e.target.closest('button') !== el) return; ui.dep.selected = code; return render();
       case 'dep-filter': ui.dep.filter = id; return render();
       case 'check-short': {
@@ -1534,7 +1680,7 @@
       case 'tr-filter': ui.tr.filter = id; return render();
       case 'tr-all': {
         const inFilter = trFilter(ui.tr.filter);
-        const list = myCustomers().filter(c => inFilter(c) && !trLocked(c.id));
+        const list = scoped(db.customers).filter(c => isMine(c) && inFilter(c) && !trLocked(c.id));
         const allOn = list.every(c => ui.tr.selected[c.id]);
         list.forEach(c => { if (allOn) delete ui.tr.selected[c.id]; else ui.tr.selected[c.id] = true; });
         return render();
@@ -1564,7 +1710,7 @@
       case 'cus-group': ui.cus.group = id; return render();
       case 'cus-bday': ui.cus.bday = !ui.cus.bday; return render();
       case 'cus-select': {
-        const c = myCustomer(id); if (!c) return;
+        const c = customer(id); if (!c) return;
         // Màn hẹp không có cột hồ sơ bên phải -> mở hồ sơ dạng modal.
         if (window.matchMedia('(max-width: 1180px)').matches) return openModal('Hồ sơ khách', cusDetail(c));
         ui.cus.selected = id; return render();
@@ -1630,6 +1776,11 @@
 
   document.addEventListener('change', (e) => {
     const t = e.target;
+    if (t.hasAttribute('data-owner-filter')) {
+      ui.owner = t.value;
+      ui.inbox.active = null; ui.inbox.mobileChat = false; ui.cus.selected = null; ui.dep.selected = null;
+      return render();
+    }
     if (t.dataset.leadFilter) { ui.lead[t.dataset.leadFilter] = t.value; return render(); }
     if (t.dataset.trPick) {
       if (t.checked) ui.tr.selected[t.dataset.trPick] = true; else delete ui.tr.selected[t.dataset.trPick];
@@ -1708,6 +1859,26 @@
   document.getElementById('swQuickBtn').addEventListener('click', () => {
     setTimeout(() => { const p = document.querySelector('[data-qb="phone"]'); if (p) { p.focus(); p.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 60);
   });
+
+  function tick() {
+    let changed = expireHolds();
+    const k = dateKey(new Date());
+    if (k !== TODAY) {
+      const old = TODAY;
+      if (ui.cal.weekStart === mondayOf(parseKey(old))) ui.cal.weekStart = mondayOf(parseKey(k));
+      if (ui.cal.day === old) ui.cal.day = k;
+      TODAY = k; TOMORROW = dateKey(addDays(parseKey(k), 1));
+      changed = true;
+    }
+    if (!changed) return;
+    // Đang gõ trong ô nhập thì chỉ cập nhật khung, lần sau mới vẽ lại trang để không mất chữ.
+    const a = document.activeElement;
+    if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && document.getElementById('swView').contains(a)) { renderChrome(parseHash().route); pendingRender = true; return; }
+    render();
+  }
+  let pendingRender = false;
+  document.addEventListener('focusout', () => { if (pendingRender) { pendingRender = false; setTimeout(render, 0); } });
+  setInterval(tick, 30000);
 
   render();
 })();

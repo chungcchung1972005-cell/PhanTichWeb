@@ -9,12 +9,15 @@
 // - appointments (lịch chụp) là lịch chung của studio -> mọi sale đều thấy cả
 //   tuần, nhưng chỉ sale phụ trách mới xem được thông tin liên hệ của khách.
 //
-// "Hôm nay" của bản demo cố định là Thứ Sáu 25/09/2026 10:30 để dữ liệu nhất quán.
+// Dữ liệu viết quanh ngày gốc `now` (Thứ Sáu 25/09/2026). Khi mở trang, crm/js/sale.js
+// dời MỌI ngày trong dữ liệu (dạng 2026-09-25 và 25/09) theo đúng số ngày từ ngày gốc
+// tới hôm nay thật, nên lịch luôn khớp ngày hiện tại (người dùng yêu cầu 2026-09-27).
+// Giờ giữ lịch của các yêu cầu cọc đang chờ tính từ lúc mở trang (field holdLeftMin).
 (function (window) {
   // Tham số nghiệp vụ CHƯA được studio xác nhận (rules/tech-defaults.md):
   // để dạng cấu hình + placeholder, không tự đặt số.
   const CONFIG = {
-    holdHours: 2,                 // thời gian giữ khung giờ trước khi cọc (placeholder)
+    holdHours: 1,                 // giữ khung giờ tối đa 1 tiếng trước khi cọc, hết giờ tự nhả lịch (người dùng chốt 2026-09-27)
     depositText: '[Số tiền cọc]', // mức cọc chưa chốt
     packagePriceText: '[Giá gói]',
     bankText: '[Số tài khoản] · [Ngân hàng]',
@@ -200,7 +203,7 @@
         { time: '08:47', who: 'auto', text: 'Khách mở link đặt cọc' },
         { time: '08:40', who: 'sale', text: 'Ngọc Anh gửi link cọc qua Messenger' }
       ] },
-    { code: 'AB240933', owner: 'ngoc-anh', customerId: 'na-duc', appointmentId: 'ap19', channels: ['Zalo'], state: 'sent',
+    { code: 'AB240933', owner: 'ngoc-anh', customerId: 'na-duc', appointmentId: 'ap19', channels: ['Zalo'], state: 'sent', holdLeftMin: 40,
       sentAt: '12:30 hôm qua', holdUntil: '14:30', log: [{ time: 'Hôm qua', who: 'sale', text: 'Ngọc Anh gửi link cọc qua Zalo' }] },
     { code: 'AB240929', owner: 'ngoc-anh', customerId: 'na-maianh', appointmentId: 'ap22', channels: ['Chat web'], state: 'short',
       sentAt: '08:05', openedAt: '08:20', paidAt: '09:40', received: 500000,
@@ -209,7 +212,7 @@
         { time: '08:20', who: 'auto', text: 'Khách mở link đặt cọc' },
         { time: '08:05', who: 'sale', text: 'Ngọc Anh gửi link cọc qua Chat web' }
       ] },
-    { code: 'AB240927', owner: 'minh-thu', customerId: 'mt-dung', appointmentId: 'ap21', channels: ['Chat web', 'SMS'], state: 'opened',
+    { code: 'AB240927', owner: 'minh-thu', customerId: 'mt-dung', appointmentId: 'ap21', channels: ['Chat web', 'SMS'], state: 'opened', holdLeftMin: 25,
       sentAt: '09:00', openedAt: '09:35', holdUntil: '13:00',
       log: [{ time: '09:35', who: 'auto', text: 'Khách mở link đặt cọc' }, { time: '09:00', who: 'sale', text: 'Minh Thư gửi link cọc qua Chat web, SMS' }] },
     { code: 'AB240934', owner: 'thu-ha', customerId: 'th-ngocmai', appointmentId: 'ap23', channels: ['Zalo'], state: 'paid',
@@ -226,7 +229,7 @@
         { time: '08:15', who: 'auto', text: 'Nhận 1.000.000đ từ ngân hàng, nội dung chứa mã AB240926' },
         { time: 'Hôm qua', who: 'sale', text: 'Quốc Bảo gửi link cọc qua Messenger' }
       ] },
-    { code: 'AB240932', owner: 'hai-yen', customerId: 'hy-tien', appointmentId: 'ap20', channels: ['SMS'], state: 'sent',
+    { code: 'AB240932', owner: 'hai-yen', customerId: 'hy-tien', appointmentId: 'ap20', channels: ['SMS'], state: 'sent', holdLeftMin: 55,
       sentAt: '08:00', holdUntil: '16:00', log: [{ time: '08:00', who: 'sale', text: 'Hải Yến gửi link cọc qua SMS' }] }
   ];
 
