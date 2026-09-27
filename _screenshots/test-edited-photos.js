@@ -101,6 +101,8 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   }));
   check('Đã gửi: báo "Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh", mã đơn + giờ gửi, tiến độ bước 1 xong', v.title === 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh' && v.meta.includes('#AB240915') && v.meta.includes('gửi lúc') && v.steps.join(',') === 'done,current,' && v.body.includes('Link ảnh đã chỉnh sẽ hiện ở đây'), JSON.stringify(v));
   check('Đã gửi: hiện khung chat, nhắn được', v.chat && !v.chatDisabled, JSON.stringify(v));
+  v = await cust.evaluate(() => [...document.querySelectorAll('#psChatQuick button')].map(b => ({ t: b.textContent, d: b.disabled })));
+  check('Có 4 nút câu hỏi nhanh, bấm được', v.length === 4 && v.every(b => !b.d), JSON.stringify(v));
   await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-sent.png') });
   await cust.type('#psChatInput', 'Chào thợ, làm da bé sáng tự nhiên giúp em nhé');
   await cust.keyboard.press('Enter');
@@ -200,6 +202,15 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   check('Khách thấy nút mở link ảnh đã chỉnh (mở tab mới, an toàn)', v.href === LINK && v.target === '_blank' && /noopener/.test(v.rel) && v.url === LINK, JSON.stringify(v));
   const vLink = await cust.evaluate(() => ({ title: document.getElementById('psResultTitle').textContent, steps: [...document.querySelectorAll('#psResultBody .ps-progress-steps li')].map(li => li.className).join(',') }));
   check('Có link: tiêu đề "Ảnh đã chỉnh của bé đã sẵn sàng", đủ 3 bước tiến độ', vLink.title === 'Ảnh đã chỉnh của bé đã sẵn sàng' && vLink.steps === 'done,done,done', JSON.stringify(vLink));
+  // Bấm câu hỏi nhanh -> gửi luôn câu đó, thợ (trợ lý) trả lời
+  const nMine = await cust.evaluate(() => document.querySelectorAll('#psChatList .ps-msg.from-me').length);
+  await cust.evaluate(() => [...document.querySelectorAll('#psChatQuick button')].find(b => b.textContent === 'Cách tải ảnh').click());
+  await cust.waitForFunction((n) => document.querySelectorAll('#psChatList .ps-msg.from-me').length === n + 1 && !document.querySelector('#psChatList .is-typing'), { timeout: 8000 }, nMine).catch(() => {});
+  const vq = await cust.evaluate(() => { const mine = [...document.querySelectorAll('#psChatList .ps-msg.from-me p')]; return mine[mine.length - 1].textContent; });
+  check('Bấm câu hỏi nhanh "Cách tải ảnh" -> gửi câu hỏi tương ứng', vq === 'Mình tải ảnh đã chỉnh về máy thế nào?', vq);
+  await cust.evaluate(() => document.getElementById('psChatCard').scrollIntoView({ block: 'center' }));
+  await wait(300);
+  await (await cust.$('#psChatCard')).screenshot({ path: path.resolve(__dirname, 'edited-chat-card.png') });
   check('Khách thấy tin trả lời của thợ', v.staff.length === 1 && v.staff[0].includes('gửi link ảnh'), JSON.stringify(v));
   await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-link.png') });
 
@@ -247,7 +258,7 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
     form: !!document.getElementById('kanbanResultForm'), reply: !!document.getElementById('kanbanChatForm'),
     msgs: document.querySelectorAll('#kanbanChatList .kanban-msg').length, href: (document.getElementById('kanbanResultAnchor') || {}).href
   }));
-  check('Sếp xem được link + toàn bộ tin nhắn, không có ô gửi link/trả lời', !v.form && !v.reply && v.msgs === 8 && v.href === LINK, JSON.stringify(v));
+  check('Sếp xem được link + toàn bộ tin nhắn, không có ô gửi link/trả lời', !v.form && !v.reply && v.msgs === 10 && v.href === LINK, JSON.stringify(v));
   await boss.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => !c.textContent.includes('Mới')).click());
   await wait(300);
   v = await boss.evaluate(() => document.querySelector('#kanbanModalBody .kanban-result').textContent);

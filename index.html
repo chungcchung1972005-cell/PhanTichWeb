@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260926">
-<link rel="stylesheet" href="css/pages.css?v=20260927d">
+<link rel="stylesheet" href="css/pages.css?v=20260927e">
 </head>
 <body>
 
@@ -689,12 +689,19 @@
                 <span class="ps-chat-avatar" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg>
                 </span>
-                <div>
+                <div class="ps-chat-head-text">
                   <h3>Chat với thợ chỉnh ảnh</h3>
-                  <p>Hỏi về ảnh của bé, cách tải ảnh hay muốn chỉnh thêm chi tiết nào, bạn cứ nhắn nhé.</p>
+                  <p><span class="ps-chat-online" aria-hidden="true"></span>Thợ chỉnh ảnh ALOHA · luôn sẵn sàng hỗ trợ bạn</p>
                 </div>
               </div>
               <div class="ps-chat-list" id="psChatList" aria-live="polite"></div>
+              <!-- Câu hỏi nhanh: bấm là gửi luôn (js/chon-anh.js) -->
+              <div class="ps-chat-quick" id="psChatQuick" role="group" aria-label="Câu hỏi nhanh">
+                <button type="button" data-q="Khi nào mình nhận được ảnh đã chỉnh vậy?">Khi nào có ảnh?</button>
+                <button type="button" data-q="Mình tải ảnh đã chỉnh về máy thế nào?">Cách tải ảnh</button>
+                <button type="button" data-q="Mình muốn chỉnh thêm một vài ảnh">Muốn chỉnh thêm</button>
+                <button type="button" data-q="In ảnh khổ lớn có nét không bạn?">In ảnh khổ lớn</button>
+              </div>
               <form class="ps-chat-form" id="psChatForm">
                 <textarea id="psChatInput" rows="1" maxlength="1000" placeholder="Nhắn cho thợ chỉnh ảnh..." aria-label="Tin nhắn cho thợ chỉnh ảnh"></textarea>
                 <button type="submit" class="ps-chat-send" id="psChatSend" aria-label="Gửi tin nhắn">
@@ -959,7 +966,7 @@
 <script src="js/script.js"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
-<script src="js/chon-anh.js?v=20260927e"></script>
+<script src="js/chon-anh.js?v=20260927f"></script>
 </body>
 </html>
 
