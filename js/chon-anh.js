@@ -1105,28 +1105,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // --- Chat: Trợ lý AI trả lời trước, Thợ ảnh trả lời những việc cần thợ xử lý
+    // --- Chat với thợ chỉnh ảnh. Người dùng chốt (2026-09-27): tin của trợ lý tự động hiện
+    // như tin của thợ chỉnh ảnh, giao diện khách không nhắc tới AI. Trang quản trị vẫn ghi rõ
+    // tin nào do trợ lý tự động trả lời, và trợ lý không nói dối nếu khách hỏi thẳng (server/).
     chatInput.disabled = chatSend.disabled = !req || aiPending;
-    chatInput.placeholder = req ? 'Nhắn trợ lý AI hoặc thợ chỉnh ảnh...' : 'Gửi yêu cầu chỉnh sửa trước để trò chuyện';
+    chatInput.placeholder = req ? 'Nhắn cho thợ chỉnh ảnh...' : 'Gửi yêu cầu chỉnh sửa trước để trò chuyện';
     if (!msgs.length && !aiPending) {
-      chatList.innerHTML = `<p class="ps-chat-empty">${req ? 'Chưa có tin nhắn. Bạn cứ hỏi, trợ lý AI trả lời ngay; cần chỉnh thêm ảnh thì trợ lý ghi nhận và chuyển cho thợ.' : 'Khung trò chuyện sẽ mở khi bạn đã gửi yêu cầu chỉnh sửa.'}</p>`;
+      chatList.innerHTML = `<p class="ps-chat-empty">${req ? 'Chưa có tin nhắn. Bạn cần hỏi gì về ảnh của bé cứ nhắn, thợ chỉnh ảnh sẽ trả lời bạn ngay.' : 'Khung trò chuyện sẽ mở khi bạn đã gửi yêu cầu chỉnh sửa.'}</p>`;
     } else {
       chatList.innerHTML = msgs.map((m) => {
-        const who = m.from === 'customer' ? 'from-me' : m.from === 'ai' ? 'from-ai' : 'from-staff';
-        const name = m.from === 'ai'
-          ? '<span class="ps-msg-name"><span class="ps-ai-chip">AI</span>Trợ lý AI</span>'
-          : m.from === 'staff' ? `<span class="ps-msg-name">${escHtml(m.name || 'Thợ ảnh')}</span>` : '';
-        const forwarded = m.from === 'customer' && m.needsStaff && m.id !== aiPending
-          ? '<span class="ps-msg-forward">Đã chuyển cho thợ chỉnh ảnh</span>' : '';
+        const mine = m.from === 'customer';
+        const name = mine ? '' : `<span class="ps-msg-name">${escHtml(m.from === 'ai' ? STAFF_VOICE : (m.name || STAFF_VOICE))}</span>`;
         return `
-        <div class="ps-msg ${who}">
+        <div class="ps-msg ${mine ? 'from-me' : 'from-staff'}">
           ${name}
           <p>${escHtml(m.text)}</p>
-          <time>${escHtml(fmtTime(m.at))}</time>${forwarded}
+          <time>${escHtml(fmtTime(m.at))}</time>
         </div>`;
       }).join('') + (aiPending ? `
-        <div class="ps-msg from-ai is-typing" aria-label="Trợ lý AI đang trả lời">
-          <span class="ps-msg-name"><span class="ps-ai-chip">AI</span>Trợ lý AI</span>
+        <div class="ps-msg from-staff is-typing" aria-label="Thợ chỉnh ảnh đang trả lời">
+          <span class="ps-msg-name">${STAFF_VOICE}</span>
           <p><span class="ps-typing"><i></i><i></i><i></i></span></p>
         </div>` : '');
       if (String(msgs.length) !== prevCount || aiPending) chatList.scrollTop = chatList.scrollHeight;
@@ -1138,10 +1136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
   }
 
-  // Gửi tin của khách: lưu ngay (mặc định cần thợ xem), rồi hỏi Trợ lý AI (server/ -> Gemini)
-  // kèm đúng thông tin đơn. AI trả lời đủ thì bỏ cờ "cần thợ"; AI lỗi thì nói rõ là AI đang bận
-  // và để nguyên cho thợ trả lời (không giả vờ là AI đã trả lời).
-  const AI_NAME = 'Trợ lý AI ALOHA';
+  // Gửi tin của khách: lưu ngay (mặc định cần thợ xem), rồi hỏi trợ lý tự động (server/ ->
+  // Gemini) kèm đúng thông tin đơn. Trả lời đủ thì bỏ cờ "cần thợ"; trợ lý không phản hồi thì
+  // chỉ báo đã nhận tin và để nguyên cho thợ trả lời (không bịa câu trả lời).
+  const STAFF_VOICE = 'Thợ chỉnh ảnh ALOHA';
+  const AI_NAME = STAFF_VOICE;
   async function askEditAssistant(req, msgId) {
     const history = (Array.isArray(req.messages) ? req.messages : []).slice(-12).map((m) => ({
       role: m.from === 'customer' ? 'user' : 'assistant',
@@ -1163,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
       AlohaData.setMessageNeedsStaff(req.id, msgId, data.forward !== false);
       AlohaData.addRequestMessage(req.id, 'ai', AI_NAME, data.reply);
     } catch (err) {
-      AlohaData.addRequestMessage(req.id, 'ai', AI_NAME, 'Trợ lý AI đang bận nên chưa trả lời được. Tin nhắn của bạn đã được chuyển cho thợ chỉnh ảnh, thợ sẽ phản hồi bạn sớm nhé.');
+      AlohaData.addRequestMessage(req.id, 'ai', AI_NAME, 'Mình đã nhận được tin nhắn của bạn rồi nhé. Thợ chỉnh ảnh sẽ xem kỹ và phản hồi bạn sớm nhất.');
     }
   }
   if (chatForm) {

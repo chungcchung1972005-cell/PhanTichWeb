@@ -30,8 +30,8 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
       aiCalls.push(body);
       const last = (body.messages || []).slice(-1)[0] || {};
       const forward = /chỉnh|làm/i.test(last.content || '');
-      r.respond({ status: 200, headers: { ...CORS, 'content-type': 'application/json' },
-        body: JSON.stringify({ reply: forward ? 'Mình đã ghi nhận yêu cầu và chuyển cho thợ chỉnh ảnh nhé.' : 'Dạ mình đây, bạn cần hỗ trợ gì cứ nhắn nhé.', forward }) });
+      setTimeout(() => r.respond({ status: 200, headers: { ...CORS, 'content-type': 'application/json' },
+        body: JSON.stringify({ reply: forward ? 'Mình ghi lại yêu cầu làm sáng da cho bé rồi nhé, xong mình báo bạn.' : 'Dạ mình đây, bạn cần hỗ trợ gì cứ nhắn nhé.', forward }) }), 400);
     });
   }
 
@@ -80,10 +80,13 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   check('Đã gửi yêu cầu: báo thợ đang chỉnh, hiện mã đơn, mở ô chat', v.body.includes('Link ảnh đã chỉnh sẽ hiện ở đây') && v.meta.includes('#AB240915') && !v.chatDisabled, JSON.stringify(v));
   await cust.type('#psChatInput', 'Chào thợ, làm da bé sáng tự nhiên giúp em nhé');
   await cust.keyboard.press('Enter');
-  await cust.waitForFunction(() => document.querySelectorAll('#psChatList .ps-msg.from-ai:not(.is-typing)').length === 1, { timeout: 8000 }).catch(() => {});
+  await wait(150);
+  v = await cust.evaluate(() => { const t = document.querySelector('#psChatList .is-typing'); return t ? t.textContent.replace(/\s+/g, ' ').trim() : null; });
+  check('Đang chờ trả lời: hiện "Thợ chỉnh ảnh ALOHA" đang gõ, không nhắc AI', !!v && v.includes('Thợ chỉnh ảnh ALOHA') && !/\bAI\b/.test(v), v);
+  await cust.waitForFunction(() => document.querySelectorAll('#psChatList .ps-msg.from-staff:not(.is-typing)').length === 1, { timeout: 8000 }).catch(() => {});
   await cust.type('#psChatInput', '<img src=x onerror=alert(1)>');
   await cust.click('#psChatSend');
-  await cust.waitForFunction(() => document.querySelectorAll('#psChatList .ps-msg.from-ai:not(.is-typing)').length === 2, { timeout: 8000 }).catch(() => {});
+  await cust.waitForFunction(() => document.querySelectorAll('#psChatList .ps-msg.from-staff:not(.is-typing)').length === 2, { timeout: 8000 }).catch(() => {});
   v = await cust.evaluate(() => ({
     mine: [...document.querySelectorAll('#psChatList .ps-msg.from-me p')].map(p => p.textContent),
     injected: document.querySelectorAll('#psChatList img').length,
@@ -92,11 +95,14 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   check('Khách gửi tin (Enter và nút gửi) -> hiện bong bóng bên phải, ô nhập được xoá', v.mine.length === 2 && v.mine[0].includes('làm da bé sáng') && v.input === '', JSON.stringify(v));
   check('Tin nhắn có mã HTML được hiện dạng chữ, không chạy mã', v.injected === 0 && v.mine[1] === '<img src=x onerror=alert(1)>', JSON.stringify(v));
   v = await cust.evaluate(() => ({
-    ai: [...document.querySelectorAll('#psChatList .ps-msg.from-ai p')].map(p => p.textContent),
-    forwarded: [...document.querySelectorAll('#psChatList .ps-msg.from-me')].map(b => !!b.querySelector('.ps-msg-forward'))
+    replies: [...document.querySelectorAll('#psChatList .ps-msg.from-staff:not(.is-typing)')].map(b => ({ name: (b.querySelector('.ps-msg-name') || {}).textContent, text: b.querySelector('p').textContent })),
+    card: document.querySelector('.ps-chat-card').textContent,
+    title: document.querySelector('.ps-chat-head h3').textContent
   }));
-  check('Trợ lý AI trả lời ngay sau mỗi tin của khách', v.ai.length === 2 && v.ai[0].includes('ghi nhận'), JSON.stringify(v));
-  check('Yêu cầu chỉnh sửa -> "Đã chuyển cho thợ chỉnh ảnh"; câu AI trả lời đủ thì không chuyển', v.forwarded[0] === true && v.forwarded[1] === false, JSON.stringify(v));
+  check('Tiêu đề "Chat với thợ chỉnh ảnh"; tin trả lời ngay mang tên "Thợ chỉnh ảnh ALOHA"', v.title === 'Chat với thợ chỉnh ảnh' && v.replies.length === 2 && v.replies.every(r => r.name === 'Thợ chỉnh ảnh ALOHA') && v.replies[0].text.includes('ghi lại yêu cầu'), JSON.stringify(v));
+  check('Khung chat phía khách không có chữ "AI" / "trợ lý"', !/\bAI\b|trợ lý/i.test(v.card), v.card.slice(0, 200));
+  v = await cust.evaluate(() => { const r = JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0]; return r.messages.filter(m => m.from === 'customer').map(m => m.needsStaff); });
+  check('Yêu cầu chỉnh sửa cụ thể -> đánh dấu cần thợ; câu thường thì không', v[0] === true && v[1] === false, JSON.stringify(v));
   const ctx0 = (aiCalls[0] || {}).context || {};
   check('AI nhận đúng thông tin đơn (mã đơn, trạng thái, chưa có link)', ctx0.orderCode === '#AB240915' && ctx0.status === 'Chờ xử lý' && ctx0.hasLink === false && ctx0.photoCount === 2, JSON.stringify(ctx0));
   await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-waiting.png'), fullPage: false });
@@ -164,7 +170,7 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
     return {
       href: a && a.href, target: a && a.target, rel: a && a.rel,
       url: (document.getElementById('psResultUrl') || {}).textContent,
-      staff: [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].map(p => p.textContent)
+      staff: [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].map(p => p.textContent).filter(s => s.includes('gửi link ảnh'))
     };
   });
   check('Khách thấy nút mở link ảnh đã chỉnh (mở tab mới, an toàn)', v.href === LINK && v.target === '_blank' && /noopener/.test(v.rel) && v.url === LINK, JSON.stringify(v));
@@ -234,17 +240,21 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   await mob.evaluate(() => window.scrollTo({ top: 1200, behavior: 'instant' })); await wait(400);
   const floatInEdited = await mob.evaluate(() => document.getElementById('psSummaryCard').classList.contains('is-floating'));
   check('Tab Ảnh đã chỉnh: ô Đã chọn không nổi che khung link', !floatInEdited);
-  // Server AI không phản hồi -> nói rõ AI đang bận, tin vẫn chuyển cho thợ (không giả vờ AI trả lời)
+  // Trợ lý tự động không phản hồi -> chỉ báo đã nhận tin (không nhắc AI, không bịa câu trả lời), tin chuyển cho thợ
   await mockAi(mob, 'down');
   await mob.type('#psChatInput', 'Cho mình hỏi chút');
   await mob.keyboard.press('Enter');
-  await mob.waitForFunction(() => [...document.querySelectorAll('#psChatList .ps-msg.from-ai p')].some(p => p.textContent.includes('đang bận')), { timeout: 8000 }).catch(() => {});
+  await mob.waitForFunction(() => [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].some(p => p.textContent.includes('đã nhận được tin nhắn')), { timeout: 8000 }).catch(() => {});
   v = await mob.evaluate(() => {
-    const mine = [...document.querySelectorAll('#psChatList .ps-msg.from-me')];
-    const last = mine[mine.length - 1];
-    return { busy: [...document.querySelectorAll('#psChatList .ps-msg.from-ai p')].some(p => p.textContent.includes('Trợ lý AI đang bận')), forwarded: !!(last && last.querySelector('.ps-msg-forward')), inputOn: !document.getElementById('psChatInput').disabled };
+    const r = JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.find(x => x.phone === '0900000001' && x.messages && x.messages.some(m => m.text === 'Cho mình hỏi chút'));
+    const last = r && r.messages.filter(m => m.from === 'customer').slice(-1)[0];
+    return {
+      ack: [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].some(p => p.textContent.includes('Thợ chỉnh ảnh sẽ xem kỹ')),
+      noAi: !/\bAI\b|trợ lý|đang bận/i.test(document.querySelector('.ps-chat-card').textContent),
+      needsStaff: last && last.needsStaff, inputOn: !document.getElementById('psChatInput').disabled
+    };
   });
-  check('AI lỗi -> báo "Trợ lý AI đang bận", tin chuyển cho thợ, ô chat mở lại', v.busy && v.forwarded && v.inputOn, JSON.stringify(v));
+  check('Không kết nối được trợ lý -> báo đã nhận tin (không nhắc AI), tin chuyển cho thợ, ô chat mở lại', v.ack && v.noAi && v.needsStaff === true && v.inputOn, JSON.stringify(v));
   await mob.screenshot({ path: path.resolve(__dirname, 'edited-customer-390-ai.png') });
   await mob.screenshot({ path: path.resolve(__dirname, 'edited-customer-390.png') });
 
