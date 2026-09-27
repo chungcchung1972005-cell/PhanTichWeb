@@ -120,3 +120,48 @@ Invoke-RestMethod -Method Post -Uri https://phantichweb.onrender.com/api/sepay-w
   tự gửi ảnh nữa, Sale cần đối soát tay trên SePay.
 - Yêu cầu chỉnh sửa vẫn lưu bằng localStorage như cũ: Thợ ảnh chỉ thấy khi dùng
   chung trình duyệt với khách (giới hạn chung của bản demo, chưa có backend CRM).
+
+## Chat thật Khách <-> Sale (MongoDB Atlas) — thêm 2026-09-27
+
+Khách nhắn từ màn chat trên web (`#/chat-sale`), mọi tài khoản Sale trả lời trong
+`crm/admin.html` mục **Tin nhắn**, khác máy/khác trình duyệt vẫn thấy nhau (trang tự
+hỏi server tin mới vài giây một lần). Đăng nhập được kiểm tra ở server
+(`server/sale-chat.js`), khách chỉ đọc được tin của chính mình.
+
+Tin nhắn + tài khoản khách đăng ký lưu ở **MongoDB Atlas**. Chưa cài thì server vẫn
+chạy nhưng lưu tạm trong bộ nhớ: Render ngủ/deploy lại là **mất hết tin nhắn**.
+
+> Các bước Atlas dưới đây viết theo hiểu biết của Claude, **chưa kiểm chứng lại trên
+> giao diện Atlas hiện tại** - tên nút có thể khác đôi chút. Gói miễn phí và giới hạn
+> của nó hãy xem trực tiếp trên trang của MongoDB trước khi tạo.
+
+1. Đăng ký tại <https://www.mongodb.com/cloud/atlas/register> → tạo **cluster gói
+   miễn phí (M0)**, chọn vùng gần Việt Nam (vd Singapore).
+2. **Database Access** → thêm user (vd `aloha`) + mật khẩu tự sinh (chỉ chữ và số cho
+   dễ dán vào chuỗi kết nối). Quyền: *Read and write to any database*.
+3. **Network Access** → *Add IP Address* → `0.0.0.0/0` (cho phép mọi nơi). Render bản
+   miễn phí không có IP cố định nên phải mở như vậy; bảo vệ bằng user/mật khẩu ở bước 2.
+4. **Connect → Drivers (Node.js)** → copy chuỗi dạng
+   `mongodb+srv://aloha:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority`,
+   thay `<password>` bằng mật khẩu ở bước 2.
+5. Render → service → **Environment** → thêm:
+   - `MONGODB_URI` = chuỗi ở bước 4
+   - `AUTH_SECRET` = chuỗi bí mật dài ngẫu nhiên (tạo bằng
+     `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
+     **Không đổi chuỗi này sau khi đã dùng**, đổi là mọi người phải đăng nhập lại.
+   - `ALLOWED_ORIGINS` phải có domain frontend thật (vd
+     `https://ahola-baby.vercel.app,https://<ten>.github.io`) để trình duyệt gọi được API chat.
+   → Save (Render tự khởi động lại).
+6. Kiểm tra `https://phantichweb.onrender.com/api/health` có `"chatStore":"mongodb"`.
+   Thử: 1 máy đăng nhập khách `0900000001/khach123` → bấm ảnh dịch vụ → nhắn; máy khác
+   (hoặc cửa sổ ẩn danh) đăng nhập Sale `0900000002/sale123` → mục Tin nhắn → trả lời.
+
+**Giới hạn cần biết:**
+- Render free ngủ sau ~15 phút không có ai dùng; lần mở đầu tiên sau đó server cần vài
+  chục giây để dậy (trang đăng nhập tự "đánh thức" server ngay khi mở, màn chat báo
+  "Đang kết nối..." trong lúc chờ). Tin nhắn KHÔNG mất vì đã lưu ở Atlas.
+- Tài khoản demo (mật khẩu công khai trên trang đăng nhập) chỉ để thử; trước khi dùng
+  thật cần đổi sang tài khoản nhân viên thật (sửa `DEMO_ACCOUNTS` ở cả `login.html` và
+  `server/sale-chat.js`).
+- Chạy local: `npm start` trong `server/` (không cần Atlas, lưu tạm trong bộ nhớ), mở
+  `index.html` từ máy là trang tự gọi `http://localhost:3001`.

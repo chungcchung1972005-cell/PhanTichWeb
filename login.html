@@ -59,6 +59,7 @@
   .login-demo td { padding: 3px 0; }
   .login-demo td:first-child { color: var(--pink-700); font-weight: 700; white-space: nowrap; padding-right: 10px; }
 </style>
+<script src="js/features.js?v=20260927d"></script>
 </head>
 <body>
 
@@ -105,6 +106,8 @@
       <table>
         <tr><td>Khách hàng</td><td>0900000001 / khach123</td></tr>
         <tr><td>Sale/CSKH</td><td>0900000002 / sale123</td></tr>
+        <tr><td>Sale/CSKH 2</td><td>0900000005 / sale123</td></tr>
+        <tr><td>Sale/CSKH 3</td><td>0900000006 / sale123</td></tr>
         <tr><td>Thợ ảnh</td><td>0900000003 / anh123</td></tr>
         <tr><td>Sếp</td><td>0900000004 / sep123</td></tr>
       </table>
@@ -112,12 +115,15 @@
   </div>
 </div>
 
-<script src="js/auth.js"></script>
+<script src="js/auth.js?v=20260927d"></script>
 <script>
   // Tài khoản demo mô phỏng phía client, KHÔNG phải hệ thống xác thực thật.
   var DEMO_ACCOUNTS = {
     '0900000001': { password: 'khach123', role: 'khach-hang', name: 'Khách demo' },
     '0900000002': { password: 'sale123', role: 'sale', name: 'Sale demo' },
+    // Thêm 2026-09-27: vài tài khoản Sale dùng chung 1 hộp thư chat với khách (crm/admin.html mục Tin nhắn)
+    '0900000005': { password: 'sale123', role: 'sale', name: 'Sale demo 2' },
+    '0900000006': { password: 'sale123', role: 'sale', name: 'Sale demo 3' },
     '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
     '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
   };
@@ -133,7 +139,14 @@
   // Trang chủ/Đặt lịch/Ảnh của tôi đã gộp vào index.html (SPA dùng hash, xem
   // js/router.js) -> next chỉ còn là tên route ("dat-lich"/"chon-anh"), không
   // phải tên file.
-  var validNextRoutes = ['dat-lich', 'chon-anh'];
+  // "chat-sale" / "chat-sale/<dịch vụ>": bấm ảnh dịch vụ đầu trang chủ -> đăng nhập
+  // xong vào thẳng khung chat với Sale (js/sale-chat.js, thêm 2026-09-27).
+  var validNextRoutes = ['dat-lich', 'chon-anh', 'chat-sale'];
+  function isValidNext(n) {
+    return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z-]+$/.test(n));
+  }
+  // Đặt lịch đang tạm tắt (js/features.js) -> khách vừa đăng ký vào chat với Sale thay vì trang đặt lịch.
+  var registerHome = (window.ALOHA_FEATURES && window.ALOHA_FEATURES.booking === false) ? 'chat-sale' : 'dat-lich';
   var params = new URLSearchParams(window.location.search);
   var isRegisterMode = params.get('mode') === 'register';
 
@@ -161,45 +174,66 @@
   }
   applyMode();
 
-  document.getElementById('loginForm').addEventListener('submit', function (e) {
+  // Chat thật Khách <-> Sale cần mã đăng nhập do server cấp (server/sale-chat.js, thêm
+  // 2026-09-27). Đánh thức server ngay khi mở trang: Render bản miễn phí ngủ khi lâu không
+  // dùng, lúc khách gõ xong SĐT + mật khẩu thì server đã dậy.
+  AlohaAuth.wakeServer();
+
+  var submitBtn = document.getElementById('loginSubmitBtn');
+  function setBusy(busy) {
+    submitBtn.disabled = busy;
+    submitBtn.textContent = busy ? 'Đang kết nối...' : (isRegisterMode ? 'Đăng ký' : 'Đăng nhập');
+  }
+  function goAfterLogin(role, next, fallbackRoute) {
+    if (role === 'khach-hang' && isValidNext(next)) window.location.href = 'index.html#/' + next;
+    else if (role === 'khach-hang' && fallbackRoute) window.location.href = 'index.html#/' + fallbackRoute;
+    else window.location.href = AlohaAuth.roleHome(role);
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     var phone = document.getElementById('loginPhone').value.trim();
     var password = pwInput.value;
     var errorBox = document.getElementById('loginError');
     var next = params.get('next');
+    function fail(msg) { errorBox.textContent = msg; errorBox.classList.add('show'); setBusy(false); }
 
     if (isRegisterMode) {
-      // Đăng ký demo: chưa có backend, tạo phiên "khách hàng" ngay từ thông tin
-      // vừa nhập (mô phỏng phía client) - xem js/auth.js.
       var name = document.getElementById('loginName').value.trim();
-      if (!name || !phone || !password) {
-        errorBox.textContent = 'Vui lòng nhập đủ họ tên, số điện thoại và mật khẩu.';
-        errorBox.classList.add('show');
-        return;
-      }
+      if (!name || !phone || !password) return fail('Vui lòng nhập đủ họ tên, số điện thoại và mật khẩu.');
       errorBox.classList.remove('show');
-      AlohaAuth.login('khach-hang', name, phone);
+      setBusy(true);
+      // Tạo tài khoản thật trên server (không trùng SĐT, mật khẩu được mã hoá) để đăng nhập
+      // lại được và chat với Sale. Server không kết nối được thì vẫn vào web như bản demo
+      // cũ, riêng khung chat sẽ báo chưa kết nối.
+      var r = await AlohaAuth.serverRegister(name, phone, password);
+      if (r.status === 409) return fail('Số điện thoại này đã có tài khoản. Vui lòng đăng nhập.');
+      if (r.status === 400) return fail((r.data && r.data.message) || 'Thông tin đăng ký chưa hợp lệ.');
+      AlohaAuth.login('khach-hang', name, phone, r.ok ? r.data.token : null);
       // Khách vừa đăng ký chưa từng đặt lịch nên chưa có ảnh nào để xem ->
       // mặc định đưa vào luồng Đặt lịch (không phải "Ảnh của tôi" như tài
-      // khoản demo đăng nhập lại), trừ khi họ đến từ một trang cụ thể (next).
-      window.location.href = (next && validNextRoutes.indexOf(next) !== -1) ? 'index.html#/' + next : 'index.html#/dat-lich';
-      return;
+      // khoản demo đăng nhập lại), hoặc chat với Sale khi Đặt lịch đang tắt,
+      // trừ khi họ đến từ một trang cụ thể (next).
+      return goAfterLogin('khach-hang', next, registerHome);
     }
 
     var account = DEMO_ACCOUNTS[phone];
-    if (!account || account.password !== password) {
-      errorBox.textContent = 'Số điện thoại hoặc mật khẩu không đúng.';
-      errorBox.classList.add('show');
-      return;
-    }
+    if (account && account.password !== password) return fail('Số điện thoại hoặc mật khẩu không đúng.');
     errorBox.classList.remove('show');
-    AlohaAuth.login(account.role, account.name, phone);
-
-    if (next && account.role === 'khach-hang' && validNextRoutes.indexOf(next) !== -1) {
-      window.location.href = 'index.html#/' + next;
-    } else {
-      window.location.href = AlohaAuth.roleHome(account.role);
+    setBusy(true);
+    var res = await AlohaAuth.serverLogin(phone, password);
+    if (account) {
+      // Tài khoản demo: kiểm tra được ngay tại trang, server chỉ để lấy mã đăng nhập cho chat.
+      AlohaAuth.login(account.role, account.name, phone, res.ok ? res.data.token : null);
+      return goAfterLogin(account.role, next);
     }
+    // Khách đã đăng ký thật: chỉ server biết mật khẩu.
+    if (res.ok) {
+      AlohaAuth.login(res.data.session.role, res.data.session.name, res.data.session.phone, res.data.token);
+      return goAfterLogin(res.data.session.role, next);
+    }
+    if (res.status === 0 || res.status >= 500) return fail('Chưa kết nối được máy chủ, vui lòng thử lại sau ít phút.');
+    return fail('Số điện thoại hoặc mật khẩu không đúng.');
   });
 </script>
 </body>

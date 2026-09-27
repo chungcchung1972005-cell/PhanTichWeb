@@ -38,4 +38,19 @@ function findChrome() {
 }
 const CHROME_PATH = findChrome();
 
-module.exports = { ROOT, ROOT_POSIX, ROOT_URL, CHROME_PATH, fromRoot, shot };
+// Từ 2026-09-27 Đặt lịch, trang album, chatbot AI tạm tắt bằng cờ trong js/features.js.
+// Các test cũ kiểm tra đúng những tính năng đó -> mở trình duyệt mà MỌI tab mới đều
+// bật lại đủ cờ trước khi trang chạy (js/features.js đọc window.ALOHA_FEATURES có sẵn).
+// Test luồng mặc định hiện tại (tính năng đang tắt, vd test-sale-chat.js) dùng puppeteer.launch thường.
+async function launchAllFeatures(puppeteer, opts) {
+  const browser = await puppeteer.launch(opts);
+  const newPage = browser.newPage.bind(browser);
+  browser.newPage = async (...args) => {
+    const page = await newPage(...args);
+    await page.evaluateOnNewDocument(() => { window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true }; });
+    return page;
+  };
+  return browser;
+}
+
+module.exports = { ROOT, ROOT_POSIX, ROOT_URL, CHROME_PATH, fromRoot, shot, launchAllFeatures };

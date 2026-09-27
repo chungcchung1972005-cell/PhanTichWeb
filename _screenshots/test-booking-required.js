@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer-core');
 const BASE = 'file:///D:/PhanTichWeb/';
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     headless: 'new',
     args: ['--no-sandbox']
