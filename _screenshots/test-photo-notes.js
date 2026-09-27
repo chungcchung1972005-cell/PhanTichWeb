@@ -48,6 +48,7 @@ const BASE = ROOT_URL;
   async function noteInLightbox(id, text) {
     await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);
     await page.waitForFunction(() => !document.getElementById('psLbNoteWrap').hidden, { timeout: 3000 });
+    await new Promise(r => setTimeout(r, 300)); // chờ hiệu ứng mở lightbox xong rồi mới gõ
     await page.type('#psLbNote', text);
     await page.keyboard.press('Escape');
   }
