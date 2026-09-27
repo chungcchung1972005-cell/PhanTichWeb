@@ -45,7 +45,7 @@ const state = (page) => page.evaluate(() => {
 const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.querySelectorAll(s)).every((i) => i.complete && i.naturalWidth > 0), sel);
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
@@ -60,26 +60,35 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
       const header = document.querySelector('.site-header').getBoundingClientRect();
       const r = first.getBoundingClientRect();
       const collage = document.querySelector('.svc-collage').getBoundingClientRect();
-      return { id: first.id, cls: first.className, gap: Math.round(r.top - header.bottom), h1: document.querySelector('#view-home h1').textContent.trim(), h1Count: document.querySelectorAll('h1').length, visibleCollage: collage.top < window.innerHeight, height: r.height };
+      return { id: first.id, cls: first.className, gap: Math.round(r.top - header.bottom), h1: document.querySelector('#view-home h1').textContent.trim(), h1Count: document.querySelectorAll('#view-home h1').length, visibleCollage: collage.top < window.innerHeight, height: r.height };
     });
     log(`[${vp.name}] Hero Banner 5 dịch vụ là section đầu tiên, ngay dưới navbar`, hero.id === 'dich-vu' && hero.cls.includes('svc-hero') && hero.gap === 0, `gap ${hero.gap}px`);
-    log(`[${vp.name}] Tiêu đề h1 là "5 dịch vụ đồng hành cùng con lớn khôn", collage lộ ngay màn đầu`, hero.h1 === '5 dịch vụ đồng hành cùng con lớn khôn' && hero.visibleCollage);
-    if (vp.name === 'desktop') log('[desktop] Hero chiếm gần trọn màn hình đầu', hero.height >= 900 - 112 - 10, `cao ${Math.round(hero.height)}px`);
+    log(`[${vp.name}] Tiêu đề h1 là "Dịch vụ", duy nhất 1 h1 trong Trang chủ, lưới ảnh lộ ngay màn đầu`, hero.h1 === 'Dịch vụ' && hero.h1Count === 1 && hero.visibleCollage);
+    const list = await page.evaluate(() => Array.from(document.querySelectorAll('.svc-list a')).map((a) => a.getAttribute('href') + '|' + a.textContent.trim()).join(','));
+    log(`[${vp.name}] Dòng 5 dịch vụ đúng thứ tự Bé lớn, Sinh nhật, Bầu, Gia đình, Newborn, trỏ #/chat-sale/<dịch vụ>`,
+      list === '#/chat-sale/be-lon|Chụp ảnh bé lớn,#/chat-sale/sinh-nhat|Chụp ảnh sinh nhật,#/chat-sale/bau|Chụp ảnh bầu,#/chat-sale/gia-dinh|Chụp ảnh gia đình,#/chat-sale/newborn|Chụp ảnh Newborn', list);
+    const layout = await page.evaluate(() => {
+      const r = (k) => document.querySelector('.svc-tile--' + k).getBoundingClientRect();
+      const bau = r('bau'), beLon = r('be-lon'), sinhNhat = r('sinh-nhat');
+      return { bauTall: bau.height > beLon.height * 1.8, stacked: Math.abs(beLon.left - sinhNhat.left) < 2 && sinhNhat.top > beLon.bottom };
+    });
+    log(`[${vp.name}] Ô Bầu cao gấp đôi, Bé lớn nằm trên Sinh nhật`, layout.bauTall && layout.stacked);
 
-    // 2) 5 ô dịch vụ đủ, trỏ đúng album, có số concept đọc từ dữ liệu album.
+    // 2) 5 ô dịch vụ đủ, trỏ #/chat-sale/<dịch vụ>, ảnh bìa đọc từ dữ liệu album.
     const tiles = await page.evaluate(() => Array.from(document.querySelectorAll('.svc-tile')).map((t) => ({
       slug: t.dataset.album, href: t.getAttribute('href'), name: t.querySelector('.svc-tile-name').textContent,
-      count: t.querySelector('[data-album-count]').textContent, imgOk: t.querySelector('img').naturalWidth > 0
+      imgOk: t.querySelector('img').naturalWidth > 0
     })));
     const tilesOk = tiles.length === 5 && tiles.every((t) => {
       const s = services.find((x) => x.slug === t.slug);
-      return s && t.href === '#/album/' + t.slug && t.name === s.name && t.count === s.concepts.length + ' concept' && t.imgOk;
+      return s && t.href === '#/chat-sale/' + t.slug && t.name.toLowerCase() === ('Chụp ảnh ' + s.name).toLowerCase() && t.imgOk;
     });
-    log(`[${vp.name}] 5 ô dịch vụ đủ tên, ảnh, số concept, trỏ đúng #/album/<dịch vụ>`, tilesOk);
+    log(`[${vp.name}] 5 ô dịch vụ đủ nhãn "Chụp ảnh ...", ảnh, trỏ #/chat-sale/<dịch vụ>`, tilesOk);
 
     // 3) Mỗi dịch vụ -> danh sách concept album -> mỗi concept -> toàn bộ ảnh -> quay lên -> về trang chủ.
     for (const s of services) {
-      await page.click(`.svc-tile[data-album="${s.slug}"]`);
+      // Từ 2026-09-27 ảnh đầu trang dẫn tới chat Sale (test-sale-chat.js), không còn vào album -> mở album bằng địa chỉ.
+      await page.evaluate((slug) => { location.hash = '/album/' + slug; }, s.slug);
       await wait(250);
       let st = await state(page);
       const coversOk = await imgsLoaded(page, '#galleryConcepts img');
@@ -177,11 +186,11 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
     if (vp.name === 'mobile') {
       // Menu hamburger đang ĐÓNG: danh sách con "Dịch vụ" không được đè lên trang và cướp cú chạm
       // (lỗi thật đã gặp: chạm nút ở vùng giữa màn hình lại nhảy tới #dich-vu).
-      const ctaHit = await page.$eval('.svc-hero-cta .btn-primary', (b) => {
+      const ctaHit = await page.$eval('.svc-list a', (b) => {
         const r = b.getBoundingClientRect();
         return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
       });
-      log('[mobile] Menu đóng: nút "Đặt lịch chụp ngay" trong Hero nhận đúng cú chạm', ctaHit);
+      log('[mobile] Menu đóng: dòng dịch vụ đầu trang nhận đúng cú chạm', ctaHit);
       await page.click('#navToggle');
       await wait(350);
       const menu = await page.evaluate(() => {

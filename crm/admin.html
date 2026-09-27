@@ -11,14 +11,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/admin.css">
+<link rel="stylesheet" href="../css/admin.css?v=20260927d">
 </head>
 <body>
 
 <!-- 1 file dùng chung cho 3 vai trò nội bộ (Sale/Thợ ảnh/Sếp); nội dung hiển thị
      theo đúng quyền của từng vai trò, xem crm/js/admin.js và js/auth.js -->
-<script src="../js/auth.js"></script>
-<script src="../js/data-store.js"></script>
+<script src="../js/auth.js?v=20260927d"></script>
+<script src="../js/data-store.js?v=20260927d"></script>
 <script>AlohaAuth.requireRole(['sale', 'tho-anh', 'sep']);</script>
 <script>
   // Khôi phục trạng thái thu gọn của cột menu NGAY tại đây, trước khi trình duyệt
@@ -69,6 +69,10 @@
     <a href="#kpi" data-roles="sep" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="8" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.6"/><rect x="3" y="14" width="7.5" height="7" rx="1.6"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.6"/></svg>
       <span>Dashboard</span>
+    </a>
+    <a href="#tin-nhan" data-roles="sale sep">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12.5h5"/></svg>
+      <span>Tin nhắn</span>
     </a>
     <a href="#khach-hang" data-roles="sep sale">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6"/><path d="M16.5 5.2a3.4 3.4 0 0 1 0 6.4"/><path d="M18 14.8c2.3.6 3.5 2.4 3.5 5.2"/></svg>
@@ -169,6 +173,28 @@
           <div class="funnel" id="funnelChart"></div>
         </div>
       </div>
+    </section>
+
+    <!-- Block Sale + Sếp: Tin nhắn khách hàng (thêm 2026-09-27). Khách chat từ trang
+         web (bấm ảnh dịch vụ đầu trang chủ / nút chat nổi, js/sale-chat.js) -> hiện
+         ở đây cho MỌI tài khoản Sale, Sale nào trả lời thì tin ghi tên Sale đó. Sếp
+         chỉ xem. Dữ liệu: server/sale-chat.js (chat thật qua máy chủ, MongoDB), crm/js/admin.js vẽ. -->
+    <section class="admin-section" id="tin-nhan" data-roles="sale sep">
+      <h2>Tin nhắn khách hàng</h2>
+      <p class="sub" id="inboxSub">Khách nhắn từ trang web hiện ở đây, mọi tài khoản Sale dùng chung hộp thư này. Bấm vào một cuộc trò chuyện để đọc và trả lời.</p>
+      <div class="inbox-status" id="inboxStatus" role="status" hidden></div>
+      <div class="inbox">
+        <div class="inbox-list" id="inboxList" role="list"></div>
+        <div class="inbox-thread">
+          <div class="inbox-thread-head" id="inboxHead"></div>
+          <div class="inbox-msgs" id="inboxMsgs" aria-live="polite"></div>
+          <form class="inbox-reply" id="inboxReply" hidden>
+            <input type="text" id="inboxInput" placeholder="Nhập câu trả lời cho khách..." autocomplete="off" aria-label="Câu trả lời cho khách">
+            <button type="submit" class="btn btn-primary btn-sm">Gửi</button>
+          </form>
+        </div>
+      </div>
+      <p class="inbox-note">Tin nhắn lưu trên máy chủ chat của studio: khách nhắn từ điện thoại hay máy tính nào cũng hiện ở đây, trang tự cập nhật vài giây một lần.</p>
     </section>
 
     <!-- Block Sếp + Sale: Khách hàng/CRM (nội dung bảng khác nhau theo quyền, cùng 1 nguồn dữ liệu) -->
@@ -357,6 +383,6 @@
   </div>
 </main>
 
-<script src="js/admin.js"></script>
+<script src="js/admin.js?v=20260927d"></script>
 </body>
 </html>

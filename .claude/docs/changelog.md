@@ -6,6 +6,106 @@ Nhật ký chi tiết từng lượt thay đổi (KHÔNG nằm trong `rules/` đ
 
 ## Nhật ký (mới nhất ở trên)
 
+- **Chat THẬT Khách <-> Sale qua server + MongoDB Atlas (2026-09-27, lượt 5):**
+  - **Yêu cầu:** người dùng muốn tài khoản Sale "kết nối" với khung chat, Sale chat trực tiếp được với khách.
+  - **Đã hỏi:** hướng chat → "chỉ chat với Sale như hiện tại" (không bật lại bot); cách kết nối → "làm chat thật qua server"; database → "MongoDB Atlas".
+  - **Server** - `server/sale-chat.js` (mới, mount `/api/sale-chat`):
+    - Đăng nhập/đăng ký kiểm tra ở server: tài khoản demo khớp `login.html`; khách đăng ký thật có mật khẩu băm scrypt, chặn trùng SĐT, chặn SĐT của tài khoản demo.
+    - Token HMAC `AUTH_SECRET`, hạn 30 ngày.
+    - API: `/me` (khách, SĐT lấy từ token); `/inbox`, `/inbox/:phone` (Sale + Sếp); gửi + đánh dấu đã đọc (Sale); Sếp chỉ xem, Thợ ảnh bị chặn.
+    - Giới hạn 30 tin/phút, tin ≤ 2000 ký tự, giữ 500 tin/cuộc trò chuyện.
+    - Lưu MongoDB (`MONGODB_URI`, `MONGODB_DB`), không có thì lưu bộ nhớ.
+    - Thêm dependency `mongodb`. `/api/health` báo `chatStore`.
+  - **Web:**
+    - `js/auth.js` có `api/serverLogin/serverRegister/wakeServer`, `logout(next)`; session có thêm `token`.
+    - `login.html` đánh thức server khi mở trang; đăng nhập/đăng ký gọi server. Tài khoản demo vẫn vào được khi server tắt (chỉ chat báo "Đăng nhập lại"). Khách đăng ký thật đăng nhập lại được. Đăng ký lúc server tắt vẫn vào web như bản demo cũ.
+    - `js/sale-chat.js` đọc/ghi qua server:
+      - Hỏi tin mới 2,5 giây khi mở màn chat, 20 giây ở trang khác (để bật chấm đỏ).
+      - Tin đang gửi mờ đi; tin gửi lỗi có "Gửi lại".
+      - Dòng trạng thái "Đang kết nối…" hoặc "Đăng nhập lại".
+      - Lời chào tự động vẫn chỉ hiển thị, không lưu.
+    - `crm/js/admin.js` mục Tin nhắn đọc/ghi qua server, hỏi 3 giây/lần, có dòng trạng thái.
+    - `js/data-store.js` bỏ chat localStorage (`getChats`...), tự xoá key `chats` cũ.
+  - **Đã kiểm chứng:**
+    - `test-sale-chat.js` viết lại, 43 case, tự bật server cổng 3001 lưu bộ nhớ. Khách + Sale ở các cửa sổ ẩn danh riêng (như 2 máy) chat qua lại không cần tải lại trang; chấm đỏ; mất server → gửi lại; đăng ký chặn trùng; quyền ở server.
+    - Nhánh MongoDB kiểm bằng mongodb-memory-server (mongod thật, cài trong thư mục nháp, không thêm vào dự án): lưu/đọc, số chưa đọc, **tắt server bật lại vẫn còn tin + tài khoản**, Mongo không kết nối được thì trả 503 không sập.
+    - CHƯA kiểm với Atlas thật và Render thật (người dùng cần tự tạo, xem `server/DEPLOY.md`).
+    - 10 bộ test cũ vẫn pass khi không bật server (đăng nhập tự bỏ qua bước lấy mã).
+  - **Việc người dùng tự làm:** tạo Atlas, đặt `MONGODB_URI` + `AUTH_SECRET` + `ALLOWED_ORIGINS` trên Render, merge PR để Render deploy.
+
+- **Tin chào Sale luôn đến lần lượt + dọn tin "điền sẵn" cũ (2026-09-27, lượt 4):**
+  - **Người dùng báo:** chưa thấy tin đến lần lượt, và muốn bỏ "tin nhắn demo của khách".
+  - **Nguyên nhân:**
+    - Tin "Mình muốn được tư vấn dịch vụ Chụp ảnh bầu." là tin THẬT còn trong localStorage của người dùng, do bản chat đầu tiên điền sẵn câu này vào ô nhập và người dùng đã gửi.
+    - Cuộc trò chuyện đã có tin nên chuỗi chào không chạy.
+    - Chuỗi chào còn bị giới hạn "1 lần mỗi lần tải trang" và tắt hẳn khi máy bật giảm hiệu ứng.
+  - **Đã sửa:**
+    - `js/data-store.js` `dropOldPrefill()` chạy khi nạp: xoá tin khách đúng mẫu câu cũ, gửi trước 28/09/2026. Cuộc trò chuyện rỗng thì xoá hẳn; tin gõ sau mốc giữ nguyên.
+    - Chuỗi chào chạy MỖI lần mở màn chat khi khách chưa nhắn gì. Chạy cả khi giảm hiệu ứng (chỉ bỏ chuyển động).
+    - Dấu "…" đang trả lời có thêm dòng "Tư vấn viên đang trả lời…".
+    - Tăng số phiên bản cache `pages.css`/`data-store.js`/`sale-chat.js`.
+  - **Test:** `test-sale-chat.js` lên 50 case.
+
+- **Màn chat Sale: bỏ cột trái, ảnh phóng to chuyển trang, tin chào đến lần lượt (2026-09-27, lượt 3):**
+  - **Yêu cầu:** bỏ cột bên trái; bấm ảnh ở trang chủ thì chuyển mượt sang trang nhắn tin; từng tin tự động ban đầu của Sale đến "như thật".
+  - **Bỏ cột trái:** bỏ luôn chức năng đổi dịch vụ trên màn chat. Khung chat ở giữa, rộng tối đa 900px; nút quay lại luôn ở đầu khung.
+  - **Chuyển trang:** đã đăng nhập mà bấm ảnh thì có bản sao ảnh phóng từ ô ảnh ra phủ màn hình (0,48 giây, phủ dần lớp hồng nhạt), đổi sang màn chat rồi mờ đi (0,32 giây); khung chat trượt lên (`.sc-in`). Chưa đăng nhập thì vẫn sang trang đăng nhập; đăng nhập xong khung chat trượt lên.
+  - **Tin chào:** "đang nhập" trước mỗi tin, thời gian gõ 0,7 - 1,6 giây tuỳ độ dài câu, nghỉ 0,4 giây giữa các tin, xong mới hiện nút gợi ý. Mỗi tin và tin mới đến sau (khách gửi, Sale trả lời) có hiệu ứng "bật lên". Quay lại màn chat thì lời chào hiện đủ ngay.
+  - **Sửa kèm:** giờ của lời chào có lúc muộn hơn tin khách (sau khi tải lại trang). Nay lời chào lấy giờ tin đầu nếu sớm hơn, dòng ngày đặt trên lời chào.
+  - **Test:** `test-sale-chat.js` lên 48 case (ảnh phóng, thứ tự tin chào, nhịp đang nhập, nút gợi ý sau tin cuối).
+
+- **Chat với Sale thành màn hình riêng + lời chào tự động (2026-09-27, lượt sau):**
+  - **Yêu cầu:** bấm ảnh + đăng nhập xong thì ra "1 giao diện khác" để chat với Sale, mở đầu bằng tin nhắn tự động kiểu "tôi có thể giúp gì cho bạn" nhưng hay hơn.
+  - **Đã làm:**
+    - `#/chat-sale[/<dịch vụ>]` từ "mở khung chat nổi trên Trang chủ" thành view riêng `#view-chat` trong `index.html` (vẫn 3 file HTML).
+    - Desktop 2 cột: trái là đội tư vấn, chọn dịch vụ quan tâm (đổi ngay trên màn, thay địa chỉ không thêm lịch sử), hotline, địa chỉ; phải là cuộc trò chuyện.
+    - Màn ≤860px bỏ cột trái, có nút quay lại.
+    - Chiều cao vừa khung nhìn (JS đo header). Ẩn footer + nút nổi.
+  - **Lời chào tự động:**
+    - Hiện sau nhịp "đang nhập" 0.9 giây, chỉ lần đầu, và chỉ khi không bật giảm hiệu ứng.
+    - 3 bong bóng: chào theo tên + buổi trong ngày, giới thiệu, hỏi nhu cầu nhắc đúng dịch vụ vừa bấm.
+    - 4 nút gợi ý câu hỏi theo dịch vụ, bấm là gửi thành tin của khách; ẩn khi khách đã nhắn.
+    - Lời chào CHỈ hiển thị (không lưu vào `db.chats`, nên Sale không thấy tin giả) và ghi rõ "Tin nhắn tự động". Không hứa thời gian phản hồi.
+  - **Tin nhắn:** gom nhóm theo người gửi, có dòng ngày, avatar Sale + tên Sale trả lời. Ô nhập nhiều dòng: Enter gửi, Shift+Enter xuống dòng. Trên điện thoại không tự bật bàn phím.
+  - **Phần khung chat nổi:** `js/sale-chat.js` viết lại, không dùng `#chatPanel` nữa (khung đó chỉ còn cho chatbot khi bật lại `aiChat`). Router bỏ `openSaleChat`.
+  - **CSS:** trong `css/pages.css` (`.sc-*`). Đã bỏ các class chat Sale cũ trong `style.css`.
+  - **Test:** `test-sale-chat.js` lên 42 case.
+
+- **Bấm ảnh dịch vụ -> đăng nhập -> chat trực tiếp với Sale; tạm tắt Đặt lịch / album / chatbot AI (2026-09-27):**
+  - **Yêu cầu:** khách chưa đăng nhập vẫn lướt được web; bấm ảnh ở khối đầu trang thì sang đăng nhập, xong thì vào thẳng chat với "các tài khoản Sale"; tạm ẩn ảnh album, các nút đặt lịch, chatbot AI.
+  - **Đã hỏi và người dùng chọn:**
+    - Gate cả 5 ảnh lẫn dòng chữ 5 dịch vụ.
+    - "Ẩn ảnh album" = ẩn lối vào trang album.
+    - Ẩn hết nhưng giữ code, dùng 1 cờ.
+    - Chat: tin khách "nhảy sang Sale để trả lời ngay tại web". Làm bằng localStorage, vì site chưa có backend.
+  - **Cờ tắt tính năng:**
+    - `js/features.js` (mới): `booking/aiChat/albumPages` mặc định `false`, đặt class `feat-no-*` lên `<html>`.
+    - CSS cuối `style.css` ẩn mọi `a[href="#/dat-lich"]` + khối `.cta-final`; thẻ `a[href^="#/album"]` không bấm được.
+    - Router đưa `#/dat-lich`, `#/album/...` về Trang chủ.
+    - `script.js` bỏ qua khối chatbot khi `aiChat` tắt; ô tìm kiếm ẩn mục "Đặt lịch", thêm mục "Nhắn tin cho Sale".
+  - **Luồng đăng nhập -> chat:**
+    - Route mới `#/chat-sale[/<dịch vụ>]` bắt đăng nhập khách hàng: `login.html?next=chat-sale/<slug>`, `isValidNext` nhận dạng này.
+    - Đăng ký mới khi Đặt lịch tắt thì vào chat thay vì trang đặt lịch.
+    - Đăng nhập xong: Trang chủ, khung chat mở sẵn, ô nhập điền "Mình muốn được tư vấn dịch vụ <dịch vụ>.", địa chỉ về `#/`.
+  - **Khung chat phía khách:** `js/sale-chat.js` (mới) dùng lại `#chatPanel`, có tên Sale trả lời + giờ gửi, chấm đỏ trên nút chat khi Sale đã trả lời, ghi rõ "bản demo, lưu trên trình duyệt này".
+  - **Dữ liệu:** `db.chats` trong `aloha_demo_db` (lược đồ ở CLAUDE.md).
+  - **Admin:** mục "Tin nhắn" (Sale + Sếp, Sếp chỉ xem). Thêm 2 tài khoản Sale demo `0900000005`/`0900000006` (mật khẩu `sale123`).
+  - **Giới hạn đã báo người dùng:**
+    - Chỉ thấy nhau trong cùng 1 trình duyệt.
+    - `aloha_auth` là 1 phiên chung nên khách và Sale không đăng nhập song song được.
+    - Trên bản public, khách thật nhắn sẽ không có Sale nào nhận.
+    - Tin nhắn chưa ghi vào hồ sơ CRM.
+    - Trang nội dung vẫn còn chữ nhắc "đặt lịch online", "trợ lý trong khung chat"; thẻ "Xem trọn album" trong trang nội dung không bấm được.
+    - Trạng thái rỗng "Ảnh của tôi" thêm nút "Nhắn tin cho Sale".
+  - **Test:**
+    - `test-sale-chat.js` mới, 31 case.
+    - Test cũ mở trình duyệt bằng `launchAllFeatures` (test-env) để bật lại đủ cờ.
+    - `test-service-albums` sửa link ảnh đầu trang, mở album bằng địa chỉ.
+    - `test-auth` thêm tab "Tin nhắn".
+  - **Rà soát:** agent reviewer. Đã sửa câu chữ hứa "trả lời ngay", cache-bust `style.css`/`data-store.js`, fallback khi bật lại `aiChat`.
+
+- **Khối Dịch vụ đầu trang chủ theo bố cục alohababy.vn (2026-09-27):** người dùng gửi ảnh khối "DỊCH VỤ" của alohababy.vn, yêu cầu bố cục + chữ giống vậy (chỉ lấy phần chữ, không lấy ảnh). Đã làm trong `#dich-vu` (`index.html`, `css/style.css`): bỏ cột chữ "5 dịch vụ đồng hành cùng con lớn khôn" + mô tả + nút "Đặt lịch chụp ngay" (còn nút Đặt lịch nổi và CTA ở section Giới thiệu ngắn bên dưới); thay bằng h1 "Dịch vụ" in hoa giữa trang có gạch hồng 2 bên, dòng 5 link "Chụp ảnh bé lớn / sinh nhật / bầu / gia đình / Newborn" (chấm hồng, mở album), lưới 3 cột: trái Bé lớn + Sinh nhật, giữa Bầu cao gấp đôi, phải Gia đình + Newborn; nhãn "CHỤP ẢNH ..." nằm giữa ảnh trong khung tối trong viền trắng, rê chuột đổi hồng. Bỏ nút mũi tên và dòng "Xem album · 7 concept" (bản gốc không có) nên xoá đoạn điền `data-album-count` trong `js/albums.js`. Điện thoại: 2 cột (Bầu cao gấp đôi bên phải, Gia đình + Newborn hàng cuối). Giữ bảng màu hồng/navy và ảnh stock hiện có. Ô tìm kiếm: `match` của 5 dịch vụ trong `js/script.js` đổi theo nhãn mới. Test: `test-service-albums.js` sửa case tiêu đề/ô ảnh, thêm case dòng 5 dịch vụ và bố cục ô Bầu, 133/133 pass.
+
 - **Đặt cọc: tự nhận diện thanh toán (mô phỏng) thay cho nút "Tôi đã chuyển khoản" (2026-09-26):** người dùng muốn sau khi khách thanh toán thì hệ thống tự nhận diện, không bắt khách bấm nút. Vì nhận diện thật cần server nhận webhook ngân hàng + database (site chưa có backend booking, người dùng từng nói để sau), đã hỏi và người dùng chọn **"Mô phỏng trước, thật sau"**. Đã làm: bỏ nút xác nhận thủ công; chọn phương thức có QR (chuyển khoản/MoMo/ZaloPay) là hiện khung "Đang chờ thanh toán..." (vòng xoay, "không cần bấm gì thêm") và trang hỏi trạng thái mỗi 2 giây (`payPollTimer`); thẻ thì bấm "Thanh toán qua VNPay" rồi mới chờ. `PaymentStatus.check()` GIẢ LẬP báo đã nhận tiền sau 8 giây (`PAYMENT_CONFIG` trong `js/dat-lich.js`), chỉ nhận khi đúng mã đơn + đủ tiền cọc, rồi tự sang màn "Đã nhận tiền cọc!". Khung chờ và màn thành công đều ghi rõ "bản demo: mô phỏng". Rời bước 4 (Quay lại, hết giờ giữ chỗ) thì dừng chờ; nút chính bước 4 khoá khi chưa chọn phương thức/đang chờ. Bỏ dòng lỗi "chưa chọn phương thức" (không còn đường bấm tới). Sửa kèm: nút chính `.bk-next` khi khoá trước đây vẫn đậm màu như bấm được (cả nút "Tiếp tục" bước 1-2) - thêm style mờ + `not-allowed`. Tài liệu làm thật: `.claude/docs/tich-hop-thanh-toan.md` (webhook SePay/PayOS/VNPay, 3 endpoint, yêu cầu an toàn, checklist; chi tiết API bên thứ ba ghi rõ chưa kiểm chứng). Test: `test-booking-required.js` lên 68 case (tự thành công không cần bấm, quay lại thì thôi chờ, thẻ qua VNPay).
 
 - **Đặt lịch bước 1: chọn concept sau dịch vụ, giá theo concept + concept "Khác" (2026-09-25):** người dùng yêu cầu phần chọn dịch vụ đi sâu vào các concept như trang chủ để đa dạng mức giá, thêm "Khác" = concept khách tự sáng tạo, cần bàn với Sale. Đã làm: bước 1 đổi tên "Dịch vụ & concept"; chọn dịch vụ thì hiện lưới concept của dịch vụ đó (lấy từ `window.AlohaAlbums.list`, cùng nguồn trang chủ/album, 7 concept/dịch vụ) gồm ảnh bìa + tên + giá + nút "Xem ảnh mẫu" (mở lightbox dùng chung, không rời trang đặt lịch), cuối lưới là ô "Khác". Chọn "Khác" bắt buộc mô tả ý tưởng (textarea), giá hiện "Sale báo giá", cọc **tạm tính 50% giá khởi điểm dịch vụ** (quyết định mặc định của Claude để vẫn giữ nguyên tắc "lịch chỉ chính thức khi đã cọc", người dùng có thể đổi), bước Đặt cọc + màn thành công ghi rõ Sale sẽ trao đổi ý tưởng và báo giá chính xác. Đổi dịch vụ thì bỏ chọn concept cũ; phải chọn concept mới bấm Tiếp tục được. Ô Tóm tắt thêm dòng Concept, dòng giá đổi thành "Giá chụp" theo concept. **Giá từng concept là số MINH HOẠ Claude tự đặt** quanh giá "từ ..." sẵn có (concept rẻ nhất = giá khởi điểm, để khớp chatbot), nằm ở `BOOKING_CONFIG.conceptPrice` trong `js/dat-lich.js`, chờ studio gửi bảng giá thật. Test: `test-booking-required.js` lên 58 case (lưới concept khớp album, giá đa dạng, xem ảnh mẫu, đổi dịch vụ, "Khác" bắt mô tả + cọc tạm tính, mobile); các thao tác bấm trong test đổi sang click trong trang vì bấm theo toạ độ lúc trang đang cuộn mượt bị trượt (chập chờn). `test-auth.js` sửa case luồng đặt lịch (phải chọn concept). Ghi nhận: case tìm "newborn khi nao" trong `test-content-pages.js` chập chờn từ trước (bản HEAD cũng bị, chữ gõ vào ô tìm kiếm đôi khi mất), không do lượt này.

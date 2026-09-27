@@ -4,7 +4,7 @@ const path = require('path');
 
 (async () => {
   const htmlPath = path.resolve(__dirname, '..', 'login.html').replace(/\\/g, '/');
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']

@@ -1014,6 +1014,197 @@ document.addEventListener('DOMContentLoaded', () => {
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
   setInterval(renderEditRequests, 5000);
 
+  // ------------------------------- Tin nhắn khách hàng (Sale trả lời, Sếp chỉ xem) -------------------------------
+  // Thêm 2026-09-27: chat THẬT qua server (server/sale-chat.js) - khách nhắn từ màn chat
+  // trên trang web (js/sale-chat.js), mọi tài khoản Sale thấy chung 1 hộp thư ở đây và trả
+  // lời, khác máy/khác trình duyệt vẫn thấy nhau. Trang tự hỏi server tin mới mỗi 3 giây.
+  // Sếp xem được nhưng không trả lời và không làm mất trạng thái "chưa đọc" của Sale.
+  const inboxList = document.getElementById('inboxList');
+  if (inboxList && window.AlohaAuth && AlohaAuth.api) {
+    const inboxHead = document.getElementById('inboxHead');
+    const inboxMsgs = document.getElementById('inboxMsgs');
+    const inboxReply = document.getElementById('inboxReply');
+    const inboxInput = document.getElementById('inboxInput');
+    const inboxStatus = document.getElementById('inboxStatus');
+    const canReply = role === 'sale';
+    let chats = [];          // bản tóm tắt từ GET /inbox
+    let activeChat = null;   // cuộc trò chuyện đang mở, đủ tin (GET /inbox/:phone)
+    let activePhone = null;
+    let status = 'loading';  // 'ok' | 'offline' | 'auth'
+    let lastListKey = '';
+    let lastThreadKey = '';
+    let busy = false;
+
+    if (!canReply) {
+      document.getElementById('inboxSub').textContent = 'Tin nhắn khách gửi từ trang web và câu trả lời của các tài khoản Sale. Chế độ chỉ xem.';
+    }
+
+    const pad2 = n => String(n).padStart(2, '0');
+    function chatTime(ts) {
+      const d = new Date(ts);
+      const hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      return d.toDateString() === new Date().toDateString() ? hm : pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + hm;
+    }
+
+    function renderStatus() {
+      if (!inboxStatus) return;
+      inboxStatus.hidden = status === 'ok' || status === 'loading';
+      if (status === 'offline') {
+        inboxStatus.innerHTML = 'Đang kết nối tới máy chủ chat… Máy chủ có thể cần vài chục giây để khởi động.';
+      } else if (status === 'auth') {
+        inboxStatus.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. <button type="button" id="inboxRelogin">Đăng nhập lại</button> để xem và trả lời tin nhắn.';
+      }
+    }
+
+    function renderInboxList() {
+      const key = status + '#' + chats.map(c => c.phone + ':' + c.updatedAt + ':' + (c.staffUnread || 0)).join('|') + '#' + activePhone;
+      if (key === lastListKey) return;
+      lastListKey = key;
+      if (!chats.length) {
+        inboxList.innerHTML = status === 'loading'
+          ? '<p class="inbox-empty">Đang tải tin nhắn…</p>'
+          : '<p class="inbox-empty">Chưa có tin nhắn nào. Khi khách bấm ảnh dịch vụ trên trang chủ hoặc nút chat, tin nhắn sẽ hiện ở đây.</p>';
+        return;
+      }
+      inboxList.innerHTML = chats.map(c => {
+        const last = c.last;
+        const preview = last ? (last.from === 'sale' ? (last.senderName || 'Sale') + ': ' : '') + last.text : '';
+        const unread = c.staffUnread || 0;
+        return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" role="listitem">
+          <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.customerName))}</span>
+          <span class="inbox-item-text">
+            <span class="inbox-item-top"><strong>${escHtml(c.customerName)}</strong><time>${last ? chatTime(last.at) : ''}</time></span>
+            ${c.topic ? `<span class="inbox-topic">${escHtml(c.topic)}</span>` : ''}
+            <span class="inbox-preview">${escHtml(preview)}</span>
+          </span>
+          ${unread ? `<span class="inbox-unread" aria-label="${unread} tin chưa đọc">${unread}</span>` : ''}
+        </button>`;
+      }).join('');
+    }
+
+    function renderThread(forceScroll) {
+      const chat = activeChat && activeChat.phone === activePhone ? activeChat : null;
+      inboxReply.hidden = !(chat && canReply);
+      if (!chat) {
+        lastThreadKey = '';
+        inboxHead.innerHTML = '';
+        inboxMsgs.innerHTML = activePhone
+          ? '<p class="inbox-empty">Đang tải cuộc trò chuyện…</p>'
+          : '<p class="inbox-empty">Chọn một cuộc trò chuyện bên trái để xem tin nhắn.</p>';
+        return;
+      }
+      const msgs = chat.messages;
+      const key = chat.phone + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
+      if (key === lastThreadKey && !forceScroll) return;
+      lastThreadKey = key;
+      inboxHead.innerHTML = `${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone)}
+        ${chat.topic ? `<span class="inbox-topic">Quan tâm: ${escHtml(chat.topic)}</span>` : ''}`;
+      const nearBottom = inboxMsgs.scrollHeight - inboxMsgs.scrollTop - inboxMsgs.clientHeight < 60;
+      inboxMsgs.innerHTML = msgs.map(m => `
+        <div class="inbox-msg ${m.from === 'sale' ? 'from-sale' : 'from-khach'}">
+          ${m.from === 'sale' ? `<span class="inbox-msg-name">${escHtml(m.senderName || 'Sale')}</span>` : ''}
+          <span class="inbox-msg-text">${escHtml(m.text)}</span>
+          <time>${chatTime(m.at)}</time>
+        </div>`).join('');
+      if (forceScroll || nearBottom) inboxMsgs.scrollTop = inboxMsgs.scrollHeight;
+    }
+
+    function updateInboxBadge() {
+      const tab = document.querySelector('#adminTabs a[href="#tin-nhan"]');
+      if (!tab) return;
+      const total = chats.reduce((n, c) => n + (c.staffUnread || 0), 0);
+      let badge = tab.querySelector('.admin-tab-badge');
+      if (total > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'admin-tab-badge';
+          tab.appendChild(badge);
+        }
+        badge.textContent = total;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
+    function renderAll(forceScroll) {
+      renderStatus();
+      renderInboxList();
+      renderThread(forceScroll);
+      updateInboxBadge();
+    }
+
+    const fail = r => { status = r.status === 401 ? 'auth' : 'offline'; };
+
+    // Sale đang mở đúng cuộc trò chuyện (và đang nhìn trang) thì coi như đã đọc.
+    async function markActiveRead() {
+      if (!canReply || !activePhone || document.visibilityState !== 'visible') return;
+      const summary = chats.find(c => c.phone === activePhone);
+      if (!summary || !summary.staffUnread) return;
+      summary.staffUnread = 0;
+      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/read', { method: 'POST' });
+      if (r.ok && r.data.chat && activePhone === r.data.chat.phone) activeChat = r.data.chat;
+    }
+
+    async function refreshInbox(forceScroll) {
+      const s = AlohaAuth.getSession();
+      if (!s || !s.token) { status = 'auth'; renderAll(false); return; }
+      if (busy) return;
+      busy = true;
+      const r = await AlohaAuth.api('/api/sale-chat/inbox');
+      if (r.ok) {
+        status = 'ok';
+        chats = r.data.chats || [];
+        if (activePhone) {
+          const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
+          if (t.ok) activeChat = t.data.chat; else if (t.status !== 404) fail(t);
+          await markActiveRead();
+        }
+      } else {
+        fail(r);
+      }
+      busy = false;
+      renderAll(forceScroll);
+    }
+
+    inboxList.addEventListener('click', e => {
+      const item = e.target.closest('.inbox-item');
+      if (!item) return;
+      activePhone = item.dataset.phone;
+      if (!activeChat || activeChat.phone !== activePhone) activeChat = null;
+      renderAll(true);
+      refreshInbox(true);
+      if (canReply) inboxInput.focus();
+    });
+
+    inboxReply.addEventListener('submit', async e => {
+      e.preventDefault();
+      const text = inboxInput.value.trim();
+      if (!text || !activePhone || !canReply) return;
+      const btn = inboxReply.querySelector('button');
+      btn.disabled = true;
+      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/messages', { method: 'POST', body: { text } });
+      btn.disabled = false;
+      if (r.ok) {
+        inboxInput.value = '';
+        activeChat = r.data.chat;
+        status = 'ok';
+      } else {
+        fail(r);
+      }
+      renderAll(true);
+      inboxInput.focus();
+    });
+
+    if (inboxStatus) {
+      inboxStatus.addEventListener('click', e => { if (e.target.id === 'inboxRelogin') AlohaAuth.logout(); });
+    }
+
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshInbox(false); });
+    setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 3000);
+    renderAll(false);
+    refreshInbox(false);
+  }
+
   // ------------------------------- Doanh thu (Sếp): KPI + biểu đồ đường + mục tiêu tháng -------------------------------
   // Bố cục tham khảo ảnh dashboard người dùng cung cấp (2026-09-25), đổ đúng
   // bảng màu hồng/navy của dự án (người dùng chốt không dùng dark theme của

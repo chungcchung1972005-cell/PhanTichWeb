@@ -11,11 +11,17 @@
 //   (dữ liệu trong js/albums.js, xem công khai không cần đăng nhập)
 //   #/noi-dung/<slug>           -> trang nội dung chi tiết: concept, video, bài tin tức...
 //   (dữ liệu trong js/content.js, xem công khai không cần đăng nhập)
+//   #/chat-sale[/<dịch vụ>]     -> màn hình chat riêng với Sale (view-chat, bắt đăng nhập
+//   khách hàng; 5 ảnh + dòng 5 dịch vụ đầu trang dẫn tới đây, nội dung do js/sale-chat.js vẽ)
+//   Cờ trong js/features.js: booking/albumPages đang tắt thì #/dat-lich, #/album/... về Trang chủ.
 //   #dich-vu, #gioi-thieu, #album, #tin-tuc... -> neo cuộn trong Trang chủ,
 //   KHÔNG phải route (không có dấu / ngay sau #).
 (function (window) {
-  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content' };
-  const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'] };
+  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content', 'chat-sale': 'view-chat' };
+  const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'], 'chat-sale': ['khach-hang'] };
+  const FEATURES = window.ALOHA_FEATURES || {};
+  // Route đang tạm tắt theo js/features.js -> coi như về Trang chủ.
+  const DISABLED = { 'dat-lich': FEATURES.booking === false, 'album': FEATURES.albumPages === false };
   const TITLE = {
     '': document.title,
     'dat-lich': 'Đặt lịch chụp | ALOHA Baby',
@@ -42,6 +48,13 @@
       window.AlohaContent.stop(); // dừng video đang phát ở trang nội dung trước khi rời
       if (base === 'noi-dung') pageTitle = window.AlohaContent.render(param || '');
     }
+    // Màn chat Sale: js/sale-chat.js nạp SAU router, lần tải trang đầu nó tự vẽ khi sẵn sàng.
+    if (window.AlohaSaleChat) {
+      if (base === 'chat-sale') pageTitle = window.AlohaSaleChat.show(param || '');
+      else window.AlohaSaleChat.hide();
+    }
+    // Màn chat chiếm trọn khung nhìn kiểu ứng dụng nhắn tin -> ẩn footer + nút nổi (css/pages.css).
+    document.body.classList.toggle('chat-view-active', base === 'chat-sale');
     Object.values(VIEW_ID).forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = (id !== targetId);
@@ -67,10 +80,16 @@
   }
 
   function navigateTo(route) {
-    const roles = GATED_ROLES[route];
+    const base = (route || '').split('/')[0];
+    if (DISABLED[base]) {
+      history.replaceState(null, '', '#/');
+      showView('');
+      return;
+    }
+    const roles = GATED_ROLES[base];
     if (roles && window.AlohaAuth) {
       const session = AlohaAuth.getSession();
-      if (!session) { window.location.href = 'login.html?next=' + route; return; }
+      if (!session) { window.location.href = 'login.html?next=' + encodeURIComponent(route); return; }
       if (roles.indexOf(session.role) === -1) { window.location.href = AlohaAuth.roleHome(session.role); return; }
     }
     showView(route);
@@ -102,6 +121,6 @@
   });
 
   window.addEventListener('hashchange', handleHashChange);
-  window.AlohaRouter = { navigateTo, showView };
+  window.AlohaRouter = { navigateTo, showView, parseRoute };
   handleHashChange();
 })(window);

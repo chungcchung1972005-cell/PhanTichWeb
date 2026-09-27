@@ -1,8 +1,10 @@
-// ALOHA Baby — server nhỏ, 2 nhiệm vụ:
+// ALOHA Baby — server nhỏ, 3 nhiệm vụ:
 // 1. Proxy chatbot tư vấn: nhận tin nhắn từ trình duyệt, gọi Gemini API bằng
 //    API key giữ ở đây (biến môi trường, không bao giờ gửi về client).
 // 2. Nhận báo tiền về từ SePay (webhook) để trang "Ảnh của tôi" tự gửi yêu cầu
 //    chỉnh sửa ảnh tới Thợ ảnh ngay khi khách chuyển khoản phí ảnh chọn thêm.
+// 3. Chat thật Khách <-> Sale + đăng nhập kiểm tra ở server (sale-chat.js, thêm
+//    2026-09-27), lưu MongoDB khi có MONGODB_URI.
 // Các phần khác của site (đặt lịch, CRM...) vẫn là site tĩnh, KHÔNG đi qua đây.
 //
 // Chạy:
@@ -14,6 +16,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const saleChat = require('./sale-chat');
 
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
@@ -228,7 +231,10 @@ app.get('/api/payment-status', (req, res) => {
   return res.json({ paid });
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY }));
+// ===== Chat thật Khách <-> Sale (xem sale-chat.js) =====
+app.use('/api/sale-chat', saleChat.router);
+
+app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
 
 app.listen(PORT, () => {
   console.log(`ALOHA Baby chat server đang chạy tại http://localhost:${PORT}`);

@@ -11,13 +11,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260926">
-<link rel="stylesheet" href="css/pages.css?v=20260926b">
+<link rel="stylesheet" href="css/style.css?v=20260927d">
+<link rel="stylesheet" href="css/pages.css?v=20260927d">
+<script src="js/features.js?v=20260927d"></script>
 </head>
 <body>
 
-<script src="js/auth.js"></script>
-<script src="js/data-store.js?v=20260925"></script>
+<script src="js/auth.js?v=20260927d"></script>
+<script src="js/data-store.js?v=20260927d"></script>
 
 <!-- Topbar -->
 <div class="topbar">
@@ -95,49 +96,44 @@
   <!-- ============================== VIEW: Trang chủ ============================== -->
   <div id="view-home">
 
-    <!-- Hero Banner: 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md).
-         Mỗi ô ảnh / dòng dịch vụ mở album riêng #/album/<slug> (dữ liệu ảnh:
-         js/albums.js). Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
+    <!-- Khối Dịch vụ đầu trang: 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md).
+         Bố cục theo khối "DỊCH VỤ" của alohababy.vn (2026-09-27): tiêu đề giữa có gạch 2 bên,
+         dòng 5 dịch vụ, lưới ảnh 3 cột (cột giữa là ô Bầu cao gấp đôi), nhãn chữ đặt giữa ảnh.
+         Mỗi ô ảnh / dòng dịch vụ mở #/chat-sale/<slug>: chưa đăng nhập thì sang login.html,
+         đăng nhập xong vào thẳng khung chat với Sale, kèm dịch vụ khách vừa bấm (2026-09-27,
+         js/sale-chat.js; trước đó mở album #/album/<slug>). Ảnh bìa lấy từ js/albums.js.
+         Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
     <section class="svc-hero" id="dich-vu">
-      <div class="svc-hero-inner">
-        <div class="svc-hero-text reveal">
-          <h1>5 dịch vụ đồng hành cùng <em>con lớn khôn</em></h1>
-          <p class="svc-hero-lead">Mỗi cột mốc của con đều xứng đáng được lưu giữ bằng một bộ ảnh trọn vẹn.</p>
-
-          <div class="svc-hero-cta">
-            <a href="#/dat-lich" class="btn btn-primary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-              Đặt lịch chụp ngay
-            </a>
-            <span class="svc-hero-hint">Chọn một dịch vụ để xem album ảnh</span>
-          </div>
-        </div>
+      <div class="container">
+        <h1 class="svc-title reveal">Dịch vụ</h1>
+        <ul class="svc-list reveal">
+          <li><a href="#/chat-sale/be-lon">Chụp ảnh bé lớn</a></li>
+          <li><a href="#/chat-sale/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+          <li><a href="#/chat-sale/bau">Chụp ảnh bầu</a></li>
+          <li><a href="#/chat-sale/gia-dinh">Chụp ảnh gia đình</a></li>
+          <li><a href="#/chat-sale/newborn">Chụp ảnh Newborn</a></li>
+        </ul>
 
         <div class="svc-collage reveal-stagger reveal">
-          <a href="#/album/newborn" class="svc-tile svc-tile--newborn stagger-item" data-album="newborn">
-            <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="eager">
-            <span class="svc-tile-body"><span class="svc-tile-name">Newborn</span><span class="svc-tile-meta">Xem album · <span data-album-count="newborn"></span></span></span>
-            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
-          </a>
-          <a href="#/album/bau" class="svc-tile svc-tile--bau stagger-item" data-album="bau">
-            <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="eager">
-            <span class="svc-tile-body"><span class="svc-tile-name">Bầu</span><span class="svc-tile-meta">Xem album · <span data-album-count="bau"></span></span></span>
-            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
-          </a>
-          <a href="#/album/sinh-nhat" class="svc-tile svc-tile--sinh-nhat stagger-item" data-album="sinh-nhat">
-            <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="eager">
-            <span class="svc-tile-body"><span class="svc-tile-name">Sinh nhật</span><span class="svc-tile-meta">Xem album · <span data-album-count="sinh-nhat"></span></span></span>
-            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
-          </a>
-          <a href="#/album/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
+          <a href="#/chat-sale/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
             <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="eager">
-            <span class="svc-tile-body"><span class="svc-tile-name">Bé lớn</span><span class="svc-tile-meta">Xem album · <span data-album-count="be-lon"></span></span></span>
-            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+            <span class="svc-tile-name">Chụp ảnh bé lớn</span>
           </a>
-          <a href="#/album/gia-dinh" class="svc-tile svc-tile--gia-dinh stagger-item" data-album="gia-dinh">
+          <a href="#/chat-sale/sinh-nhat" class="svc-tile svc-tile--sinh-nhat stagger-item" data-album="sinh-nhat">
+            <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="eager">
+            <span class="svc-tile-name">Chụp ảnh sinh nhật</span>
+          </a>
+          <a href="#/chat-sale/bau" class="svc-tile svc-tile--bau stagger-item" data-album="bau">
+            <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="eager">
+            <span class="svc-tile-name">Chụp ảnh bầu</span>
+          </a>
+          <a href="#/chat-sale/gia-dinh" class="svc-tile svc-tile--gia-dinh stagger-item" data-album="gia-dinh">
             <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="eager">
-            <span class="svc-tile-body"><span class="svc-tile-name">Gia đình</span><span class="svc-tile-meta">Xem album · <span data-album-count="gia-dinh"></span></span></span>
-            <span class="svc-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+            <span class="svc-tile-name">Chụp ảnh gia đình</span>
+          </a>
+          <a href="#/chat-sale/newborn" class="svc-tile svc-tile--newborn stagger-item" data-album="newborn">
+            <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="eager">
+            <span class="svc-tile-name">Chụp ảnh Newborn</span>
           </a>
         </div>
       </div>
@@ -625,6 +621,8 @@
           <h2>Bạn chưa có ảnh nào</h2>
           <p>ALOHA Baby chưa ghi nhận buổi chụp nào cho tài khoản này. Đặt lịch một buổi chụp để bắt đầu lưu giữ khoảnh khắc của bé nhé.</p>
           <a href="#/dat-lich" class="btn btn-primary">Đặt lịch chụp ngay</a>
+          <!-- Lối thay thế khi Đặt lịch đang tạm tắt (js/features.js): nhắn Sale để được xếp lịch -->
+          <a href="#/chat-sale" class="btn btn-outline">Nhắn tin cho Sale</a>
         </div>
 
         <div id="psContent">
@@ -774,6 +772,45 @@
     </section>
   </div>
 
+  <!-- ============================== VIEW: Chat với Sale ==============================
+       Route #/chat-sale[/<dịch vụ>] (bắt đăng nhập khách, js/router.js). Màn hình nhắn tin riêng
+       (2026-09-27, người dùng muốn "1 giao diện khác" thay cho khung chat nhỏ): 1 khung trò chuyện ở
+       giữa (đã bỏ cột trái theo yêu cầu). Bấm ảnh dịch vụ ở trang chủ thì ảnh phóng to chuyển sang màn này;
+       mở đầu là các tin chào tự động của Sale đến lần lượt (có nhịp "đang nhập") + nút gợi ý câu hỏi.
+       Tin nhắn + lời chào + hiệu ứng do js/sale-chat.js vẽ, dữ liệu ở AlohaData.chats. -->
+  <div id="view-chat" hidden>
+    <section class="sc-page">
+      <div class="container sc-wrap">
+        <div class="sc-main">
+          <header class="sc-head">
+            <a href="#/" class="sc-head-back" aria-label="Về trang chủ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </a>
+            <span class="sc-avatar"><img src="images/logo-mark.svg" alt="" width="24" height="24"></span>
+            <div class="sc-head-text">
+              <h1>Tư vấn viên ALOHA Baby</h1>
+              <span id="scTopicLine">Tư vấn chung</span>
+            </div>
+            <a href="tel:0938125222" class="sc-call" aria-label="Gọi hotline 0938.125.222" title="Gọi hotline 0938.125.222">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z"/></svg>
+            </a>
+          </header>
+
+          <div class="sc-status" id="scStatus" role="status" hidden></div>
+          <div class="sc-thread" id="scThread" aria-live="polite"></div>
+
+          <form class="sc-composer" id="scForm">
+            <textarea id="scInput" rows="1" placeholder="Nhập tin nhắn cho Sale..." aria-label="Tin nhắn cho Sale"></textarea>
+            <button type="submit" class="sc-send" id="scSend" aria-label="Gửi tin nhắn" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+            </button>
+          </form>
+          <p class="sc-demo">Tin nhắn chỉ ba mẹ và đội ngũ Sale ALOHA Baby xem được.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <!-- Lightbox dùng chung cho view Album và view Nội dung (xem ảnh lớn / phát video), điều khiển trong js/albums.js. -->
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh, video phóng to" hidden>
     <div class="lightbox-stage">
@@ -795,7 +832,7 @@
 </main>
 <script src="js/albums.js"></script>
 <script src="js/content.js"></script>
-<script src="js/router.js"></script>
+<script src="js/router.js?v=20260927d"></script>
 
 <!-- Footer -->
 <footer class="site-footer">
@@ -895,7 +932,8 @@
   </form>
 </div>
 
-<script src="js/script.js"></script>
+<script src="js/script.js?v=20260927d"></script>
+<script src="js/sale-chat.js?v=20260927d"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
 <script src="js/chon-anh.js?v=20260926"></script>

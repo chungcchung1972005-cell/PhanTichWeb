@@ -28,6 +28,9 @@
       const db = raw ? JSON.parse(raw) : {};
       if (!db.customers) db.customers = {};
       if (!db.editRequests) db.editRequests = [];
+      // Chat Khách <-> Sale từng lưu ở đây (db.chats, bản localStorage 2026-09-27) - nay đã
+      // chuyển lên server (server/sale-chat.js) -> bỏ dữ liệu cũ đi, không còn dùng.
+      if (db.chats) { delete db.chats; writeDb(db); }
       return db;
     } catch (e) {
       return { customers: {}, editRequests: [] };
@@ -146,6 +149,11 @@
     writeDb(db);
     return req;
   }
+
+
+  // Đọc 1 lần ngay khi nạp để việc bỏ db.chats cũ (xem readDb) chạy cả khi trang
+  // không đọc gì thêm (khách chưa đăng nhập...).
+  readDb();
 
   window.AlohaData = {
     getCustomerRecord,

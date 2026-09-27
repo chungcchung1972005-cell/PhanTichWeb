@@ -53,7 +53,7 @@ const contentState = (page) => page.evaluate(() => {
 const missingFiles = (files) => files.filter((f) => !fs.existsSync(path.join(ROOT, decodeURI(f))));
 
 (async () => {
-  const browser = await puppeteer.launch({
+  const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
   });
