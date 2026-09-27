@@ -165,3 +165,40 @@ chạy nhưng lưu tạm trong bộ nhớ: Render ngủ/deploy lại là **mất
   `server/sale-chat.js`).
 - Chạy local: `npm start` trong `server/` (không cần Atlas, lưu tạm trong bộ nhớ), mở
   `index.html` từ máy là trang tự gọi `http://localhost:3001`.
+
+## Đăng nhập bằng Google — thêm 2026-09-27
+
+Khách bấm **"Đăng nhập bằng Google"** trên `login.html`. Lần đầu phải nhập số điện thoại một
+lần (SĐT vẫn là mã khách dùng cho chat, hồ sơ, ảnh); lần sau chỉ cần bấm Google. SĐT đã có
+tài khoản (đăng ký bằng mật khẩu) thì KHÔNG gắn Google vào được, để người khác không gõ SĐT
+của bạn mà chiếm tài khoản. Tài khoản nội bộ (Sale/Thợ ảnh/Sếp) vẫn đăng nhập bằng SĐT + mật khẩu.
+
+Chưa đặt `GOOGLE_CLIENT_ID` thì trang đăng nhập không hiện nút Google, mọi thứ khác chạy như cũ.
+
+> Các bước Google Cloud dưới đây viết theo hiểu biết của Claude, **chưa kiểm chứng lại trên
+> giao diện hiện tại** - tên menu có thể khác đôi chút.
+
+1. Vào <https://console.cloud.google.com/> → tạo project mới (vd `ALOHA Baby`).
+2. Menu **APIs & Services → OAuth consent screen** (giao diện mới tên **Google Auth Platform**):
+   - Tên ứng dụng `ALOHA Baby`, email hỗ trợ + email liên hệ = Gmail của bạn.
+   - Đối tượng (Audience / User type): **External**.
+   - Không cần thêm scope (mặc định đã có email, profile). **Đừng tải logo lên**: có logo là
+     Google bắt xét duyệt thương hiệu.
+   - Mục **Audience → Publishing status**: bấm **Publish app** (chuyển sang *In production*).
+     Để ở *Testing* thì chỉ những email bạn thêm vào "Test users" mới đăng nhập được.
+3. Mục **Credentials → Create credentials → OAuth client ID** (hoặc **Clients → Create client**):
+   - Application type: **Web application**.
+   - **Authorized JavaScript origins** thêm đúng 2 dòng (không có `/` ở cuối, không có `/PhanTichWeb`):
+     - `https://ahola-baby.vercel.app`
+     - `https://chungcchung1972005-cell.github.io`
+   - **Authorized redirect URIs**: để trống (nút Google mở cửa sổ nhỏ, không chuyển trang).
+   - Bấm Create → copy **Client ID** (dạng `1234-abc.apps.googleusercontent.com`). Không cần Client secret.
+4. Render → service → **Environment** → thêm `GOOGLE_CLIENT_ID` = Client ID ở bước 3 → Save.
+5. Kiểm tra: mở `https://ahola-baby.vercel.app/login.html`, dưới nút Đăng nhập có chữ "hoặc"
+   và nút Google. Bấm thử bằng một Gmail, nhập SĐT chưa từng đăng ký → vào màn chat với Sale.
+
+**Giới hạn cần biết:**
+- Mở `login.html` trực tiếp từ máy (`file://`) hoặc bản Preview của Vercel (domain khác) thì
+  nút Google không chạy được, vì Google chỉ cho các domain đã khai báo ở bước 3.
+- Mất tài khoản Google thì chưa có cách tự lấy lại (chưa có "quên mật khẩu"), Sale phải hỗ trợ tay.
+- Facebook: chưa làm (người dùng chọn làm Google trước).

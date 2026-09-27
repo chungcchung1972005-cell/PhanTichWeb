@@ -12,6 +12,12 @@
 //    chuyện; Sếp chỉ xem; Thợ ảnh không có quyền.
 //
 // Trình duyệt tự hỏi tin mới vài giây một lần (polling) - đơn giản, chạy ổn trên Render.
+//
+// Đăng nhập bằng Google (thêm 2026-09-27, người dùng chọn "Google trước, Facebook sau"):
+// trang gửi ID token Google lên, server hỏi Google kiểm tra (tokeninfo) rồi tìm tài khoản
+// theo googleSub. Lần đầu: bắt nhập SĐT một lần (người dùng chốt) - SĐT vẫn là mã định danh
+// khách ở mọi nơi (chat, hồ sơ, ảnh). SĐT đã có tài khoản thì KHÔNG cho gắn Google vào (chống
+// người khác gõ SĐT của mình để chiếm tài khoản). Chỉ bật khi đặt GOOGLE_CLIENT_ID.
 const crypto = require('crypto');
 const express = require('express');
 
@@ -30,6 +36,12 @@ const MAX_TEXT = 2000;
 const MAX_MESSAGES = 500;          // mỗi cuộc trò chuyện giữ tối đa bấy nhiêu tin gần nhất
 const MAX_TOPIC = 60;
 const RATE_LIMIT = { windowMs: 60 * 1000, max: 30 }; // tối đa 30 tin / phút / tài khoản
+
+// Google: Client ID lấy ở Google Cloud Console (xem DEPLOY.md). Để trống = ẩn nút Google.
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+// Chỉ đổi khi chạy test (trỏ tới máy chủ Google giả lập).
+const GOOGLE_TOKENINFO_URL = process.env.GOOGLE_TOKENINFO_URL || 'https://oauth2.googleapis.com/tokeninfo';
+const GOOGLE_SIGNUP_TTL_MS = 15 * 60 * 1000; // thời gian để khách nhập SĐT sau khi chọn Google
 
 let AUTH_SECRET = process.env.AUTH_SECRET;
 if (!AUTH_SECRET) {
@@ -68,6 +80,7 @@ function hashPassword(password) {
   return { salt, hash };
 }
 function checkPassword(password, user) {
+  if (!user.salt || !user.hash) return false; // tài khoản tạo bằng Google, không có mật khẩu
   const hash = crypto.scryptSync(password, user.salt, 64);
   const stored = Buffer.from(user.hash, 'hex');
   return stored.length === hash.length && crypto.timingSafeEqual(stored, hash);
@@ -106,8 +119,10 @@ function memoryStore() {
   return {
     kind: 'memory',
     async getUser(phone) { return clone(users.get(phone)); },
+    async getUserByGoogle(sub) { return clone([...users.values()].find((u) => u.googleSub === sub)); },
     async createUser(user) {
       if (users.has(user.phone)) return false;
+      if (user.googleSub && [...users.values()].some((u) => u.googleSub === user.googleSub)) return false;
       users.set(user.phone, clone(user));
       return true;
     },
@@ -141,7 +156,13 @@ function mongoStore(uri, dbName) {
   // Kết nối lần đầu khi có request cần tới; lỗi thì lần sau thử kết nối lại.
   const db = () => {
     if (!ready) {
-      ready = client.connect().then(() => client.db(dbName)).catch((e) => { ready = null; throw e; });
+      ready = client.connect().then(async () => {
+        const d = client.db(dbName);
+        // 1 tài khoản Google chỉ gắn với 1 SĐT (bỏ qua tài khoản không có googleSub).
+        await d.collection('users').createIndex({ googleSub: 1 }, { unique: true, sparse: true })
+          .catch((e) => console.error('Không tạo được index googleSub:', e.message));
+        return d;
+      }).catch((e) => { ready = null; throw e; });
     }
     return ready;
   };
@@ -150,12 +171,13 @@ function mongoStore(uri, dbName) {
   return {
     kind: 'mongodb',
     async getUser(phone) { return (await users()).findOne({ _id: phone }); },
+    async getUserByGoogle(sub) { return (await users()).findOne({ googleSub: sub }); },
     async createUser(user) {
       try {
         await (await users()).insertOne({ _id: user.phone, ...user });
         return true;
       } catch (e) {
-        if (e && e.code === 11000) return false; // SĐT đã có
+        if (e && e.code === 11000) return false; // SĐT (hoặc tài khoản Google) đã có
         throw e;
       }
     },
@@ -241,8 +263,61 @@ router.post('/auth/login', wrap(async (req, res) => {
     return issue(res, { phone, role: demo.role, name: demo.name });
   }
   const user = isPhone(phone) ? await store.getUser(phone) : null;
+  if (user && !user.hash && user.googleSub) return res.status(401).json({ error: 'use_google' });
   if (!user || !checkPassword(password, user)) return res.status(401).json({ error: 'wrong_credentials' });
   return issue(res, { phone, role: 'khach-hang', name: user.name });
+}));
+
+// ---- Đăng nhập bằng Google
+// Trang hỏi Client ID ở đây (không ghi cứng trong HTML): đổi/bật/tắt chỉ cần sửa biến trên Render.
+router.get('/auth/config', (req, res) => {
+  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
+});
+
+// Nhờ Google kiểm tra ID token (chữ ký + hạn dùng), rồi tự kiểm tra token cấp cho ĐÚNG web này.
+async function verifyGoogleCredential(credential) {
+  if (!credential || typeof credential !== 'string' || credential.length > 4096) return null;
+  try {
+    const r = await fetch(GOOGLE_TOKENINFO_URL + '?id_token=' + encodeURIComponent(credential),
+      { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const info = await r.json();
+    const issOk = info.iss === 'accounts.google.com' || info.iss === 'https://accounts.google.com';
+    if (info.aud !== GOOGLE_CLIENT_ID || !issOk || !info.sub) return null;
+    return { sub: String(info.sub), email: String(info.email || ''), name: String(info.name || '').slice(0, 80) };
+  } catch (e) {
+    console.error('Google tokeninfo lỗi:', e.message);
+    return null;
+  }
+}
+
+router.post('/auth/google', wrap(async (req, res) => {
+  if (!GOOGLE_CLIENT_ID) return res.status(503).json({ error: 'google_disabled' });
+  const g = await verifyGoogleCredential(req.body.credential);
+  if (!g) return res.status(401).json({ error: 'bad_google_token' });
+  const user = await store.getUserByGoogle(g.sub);
+  if (user) return issue(res, { phone: user.phone, role: 'khach-hang', name: user.name });
+  // Lần đầu: cấp "vé" ngắn hạn để khách nhập SĐT. Vé không có role nên không dùng được
+  // thay mã đăng nhập (requireAuth kiểm tra role).
+  const ticket = signToken({ kind: 'google-signup', sub: g.sub, email: g.email, name: g.name, exp: Date.now() + GOOGLE_SIGNUP_TTL_MS });
+  res.json({ needPhone: true, ticket, name: g.name, email: g.email });
+}));
+
+router.post('/auth/google/complete', wrap(async (req, res) => {
+  const t = verifyToken(req.body.ticket);
+  if (!t || t.kind !== 'google-signup' || !t.sub) return res.status(401).json({ error: 'ticket_expired' });
+  const phone = normPhone(req.body.phone);
+  const name = String(req.body.name || t.name || '').trim().slice(0, 80);
+  if (!name) return res.status(400).json({ error: 'bad_name', message: 'Vui lòng nhập họ tên.' });
+  if (!isPhone(phone)) return res.status(400).json({ error: 'bad_phone', message: 'Số điện thoại chưa đúng (10-11 số, bắt đầu bằng 0).' });
+  const linked = await store.getUserByGoogle(t.sub); // bấm Hoàn tất 2 lần
+  if (linked) return issue(res, { phone: linked.phone, role: 'khach-hang', name: linked.name });
+  if (DEMO_ACCOUNTS[phone]) return res.status(409).json({ error: 'phone_taken' });
+  const created = await store.createUser({
+    phone, name, role: 'khach-hang', provider: 'google', googleSub: t.sub, email: t.email || '', createdAt: Date.now()
+  });
+  if (!created) return res.status(409).json({ error: 'phone_taken' });
+  return issue(res, { phone, role: 'khach-hang', name });
 }));
 
 router.post('/auth/register', wrap(async (req, res) => {
