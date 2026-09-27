@@ -6,10 +6,15 @@
 //   #/            -> Trang chủ (view-home)
 //   #/dat-lich    -> Đặt lịch (view-dat-lich)
 //   #/chon-anh    -> Ảnh của tôi (view-chon-anh)
+//   #/album/<dịch vụ>           -> danh sách concept album của 1 dịch vụ (view-album)
+//   #/album/<dịch vụ>/<concept> -> toàn bộ ảnh của 1 concept (view-album)
+//   (dữ liệu trong js/albums.js, xem công khai không cần đăng nhập)
+//   #/noi-dung/<slug>           -> trang nội dung chi tiết: concept, video, bài tin tức...
+//   (dữ liệu trong js/content.js, xem công khai không cần đăng nhập)
 //   #dich-vu, #gioi-thieu, #album, #tin-tuc... -> neo cuộn trong Trang chủ,
 //   KHÔNG phải route (không có dấu / ngay sau #).
 (function (window) {
-  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh' };
+  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content' };
   const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'] };
   const TITLE = {
     '': document.title,
@@ -24,7 +29,19 @@
   }
 
   function showView(route) {
-    const targetId = VIEW_ID.hasOwnProperty(route) ? VIEW_ID[route] : VIEW_ID[''];
+    // "album/newborn/cuon-u" -> view "album" + tham số "newborn/cuon-u".
+    const [base, ...rest] = (route || '').split('/');
+    const param = rest.join('/');
+    const targetId = VIEW_ID.hasOwnProperty(base) ? VIEW_ID[base] : VIEW_ID[''];
+    let pageTitle = null;
+    if (window.AlohaAlbums) {
+      window.AlohaAlbums.close(); // rời trang khi lightbox đang mở -> không kẹt khoá cuộn
+      if (base === 'album') pageTitle = window.AlohaAlbums.render(param || '');
+    }
+    if (window.AlohaContent) {
+      window.AlohaContent.stop(); // dừng video đang phát ở trang nội dung trước khi rời
+      if (base === 'noi-dung') pageTitle = window.AlohaContent.render(param || '');
+    }
     Object.values(VIEW_ID).forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = (id !== targetId);
@@ -42,8 +59,11 @@
     // Trang chủ, tránh sáng nhầm khi đang ở view khác (đã thấy qua screenshot).
     const homeLink = document.getElementById('navHomeLink');
     if (homeLink) homeLink.classList.toggle('active', targetId === VIEW_ID['']);
-    document.title = TITLE[route] || TITLE[''];
-    window.scrollTo(0, 0);
+    document.title = pageTitle || TITLE[route] || TITLE[''];
+    // Chuyển view = sang trang mới -> lên đầu NGAY, không cuộn mượt theo CSS
+    // scroll-behavior:smooth (trước đây trang trôi ~300ms từ vị trí cũ lên đầu,
+    // nút ở đầu trang mới bị trượt dưới tay khách trong lúc đó).
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }
 
   function navigateTo(route) {

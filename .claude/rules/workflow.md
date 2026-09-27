@@ -12,7 +12,7 @@ Lịch chỉ chính thức khi đã cọc; trước khi cọc, khung giờ chỉ
 
 **Form thông tin (bước 4) bắt buộc:** dịch vụ, gói, concept, ngày, giờ, ngày sinh/dự sinh của bé, số người trong ảnh, lưu ý sức khỏe, ghi chú. Validate đủ trường trước khi sang bước cọc; tự tính tuổi bé tại ngày chụp nếu đủ dữ liệu; cấp mã đơn duy nhất (dùng xuyên suốt, kể cả đặt tên folder ảnh gốc ở khâu chụp).
 
-**Đặt cọc (bước 5):** QR chuyển khoản/ví điện tử chứa đúng số tiền + nội dung theo mã đơn, có đếm ngược giữ khung giờ, mức cọc là tham số cấu hình (không hard-code). Thất bại/hết giờ giữ → nhả khung giờ, lịch về trạng thái chưa cọc, khách thanh toán lại được nếu khung giờ còn trống.
+**Đặt cọc (bước 5):** QR chuyển khoản/ví điện tử chứa đúng số tiền + nội dung theo mã đơn, có đếm ngược giữ khung giờ, mức cọc là tham số cấu hình (không hard-code; đã chốt 50% giá chụp ngày 2026-09-25, xem `tech-defaults.md`). Bản demo: bấm "Xác nhận đặt lịch" chuyển sang bước Đặt cọc hiện mã đơn, giá, tiền cọc, còn lại + 4 phương thức (chuyển khoản VietQR, MoMo, ZaloPay, thẻ qua VNPay), QR/số tài khoản là minh hoạ, chưa nối cổng thanh toán thật. Từ 2026-09-26 không còn nút "Tôi đã chuyển khoản": trang tự chờ và tự nhận diện tiền về, nhưng là mô phỏng (8 giây); cách làm thật: `.claude/docs/tich-hop-thanh-toan.md`. Thất bại/hết giờ giữ → nhả khung giờ, lịch về trạng thái chưa cọc, khách thanh toán lại được nếu khung giờ còn trống.
 
 **Đặt lịch hộ qua hotline/inbox:** Sales/CSKH tạo hồ sơ khách (ghi nguồn) rồi tạo lịch hộ theo đúng bước 1–4 trong Admin; hệ thống gửi link/QR đặt cọc qua Zalo hoặc SMS cho khách. Khách cọc xong thì đơn tiếp tục quy trình như đặt online — cùng một chuẩn dữ liệu, không tách luồng riêng.
 
@@ -47,6 +47,8 @@ Photographer tải ảnh gốc (gắn mã đơn) → Khách xem "Ảnh của tô
 - Thợ ảnh tự kiểm tra 100% file trước khi tải lên (màu da, đường thẳng, lỗi hình ảnh) — không qua bước duyệt riêng của một vai trò QC khác trước khi chuyển Hoàn thành (đã bỏ, xem ghi chú ở luồng phía trên).
 - Khách nhận ảnh: xem/tải bản web; tải bản in nếu đủ điều kiện (cân nhắc gắn điều kiện với đã thanh toán đủ phần còn lại, khớp khâu thu nốt tiền); yêu cầu chỉnh lại trong số lần cho phép (`tech-defaults.md`). Ảnh lưu trữ trong thời hạn quy định (`tech-defaults.md`); hệ thống hiển thị dung lượng đã dùng; hết hạn chuyển archive phải báo trước cho khách tải về.
 
+**Trả ảnh đã chỉnh (bản hiện tại, 2026-09-27):** Thợ ảnh dán link thư mục Google Drive (chỉ nhận https) vào yêu cầu trong modal kanban, khách thấy ở tab "Ảnh đã chỉnh" của "Ảnh của tôi" và chat với Thợ ảnh ngay bên dưới (tin nhắn lưu trong chính yêu cầu chỉnh sửa). **Quyết định đã chốt (người dùng, 2026-09-27):** (1) Link thư mục ảnh ĐÃ CHỈNH để chế độ công khai ("Bất kỳ ai có đường liên kết") để khách gửi cho người thân, bạn bè. Đây là NGOẠI LỆ có chủ đích với nguyên tắc "không dùng link công khai không xác thực" bên dưới, chỉ áp dụng cho ảnh đã chỉnh khách nhận; ảnh gốc và mọi phần khác vẫn theo nguyên tắc đó. (2) Yêu cầu thật chỉ chuyển "Đang thực hiện" -> "Hoàn thành" khi đã gửi link ảnh đã chỉnh (khớp "tải ảnh đã sửa lên là Hoàn thành"); chặn cả ở giao diện (`advanceBlockReason` trong `crm/js/admin.js`) lẫn dữ liệu (`advanceRequestStatus` trong `js/data-store.js`). (3) Khung **"Chat với thợ chỉnh ảnh"**: trợ lý tự động (`server/` `/api/edit-chat`, Gemini) trả lời trước **với giọng thợ chỉnh ảnh**, tên hiển thị "Thợ chỉnh ảnh ALOHA", giao diện khách không nhắc tới AI (người dùng chốt 2026-09-27). Trả lời câu thường gặp + tư vấn chuyên môn chỉnh ảnh theo đúng thông tin đơn, hỏi mức độ hài lòng khi đã giao ảnh; chỉ chuyển cho thợ thật (`needsStaff`) khi cần thao tác trên file ảnh hoặc câu quá khó (thời gian hoàn thành, số lần chỉnh miễn phí, phí, khiếu nại), không bịa con số/chính sách. **Giới hạn giữ lại có chủ đích:** nếu khách hỏi thẳng, nghiêm túc là người hay máy thì trợ lý KHÔNG nói dối, trả lời đây là trợ lý tự động của studio và thợ vẫn đọc toàn bộ tin nhắn. Trợ lý không phản hồi thì khung chat chỉ báo "đã nhận được tin nhắn, thợ sẽ phản hồi sớm" (không bịa câu trả lời) và để nguyên cho thợ. Trang quản trị luôn ghi rõ tin nào do trợ lý tự động trả lời. Chưa gắn điều kiện "đã thanh toán đủ" cho việc nhận link.
+
 **Quyền riêng tư (bắt buộc trong toàn bộ luồng này):** ảnh trẻ em là dữ liệu nhạy cảm — chỉ xem được qua tài khoản chính chủ; studio chỉ đăng/dùng ảnh khi có văn bản đồng ý; không dùng link công khai không xác thực, không để search engine index, không để URL đoán được.
 
 ## Chatbot AI tư vấn
@@ -58,7 +60,7 @@ Widget chat nổi trên toàn bộ trang khách hàng, hỗ trợ tư vấn theo
 3. Báo giá theo dịch vụ/gói đã chọn (tái dùng bảng giá/gói đã cấu hình trong Admin, không hard-code giá trong kịch bản chat).
 4. "Chốt đơn" — không tự chốt lịch/cọc ngay trong khung chat; dẫn khách sang đúng luồng "Đặt lịch & Đặt cọc" ở trên (bước 1 đã có sẵn dịch vụ/concept do chatbot gợi ý), để không tạo luồng đặt lịch song song.
 
-**Ràng buộc:** mọi thông tin khách cung cấp qua chatbot (nhu cầu, SĐT nếu để lại) phải ghi vào cùng hồ sơ CRM — chatbot là một kênh nhập liệu, không phải nguồn dữ liệu riêng (**lưu ý:** phần trả lời tự do hiện gọi Claude API thật qua `server/`, nhưng server đó chưa nối vào CRM nào — đây vẫn là việc cần làm khi có backend CRM thật, không tự coi là đã xong). Bước chọn dịch vụ/gợi ý concept vẫn là quick-reply/kịch bản dựng sẵn; khung nhập tự do đã nối sang AI thật (Claude API) qua server proxy cục bộ — xem giới hạn/kiến trúc trong `tech-defaults.md`.
+**Ràng buộc:** mọi thông tin khách cung cấp qua chatbot (nhu cầu, SĐT nếu để lại) phải ghi vào cùng hồ sơ CRM — chatbot là một kênh nhập liệu, không phải nguồn dữ liệu riêng (**lưu ý:** phần trả lời tự do hiện gọi Gemini API thật qua `server/` (deploy trên Render), nhưng server đó chưa nối vào CRM nào — đây vẫn là việc cần làm khi có backend CRM thật, không tự coi là đã xong). Bước chọn dịch vụ/gợi ý concept vẫn là quick-reply/kịch bản dựng sẵn; khung nhập tự do là AI thật khi server chạy, AI lỗi thì trả lời cục bộ có ghi rõ "Trợ lý AI đang bận" — xem kiến trúc trong `tech-defaults.md`.
 
 ## Tự động hóa CRM
 
@@ -69,8 +71,10 @@ Widget chat nổi trên toàn bộ trang khách hàng, hỗ trợ tư vấn theo
 
 ## Git
 
-Áp dụng khi project đã dùng Git (hiện **chưa** là Git repository):
-- Kiểm tra branch hiện tại trước khi thay đổi lớn.
-- Không tự ý push/merge vào main.
-- Không thao tác Git có nguy cơ mất dữ liệu nếu chưa được yêu cầu rõ ràng.
-- Ưu tiên làm việc trên branch riêng khi team dùng branch workflow.
+Repo GitHub (`origin`), nhóm 3 người, quy trình **branch riêng + Pull Request** (cập nhật 2026-09-25):
+- Mỗi người làm trên nhánh riêng (nhánh của người dùng chính: `Chungcook`), xong thì mở Pull Request vào `main`.
+- `main` có branch protection: phải qua PR, checks phải pass (vd bản preview của Vercel), cần **1 approve** từ người có quyền Write khác tác giả. Admin có ô "bypass rules" dùng cho từng lần merge.
+- Review PR: đọc tab **Files changed**, bấm thử link **Preview của Vercel** trong PR; muốn chạy test thì `git fetch` + `git switch <nhánh>` (commit hoặc `git stash` thay đổi đang dở trước khi đổi nhánh).
+- Push lên `main` (qua merge PR) là GitHub Pages/Vercel/Render tự deploy lại, không cần cấu hình dashboard lại.
+- Người dùng tự commit bằng công cụ riêng: luôn chạy `git status`/`git log` trước khi làm gì với Git.
+- Claude KHÔNG tự commit/push/merge khi chưa được yêu cầu rõ ràng; không thao tác Git có nguy cơ mất dữ liệu (reset --hard, force push...); không bao giờ commit `server/.env`.

@@ -13,7 +13,13 @@ Nguyên tắc áp dụng bất kể stack nào được chọn:
 
 **Giới hạn của bản hiện tại (site tĩnh HTML/CSS/JS, không backend cho CRM/booking):** tính năng real-time đặt lịch vẫn chỉ có UI + hành vi mô phỏng bằng JavaScript phía client (dữ liệu giả lập, không đồng bộ thật giữa nhiều người dùng). Đây là giới hạn tạm thời của giai đoạn demo — khi có backend cho CRM/booking, phải thay bằng WebSocket/SSE thật.
 
-**Chatbot AI (đã có phần thật, cập nhật 2026-09-19):** bước chọn dịch vụ/gợi ý concept ban đầu vẫn là kịch bản quick-reply dựng sẵn (chủ động, nhất quán với bảng giá tham khảo). Khung nhập tự do bên dưới đã nối sang **server proxy cục bộ thật** (`server/server.js`, chạy `npm start` riêng, không phải site tĩnh) gọi **Gemini API thật** (đổi từ Claude API ngày 2026-09-20 vì bài tập, ưu tiên free tier) — khi server này chạy và có `GEMINI_API_KEY` hợp lệ, câu trả lời tự do là AI thật, không còn mô phỏng. Nếu server không chạy/thiếu key, giao diện báo lỗi thân thiện thay vì giả vờ đang có AI. Model + system prompt (giới hạn phạm vi tư vấn, không bịa số liệu cọc/chính sách, không tự chốt lịch trong chat) nằm trong `server/server.js`. Server này **tách biệt hoàn toàn** khỏi CRM/booking — không dùng làm tiền đề cho backend CRM/booking sau này, phạm vi và stack cho CRM/booking vẫn là quyết định riêng, chưa chốt.
+**Chatbot AI (đã có phần thật, cập nhật 2026-09-25):** 2 lớp, tách biệt hoàn toàn khỏi CRM/booking.
+- **Kịch bản quick-reply** (`js/script.js`): tư vấn dịch vụ & báo giá, concept & ảnh mẫu (đọc dữ liệu concept từ `window.AlohaAlbums.list`, cùng nguồn với trang album), quy trình, FAQ, gọi Sale. Luôn chạy, không cần server.
+- **Khung gõ tự do** gọi **Gemini API thật** qua server riêng `server/server.js` (deploy Render `https://phantichweb.onrender.com`; local `npm start` cổng 3001; frontend tự chọn URL theo `location.hostname`). Model mặc định + chuỗi dự phòng cấu hình bằng biến môi trường `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS`: model nào lỗi/quá tải/hết giờ (`MODEL_TIMEOUT_MS`) thì server tự thử model kế, chỉ báo lỗi khi mọi model đều hỏng. CORS giới hạn bằng `ALLOWED_ORIGINS`. AI trả JSON `{reply, suggestions}`, action gợi ý lọc theo whitelist `ACTIONS` (gồm `album-<dịch vụ>`).
+- **Trả lời dự phòng cục bộ:** server lỗi/hết giờ thì frontend tự trả lời theo từ khoá (dịch vụ, concept, giá, FAQ) và **ghi rõ "Trợ lý AI đang bận"** — không được trình bày như câu trả lời của AI.
+- System prompt (trong `server/server.js`): giới hạn phạm vi tư vấn, không bịa số liệu cọc/chính sách, không tự chốt lịch trong chat, chỉ dẫn trang khi khách bấm nút gợi ý. 
+- **Trợ lý AI tab "Ảnh đã chỉnh"** (thêm 2026-09-27): cùng server có `POST /api/edit-chat`, dùng chung hàm `callGemini` và chuỗi model dự phòng; prompt riêng nhận ngữ cảnh đơn (mã đơn, trạng thái, đã có link chưa), trả `{reply, forward}`, không bịa thời gian hoàn thành/số lần chỉnh miễn phí/phí chỉnh lại. Trả lời với giọng thợ chỉnh ảnh, giao diện khách không nhắc AI (ngoại lệ có chủ đích với quy tắc "ghi rõ Trợ lý AI đang bận" của chatbot trang chủ, người dùng chốt 2026-09-27); vẫn không nói dối nếu khách hỏi thẳng là người hay máy. Lỗi thì chỉ báo đã nhận tin và chuyển cho Thợ ảnh.
+- Server này không dùng làm tiền đề cho backend CRM/booking sau này; stack CRM/booking vẫn chưa chốt.
 
 ## Data Model CRM
 
@@ -41,7 +47,7 @@ Số liệu dashboard/phễu phải giảm dần hợp lý qua từng trạng th
 
 Các thông số sau **chưa được xác định** trong tài liệu nghiệp vụ — coi là cấu hình cần business xác nhận trước khi hard-code hoặc thiết kế UI phụ thuộc vào giá trị cụ thể:
 
-- Mức cọc (số tiền hoặc phần trăm).
+- ~~Mức cọc~~ **ĐÃ CHỐT 2026-09-25: cọc 50% giá chụp** (người dùng quyết định). Vẫn để dạng cấu hình `BOOKING_CONFIG.depositRate` trong `js/dat-lich.js`. Giá chụp theo concept khách chọn (`BOOKING_CONFIG.conceptPrice`, GIÁ MINH HOẠ chờ bảng giá thật); concept "Khác" (ý tưởng riêng) thì cọc tạm tính theo giá khởi điểm dịch vụ (`basePrice`), Sale báo giá chính xác sau khi trao đổi.
 - Thời gian giữ khung giờ trước khi cọc.
 - Thời hạn cho phép dời lịch ("trong hạn" là bao nhiêu ngày/giờ trước buổi chụp).
 - Số lần khách được dời lịch miễn phí.

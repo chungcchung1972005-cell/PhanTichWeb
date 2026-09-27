@@ -82,3 +82,41 @@ Claude sẽ tự làm nốt phần code còn lại:
 
 - Sửa code → `git push` → GitHub Pages tự cập nhật frontend, Render tự deploy lại
   server (nếu file trong `server/` có thay đổi). Không cần làm lại các bước trên.
+
+## Thanh toán tự động qua SePay (phí ảnh chọn thêm ngoài gói)
+
+Khi khách chọn quá 10 ảnh, trang "Ảnh của tôi" hiện mã QR chuyển khoản kèm một
+**mã thanh toán riêng** trong nội dung CK (vd `AB240915CS2GB6C`). Ngân hàng báo
+tiền về → SePay gọi `POST /api/sepay-webhook` của server này → trang của khách
+hỏi `GET /api/payment-status` mỗi 4 giây, thấy đủ tiền là **tự gửi ảnh tới Thợ
+ảnh**. Chưa thanh toán thì ảnh không được gửi đi.
+
+1. Đăng ký tại <https://my.sepay.vn>, vào **Ngân hàng → Kết nối tài khoản**, liên
+   kết đúng tài khoản nhận tiền của studio (trong code đang để MB Bank
+   `0967237146`, tên `ALOHA BABY STUDIO`; đổi ở `js/chon-anh.js`, hàm
+   `openQrPaymentModal`, nếu tài khoản thật khác).
+2. Vào **Tích hợp WebHooks → Thêm webhook**:
+   - URL: `https://phantichweb.onrender.com/api/sepay-webhook`
+   - Sự kiện: **Có tiền vào**
+   - Kiểu chứng thực: **API Key**, tự đặt một chuỗi bí mật dài (vd 32 ký tự ngẫu nhiên).
+3. Trên Render → service → **Environment** → thêm biến `SEPAY_WEBHOOK_KEY` = đúng
+   chuỗi vừa đặt ở bước 2 → Save (Render tự khởi động lại server).
+4. Kiểm tra: `https://phantichweb.onrender.com/api/health` phải có `"hasSepayKey":true`.
+
+**Thử mà không cần chuyển tiền thật** (giả lập đúng request SePay gửi; đổi KEY,
+mã và số tiền cho khớp mã QR đang hiện trên trang):
+
+```powershell
+Invoke-RestMethod -Method Post -Uri https://phantichweb.onrender.com/api/sepay-webhook `
+  -Headers @{ Authorization = "Apikey KEY_CUA_BAN" } -ContentType "application/json" `
+  -Body '{"id":"thu-1","transferType":"in","transferAmount":100000,"content":"AB240915CS2GB6C"}'
+```
+
+**Giới hạn cần biết:**
+- Server không có database: giao dịch nhận được chỉ lưu trong bộ nhớ. Render free
+  "ngủ" sau ~15 phút không có request thì mất lịch sử này. Trong lúc khách đang
+  chờ thanh toán, trang gọi server mỗi 4 giây nên server không ngủ.
+- Mã QR có hạn 30 phút. Khách chuyển khoản **sau khi mã hết hạn** thì trang không
+  tự gửi ảnh nữa, Sale cần đối soát tay trên SePay.
+- Yêu cầu chỉnh sửa vẫn lưu bằng localStorage như cũ: Thợ ảnh chỉ thấy khi dùng
+  chung trình duyệt với khách (giới hạn chung của bản demo, chưa có backend CRM).

@@ -13,6 +13,8 @@ Khi được gọi, kiểm tra thay đổi vừa thực hiện theo checklist sa
 3. **CRM một nguồn dữ liệu:** tính năng mới đọc/ghi đúng hồ sơ CRM hiện có (7 nhóm dữ liệu trong `tech-defaults.md`), không tạo nguồn dữ liệu khách hàng song song.
 4. **Cấu hình không hard-code:** giá trị thuộc mục "Cấu hình chưa xác định" trong `tech-defaults.md` không bị gán cứng trong code/UI.
 5. **Quyền riêng tư ảnh trẻ em:** không có endpoint/route/link cho xem ảnh khách hàng mà không qua xác thực đúng chủ tài khoản; không dùng ảnh marketing khi chưa có cơ chế kiểm tra đồng ý.
+   - Trang công khai (Trang chủ, `#/album/...`, `#/noi-dung/...` trong `js/albums.js`, `js/content.js`) chỉ được dùng ảnh/video **minh hoạ** (stock có giấy phép, nguồn ghi trong `sources.json`) hoặc ảnh khách **đã đồng ý bằng văn bản**, và trang phải có ghi chú "ảnh minh hoạ, không phải khách thật" khi dùng stock.
+   - Ảnh trong "Ảnh của tôi" (`images/my-photos/`, dữ liệu `aloha_demo_db`) tuyệt đối không được xuất hiện ở trang công khai; route `#/chon-anh` phải luôn qua gate đăng nhập trong `js/router.js`.
 6. **Race-condition đặt lịch:** cơ chế giữ/khóa khung giờ tránh trùng lịch phòng/ekip/photographer.
 
 Báo cáo ngắn gọn theo từng mục: đạt / có vấn đề (kèm file:line) / không áp dụng.

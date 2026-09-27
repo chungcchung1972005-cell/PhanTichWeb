@@ -1,3 +1,4 @@
+const { CHROME_PATH, ROOT_URL, shot } = require('./test-env');
 // Chụp screenshot đáng tin cậy bằng Puppeteer (thay cho `chrome --headless --screenshot`
 // CLI, vốn cho kết quả sai lệch trên máy này khi kết hợp --window-size nhỏ).
 const puppeteer = require('puppeteer-core');
@@ -10,7 +11,7 @@ const targets = [
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
@@ -18,7 +19,7 @@ const targets = [
   for (const t of targets) {
     const page = await browser.newPage();
     await page.setViewport({ width: t.width, height: t.height });
-    await page.goto('file:///D:/PhanTichWeb/index.html', { waitUntil: 'networkidle0' });
+    await page.goto(ROOT_URL + 'index.html', { waitUntil: 'networkidle0' });
     // Cuộn chậm qua toàn trang để kích hoạt & chờ animation scroll-reveal hoàn tất.
     // QUAN TRỌNG: dùng behavior:'instant' — trang có CSS `scroll-behavior:smooth`
     // (đúng cho UX thật), nhưng gọi scrollTo(x,y) mặc định lặp lại nhanh trong 1
@@ -38,7 +39,7 @@ const targets = [
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
-    await page.screenshot({ path: `D:\\PhanTichWeb\\_screenshots\\final-${t.name}.png`, fullPage: t.fullPage });
+    await page.screenshot({ path: shot(`final-${t.name}.png`), fullPage: t.fullPage });
     console.log(t.name, overflow, overflow.scrollWidth > overflow.clientWidth ? '*** HORIZONTAL OVERFLOW ***' : 'OK - no horizontal overflow');
     await page.close();
   }

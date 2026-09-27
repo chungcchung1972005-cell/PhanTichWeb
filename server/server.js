@@ -1,8 +1,10 @@
-// ALOHA Baby — server proxy nhỏ cho chatbot tư vấn.
-// Nhiệm vụ DUY NHẤT: nhận tin nhắn từ chatbot trên trình duyệt, gọi Gemini API
-// (Google Gemini) bằng API key giữ ở đây (biến môi trường, không bao giờ gửi về
-// client), rồi trả lời về. Các trang HTML khác của site (đặt lịch, chọn ảnh,
-// CRM...) vẫn là site tĩnh như cũ, KHÔNG đi qua server này.
+// ALOHA Baby — server nhỏ, 3 nhiệm vụ:
+// 1. Proxy chatbot tư vấn: nhận tin nhắn từ trình duyệt, gọi Gemini API bằng
+//    API key giữ ở đây (biến môi trường, không bao giờ gửi về client).
+// 2. Trợ lý AI trong tab "Ảnh đã chỉnh" (/api/edit-chat) trả lời khách trước khi thợ chỉnh ảnh trả lời.
+// 3. Nhận báo tiền về từ SePay (webhook) để trang "Ảnh của tôi" tự gửi yêu cầu
+//    chỉnh sửa ảnh tới Thợ ảnh ngay khi khách chuyển khoản phí ảnh chọn thêm.
+// Các phần khác của site (đặt lịch, CRM...) vẫn là site tĩnh, KHÔNG đi qua đây.
 //
 // Chạy:
 //   copy .env.example -> .env, điền GEMINI_API_KEY thật vào .env
@@ -15,32 +17,44 @@ const express = require('express');
 const cors = require('cors');
 
 const PORT = process.env.PORT || 3001;
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+// Model dự phòng, thử lần lượt khi model chính lỗi (free tier hay báo "high
+// demand" 503 theo từng model, hiếm khi tất cả cùng quá tải một lúc).
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash-lite,gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.6-flash')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const MODEL_CHAIN = [...new Set([MODEL, ...FALLBACK_MODELS])];
+// Mỗi model chờ tối đa bấy nhiêu ms rồi chuyển sang model kế tiếp.
+const MODEL_TIMEOUT_MS = 18000;
 const API_KEY = process.env.GEMINI_API_KEY;
 // Domain thật của frontend sau khi public, cách nhau bằng dấu phẩy (vd
 // "https://ten-nguoi-dung.github.io"). Để trống thì mở cho mọi origin (chỉ
 // chấp nhận được khi test local) - xem server/DEPLOY.md.
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+// API key tự đặt trong trang cấu hình webhook của SePay (my.sepay.vn), SePay gửi
+// kèm header "Authorization: Apikey <key>" mỗi lần báo tiền về.
+const SEPAY_WEBHOOK_KEY = process.env.SEPAY_WEBHOOK_KEY;
 
 // Dữ liệu dịch vụ/giá THAM KHẢO — khớp với SERVICE_INFO trong js/script.js
 // (kịch bản quick-reply) để chatbot AI không tư vấn lệch với UI kịch bản có
 // sẵn. Đây là giá/gói MINH HOẠ, chưa phải bảng giá chính thức đã duyệt — xem
 // .claude/rules/tech-defaults.md mục "Cấu hình chưa xác định".
 const SERVICE_INFO = {
-  'Bé lớn': { concepts: 'Ngoại cảnh công viên/phố cổ, phong cách Hàn Quốc tối giản, hoặc Vintage cổ điển', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
-  'Sinh nhật': { concepts: 'Sinh nhật rực rỡ nhiều bóng bay, theo mùa/lễ hội, hoặc tông pastel nhẹ nhàng', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
-  'Bầu': { concepts: 'Vintage nhẹ nhàng trong studio, ngoại cảnh thiên nhiên, hoặc tối giản tôn dáng mẹ bầu', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
-  'Gia đình': { concepts: 'Ngoại cảnh công viên/biển, Vintage ấm áp trong studio, hoặc đồng phục tông màu cả nhà', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
-  'Newborn': { concepts: 'Newborn tự nhiên (organic), cuộn ủ (wrap) cổ điển, hoặc có bố mẹ/anh chị cùng khung hình', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
+  'Bé lớn': { concepts: 'Ngoại cảnh công viên, biển; Phong cách Hàn Quốc (hanbok); Vintage cổ điển; Áo dài truyền thống; Hoá thân nghề nghiệp (cảnh sát, lính cứu hoả...); Mùa thu lá vàng; Năng động, thể thao', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
+  'Sinh nhật': { concepts: 'Rực rỡ bóng bay; Giáng sinh (Noel); Pastel nhẹ nhàng (đập bánh kem); Trung thu, đèn lồng; Công chúa, hoàng tử; Tiệc cùng gia đình; Picnic ngoài trời', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
+  'Bầu': { concepts: 'Ngoại cảnh thiên nhiên; Vintage trong studio; Tối giản, tôn dáng; Cùng chồng; Cùng bé lớn; Vòng hoa; Biển', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
+  'Gia đình': { concepts: 'Đồng phục tông màu; Ngoại cảnh công viên; Vintage ấm áp; Biển; Nhiều thế hệ (ông bà, bố mẹ, các cháu); Anh chị em; Dã ngoại picnic', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
+  'Newborn': { concepts: 'Cuộn ủ (wrap) cổ điển; Tự nhiên (organic); Cùng bố mẹ, anh chị; Hoa lá; Hoá thân thú ngộ nghĩnh (mũ tai thỏ, tai gấu); Đen trắng tinh tế; Trăng sao cổ tích', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
 };
 
 // Các đích điều hướng frontend hỗ trợ (khớp CHAT_ACTIONS trong js/script.js).
-const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu'];
+// album-<dịch vụ>: trang album ảnh mẫu của dịch vụ đó (danh sách concept, js/albums.js).
+const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu',
+  'album-newborn', 'album-bau', 'album-sinh-nhat', 'album-be-lon', 'album-gia-dinh'];
 
 const SYSTEM_PROMPT = `Bạn là trợ lý tư vấn của ALOHA Baby — studio chụp ảnh em bé và gia đình tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội, hotline 0938.125.222.
 
 5 dịch vụ chính, concept gợi ý và giá THAM KHẢO (luôn nói rõ đây là giá minh hoạ, Sales sẽ báo giá chính xác theo từng đơn; gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, ảnh chọn thêm ngoài gói tính phí theo ảnh):
-${Object.entries(SERVICE_INFO).map(([name, info]) => `- ${name}: concept gợi ý ${info.concepts} (${info.note}), giá tham khảo ${info.price}`).join('\n')}
+${Object.entries(SERVICE_INFO).map(([name, info]) => `- ${name}: các concept ${info.concepts} (${info.note}), giá tham khảo ${info.price}`).join('\n')}
 
 Ngoài 5 dịch vụ trên, studio còn nhận chụp tại nhà cho gia đình muốn không gian riêng tư quen thuộc.
 
@@ -53,7 +67,7 @@ Nguyên tắc trả lời bắt buộc:
 - KHÔNG bịa số liệu cụ thể về mức cọc, chính sách đổi/huỷ lịch, số ảnh được chỉnh sửa miễn phí — những thông số này chưa được studio chốt, chỉ nói "Sales sẽ tư vấn chi tiết khi bạn đặt lịch".
 - Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.
 
-Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
+Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 3 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ), "album-newborn" / "album-bau" / "album-sinh-nhat" / "album-be-lon" / "album-gia-dinh" (album ảnh mẫu theo concept của đúng dịch vụ đó; khi khách hỏi về concept hoặc muốn xem ảnh mẫu của 1 dịch vụ thì ưu tiên gợi ý nút này, ví dụ {"label": "Xem album Sinh nhật", "action": "album-sinh-nhat"}). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 3 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
 if (ALLOWED_ORIGINS.length) {
@@ -63,6 +77,45 @@ if (ALLOWED_ORIGINS.length) {
   console.warn('CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.');
 }
 app.use(express.json({ limit: '200kb' }));
+
+// Gọi Gemini lần lượt theo MODEL_CHAIN: model nào lỗi (quá tải 503, hết hạn mức 429,
+// ngừng hỗ trợ 404...), quá thời gian chờ, hoặc trả về rỗng thì chuyển sang model kế tiếp.
+// Dùng chung cho /api/chat và /api/edit-chat. Trả { text, usedModel, failures }.
+async function callGemini(payload) {
+  let text = '';
+  let usedModel = null;
+  const failures = [];
+  for (const model of MODEL_CHAIN) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+        body: payload,
+        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        failures.push(`${model}: ${response.status} ${(data.error && data.error.message) || ''}`.trim());
+        continue;
+      }
+      if (data.promptFeedback && data.promptFeedback.blockReason) {
+        console.error('Gemini blocked prompt:', data.promptFeedback);
+      }
+      const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+      text = parts.map(p => p.text || '').join('').trim();
+      if (!text) {
+        failures.push(`${model}: empty response`);
+        continue;
+      }
+      usedModel = model;
+      break;
+    } catch (e) {
+      failures.push(`${model}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`);
+    }
+  }
+  return { text, usedModel, failures };
+}
 
 app.post('/api/chat', async (req, res) => {
   if (!API_KEY) {
@@ -86,7 +139,6 @@ app.post('/api/chat', async (req, res) => {
   }));
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
     const payload = JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
@@ -114,28 +166,11 @@ app.post('/api/chat', async (req, res) => {
         }
     });
 
-    // Free tier hay báo 503 tạm thời khi quá tải: thử lại tối đa 2 lần rồi mới báo lỗi.
-    // Không thử lại 429 (hết hạn mức free), thử lại chỉ tốn thêm lượt.
-    let response, data;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
-        body: payload
-      });
-      data = await response.json();
-      if (response.ok || response.status !== 503) break;
-      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+    const { text, usedModel, failures } = await callGemini(payload);
+    if (failures.length) console.warn('Gemini model fallback:', failures.join(' | '));
+    if (!usedModel) {
+      return res.status(502).json({ error: 'upstream_error', detail: failures.join(' | ') });
     }
-    if (!response.ok) {
-      console.error('Gemini API error:', data);
-      return res.status(502).json({ error: 'upstream_error', detail: data.error && data.error.message });
-    }
-    if (data.promptFeedback && data.promptFeedback.blockReason) {
-      console.error('Gemini blocked prompt:', data.promptFeedback);
-    }
-    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    const text = parts.map(p => p.text || '').join('').trim();
     let reply = text;
     let suggestions = [];
     try {
@@ -157,7 +192,142 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY }));
+// ===== Trợ lý tự động trong tab "Ảnh đã chỉnh" (khung "Chat với thợ chỉnh ảnh") =====
+// Người dùng chốt 2026-09-27: trả lời với giọng thợ chỉnh ảnh có chuyên môn, hỏi mức độ hài
+// lòng, chỉ chuyển cho thợ thật (forward = true) khi cần thao tác trên file hoặc câu quá khó.
+// Không bịa thông số nghiệp vụ chưa chốt; không nói dối nếu khách hỏi thẳng là người hay máy.
+const EDIT_STATUSES = ['Chờ xử lý', 'Đang thực hiện', 'Hoàn thành'];
+function editChatPrompt(ctx) {
+  return `Bạn đóng vai thợ chỉnh ảnh (retoucher) của ALOHA Baby, studio chụp ảnh em bé và gia đình tại Hà Nội (hotline 0938.125.222), đang nhắn tin với khách trong mục "Ảnh đã chỉnh" của đơn hàng. Xưng "mình", gọi khách là "bạn". Giọng thân thiện, tự tin như người làm nghề: trả lời ngắn gọn (2-4 câu) nhưng sắc nét, có ít nhất một chi tiết chuyên môn cụ thể để khách thấy được sự tận tâm và tay nghề.
+
+Thông tin đơn của khách (chỉ dựa vào đây, không suy đoán thêm):
+- Mã đơn: ${ctx.orderCode || 'không rõ'}; dịch vụ: ${ctx.serviceLabel || 'không rõ'}
+- Số ảnh gửi chỉnh sửa: ${ctx.photoCount}${ctx.extraCount ? ` (trong đó ${ctx.extraCount} ảnh chọn thêm ngoài gói)` : ''}
+- Trạng thái chỉnh sửa: ${ctx.status} (quy trình 3 bước: Chờ xử lý, Đang thực hiện, Hoàn thành)
+- Link thư mục ảnh đã chỉnh: ${ctx.hasLink ? 'ĐÃ gửi, khách thấy nút "Mở thư mục ảnh đã chỉnh" ngay phía trên khung chat' : 'CHƯA gửi'}
+
+Kiến thức chuyên môn để trả lời (nói bằng lời dễ hiểu, không lạm dụng thuật ngữ):
+- Da bé: sơ sinh hay đỏ, bong tróc nhẹ, mụn sữa, hơi vàng; khi chỉnh, bên mình làm đều màu da nhưng giữ kết cấu da tự nhiên, không làm bệt như búp bê. Vết bớt bẩm sinh chỉ xoá khi gia đình yêu cầu.
+- Màu và ánh sáng: cân bằng trắng để da hồng hào tự nhiên, giữ tông màu thống nhất cả bộ; có thể theo tông ấm, pastel nhẹ hoặc trong trẻo tuỳ gu gia đình.
+- Hậu kỳ thường gặp: xoá vết xước, sợi vải, đồ vật thừa; làm mềm và sạch nền; chỉnh dáng tay chân tự nhiên. Ghép người vắng mặt cần ảnh có ánh sáng và góc chụp tương đồng mới đẹp.
+- In ấn: ảnh tải từ Google Drive là bản độ phân giải cao, in khổ lớn vẫn nét; màn hình điện thoại thường sáng và rực hơn bản in, muốn màu chuẩn nên in ở lab ảnh.
+- Xem và tải ảnh: bấm "Mở thư mục ảnh đã chỉnh" để mở Google Drive; tải từng ảnh bằng biểu tượng tải xuống, hoặc chọn nhiều ảnh rồi bấm Tải xuống (Drive gom thành file zip). Gửi cho người thân, bạn bè: bấm "Sao chép link" rồi gửi (ai có link đều xem được). Ảnh gốc ở ô "Tải ảnh gốc chất lượng cao" đầu trang.
+
+Cách nói chuyện tự nhiên:
+- Chỉ chào ở tin nhắn đầu tiên của cuộc trò chuyện; các lượt sau đi thẳng vào câu trả lời.
+- KHÔNG lặp lại mã đơn, dịch vụ, số ảnh trong mỗi câu trả lời; chỉ nhắc khi khách hỏi về đơn hoặc tiến độ.
+
+Hỏi mức độ hài lòng:
+- CHỈ hỏi khi đơn đã có link ảnh VÀ tin nhắn mới nhất của khách là khen, cảm ơn hoặc báo đã xem ảnh. Khách đang hỏi việc khác (in ảnh, tải ảnh, chỉnh sửa...) thì trả lời đúng câu hỏi, không chèn câu hỏi khảo sát. Không hỏi lại nếu trong cuộc trò chuyện đã hỏi rồi.
+- Khách khen, cảm ơn hoặc báo đã xem ảnh mà CHƯA chấm điểm: cảm ơn ngắn gọn rồi hỏi khách chấm bộ ảnh mấy điểm trên 5 và có tấm nào muốn tinh chỉnh thêm không (lượt này chưa gợi ý mốc chụp).
+- Khách chấm từ 3 điểm trở xuống hoặc nói chưa ưng: xin lỗi ngắn gọn, hỏi cụ thể tấm nào, chưa ưng ở điểm nào (màu da, ánh sáng, nền, bố cục), và đặt forward = true để thợ phụ trách biết. Khách chấm 4 đến 5 điểm: cảm ơn chân thành, gợi ý nhẹ các mốc chụp tiếp theo của bé (100 ngày, thôi nôi, sinh nhật) mà không ép.
+
+Tự trả lời (forward = false): câu hỏi thường gặp, hướng dẫn xem/tải/in/chia sẻ ảnh, tư vấn chuyên môn, tiến độ theo đúng trạng thái trên, lời chào, cảm ơn, khách chấm 4 đến 5 điểm.
+Chuyển cho thợ phụ trách (forward = true), chỉ khi thật sự cần:
+- Khách yêu cầu chỉnh sửa cụ thể trên file ảnh (cần thao tác thật): xác nhận đã ghi lại đúng yêu cầu (tấm nào, chỉnh gì) và hẹn báo lại khi xong, KHÔNG nói là đã chỉnh xong.
+- Câu hỏi bạn không có thông tin hoặc quá khó: thời gian hoàn thành cụ thể, số lần chỉnh sửa miễn phí, phí chỉnh lại, hoàn tiền, thời hạn lưu trữ ảnh, khiếu nại cần studio quyết định. Trả lời rằng mình sẽ kiểm tra lại và phản hồi sớm, không bịa con số hay chính sách.
+
+Nguyên tắc bắt buộc:
+- Không bịa con số, thời gian, chính sách; không nói đã chỉnh xong hay đã gửi link khi thông tin đơn ghi chưa có.
+- Không bịa trải nghiệm cá nhân (số năm làm nghề, số bộ ảnh đã chỉnh...).
+- Không tự nhắc tới AI, mô hình hay hệ thống tự động. Nhưng nếu khách hỏi thẳng, nghiêm túc rằng đang nói chuyện với người thật hay máy/AI thì KHÔNG được nói dối: trả lời rằng đây là trợ lý tự động của studio giúp trả lời nhanh, thợ chỉnh ảnh vẫn đọc toàn bộ tin nhắn và trực tiếp xử lý các yêu cầu chỉnh sửa; đặt forward = true.
+- Tiếng Việt có dấu, không dùng dấu gạch ngang dài, không chêm từ tiếng Anh (vd nói "thợ chỉnh ảnh", không nói "retoucher"). Chỉ hỗ trợ việc liên quan tới ảnh và đơn chụp ở ALOHA Baby; câu ngoài phạm vi thì lịch sự từ chối.
+
+Định dạng đầu ra: JSON {"reply": câu trả lời cho khách, "forward": true hoặc false}.`;
+}
+
+app.post('/api/edit-chat', async (req, res) => {
+  if (!API_KEY) return res.status(500).json({ error: 'server_missing_api_key' });
+  const messages = (Array.isArray(req.body.messages) ? req.body.messages : [])
+    .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-12)
+    .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content.slice(0, 1200) }] }));
+  if (!messages.length || messages[messages.length - 1].role !== 'user') {
+    return res.status(400).json({ error: 'empty_messages' });
+  }
+  const c = req.body.context || {};
+  const ctx = {
+    orderCode: String(c.orderCode || '').slice(0, 30),
+    serviceLabel: String(c.serviceLabel || '').slice(0, 40),
+    photoCount: Math.max(0, Math.min(1000, Number(c.photoCount) || 0)),
+    extraCount: Math.max(0, Math.min(1000, Number(c.extraCount) || 0)),
+    status: EDIT_STATUSES.includes(c.status) ? c.status : 'Chờ xử lý',
+    hasLink: !!c.hasLink
+  };
+  try {
+    const payload = JSON.stringify({
+      systemInstruction: { parts: [{ text: editChatPrompt(ctx) }] },
+      contents: messages,
+      generationConfig: {
+        maxOutputTokens: 1024,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: { reply: { type: 'STRING' }, forward: { type: 'BOOLEAN' } },
+          required: ['reply', 'forward']
+        }
+      }
+    });
+    const { text, usedModel, failures } = await callGemini(payload);
+    if (failures.length) console.warn('Gemini model fallback (edit-chat):', failures.join(' | '));
+    if (!usedModel) return res.status(502).json({ error: 'upstream_error' });
+    let reply = '', forward = true; // không đọc được JSON -> để thợ xem cho chắc
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.reply === 'string') reply = parsed.reply.trim();
+      if (parsed && typeof parsed.forward === 'boolean') forward = parsed.forward;
+    } catch (e) { reply = text.trim(); }
+    if (!reply) return res.status(502).json({ error: 'empty_reply' });
+    return res.json({ reply: reply.slice(0, 1500), forward });
+  } catch (err) {
+    console.error('Edit chat error:', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// ===== Thanh toán tự động qua SePay =====
+// Giao dịch tiền VÀO lưu trong bộ nhớ (không có database): đủ cho luồng
+// "khách chuyển khoản -> trang tự nhận ra trong vài giây", nhưng server khởi
+// động lại (vd Render free ngủ sau 15 phút không có request) là mất lịch sử.
+const MAX_TX = 500;
+const incomingTx = []; // [{ id, content, amount, at }]
+
+// Bỏ dấu cách/ký tự lạ, viết hoa: ngân hàng hay tự chèn tiền tố/đổi định dạng
+// nội dung chuyển khoản, chỉ cần mã thanh toán nằm đâu đó trong nội dung là khớp.
+const normalize = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+app.post('/api/sepay-webhook', (req, res) => {
+  if (!SEPAY_WEBHOOK_KEY) {
+    console.error('SePay webhook bị từ chối: chưa đặt SEPAY_WEBHOOK_KEY.');
+    return res.status(503).json({ success: false, error: 'webhook_not_configured' });
+  }
+  if ((req.get('authorization') || '').trim() !== `Apikey ${SEPAY_WEBHOOK_KEY}`) {
+    return res.status(401).json({ success: false, error: 'unauthorized' });
+  }
+  const tx = req.body || {};
+  if (tx.transferType !== 'in') return res.json({ success: true, ignored: 'not_incoming' });
+  const amount = Number(tx.transferAmount);
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ success: false, error: 'bad_amount' });
+  // SePay có thể gửi lại cùng giao dịch khi thử lại: bỏ qua bản trùng id.
+  if (tx.id != null && incomingTx.some(t => t.id === tx.id)) return res.json({ success: true, duplicate: true });
+
+  incomingTx.push({ id: tx.id, content: normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at: Date.now() });
+  if (incomingTx.length > MAX_TX) incomingTx.splice(0, incomingTx.length - MAX_TX);
+  console.log(`SePay: nhận ${amount}đ, nội dung "${tx.content}"`);
+  return res.json({ success: true });
+});
+
+app.get('/api/payment-status', (req, res) => {
+  const code = normalize(req.query.code);
+  const amount = Number(req.query.amount);
+  if (code.length < 8 || code.length > 40 || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'bad_request' });
+  }
+  const paid = incomingTx.some(t => t.content.includes(code) && t.amount >= amount);
+  return res.json({ paid });
+});
+
+app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY }));
 
 app.listen(PORT, () => {
   console.log(`ALOHA Baby chat server đang chạy tại http://localhost:${PORT}`);

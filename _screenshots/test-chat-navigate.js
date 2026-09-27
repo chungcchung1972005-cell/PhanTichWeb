@@ -1,14 +1,15 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test chatbot với AI thật (cần server/ đang chạy): khách nhắn ý muốn -> bot chỉ trả
 // lời bằng chữ, KHÔNG tự chuyển trang; menu 3 gợi ý có nút dẫn tới đúng trang, bấm nút
 // mới chuyển. Kiểm tra thêm: dự phòng khi AI lỗi, nút chat có ở mọi view khách hàng,
 // khung chat tự đóng trên mobile sau khi chuyển trang.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];

@@ -1,3 +1,4 @@
+
 // ALOHA Baby — kho dữ liệu demo dùng chung giữa Khách hàng và Ban quản trị
 // (window.AlohaData), lưu trong localStorage CỦA CÙNG TRÌNH DUYỆT. Đây vẫn là
 // mô phỏng phía client (site tĩnh, chưa có backend/CRM thật) — dữ liệu KHÔNG
@@ -16,7 +17,7 @@
       orderCode: '#AB240915',
       serviceLabel: 'Newborn',
       packageLabel: 'Premium',
-      packageCount: 15,
+      packageCount: 10,
       photoCount: 16
     }
   };
@@ -40,7 +41,14 @@
   function getCustomerRecord(phone) {
     if (!phone) return null;
     const db = readDb();
-    if (db.customers[phone]) return db.customers[phone];
+    if (db.customers[phone]) {
+      // Đảm bảo số ảnh trong gói cập nhật chuẩn 10 ảnh theo quy định mới
+      if (db.customers[phone].packageCount === 15) {
+        db.customers[phone].packageCount = 10;
+        writeDb(db);
+      }
+      return db.customers[phone];
+    }
     if (SEED_CUSTOMERS[phone]) {
       db.customers[phone] = Object.assign({}, SEED_CUSTOMERS[phone]);
       writeDb(db);
@@ -58,6 +66,9 @@
       orderCode: data.orderCode || '',
       serviceLabel: data.serviceLabel || '',
       photoCount: data.photoCount || 0,
+      extraCount: data.extraCount || 0,
+      extraFee: data.extraFee || 0,
+      paymentStatus: data.paymentStatus || (data.extraCount > 0 ? 'Chờ kiểm tra chuyển khoản' : 'Trong gói (0đ)'),
       note: data.note || '',
       photoNotes: Array.isArray(data.photoNotes) ? data.photoNotes : [],
       // Danh sách ĐẦY ĐỦ ảnh trong yêu cầu (không chỉ ảnh có ghi chú riêng như
@@ -72,7 +83,13 @@
       // (staffSeen) và khách chưa mở xem thông báo khi ảnh đã Hoàn thành
       // (customerSeenDone). Cả 2 mặc định false khi tạo yêu cầu mới.
       staffSeen: false,
-      customerSeenDone: false
+      customerSeenDone: false,
+      // Link thư mục ảnh đã chỉnh Thợ ảnh gửi khách + tin nhắn 2 bên (tab "Ảnh đã chỉnh").
+      // Bản ghi cũ không có 2 trường này: nơi đọc tự coi như '' và [].
+      resultLink: '',
+      resultLinkAt: null,
+      messages: [],
+      customerSeenEditedSig: ''
     };
     db.editRequests.push(req);
     writeDb(db);
@@ -93,6 +110,9 @@
     const db = readDb();
     const req = db.editRequests.find(r => r.id === id);
     if (!req) return null;
+    // "Tải ảnh đã sửa lên là Hoàn thành": chưa gửi link ảnh đã chỉnh thì chưa được Hoàn thành
+    // (người dùng chốt 2026-09-27, xem rules/workflow.md)
+    if (req.status === 'Đang thực hiện' && !req.resultLink) return req;
     const idx = STATUS_FLOW.indexOf(req.status);
     if (idx >= 0 && idx < STATUS_FLOW.length - 1) {
       req.status = STATUS_FLOW[idx + 1];
@@ -136,6 +156,60 @@
     return req;
   }
 
+  // Link thư mục ảnh đã chỉnh Thợ ảnh gửi cho khách (tab "Ảnh đã chỉnh" trong
+  // "Ảnh của tôi"). Chỉ nhận http(s) để không chèn được link javascript:... vào
+  // trang khách, và chỉ https (Google Drive luôn là https). Chuỗi rỗng = gỡ link.
+  // Trả null nếu link không hợp lệ.
+  function setResultLink(requestId, url) {
+    const clean = String(url || '').trim();
+    if (clean && !/^https:\/\/[^\s<>"']+$/i.test(clean)) return null;
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    req.resultLink = clean;
+    req.resultLinkAt = clean ? Date.now() : null;
+    writeDb(db);
+    return req;
+  }
+
+  // Tin nhắn trong khung chat của yêu cầu chỉnh sửa (1 nguồn dữ liệu, không tạo kho chat
+  // riêng). from: 'customer' | 'staff' | 'ai' (Trợ lý AI trả lời trước). Tin của khách có
+  // needsStaff: mặc định true (thợ cần xem), Trợ lý AI trả lời đủ thì đặt lại false.
+  function addRequestMessage(requestId, from, name, text) {
+    const body = String(text || '').trim().slice(0, 1500);
+    if (!body || ['customer', 'staff', 'ai'].indexOf(from) === -1) return null;
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    if (!Array.isArray(req.messages)) req.messages = [];
+    const msg = { id: 'M' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from, name: String(name || '').slice(0, 60), text: body, at: Date.now() };
+    if (from === 'customer') msg.needsStaff = true;
+    req.messages.push(msg);
+    writeDb(db);
+    return req;
+  }
+
+  function setMessageNeedsStaff(requestId, messageId, needsStaff) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    const msg = req && Array.isArray(req.messages) && req.messages.find(m => m.id === messageId);
+    if (!msg) return null;
+    msg.needsStaff = !!needsStaff;
+    writeDb(db);
+    return req;
+  }
+
+  // Khách đã mở tab "Ảnh đã chỉnh" xem link / tin nhắn mới nhất của Thợ ảnh: lưu "chữ ký"
+  // (link + số tin của thợ) đã xem để tắt chấm báo trên tab. Cùng kiểu với customerSeenDone.
+  function markCustomerSeenEdited(requestId, sig) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req) return null;
+    req.customerSeenEditedSig = String(sig || '');
+    writeDb(db);
+    return req;
+  }
+
   window.AlohaData = {
     getCustomerRecord,
     createEditRequest,
@@ -144,6 +218,10 @@
     togglePhotoDone,
     markStaffSeen,
     markCustomerSeenDone,
+    setResultLink,
+    addRequestMessage,
+    setMessageNeedsStaff,
+    markCustomerSeenEdited,
     STATUS_FLOW
   };
 })(window);

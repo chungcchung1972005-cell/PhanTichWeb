@@ -1,14 +1,15 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 const puppeteer = require('puppeteer-core');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 700 });
-  await page.goto('file:///D:/PhanTichWeb/index.html', { waitUntil: 'networkidle0' });
+  await page.goto(ROOT_URL + 'index.html', { waitUntil: 'networkidle0' });
 
   const info = await page.evaluate(() => {
     function rectOf(sel) {

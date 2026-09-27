@@ -1,8 +1,9 @@
+const { CHROME_PATH, ROOT_URL, shot } = require('./test-env');
 // Test luồng đăng nhập tài khoản/mật khẩu + phân quyền 3 vai trò nội bộ dùng
 // chung crm/admin.html, và gate 2 trang khách hàng hiện có.
 const puppeteer = require('puppeteer-core');
 
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 const ACCOUNTS = {
   'khach-hang': { phone: '0900000001', password: 'khach123' },
@@ -13,7 +14,7 @@ const ACCOUNTS = {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox']
   });
@@ -66,7 +67,7 @@ const ACCOUNTS = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
     'sale': { urlIncludes: 'crm/sale.html' }, // Không gian Sale riêng, test chi tiết ở test-sale.js
     'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
-    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Concept', 'Doanh thu', 'Cài đặt'] }
+    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
   };
 
   for (const role of Object.keys(ROLE_EXPECT)) {
@@ -96,17 +97,17 @@ const ACCOUNTS = {
         });
       };
       await scrollReveal();
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-sep-desktop.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-sep-desktop.png'), fullPage: true });
       await page.setViewport({ width: 390, height: 844 });
       await page.reload({ waitUntil: 'networkidle0' });
       await scrollReveal();
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-sep-mobile.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-sep-mobile.png'), fullPage: true });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       log('admin sếp mobile không tràn ngang', !overflow);
     }
     // Bảng CRM/doanh thu của Sale nay nằm ở crm/sale.html, xem test-sale.js.
     if (role === 'tho-anh') {
-      await page.screenshot({ path: 'D:\\PhanTichWeb\\_screenshots\\admin-thoanh-desktop.png', fullPage: true });
+      await page.screenshot({ path: shot('admin-thoanh-desktop.png'), fullPage: true });
       const hasKanban = await page.$('.kanban') !== null;
       const hasCustomerTable = await page.$('#khach-hang') !== null;
       log('thợ ảnh chỉ thấy kanban ảnh, không thấy CRM khách hàng', hasKanban && !hasCustomerTable);
@@ -130,10 +131,12 @@ const ACCOUNTS = {
     await page.setViewport({ width: 1440, height: 900 });
     await loginAs(page, 'khach-hang');
     await page.goto(BASE + 'index.html#/dat-lich', { waitUntil: 'networkidle0' });
-    await page.click('.bk-service[data-service="Newborn"]');
-    await page.click('#bkNextBtn');
+    await page.$eval('.bk-service[data-service="Newborn"]', el => el.click());
+    // Bước 1 giờ phải chọn thêm concept (xem js/dat-lich.js) mới bấm Tiếp tục được
+    await page.$eval('.bk-concept[data-concept="cuon-u"] .bk-concept-pick', el => el.click());
+    await page.$eval('#bkNextBtn', el => el.click());
     await page.waitForSelector('#bkSlotGrid .bk-slot.free', { timeout: 5000 });
-    await page.click('#bkSlotGrid .bk-slot.free');
+    await page.$eval('#bkSlotGrid .bk-slot.free', el => el.click());
     const nextEnabled = await page.$eval('#bkNextBtn', el => !el.disabled);
     log('luồng đặt lịch vẫn hoạt động sau khi gate', nextEnabled);
     await page.close();

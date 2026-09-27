@@ -1,11 +1,12 @@
+const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test: sau mỗi câu trả lời của AI (kể cả lỗi) phải hiện menu gợi ý FAQ; chọn 1 câu
 // thì trả lời từ FAQ cục bộ rồi hiện lại menu. Cần server/ đang chạy để test nhánh AI thật.
 const puppeteer = require('puppeteer-core');
-const BASE = 'file:///D:/PhanTichWeb/';
+const BASE = ROOT_URL;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
   });
   const results = [];
