@@ -1035,6 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatForm = document.getElementById('psChatForm');
   const chatInput = document.getElementById('psChatInput');
   const chatSend = document.getElementById('psChatSend');
+  const chatQuick = document.getElementById('psChatQuick');
   let editedSig = '';
   let aiPending = null; // id tin của khách đang chờ Trợ lý AI trả lời
 
@@ -1141,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // như tin của thợ chỉnh ảnh, giao diện khách không nhắc tới AI. Trang quản trị vẫn ghi rõ
     // tin nào do trợ lý tự động trả lời, và trợ lý không nói dối nếu khách hỏi thẳng (server/).
     chatInput.disabled = chatSend.disabled = !req || aiPending;
+    if (chatQuick) chatQuick.querySelectorAll('button').forEach((b) => { b.disabled = !req || !!aiPending; });
     chatInput.placeholder = req ? 'Nhắn cho thợ chỉnh ảnh...' : 'Gửi yêu cầu chỉnh sửa trước để trò chuyện';
     if (!msgs.length && !aiPending) {
       chatList.innerHTML = `<p class="ps-chat-empty">${req ? 'Chưa có tin nhắn. Bạn cần hỏi gì về ảnh của bé cứ nhắn, thợ chỉnh ảnh sẽ trả lời bạn ngay.' : 'Khung trò chuyện sẽ mở khi bạn đã gửi yêu cầu chỉnh sửa.'}</p>`;
@@ -1215,6 +1217,13 @@ document.addEventListener('DOMContentLoaded', () => {
       chatInput.focus();
     });
     chatInput.addEventListener('input', autoSizeChat);
+    // Câu hỏi nhanh: điền sẵn câu hỏi rồi gửi luôn
+    if (chatQuick) chatQuick.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-q]');
+      if (!b || b.disabled) return;
+      chatInput.value = b.dataset.q;
+      chatForm.requestSubmit();
+    });
     // Enter để gửi, Shift+Enter để xuống dòng
     chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
