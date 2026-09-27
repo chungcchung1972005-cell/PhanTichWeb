@@ -12,12 +12,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260926">
-<link rel="stylesheet" href="css/pages.css?v=20260926f">
+<link rel="stylesheet" href="css/pages.css?v=20260927">
 </head>
 <body>
 
 <script src="js/auth.js"></script>
-<script src="js/data-store.js?v=20260925"></script>
+<script src="js/data-store.js?v=20260927b"></script>
 
 <!-- Topbar -->
 <div class="topbar">
@@ -642,17 +642,68 @@
         <div id="psContent">
           <div class="ps-submitted-banner" id="psSubmittedBanner">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Danh sách ảnh đã được khóa, bạn có thể theo dõi tiến độ tại mục Lịch hẹn.</span>
+            <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</span>
           </div>
 
           <div class="ps-tabs">
             <button class="ps-tab active" data-filter="all">Tất cả</button>
             <button class="ps-tab" data-filter="original">Ảnh gốc</button>
             <button class="ps-tab" data-filter="liked">Yêu thích</button>
+            <button class="ps-tab" data-filter="edited">Ảnh đã chỉnh</button>
           </div>
 
           <div class="ps-grid reveal reveal-stagger visible" id="psGrid">
             <!-- Ảnh + nút chọn được JS gắn vào, HTML chỉ cần khung tĩnh -->
+          </div>
+
+          <!-- Tab "Ảnh đã chỉnh": link thư mục ảnh đã chỉnh do Thợ ảnh gửi + chat với Thợ ảnh.
+               Dữ liệu nằm trong chính yêu cầu chỉnh sửa (aloha_demo_db, js/data-store.js), xem js/chon-anh.js -->
+          <div class="ps-edited" id="psEditedPanel" hidden>
+            <div class="ps-result-card">
+              <svg class="ps-result-deco ps-result-deco--tl" viewBox="0 0 140 140" aria-hidden="true">
+                <path d="M6 134C40 100 70 70 116 24" fill="none" stroke="#a9d8b2" stroke-width="3" stroke-linecap="round"/>
+                <path d="M46 94c-12-2-22 4-24 14 12 2 22-4 24-14z" fill="#bfe5c6"/>
+                <path d="M72 68c2-12 12-18 22-16-2 12-12 18-22 16z" fill="#bfe5c6"/>
+                <path d="M30 116c-2-10 4-18 13-20 2 10-4 18-13 20z" fill="#cdebd2"/>
+                <g transform="translate(116 24)"><circle cy="-11" r="9" fill="#ffb3cc"/><circle cx="10.5" cy="-3.4" r="9" fill="#ffb3cc"/><circle cx="6.5" cy="8.9" r="9" fill="#ffb3cc"/><circle cx="-6.5" cy="8.9" r="9" fill="#ffb3cc"/><circle cx="-10.5" cy="-3.4" r="9" fill="#ffb3cc"/><circle r="6" fill="#ffd66b"/></g>
+                <g transform="translate(58 86) scale(.62)"><circle cy="-11" r="9" fill="#ff8fb3"/><circle cx="10.5" cy="-3.4" r="9" fill="#ff8fb3"/><circle cx="6.5" cy="8.9" r="9" fill="#ff8fb3"/><circle cx="-6.5" cy="8.9" r="9" fill="#ff8fb3"/><circle cx="-10.5" cy="-3.4" r="9" fill="#ff8fb3"/><circle r="6" fill="#ffe08a"/></g>
+                <circle cx="92" cy="58" r="3" fill="#ffc9dd"/><circle cx="24" cy="96" r="2.5" fill="#ffd66b"/>
+              </svg>
+              <svg class="ps-result-deco ps-result-deco--br" viewBox="0 0 140 140" aria-hidden="true">
+                <path d="M6 134C40 100 70 70 116 24" fill="none" stroke="#a9d8b2" stroke-width="3" stroke-linecap="round"/>
+                <path d="M46 94c-12-2-22 4-24 14 12 2 22-4 24-14z" fill="#bfe5c6"/>
+                <path d="M72 68c2-12 12-18 22-16-2 12-12 18-22 16z" fill="#bfe5c6"/>
+                <g transform="translate(116 24)"><circle cy="-11" r="9" fill="#ffc9dd"/><circle cx="10.5" cy="-3.4" r="9" fill="#ffc9dd"/><circle cx="6.5" cy="8.9" r="9" fill="#ffc9dd"/><circle cx="-6.5" cy="8.9" r="9" fill="#ffc9dd"/><circle cx="-10.5" cy="-3.4" r="9" fill="#ffc9dd"/><circle r="6" fill="#ffd66b"/></g>
+                <g transform="translate(60 84) scale(.55)"><circle cy="-11" r="9" fill="#ff8fb3"/><circle cx="10.5" cy="-3.4" r="9" fill="#ff8fb3"/><circle cx="6.5" cy="8.9" r="9" fill="#ff8fb3"/><circle cx="-6.5" cy="8.9" r="9" fill="#ff8fb3"/><circle cx="-10.5" cy="-3.4" r="9" fill="#ff8fb3"/><circle r="6" fill="#ffe08a"/></g>
+              </svg>
+              <div class="ps-result-inner">
+                <span class="ps-result-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m9.5 13.5 1.8 1.8 3.7-3.8"/></svg>
+                </span>
+                <h3>Ảnh đã chỉnh của bé</h3>
+                <p class="ps-result-meta" id="psResultMeta"></p>
+                <div class="ps-result-body" id="psResultBody"></div>
+              </div>
+            </div>
+
+            <div class="ps-chat-card">
+              <div class="ps-chat-head">
+                <span class="ps-chat-avatar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg>
+                </span>
+                <div>
+                  <h3>Trợ lý AI & thợ chỉnh ảnh</h3>
+                  <p>Trợ lý AI trả lời ngay câu hỏi cơ bản và ghi nhận yêu cầu chỉnh sửa của bạn; việc cần thợ xử lý thì thợ chỉnh ảnh trả lời trực tiếp tại đây.</p>
+                </div>
+              </div>
+              <div class="ps-chat-list" id="psChatList" aria-live="polite"></div>
+              <form class="ps-chat-form" id="psChatForm">
+                <textarea id="psChatInput" rows="1" maxlength="1000" placeholder="Nhắn cho thợ chỉnh ảnh..." aria-label="Tin nhắn cho trợ lý AI và thợ chỉnh ảnh"></textarea>
+                <button type="submit" class="ps-chat-send" id="psChatSend" aria-label="Gửi tin nhắn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+                </button>
+              </form>
+            </div>
           </div>
 
           <div class="ps-note-box reveal" id="psGeneralNote" hidden>
@@ -910,7 +961,7 @@
 <script src="js/script.js"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
-<script src="js/chon-anh.js?v=20260926e"></script>
+<script src="js/chon-anh.js?v=20260927b"></script>
 </body>
 </html>
 

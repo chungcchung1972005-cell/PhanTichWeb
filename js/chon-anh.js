@@ -926,9 +926,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ẩn mục ghi chú chung khi ở tab "Tất cả" (chỉ xóa/ẩn ở mục Tất cả theo yêu cầu)
     if (generalNoteBox) {
-      generalNoteBox.hidden = (filter === 'all');
+      generalNoteBox.hidden = (filter === 'all' || filter === 'edited');
     }
+    // Tab "Ảnh đã chỉnh": ẩn lưới ảnh + nút gửi yêu cầu, hiện ô link + chat với thợ
+    const editedMode = filter === 'edited';
+    grid.style.display = editedMode ? 'none' : '';
+    const submitBar = document.querySelector('.ps-submit-bar');
+    if (submitBar) submitBar.style.display = editedMode ? 'none' : '';
+    const panel = document.getElementById('psEditedPanel');
+    if (panel) panel.hidden = !editedMode;
+    renderEdited(true);
     syncBulkButtons();
+    window.dispatchEvent(new Event('ps:filterchange'));
   }
 
   // ===== Tabs =====
@@ -953,13 +962,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         <div class="ps-banner-info">
           <strong>Đã nhận thanh toán, ảnh của bé đã được gửi tới đội ngũ Thợ ảnh!</strong>
-          <p>Bộ ảnh gồm <strong>${selected.size} ảnh</strong> (10 ảnh có trong gói + <strong>${extraCount} ảnh chọn thêm: ${extraFee.toLocaleString('vi-VN')}đ</strong>). Danh sách ảnh đã được khóa, bạn có thể theo dõi tiến độ tại mục Lịch hẹn.</p>
+          <p>Bộ ảnh gồm <strong>${selected.size} ảnh</strong> (10 ảnh có trong gói + <strong>${extraCount} ảnh chọn thêm: ${extraFee.toLocaleString('vi-VN')}đ</strong>). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</p>
         </div>
       `;
     } else {
       banner.innerHTML = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh (10 ảnh trong gói). Danh sách ảnh đã được khóa, bạn có thể theo dõi tiến độ tại mục Lịch hẹn.</span>
+        <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh (10 ảnh trong gói). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</span>
       `;
     }
 
@@ -1005,6 +1014,185 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ===== Tab "Ảnh đã chỉnh": link thư mục ảnh đã chỉnh Thợ ảnh gửi + chat với Thợ ảnh =====
+  // Dữ liệu nằm trong yêu cầu chỉnh sửa mới nhất của khách (resultLink, messages trong
+  // aloha_demo_db). Mô phỏng phía client: chỉ cập nhật được giữa các tab CÙNG trình duyệt.
+  const editedTab = document.querySelector('.ps-tab[data-filter="edited"]');
+  const editedPanel = document.getElementById('psEditedPanel');
+  const resultMeta = document.getElementById('psResultMeta');
+  const resultBody = document.getElementById('psResultBody');
+  const chatList = document.getElementById('psChatList');
+  const chatForm = document.getElementById('psChatForm');
+  const chatInput = document.getElementById('psChatInput');
+  const chatSend = document.getElementById('psChatSend');
+  let editedSig = '';
+  let aiPending = null; // id tin của khách đang chờ Trợ lý AI trả lời
+
+  const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtTime = (t) => new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+
+  function latestRequest() {
+    if (!window.AlohaData || !session) return null;
+    return AlohaData.getEditRequests()
+      .filter((r) => r.phone === session.phone)
+      .sort((a, b) => b.createdAt - a.createdAt)[0] || null;
+  }
+  // "Tin mới" = thợ vừa gửi link hoặc nhắn thêm mà khách chưa mở tab xem
+  function newsSig(req) {
+    const staffMsgs = (Array.isArray(req.messages) ? req.messages : []).filter((m) => m.from === 'staff').length;
+    return (req.resultLink || '') + '|' + staffMsgs;
+  }
+  // Dấu "đã xem" nằm trong chính yêu cầu (customerSeenEditedSig), không tạo kho localStorage riêng
+  function markEditedSeen(req) {
+    const sig = newsSig(req);
+    if (req.customerSeenEditedSig !== sig) { AlohaData.markCustomerSeenEdited(req.id, sig); req.customerSeenEditedSig = sig; }
+  }
+  function updateEditedDot(req) {
+    if (!editedTab) return;
+    const hasNews = !!req && newsSig(req) !== '|0' && (req.customerSeenEditedSig || '') !== newsSig(req);
+    let dot = editedTab.querySelector('.ps-tab-dot');
+    if (hasNews && !dot) {
+      dot = document.createElement('span');
+      dot.className = 'ps-tab-dot';
+      dot.setAttribute('aria-label', 'Có cập nhật mới');
+      editedTab.appendChild(dot);
+    } else if (!hasNews && dot) dot.remove();
+  }
+
+  function renderEdited(force) {
+    const req = latestRequest();
+    const open = !!editedPanel && !editedPanel.hidden;
+    if (open && req) markEditedSeen(req);
+    updateEditedDot(req);
+    if (!open) return;
+    const msgs = req && Array.isArray(req.messages) ? req.messages : [];
+    const sig = req ? [req.id, req.status, req.resultLink || '', msgs.length, aiPending || ''].join('|') : 'none';
+    if (!force && sig === editedSig) return;
+    const prevCount = editedSig.split('|')[3];
+    editedSig = sig;
+
+    // --- Ô link ảnh đã chỉnh
+    if (!req) {
+      resultMeta.textContent = '';
+      resultBody.innerHTML = '<p class="ps-result-empty">Bạn chưa gửi yêu cầu chỉnh sửa nào. Hãy thả tim những ảnh ưng ý rồi bấm "Gửi yêu cầu chỉnh sửa", link ảnh đã chỉnh sẽ hiện ở đây.</p>';
+    } else {
+      resultMeta.innerHTML = `Mã đơn <strong>${escHtml(req.orderCode || req.id)}</strong> · ${escHtml(req.photoCount || (req.photos || []).length)} ảnh · <span class="ps-result-status">${escHtml(req.status)}</span>`;
+      const safeLink = /^https:\/\//i.test(req.resultLink || '') ? req.resultLink : '';
+      if (safeLink) {
+        resultBody.innerHTML = `
+          <a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+            <span>Mở thư mục ảnh đã chỉnh</span>
+          </a>
+          <div class="ps-result-url"><span id="psResultUrl"></span><button type="button" class="ps-result-copy" id="psResultCopy">Sao chép link</button></div>
+          <p class="ps-result-time">Thợ gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}</p>`;
+        // Gán qua thuộc tính DOM (không nối chuỗi HTML); link đã được data-store chặn chỉ cho http(s)
+        document.getElementById('psResultLink').href = safeLink;
+        document.getElementById('psResultUrl').textContent = safeLink;
+        document.getElementById('psResultCopy').addEventListener('click', (e) => {
+          const btn = e.currentTarget;
+          const done = () => { btn.textContent = 'Đã sao chép'; setTimeout(() => { btn.textContent = 'Sao chép link'; }, 1800); };
+          if (navigator.clipboard) navigator.clipboard.writeText(safeLink).then(done, () => {});
+        });
+      } else {
+        const waitText = req.status === 'Hoàn thành'
+          ? 'Ảnh của bé đã chỉnh xong, thợ đang tải ảnh lên. Link ảnh đã chỉnh sẽ hiện ở đây trong ít phút.'
+          : req.status === 'Đang thực hiện'
+            ? 'Thợ đang chỉnh ảnh của bé. Link ảnh đã chỉnh sẽ hiện ở đây ngay khi thợ gửi.'
+            : 'Yêu cầu đã tới thợ chỉnh ảnh, thợ sẽ bắt đầu sớm. Link ảnh đã chỉnh sẽ hiện ở đây ngay khi thợ gửi.';
+        resultBody.innerHTML = `
+          <p class="ps-result-waiting"><span class="ps-result-pulse" aria-hidden="true"></span>${waitText}</p>`;
+      }
+    }
+
+    // --- Chat: Trợ lý AI trả lời trước, Thợ ảnh trả lời những việc cần thợ xử lý
+    chatInput.disabled = chatSend.disabled = !req || aiPending;
+    chatInput.placeholder = req ? 'Nhắn trợ lý AI hoặc thợ chỉnh ảnh...' : 'Gửi yêu cầu chỉnh sửa trước để trò chuyện';
+    if (!msgs.length && !aiPending) {
+      chatList.innerHTML = `<p class="ps-chat-empty">${req ? 'Chưa có tin nhắn. Bạn cứ hỏi, trợ lý AI trả lời ngay; cần chỉnh thêm ảnh thì trợ lý ghi nhận và chuyển cho thợ.' : 'Khung trò chuyện sẽ mở khi bạn đã gửi yêu cầu chỉnh sửa.'}</p>`;
+    } else {
+      chatList.innerHTML = msgs.map((m) => {
+        const who = m.from === 'customer' ? 'from-me' : m.from === 'ai' ? 'from-ai' : 'from-staff';
+        const name = m.from === 'ai'
+          ? '<span class="ps-msg-name"><span class="ps-ai-chip">AI</span>Trợ lý AI</span>'
+          : m.from === 'staff' ? `<span class="ps-msg-name">${escHtml(m.name || 'Thợ ảnh')}</span>` : '';
+        const forwarded = m.from === 'customer' && m.needsStaff && m.id !== aiPending
+          ? '<span class="ps-msg-forward">Đã chuyển cho thợ chỉnh ảnh</span>' : '';
+        return `
+        <div class="ps-msg ${who}">
+          ${name}
+          <p>${escHtml(m.text)}</p>
+          <time>${escHtml(fmtTime(m.at))}</time>${forwarded}
+        </div>`;
+      }).join('') + (aiPending ? `
+        <div class="ps-msg from-ai is-typing" aria-label="Trợ lý AI đang trả lời">
+          <span class="ps-msg-name"><span class="ps-ai-chip">AI</span>Trợ lý AI</span>
+          <p><span class="ps-typing"><i></i><i></i><i></i></span></p>
+        </div>` : '');
+      if (String(msgs.length) !== prevCount || aiPending) chatList.scrollTop = chatList.scrollHeight;
+    }
+  }
+
+  function autoSizeChat() {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+  }
+
+  // Gửi tin của khách: lưu ngay (mặc định cần thợ xem), rồi hỏi Trợ lý AI (server/ -> Gemini)
+  // kèm đúng thông tin đơn. AI trả lời đủ thì bỏ cờ "cần thợ"; AI lỗi thì nói rõ là AI đang bận
+  // và để nguyên cho thợ trả lời (không giả vờ là AI đã trả lời).
+  const AI_NAME = 'Trợ lý AI ALOHA';
+  async function askEditAssistant(req, msgId) {
+    const history = (Array.isArray(req.messages) ? req.messages : []).slice(-12).map((m) => ({
+      role: m.from === 'customer' ? 'user' : 'assistant',
+      content: m.from === 'staff' ? '(Thợ chỉnh ảnh trả lời) ' + m.text : m.text
+    }));
+    const context = {
+      orderCode: req.orderCode || '', serviceLabel: req.serviceLabel || '',
+      photoCount: req.photoCount || (req.photos || []).length, extraCount: req.extraCount || 0,
+      status: req.status, hasLink: !!req.resultLink
+    };
+    try {
+      const res = await fetch(PAYMENT_API_BASE + '/api/edit-chat', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ messages: history, context })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data || typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('empty');
+      AlohaData.setMessageNeedsStaff(req.id, msgId, data.forward !== false);
+      AlohaData.addRequestMessage(req.id, 'ai', AI_NAME, data.reply);
+    } catch (err) {
+      AlohaData.addRequestMessage(req.id, 'ai', AI_NAME, 'Trợ lý AI đang bận nên chưa trả lời được. Tin nhắn của bạn đã được chuyển cho thợ chỉnh ảnh, thợ sẽ phản hồi bạn sớm nhé.');
+    }
+  }
+  if (chatForm) {
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const req = latestRequest();
+      const text = chatInput.value.trim();
+      if (!req || !text || aiPending) return;
+      const saved = AlohaData.addRequestMessage(req.id, 'customer', (session && session.name) || 'Khách hàng', text);
+      if (!saved) return;
+      chatInput.value = '';
+      autoSizeChat();
+      aiPending = saved.messages[saved.messages.length - 1].id;
+      renderEdited(true);
+      await askEditAssistant(saved, aiPending);
+      aiPending = null;
+      renderEdited(true);
+      chatInput.focus();
+    });
+    chatInput.addEventListener('input', autoSizeChat);
+    // Enter để gửi, Shift+Enter để xuống dòng
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
+    });
+  }
+  // Thợ gửi link / trả lời ở tab khác cùng trình duyệt -> cập nhật không cần tải lại trang
+  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') renderEdited(false); });
+  setInterval(() => renderEdited(false), 4000);
+
   // ===== Ô "Đã chọn" nổi theo khi cuộn xem ảnh =====
   // Ô gốc ở đầu trang cuộn khuất thì chính ô đó chuyển sang position: fixed ngay dưới thanh
   // menu (giữ nguyên số liệu + nút chọn nhanh); ô giữ chỗ cùng kích thước để trang không giật.
@@ -1027,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function placeSummary() {
       ticking = false;
       const view = document.getElementById('view-chon-anh');
-      const active = !!view && !view.hidden;
+      const active = !!view && !view.hidden && currentFilter !== 'edited';
       const headerBottom = siteHeader ? Math.max(0, siteHeader.getBoundingClientRect().bottom) : 0;
       const slotRect = slot.getBoundingClientRect();
       const shouldFloat = active && slotRect.height > 0 && slotRect.bottom < headerBottom + 8;
@@ -1043,6 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', requestPlace, { passive: true });
     window.addEventListener('resize', () => { if (floating) setFloating(false); requestPlace(); });
     window.addEventListener('hashchange', requestPlace);
+    window.addEventListener('ps:filterchange', requestPlace);
     requestPlace();
   }
 

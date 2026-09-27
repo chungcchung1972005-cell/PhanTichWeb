@@ -800,12 +800,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function canAdvance(req) {
-    if (req.status !== 'Đang thực hiện') return true;
+  // Lý do chưa được chuyển bước ('' = được chuyển). Đang thực hiện -> Hoàn thành cần xong hết
+  // ảnh, và với yêu cầu thật phải gửi link ảnh đã chỉnh cho khách trước (người dùng chốt
+  // 2026-09-27: "tải ảnh đã sửa lên là Hoàn thành", xem rules/workflow.md).
+  function advanceBlockReason(req) {
+    if (req.status !== 'Đang thực hiện') return '';
     const total = (req.photos || []).length;
-    if (total === 0) return true;
-    return getDoneIds(req).length === total;
+    if (total > 0 && getDoneIds(req).length !== total) return 'Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước';
+    if (!req.isStatic && !req.resultLink) return 'Cần gửi link ảnh đã chỉnh cho khách trước khi chuyển sang Hoàn thành';
+    return '';
   }
+  function canAdvance(req) { return !advanceBlockReason(req); }
 
   function advance(req) {
     if (req.isStatic) {
@@ -821,7 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // (vd "images/my-photos/photo-1.jpg") - trang này (crm/admin.html) nằm
     // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
     const real = (window.AlohaData ? AlohaData.getEditRequests() : []).map(r => Object.assign({ isStatic: false }, r, {
-      photos: (r.photos || []).map(p => Object.assign({}, p, { src: '../' + p.src }))
+      // Chỉ thêm '../' cho ảnh nằm trong thư mục dự án (trang này ở crm/); ảnh Google Photos là
+      // URL đầy đủ https://... thì giữ nguyên, thêm '../' sẽ thành link hỏng.
+      photos: (r.photos || []).map(p => Object.assign({}, p, { src: /^(https?:|data:|\/)/i.test(p.src || '') ? p.src : '../' + p.src }))
     }));
     return STATIC_REQUESTS.concat(real);
   }
@@ -886,17 +893,18 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `
           <div class="kanban-card-top">
             <span class="priority-badge" title="Thứ tự ưu tiên xử lý trong cột này: đến trước làm trước">#${i + 1}</span>
-            <strong>${req.orderCode || req.id}</strong>
+            <strong>${escHtml(req.orderCode || req.id)}</strong>
             ${!req.isStatic ? '<span class="badge badge-hoan-thanh">Mới</span>' : ''}
           </div>
-          <span>${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · ${total || req.photoCount || 0} ảnh</span>
+          <span>${escHtml(req.customerName)} · ${escHtml(req.serviceLabel || 'Chụp ảnh')} · ${total || req.photoCount || 0} ảnh</span>
           ${req.extraCount > 0 ? `<div style="margin:4px 0;"><span class="badge" style="background:#fdf2f8;color:#e91e8c;border:1px solid rgba(233,30,140,.3);font-size:11px;font-weight:700;">+${req.extraCount} ảnh thêm (${(req.extraFee || 0).toLocaleString('vi-VN')}đ)</span></div>` : ''}
           <span class="kanban-card-time">Gửi ${formatRelativeTime(req.createdAt)}</span>
           ${req.photoNotes && req.photoNotes.length ? `<span class="kanban-card-notes-hint">+${req.photoNotes.length} ảnh có ghi chú riêng</span>` : ''}
+          ${!req.isStatic && (awaitingReply(req) || req.resultLink) ? `<div class="kanban-card-flags">${awaitingReply(req) ? '<span class="kanban-card-flag reply">Khách cần thợ trả lời</span>' : ''}${req.resultLink ? '<span class="kanban-card-flag link">Đã gửi link ảnh</span>' : ''}</div>` : ''}
           ${total > 0 ? `
           <div class="kanban-progress-track"><div class="kanban-progress-fill${doneCount === total ? ' done' : ''}" style="width:${Math.round(doneCount / total * 100)}%"></div></div>
           <span class="kanban-progress-label">Đã xong ${doneCount}/${total} ảnh</span>` : ''}
-          ${req.status !== 'Hoàn thành' ? `<button type="button" class="kanban-advance-btn" data-id="${req.id}"${canAdvance(req) ? '' : ' disabled title="Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước"'}>Chuyển sang bước tiếp theo →</button>` : ''}
+          ${req.status !== 'Hoàn thành' ? `<button type="button" class="kanban-advance-btn" data-id="${req.id}"${canAdvance(req) ? '' : ` disabled title="${escHtml(advanceBlockReason(req))}"`}>Chuyển sang bước tiếp theo →</button>` : ''}
         `;
         card.addEventListener('click', () => openRequestModal(req));
         card.addEventListener('keydown', (e) => {
@@ -940,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!modalOverlay) return;
     modalOverlay.classList.remove('open');
     modalOverlay.setAttribute('aria-hidden', 'true');
+    modalReqId = null;
   }
   if (modalClose) modalClose.addEventListener('click', closeModal);
   if (modalOverlay) modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -953,16 +962,130 @@ document.addEventListener('DOMContentLoaded', () => {
     'Hoàn thành': 'badge-hoan-thanh'
   };
 
+  // ------------------------------- Ảnh đã chỉnh + trao đổi với khách (trong modal) -------------------------------
+  // Thợ ảnh dán link thư mục Drive ảnh đã chỉnh -> khách thấy ở tab "Ảnh đã chỉnh" trong
+  // "Ảnh của tôi"; 2 bên nhắn tin ngay dưới. Sếp xem chỉ đọc. Dữ liệu nằm trong chính
+  // yêu cầu chỉnh sửa (resultLink, messages - js/data-store.js).
+  let modalReqId = null;      // yêu cầu thật đang mở trong modal (để tự làm mới khung chat)
+  let modalChatCount = -1;
+  const fmtTime = (t) => new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  const staffName = () => (session && session.name) || 'Thợ ảnh';
+
+  function freshRequest(id) {
+    return window.AlohaData ? AlohaData.getEditRequests().find(r => r.id === id) || null : null;
+  }
+  // Có tin của khách cần thợ trả lời (Trợ lý AI đã chuyển, hoặc AI lỗi) mà thợ chưa trả lời
+  // sau đó -> nhắc trên thẻ kanban. Tin cũ không có cờ needsStaff coi như cần thợ xem.
+  function lastStaffIndex(msgs) {
+    let last = -1;
+    msgs.forEach((m, i) => { if (m.from === 'staff') last = i; });
+    return last;
+  }
+  function awaitingReply(req) {
+    const msgs = Array.isArray(req.messages) ? req.messages : [];
+    return msgs.slice(lastStaffIndex(msgs) + 1).some(m => m.from === 'customer' && m.needsStaff !== false);
+  }
+
+  function renderResultSection(req) {
+    if (req.isStatic) {
+      return `<section class="kanban-result"><p class="kanban-modal-meta">Thẻ minh hoạ: gửi link ảnh đã chỉnh và trao đổi với khách chỉ dùng được với yêu cầu thật của khách.</p></section>`;
+    }
+    const link = req.resultLink || '';
+    return `
+      <section class="kanban-result">
+        <h4>Ảnh đã chỉnh gửi khách</h4>
+        ${canEditProgress ? `
+        <form class="kanban-result-form" id="kanbanResultForm" novalidate>
+          <input type="url" id="kanbanResultInput" placeholder="Dán link Google Drive thư mục ảnh đã chỉnh" value="${escHtml(link)}" aria-label="Link thư mục ảnh đã chỉnh">
+          <button type="submit" class="btn btn-primary">${link ? 'Cập nhật link' : 'Gửi link cho khách'}</button>
+        </form>
+        <p class="kanban-result-error" id="kanbanResultError" hidden>Link phải là địa chỉ https:// (vd https://drive.google.com/...)</p>
+        <p class="kanban-result-hint">Để thư mục ở chế độ "Bất kỳ ai có đường liên kết" để khách mở được và gửi cho người thân (studio đã chốt để công khai). Gửi link xong mới chuyển được sang "Hoàn thành".</p>` : ''}
+        <p class="kanban-result-current" id="kanbanResultCurrent">${link
+          ? `Khách đang thấy: <a id="kanbanResultAnchor" target="_blank" rel="noopener noreferrer"></a> · gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}`
+          : 'Chưa gửi link ảnh đã chỉnh cho khách.'}</p>
+        <h4>Trao đổi với khách</h4>
+        <div class="kanban-chat-list" id="kanbanChatList"></div>
+        ${canEditProgress ? `
+        <form class="kanban-chat-form" id="kanbanChatForm">
+          <textarea id="kanbanChatInput" rows="2" maxlength="1000" placeholder="Trả lời khách..." aria-label="Trả lời khách"></textarea>
+          <button type="submit" class="btn btn-primary">Gửi</button>
+        </form>` : '<p class="kanban-modal-meta">Sếp xem được nội dung trao đổi, Thợ ảnh là người trả lời khách.</p>'}
+      </section>`;
+  }
+
+  function renderModalChat(req) {
+    const list = document.getElementById('kanbanChatList');
+    if (!list) return;
+    const msgs = Array.isArray(req.messages) ? req.messages : [];
+    const lastStaff = lastStaffIndex(msgs);
+    list.innerHTML = msgs.length ? msgs.map((m, i) => {
+      const who = m.from === 'staff' ? 'from-staff' : m.from === 'ai' ? 'from-ai' : 'from-customer';
+      const name = m.from === 'ai' ? 'Trợ lý AI (tự động)' : (m.name || (m.from === 'staff' ? 'Thợ ảnh' : 'Khách hàng'));
+      const tag = m.from === 'customer' && m.needsStaff !== false && i > lastStaff ? '<span class="kanban-msg-tag">Cần thợ trả lời</span>' : '';
+      return `
+      <div class="kanban-msg ${who}">
+        <span class="kanban-msg-name">${escHtml(name)}</span>
+        <p>${escHtml(m.text)}</p>
+        <time>${escHtml(fmtTime(m.at))}</time>${tag}
+      </div>`;
+    }).join('') : '<p class="kanban-chat-empty">Chưa có tin nhắn nào với khách.</p>';
+    if (msgs.length !== modalChatCount) list.scrollTop = list.scrollHeight;
+    modalChatCount = msgs.length;
+  }
+
+  function bindResultSection(req) {
+    modalReqId = req.isStatic ? null : req.id;
+    modalChatCount = -1;
+    if (req.isStatic) return;
+    const anchor = document.getElementById('kanbanResultAnchor');
+    if (anchor && /^https:\/\//i.test(req.resultLink || '')) { anchor.href = req.resultLink; anchor.textContent = req.resultLink; }
+    renderModalChat(req);
+    const form = document.getElementById('kanbanResultForm');
+    if (form) form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const saved = AlohaData.setResultLink(req.id, document.getElementById('kanbanResultInput').value);
+      document.getElementById('kanbanResultError').hidden = !!saved;
+      if (!saved) return;
+      req.resultLink = saved.resultLink;
+      req.resultLinkAt = saved.resultLinkAt;
+      renderModalBody(req);
+    });
+    const chatForm = document.getElementById('kanbanChatForm');
+    const chatInput = document.getElementById('kanbanChatInput');
+    if (chatForm) {
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const saved = AlohaData.addRequestMessage(req.id, 'staff', staffName(), chatInput.value);
+        if (!saved) return;
+        chatInput.value = '';
+        req.messages = saved.messages;
+        renderModalChat(saved);
+        renderEditRequests();
+      });
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
+      });
+    }
+  }
+
+  // Khách nhắn thêm khi modal đang mở -> chỉ làm mới khung chat (không đụng ô đang gõ)
+  function refreshModalChat() {
+    if (!modalReqId || !modalOverlay || !modalOverlay.classList.contains('open')) return;
+    const fresh = freshRequest(modalReqId);
+    if (fresh && (fresh.messages || []).length !== modalChatCount) renderModalChat(fresh);
+  }
+
   function renderModalBody(req) {
     const doneIds = getDoneIds(req);
     const total = (req.photos || []).length;
     const pct = total ? Math.round(doneIds.length / total * 100) : 0;
     modalBody.innerHTML = `
-      <h3 id="kanbanModalTitle">${req.orderCode || req.id}</h3>
-      <p class="kanban-modal-meta">${req.customerName} · ${req.serviceLabel || 'Chụp ảnh'} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${req.status}</span></p>
+      <h3 id="kanbanModalTitle">${escHtml(req.orderCode || req.id)}</h3>
+      <p class="kanban-modal-meta">${escHtml(req.customerName)} · ${escHtml(req.serviceLabel || 'Chụp ảnh')} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${escHtml(req.status)}</span></p>
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
-      ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${req.paymentStatus || 'Chờ chuyển khoản'}</p>` : ''}
-      ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${req.note}"</p>` : ''}
+      ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
+      ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
         <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
@@ -972,17 +1095,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ${req.photos.map(p => {
           const done = doneIds.indexOf(p.id) !== -1;
           return `
-          <div class="kanban-photo-tile${done ? ' done' : ''}" data-photo-id="${p.id}">
-            <img src="${p.src}" alt="Ảnh ${p.id} trong yêu cầu ${req.orderCode || req.id}" loading="lazy">
-            ${p.note ? `<p class="note">"${p.note}"</p>` : ''}
+          <div class="kanban-photo-tile${done ? ' done' : ''}" data-photo-id="${escHtml(p.id)}">
+            <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(p.id)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
+            ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             ${canEditProgress
-              ? `<button type="button" class="photo-done-toggle" data-photo-id="${p.id}">${done ? '✓ Đã xong' : 'Đánh dấu đã xong'}</button>`
+              ? `<button type="button" class="photo-done-toggle" data-photo-id="${escHtml(p.id)}">${done ? '✓ Đã xong' : 'Đánh dấu đã xong'}</button>`
               : `<span class="photo-done-flag${done ? ' done' : ''}">${done ? '✓ Đã xong' : 'Chưa xong'}</span>`}
           </div>`;
         }).join('')}
       </div>` : '<p class="kanban-modal-meta">Yêu cầu này chưa có dữ liệu chi tiết từng ảnh (dữ liệu cũ).</p>'}
       ${req.status !== 'Hoàn thành' ? `
-      <button type="button" class="btn btn-primary kanban-modal-advance"${canAdvance(req) ? '' : ' disabled title="Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước"'}>Chuyển sang bước tiếp theo →</button>` : ''}
+      <button type="button" class="btn btn-primary kanban-modal-advance"${canAdvance(req) ? '' : ` disabled title="${escHtml(advanceBlockReason(req))}"`}>Chuyển sang bước tiếp theo →</button>
+      ${canAdvance(req) ? '' : `<p class="kanban-advance-hint">${escHtml(advanceBlockReason(req))}</p>`}` : ''}
+      ${renderResultSection(req)}
     `;
 
     if (canEditProgress) {
@@ -1003,6 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEditRequests();
       });
     }
+    bindResultSection(req);
   }
 
   renderEditRequests();
@@ -1012,7 +1138,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // để không ngắt thao tác Thợ ảnh đang làm dở. KHÔNG đồng bộ được giữa các
   // thiết bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
-  setInterval(renderEditRequests, 5000);
+  setInterval(() => { renderEditRequests(); refreshModalChat(); }, 5000);
+  // Khách nhắn / dữ liệu đổi ở tab khác cùng trình duyệt -> cập nhật ngay
+  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
 
   // ------------------------------- Doanh thu (Sếp): KPI + biểu đồ đường + mục tiêu tháng -------------------------------
   // Bố cục tham khảo ảnh dashboard người dùng cung cấp (2026-09-25), đổ đúng
