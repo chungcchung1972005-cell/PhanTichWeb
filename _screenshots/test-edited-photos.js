@@ -61,23 +61,47 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   const tabNames = await cust.$$eval('.ps-tab', els => els.map(e => e.textContent.trim()));
   check('Có tab "Ảnh đã chỉnh" ngay cạnh "Yêu thích"', tabNames.join('|').includes('Yêu thích|Ảnh đã chỉnh'), tabNames.join('|'));
   await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
-  let v = await cust.evaluate(() => ({
-    panel: !document.getElementById('psEditedPanel').hidden,
-    grid: getComputedStyle(document.getElementById('psGrid')).display,
-    submit: getComputedStyle(document.querySelector('.ps-submit-bar')).display,
-    body: document.getElementById('psResultBody').textContent.trim(),
-    chatDisabled: document.getElementById('psChatInput').disabled
-  }));
-  check('Mở tab: hiện ô link + chat, ẩn lưới ảnh và nút gửi yêu cầu', v.panel && v.grid === 'none' && v.submit === 'none', JSON.stringify(v));
-  check('Chưa gửi yêu cầu: báo chưa có ảnh đã chỉnh, khoá ô chat', v.body.includes('chưa gửi yêu cầu') && v.chatDisabled, JSON.stringify(v));
+  const shown = (sel) => { const e = document.querySelector(sel); return !!e && getComputedStyle(e).display !== 'none'; };
+  let v = await cust.evaluate((shownSrc) => {
+    const shown = new Function('return ' + shownSrc)();
+    return {
+      panel: shown('#psEditedPanel'), grid: getComputedStyle(document.getElementById('psGrid')).display,
+      submit: getComputedStyle(document.querySelector('.ps-submit-bar')).display,
+      title: document.getElementById('psResultTitle').textContent, steps: document.querySelectorAll('#psResultBody .ps-send-steps li').length,
+      cta: (document.getElementById('psGoSelect') || {}).textContent, chat: shown('#psChatCard')
+    };
+  }, shown.toString());
+  check('Mở tab: hiện khung Ảnh đã chỉnh, ẩn lưới ảnh và nút gửi yêu cầu', v.panel && v.grid === 'none' && v.submit === 'none', JSON.stringify(v));
+  check('Chưa gửi: giao diện chờ gửi ảnh (3 bước + nút chọn ảnh), chưa hiện khung chat', v.title === 'Chưa gửi ảnh cho thợ chỉnh ảnh' && v.steps === 3 && v.cta === 'Chọn ảnh để gửi cho thợ' && !v.chat, JSON.stringify(v));
+  for (const tab of ['all', 'original', 'liked']) {
+    await cust.click(`.ps-tab[data-filter="${tab}"]`); await wait(200);
+    const leak = await cust.evaluate(() => getComputedStyle(document.getElementById('psEditedPanel')).display !== 'none');
+    check(`Tab "${tab}": KHÔNG hiện khung Ảnh đã chỉnh / chat`, !leak);
+  }
 
-  // ---------- Khách gửi yêu cầu rồi nhắn thợ
+  // ---------- Khách chọn ảnh, bấm nút trong khung chờ gửi -> sang tab Yêu thích để gửi
   await cust.click('.ps-tab[data-filter="all"]'); await wait(200);
   await cust.evaluate(() => ['ph-1', 'ph-2'].forEach(i => document.querySelector(`.ps-photo[data-id="${i}"] .ps-heart`).click()));
+  await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
+  v = await cust.evaluate(() => ({ step1: document.querySelector('#psResultBody .ps-send-steps li').textContent, done: document.querySelector('#psResultBody .ps-send-steps li').classList.contains('done'), cta: document.getElementById('psGoSelect').textContent }));
+  check('Đã chọn ảnh nhưng chưa gửi: bước 1 xong "(đã chọn 2)", nút "Xem ảnh đã chọn & gửi cho thợ"', v.done && v.step1.includes('(đã chọn 2)') && v.cta === 'Xem ảnh đã chọn & gửi cho thợ', JSON.stringify(v));
+  await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-not-sent.png') });
+  await cust.evaluate(() => document.getElementById('psGoSelect').click()); await wait(300);
+  v = await cust.evaluate(() => document.querySelector('.ps-tab.active').dataset.filter);
+  check('Bấm nút -> chuyển sang tab Yêu thích để gửi', v === 'liked', v);
+
+  // ---------- Khách gửi yêu cầu rồi nhắn thợ
   await cust.evaluate(() => document.getElementById('psSubmitBtn').click()); await wait(400);
   await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
-  v = await cust.evaluate(() => ({ body: document.getElementById('psResultBody').textContent.trim(), meta: document.getElementById('psResultMeta').textContent, chatDisabled: document.getElementById('psChatInput').disabled }));
-  check('Đã gửi yêu cầu: báo thợ đang chỉnh, hiện mã đơn, mở ô chat', v.body.includes('Link ảnh đã chỉnh sẽ hiện ở đây') && v.meta.includes('#AB240915') && !v.chatDisabled, JSON.stringify(v));
+  v = await cust.evaluate(() => ({
+    title: document.getElementById('psResultTitle').textContent,
+    body: document.getElementById('psResultBody').textContent.trim(), meta: document.getElementById('psResultMeta').textContent,
+    steps: [...document.querySelectorAll('#psResultBody .ps-progress-steps li')].map(li => li.className),
+    chat: getComputedStyle(document.getElementById('psChatCard')).display !== 'none', chatDisabled: document.getElementById('psChatInput').disabled
+  }));
+  check('Đã gửi: báo "Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh", mã đơn + giờ gửi, tiến độ bước 1 xong', v.title === 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh' && v.meta.includes('#AB240915') && v.meta.includes('gửi lúc') && v.steps.join(',') === 'done,current,' && v.body.includes('Link ảnh đã chỉnh sẽ hiện ở đây'), JSON.stringify(v));
+  check('Đã gửi: hiện khung chat, nhắn được', v.chat && !v.chatDisabled, JSON.stringify(v));
+  await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-sent.png') });
   await cust.type('#psChatInput', 'Chào thợ, làm da bé sáng tự nhiên giúp em nhé');
   await cust.keyboard.press('Enter');
   await wait(150);
@@ -174,6 +198,8 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
     };
   });
   check('Khách thấy nút mở link ảnh đã chỉnh (mở tab mới, an toàn)', v.href === LINK && v.target === '_blank' && /noopener/.test(v.rel) && v.url === LINK, JSON.stringify(v));
+  const vLink = await cust.evaluate(() => ({ title: document.getElementById('psResultTitle').textContent, steps: [...document.querySelectorAll('#psResultBody .ps-progress-steps li')].map(li => li.className).join(',') }));
+  check('Có link: tiêu đề "Ảnh đã chỉnh của bé đã sẵn sàng", đủ 3 bước tiến độ', vLink.title === 'Ảnh đã chỉnh của bé đã sẵn sàng' && vLink.steps === 'done,done,done', JSON.stringify(vLink));
   check('Khách thấy tin trả lời của thợ', v.staff.length === 1 && v.staff[0].includes('gửi link ảnh'), JSON.stringify(v));
   await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-link.png') });
 
@@ -189,9 +215,29 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
   dot = await cust.evaluate(() => !!document.querySelector('.ps-tab[data-filter="edited"] .ps-tab-dot'));
   check('Mở tab xem -> tắt chấm báo', !dot);
+  // Thợ ảnh đã đăng nhập cùng trình duyệt ở trên -> phiên chung đang là Thợ ảnh; đặt lại phiên
+  // khách trước khi tải lại, không thì trang khách bị chuyển sang trang quản trị.
+  await cust.evaluate(() => localStorage.setItem('aloha_auth', JSON.stringify({ role: 'khach-hang', name: 'Khách demo', phone: '0900000001', loginAt: Date.now() })));
   await cust.reload({ waitUntil: 'networkidle0' }); await wait(500);
+  check('Tải lại trang vẫn ở "Ảnh của tôi"', await cust.evaluate(() => location.hash === '#/chon-anh' && !!document.querySelector('.ps-tab[data-filter="edited"]')));
   dot = await cust.evaluate(() => !!document.querySelector('.ps-tab[data-filter="edited"] .ps-tab-dot'));
   check('Tải lại trang: đã xem rồi thì không hiện lại chấm báo', !dot);
+  v = await cust.evaluate(() => ({
+    banner: document.getElementById('psSubmittedBanner').textContent.replace(/\s+/g, ' ').trim(),
+    bannerShown: document.getElementById('psSubmittedBanner').classList.contains('show'),
+    selected: [...document.querySelectorAll('.ps-photo.selected')].map(c => c.dataset.id).join(','),
+    locked: [...document.querySelectorAll('.ps-heart')].every(b => b.disabled),
+    submitDisabled: document.getElementById('psSubmitBtn').disabled, submitText: document.getElementById('psSubmitBtn').textContent.trim(),
+    bulkLocked: document.getElementById('psSelectAllBtn').disabled && document.getElementById('psClearAllBtn').disabled,
+    count: document.getElementById('selectedCount').textContent
+  }));
+  check('Tải lại trang sau khi đã gửi: đánh dấu lại đúng ảnh đã gửi, khoá lưới + nút gửi + nút chọn nhanh',
+    v.selected === 'ph-1,ph-2' && v.count === '2' && v.locked && v.submitDisabled && v.submitText === 'Đã gửi yêu cầu' && v.bulkLocked, JSON.stringify(v));
+  check('Tải lại trang: báo "Bạn đã gửi 2 ảnh cho thợ chỉnh ảnh lúc ..."', v.bannerShown && v.banner.includes('Bạn đã gửi 2 ảnh cho thợ chỉnh ảnh lúc'), v.banner);
+  await cust.screenshot({ path: path.resolve(__dirname, 'edited-customer-restored.png') });
+  await cust.evaluate(() => document.getElementById('psGoEdited').click()); await wait(300);
+  v = await cust.evaluate(() => document.querySelector('.ps-tab.active').dataset.filter);
+  check('Nút "Xem tiến độ" mở tab Ảnh đã chỉnh', v === 'edited', v);
 
   // ---------- Sếp: chỉ xem
   const boss = await login('0900000004', 'sep123');

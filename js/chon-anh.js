@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selected = new Set();
   const extraPhotos = new Set();   // ảnh chỉnh sửa thêm (vượt gói)
   let extraModeActive = false;     // khách đã đồng ý chỉnh sửa thêm
+  let requestSent = false;         // đã gửi yêu cầu chỉnh sửa (lần này hoặc từ trước) -> nút gửi khoá hẳn
   const photoNotes = new Map();
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
@@ -471,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       extraBox.hidden = true;
     }
 
-    submitBtn.disabled = n === 0;
+    submitBtn.disabled = n === 0 || requestSent;
     syncLightbox();
     syncBulkButtons();
   }
@@ -951,6 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== Hàm thực thi gửi yêu cầu lên hệ thống =====
   function executeSubmit(extraCount, extraFee, paymentStatus) {
+    requestSent = true;
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
     hideUndo();
     syncBulkButtons();
@@ -1020,6 +1022,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const editedTab = document.querySelector('.ps-tab[data-filter="edited"]');
   const editedPanel = document.getElementById('psEditedPanel');
   const resultMeta = document.getElementById('psResultMeta');
+  const resultIcon = document.getElementById('psResultIcon');
+  const resultTitle = document.getElementById('psResultTitle');
+  const chatCard = document.getElementById('psChatCard');
+  const RESULT_ICONS = {
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5"/><path d="M21 3 14.5 21l-4-7.5L3 9.5z"/></svg>',
+    sent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 10"/></svg>',
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m9.5 13.5 1.8 1.8 3.7-3.8"/></svg>'
+  };
   const resultBody = document.getElementById('psResultBody');
   const chatList = document.getElementById('psChatList');
   const chatForm = document.getElementById('psChatForm');
@@ -1071,22 +1081,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevCount = editedSig.split('|')[3];
     editedSig = sig;
 
-    // --- Ô link ảnh đã chỉnh
+    // --- Ô "Ảnh đã chỉnh": chưa gửi yêu cầu -> hướng dẫn chọn & gửi ảnh cho thợ; đã gửi ->
+    // báo đã gửi + tiến độ 3 bước; thợ gửi link -> nút mở thư mục ảnh đã chỉnh.
+    if (chatCard) chatCard.hidden = !req; // chưa gửi thì chưa có gì để trao đổi với thợ
     if (!req) {
-      resultMeta.textContent = '';
-      resultBody.innerHTML = '<p class="ps-result-empty">Bạn chưa gửi yêu cầu chỉnh sửa nào. Hãy thả tim những ảnh ưng ý rồi bấm "Gửi yêu cầu chỉnh sửa", link ảnh đã chỉnh sẽ hiện ở đây.</p>';
+      const n = selected.size;
+      resultIcon.innerHTML = RESULT_ICONS.send;
+      resultTitle.textContent = 'Chưa gửi ảnh cho thợ chỉnh ảnh';
+      resultMeta.textContent = 'Chọn những tấm bạn ưng nhất rồi gửi, thợ chỉnh ảnh sẽ bắt đầu và gửi lại link ảnh đã chỉnh ngay tại đây.';
+      resultBody.innerHTML = `
+        <ol class="ps-send-steps">
+          <li class="${n ? 'done' : ''}"><span>1</span><div>Thả tim những ảnh bạn yêu thích${n ? ` <strong>(đã chọn ${n})</strong>` : ''}</div></li>
+          <li><span>2</span><div>Ghi chú mong muốn chỉnh sửa (nếu có)</div></li>
+          <li><span>3</span><div>Bấm "Gửi yêu cầu chỉnh sửa"</div></li>
+        </ol>
+        <button type="button" class="ps-result-link ps-send-cta" id="psGoSelect">${n ? 'Xem ảnh đã chọn & gửi cho thợ' : 'Chọn ảnh để gửi cho thợ'}</button>`;
+      document.getElementById('psGoSelect').addEventListener('click', () => {
+        switchToTab(selected.size ? 'liked' : 'all');
+        const tabs = document.querySelector('.ps-tabs');
+        if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     } else {
-      resultMeta.innerHTML = `Mã đơn <strong>${escHtml(req.orderCode || req.id)}</strong> · ${escHtml(req.photoCount || (req.photos || []).length)} ảnh · <span class="ps-result-status">${escHtml(req.status)}</span>`;
       const safeLink = /^https:\/\//i.test(req.resultLink || '') ? req.resultLink : '';
+      resultIcon.innerHTML = safeLink ? RESULT_ICONS.done : RESULT_ICONS.sent;
+      resultTitle.textContent = safeLink ? 'Ảnh đã chỉnh của bé đã sẵn sàng' : 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh';
+      resultMeta.innerHTML = `Mã đơn <strong>${escHtml(req.orderCode || req.id)}</strong> · ${escHtml(req.photoCount || (req.photos || []).length)} ảnh · gửi lúc ${escHtml(fmtTime(req.createdAt))}`;
+      // Tiến độ: số bước đã xong (1 = đã gửi, 2 = thợ chỉnh xong, 3 = đã có link)
+      const doneSteps = safeLink ? 3 : req.status === 'Hoàn thành' ? 2 : 1;
+      const stepper = `<ol class="ps-progress-steps" aria-label="Tiến độ chỉnh sửa">${['Đã gửi cho thợ', 'Thợ đang chỉnh ảnh', 'Nhận ảnh đã chỉnh']
+        .map((t, i) => `<li class="${i < doneSteps ? 'done' : i === doneSteps ? 'current' : ''}"><span></span>${t}</li>`).join('')}</ol>`;
       if (safeLink) {
-        resultBody.innerHTML = `
+        resultBody.innerHTML = stepper + `
           <a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
             <span>Mở thư mục ảnh đã chỉnh</span>
           </a>
           <div class="ps-result-url"><span id="psResultUrl"></span><button type="button" class="ps-result-copy" id="psResultCopy">Sao chép link</button></div>
           <p class="ps-result-time">Thợ gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}</p>`;
-        // Gán qua thuộc tính DOM (không nối chuỗi HTML); link đã được data-store chặn chỉ cho http(s)
+        // Gán qua thuộc tính DOM (không nối chuỗi HTML); link đã được data-store chặn chỉ cho https
         document.getElementById('psResultLink').href = safeLink;
         document.getElementById('psResultUrl').textContent = safeLink;
         document.getElementById('psResultCopy').addEventListener('click', (e) => {
@@ -1099,8 +1131,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'Ảnh của bé đã chỉnh xong, thợ đang tải ảnh lên. Link ảnh đã chỉnh sẽ hiện ở đây trong ít phút.'
           : req.status === 'Đang thực hiện'
             ? 'Thợ đang chỉnh ảnh của bé. Link ảnh đã chỉnh sẽ hiện ở đây ngay khi thợ gửi.'
-            : 'Yêu cầu đã tới thợ chỉnh ảnh, thợ sẽ bắt đầu sớm. Link ảnh đã chỉnh sẽ hiện ở đây ngay khi thợ gửi.';
-        resultBody.innerHTML = `
+            : 'Thợ chỉnh ảnh đã nhận yêu cầu và sẽ bắt đầu sớm. Link ảnh đã chỉnh sẽ hiện ở đây ngay khi thợ gửi.';
+        resultBody.innerHTML = stepper + `
           <p class="ps-result-waiting"><span class="ps-result-pulse" aria-hidden="true"></span>${waitText}</p>`;
       }
     }
@@ -1233,6 +1265,47 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('ps:filterchange', requestPlace);
     requestPlace();
   }
+
+  // ===== Đã gửi yêu cầu từ trước (tải lại trang / quay lại sau) -> khôi phục đúng trạng thái đã gửi =====
+  // Trước đây tải lại trang là lưới ảnh mở khoá, khách gửi được thêm yêu cầu trong khi tab
+  // "Ảnh đã chỉnh" báo đã gửi -> 2 thông tin trái nhau. Giờ: đánh dấu lại đúng ảnh đã gửi
+  // (kể cả ảnh vượt gói, ghi chú), khoá lưới + nút gửi, và báo rõ đã gửi lúc nào.
+  function restoreSentRequest() {
+    const req = latestRequest();
+    if (!req) return;
+    requestSent = true;
+    const sentPhotos = Array.isArray(req.photos) ? req.photos : [];
+    // Yêu cầu cũ chưa lưu cờ isExtra: ảnh từ thứ (gói + 1) trở đi là ảnh vượt gói
+    const hasExtraFlag = sentPhotos.some((p) => 'isExtra' in p);
+    sentPhotos.forEach((p, i) => {
+      if (!photoById[p.id]) return;
+      const extra = hasExtraFlag ? !!p.isExtra : i >= PACKAGE_COUNT;
+      selected.add(p.id);
+      if (extra) extraPhotos.add(p.id);
+      if (p.note) photoNotes.set(p.id, p.note);
+      setCardSelected(p.id, true, extra);
+    });
+    extraModeActive = extraPhotos.size > 0;
+    const noteEl = document.getElementById('psNote');
+    if (noteEl) { noteEl.value = req.note || ''; noteEl.readOnly = true; }
+    document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
+    submitBtn.textContent = 'Đã gửi yêu cầu';
+    const count = req.photoCount || sentPhotos.length;
+    banner.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      <div class="ps-banner-info">
+        <strong>Bạn đã gửi ${escHtml(count)} ảnh cho thợ chỉnh ảnh lúc ${escHtml(fmtTime(req.createdAt))}</strong>
+        <p>Danh sách ảnh đã được khóa. Theo dõi tiến độ, nhận ảnh đã chỉnh và trò chuyện với thợ ở tab "Ảnh đã chỉnh".</p>
+        <button type="button" class="ps-banner-btn" id="psGoEdited">Xem tiến độ</button>
+      </div>`;
+    banner.querySelector('#psGoEdited').addEventListener('click', () => {
+      switchToTab('edited');
+      const tabs = document.querySelector('.ps-tabs');
+      if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    banner.classList.add('show');
+  }
+  restoreSentRequest();
 
   updateSummary();
   applyFilter('all');

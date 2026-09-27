@@ -1491,3 +1491,36 @@ body.lightbox-open { overflow: hidden; }
 .ps-typing i:nth-child(3) { animation-delay: .3s; }
 @keyframes psTyping { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .ps-typing i { animation: none; } }
+
+/* Tab "Ảnh đã chỉnh": .ps-edited đặt display:grid nên phải ẩn tường minh khi [hidden]
+   (không thì khung hiện cả ở tab Tất cả / Ảnh gốc / Yêu thích) */
+.ps-edited[hidden], .ps-chat-card[hidden] { display: none; }
+/* Chưa gửi: các bước + nút đi chọn ảnh */
+.ps-send-steps { list-style: none; padding: 0; display: grid; gap: 10px; max-width: 420px; margin: 0 auto 22px; text-align: left; }
+.ps-send-steps li { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--navy-700); }
+.ps-send-steps li > span {
+  width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--white); border: 1.5px solid var(--pink-200); color: var(--pink-600); font-weight: 800; font-size: 13px;
+}
+.ps-send-steps li.done > span { background: var(--pink-600); border-color: var(--pink-600); color: var(--white); }
+.ps-send-steps strong { color: var(--pink-600); white-space: nowrap; }
+.ps-send-cta { border: none; cursor: pointer; font-family: var(--font-body); }
+/* Đã gửi: tiến độ 3 bước */
+.ps-progress-steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); max-width: 460px; margin: 2px auto 18px; }
+.ps-progress-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; font-size: 12.5px; line-height: 1.35; color: var(--navy-500); text-align: center; padding: 0 4px; }
+.ps-progress-steps li > span { position: relative; z-index: 1; width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 2px solid var(--pink-200); }
+.ps-progress-steps li + li::before { content: ''; position: absolute; top: 7px; right: 50%; width: 100%; height: 2px; background: var(--pink-100); }
+.ps-progress-steps li.done + li::before { background: var(--pink-500); }
+.ps-progress-steps li.done > span { background: var(--pink-600); border-color: var(--pink-600); }
+.ps-progress-steps li.current > span { border-color: var(--pink-600); box-shadow: 0 0 0 4px rgba(224, 65, 122, 0.16); }
+.ps-progress-steps li.done, .ps-progress-steps li.current { color: var(--navy-900); font-weight: 700; }
+
+/* Nút trong thông báo "Bạn đã gửi N ảnh..." (nền hồng) */
+.ps-banner-btn {
+  display: inline-flex; align-items: center; padding: 7px 16px; border: none; border-radius: var(--radius-pill);
+  background: var(--white); color: var(--pink-600); font-family: var(--font-body); font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: transform .1s ease, box-shadow .2s ease;
+}
+.ps-banner-btn:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+.ps-banner-btn:active { transform: scale(.97); }
