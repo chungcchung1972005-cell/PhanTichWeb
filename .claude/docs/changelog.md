@@ -6,6 +6,23 @@ Nhật ký chi tiết từng lượt thay đổi (KHÔNG nằm trong `rules/` đ
 
 ## Nhật ký (mới nhất ở trên)
 
+- **Đăng nhập/đăng ký bằng Google (2026-09-27, lượt 7):**
+  - **Yêu cầu:** "phương thức đăng kí bằng google, fb, sđt thêm vào". Hỏi trước (vì SĐT đang là mã khách ở mọi nơi, OTP SMS tốn tiền, Google/FB cần người dùng tự tạo app): người dùng chọn **Google trước, Facebook sau**; Google lần đầu **bắt nhập SĐT 1 lần**; **giữ SĐT + mật khẩu** như cũ (không làm OTP).
+  - **Server** (`server/sale-chat.js`): `GET /auth/config` (trả `GOOGLE_CLIENT_ID`, null = ẩn nút); `POST /auth/google` (kiểm tra ID token qua Google tokeninfo: đúng `aud` = Client ID, đúng `iss`; có tài khoản theo `googleSub` thì cấp mã, chưa có thì trả "vé" 15 phút không có role); `POST /auth/google/complete` (vé + tên + SĐT → tạo user `provider: 'google'`, không có mật khẩu). SĐT đã có tài khoản (kể cả demo) → 409, KHÔNG gắn Google vào (chống người khác gõ SĐT để chiếm tài khoản). Tài khoản Google đăng nhập bằng mật khẩu → `use_google`. `checkPassword` không còn lỗi 503 với user không có `salt`. MongoDB có index unique sparse `googleSub`. Biến mới `GOOGLE_CLIENT_ID` (+ `GOOGLE_TOKENINFO_URL` chỉ để test). Không thêm dependency.
+  - **Web:** `login.html` thêm "hoặc" + nút Google (thư viện Google Identity Services, nạp chỉ khi server trả Client ID; nút đổi chữ Đăng nhập/Đăng ký theo chế độ), bước "Hoàn tất đăng ký" (email Google, tên điền sẵn, SĐT, "Dùng cách khác"). Lần đầu xong → đi như khách mới đăng ký (`registerHome` / `next`); lần sau → như đăng nhập thường. `js/auth.js` thêm `serverConfig/serverGoogle/serverGoogleComplete`; hỏi cấu hình thay `wakeServer` ở trang đăng nhập (vẫn đánh thức server). Nâng `auth.js?v=20260927n` ở 3 file HTML.
+  - **Tài liệu:** `server/DEPLOY.md` mục "Đăng nhập bằng Google" (từng bước Google Cloud, chưa kiểm chứng tên menu), `server/.env.example`.
+  - **Đã kiểm chứng:** `test-google-login.js` 19/19 (giả lập máy chủ Google + nút Google; kể cả chống chiếm tài khoản, vé giả, token của web khác, mobile 390px không tràn). Chạy lại `test-auth`, `test-interest-gate`, `test-sale-chat` (43) đều PASS. **CHƯA kiểm chứng với Google thật** (cần Client ID thật + domain public), code chưa commit/push.
+
+- **Cài MongoDB Atlas cho chat Sale trên bản public (2026-09-27, lượt 6):**
+  - **Bối cảnh:** PR #15 (`Chungcook` → `main`) đã merge, Render chạy bản mới nhưng `/api/health` báo `"chatStore":"memory"` (chưa có `MONGODB_URI`).
+  - **Người dùng tự làm (Claude hướng dẫn):**
+    - Atlas: cluster M0 `Chungcook`, vùng AWS Hong Kong. User DB `chungcchung1972005_db_user` do trình hướng dẫn Atlas tự tạo (quyền Atlas Admin). IP Access List có `0.0.0.0/0` (Render free không có IP cố định). Atlas có nạp sample dataset, web không dùng (server lưu vào database `aloha_baby`).
+    - Render: đặt `MONGODB_URI`, `AUTH_SECRET` (Claude tạo bằng `crypto.randomBytes(32)`), `ALLOWED_ORIGINS=https://ahola-baby.vercel.app,https://chungcchung1972005-cell.github.io` (thay biến `ALLOWED_ORIGINS` cũ bị trùng key).
+  - **Mật khẩu/key:** mật khẩu user DB và `GEMINI_API_KEY` từng lộ trong chat; người dùng chốt KHÔNG đổi và yêu cầu Claude không nhắc lại (đã ghi vào "Ghi nhớ nhanh" của CLAUDE.md).
+  - **Giao diện Atlas mới khác hướng dẫn trong `server/DEPLOY.md`:** bấm Connect lần đầu là trình hướng dẫn tự tạo user + chỉ thêm IP máy đang dùng; phải tự vào Network Access thêm `0.0.0.0/0`. Người dùng từng gõ nhầm chữ trên nút ("ADD CURRENT IP ADDRESS") vào ô nhập IP.
+  - **Đã kiểm chứng trên bản public (trình duyệt thật, Puppeteer):** `/api/health` → `"chatStore":"mongodb"`. Trên CẢ Vercel lẫn GitHub Pages, khách `0900000001` (cửa sổ ẩn danh, giả lập điện thoại) và Sale `0900000005` (cửa sổ ẩn danh khác, máy tính): khách gửi → Sale thấy trong hộp thư → Sale trả lời → khách nhận không cần tải lại → tải lại trang tin vẫn còn; không lỗi CORS/JS. 16/16 PASS. Script test để ở thư mục tạm của phiên, không thêm vào repo.
+  - **Dữ liệu test còn lại trong Atlas:** cuộc trò chuyện của `0900000001` có 5 tin test ("Kiem tra ket noi MongoDB" + 4 tin `[TEST ...]`). Xoá bằng Atlas → Browse Collections → `aloha_baby.chats` → document `_id: "0900000001"`.
+
 - **Chat THẬT Khách <-> Sale qua server + MongoDB Atlas (2026-09-27, lượt 5):**
   - **Yêu cầu:** người dùng muốn tài khoản Sale "kết nối" với khung chat, Sale chat trực tiếp được với khách.
   - **Đã hỏi:** hướng chat → "chỉ chat với Sale như hiện tại" (không bật lại bot); cách kết nối → "làm chat thật qua server"; database → "MongoDB Atlas".

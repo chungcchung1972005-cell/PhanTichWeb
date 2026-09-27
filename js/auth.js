@@ -102,6 +102,13 @@
     api('/api/sale-chat/auth/login', { method: 'POST', auth: false, body: { phone, password }, timeout: 25000 });
   const serverRegister = (name, phone, password) =>
     api('/api/sale-chat/auth/register', { method: 'POST', auth: false, body: { name, phone, password }, timeout: 25000 });
+  // Đăng nhập bằng Google (thêm 2026-09-27): server trả Client ID (null = chưa bật), kiểm tra
+  // ID token Google; lần đầu trả { needPhone, ticket } để khách nhập SĐT rồi gọi googleComplete.
+  const serverConfig = () => api('/api/sale-chat/auth/config', { auth: false, timeout: 60000 });
+  const serverGoogle = (credential) =>
+    api('/api/sale-chat/auth/google', { method: 'POST', auth: false, body: { credential }, timeout: 25000 });
+  const serverGoogleComplete = (ticket, name, phone) =>
+    api('/api/sale-chat/auth/google/complete', { method: 'POST', auth: false, body: { ticket, name, phone }, timeout: 25000 });
 
   // next (tuỳ chọn): route quay lại sau khi đăng nhập lại, vd 'chat-sale/bau'.
   function logout(next) {
@@ -135,6 +142,6 @@
     login, logout,
     roleHome, roleLabel,
     requireRole,
-    api, wakeServer, serverLogin, serverRegister, API_BASE
+    api, wakeServer, serverLogin, serverRegister, serverConfig, serverGoogle, serverGoogleComplete, API_BASE
   };
 })(window);
