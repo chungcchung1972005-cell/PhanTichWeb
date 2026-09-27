@@ -139,7 +139,8 @@
     link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
     swap: '<path d="M7 4 3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/>',
-    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
+    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
   };
   const icon = (name) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICON[name] || '') + '</svg>';
 
@@ -1176,7 +1177,7 @@
       'qua-han': o => o.status === 'qua-han', 'cong-no': o => o.due > 0, 'da-giao': o => o.status === 'da-giao'
     };
     const chipTone = { all: '', 'cho-chon': 'amber', 'dang-chinh': 'blue', 'qua-han': 'red', 'cong-no': 'peach', 'da-giao': 'teal' };
-    const chip = (k, l) => '<button type="button" class="sw-chip tone-chip-' + (chipTone[k] || 'dark') + (ui.ord.filter === k ? ' on' : '') + '" data-act="ord-filter" data-id="' + k + '">' + l + ' ' + orders.filter(groups[k]).length + '</button>';
+    const chip = (k, l) => '<button type="button" class="sw-chip tone-chip-' + (chipTone[k] || 'dark') + (ui.ord.filter === k ? ' on' : '') + '" data-act="ord-filter" data-id="' + k + '">' + l + '</button>';
     const shown = orders.filter(groups[ui.ord.filter]);
     const steps = ['Đã chụp', 'Khách chọn ảnh', 'Thợ chỉnh sửa', 'Khách duyệt', 'Giao ảnh'];
 
@@ -1185,17 +1186,124 @@
         '<div class="sw-card-head"><div class="sw-chips">' + chip('all', 'Tất cả') + chip('cho-chon', 'Chờ chọn ảnh') + chip('dang-chinh', 'Đang chỉnh') + chip('qua-han', 'Quá hạn') + chip('cong-no', 'Còn công nợ') + chip('da-giao', 'Đã giao') + '</div>' +
           '<div class="od-tools">' + ownerSelect() + '<button type="button" class="sw-btn" data-act="remind-all">' + icon('send') + 'Nhắc khách của tôi chưa chọn ảnh</button></div></div>' +
         '<div class="sw-table-wrap"><table class="sw-table">' +
-          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Phụ trách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th>Tiến độ</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
+          '<thead><tr><th>Mã đơn</th><th>Khách</th><th>Phụ trách</th><th>Dịch vụ · gói</th><th>Ngày chụp</th><th>Trạng thái</th><th class="sw-center">Tiến độ</th><th>Thanh toán</th><th></th></tr></thead><tbody>' +
           (shown.length ? shown.map(o => {
             const st = ORD_STATUS[o.status];
             const action = o.status === 'dang-chinh' && o.due > 0 ? 'Nhắc thanh toán' : (o.action || st.action || 'Xem');
             return '<tr><td><strong>#' + o.code + '</strong></td><td><strong>' + esc(o.customer) + '</strong></td><td>' + esc(saleName(o.owner)) + (isMine(o) ? ' (tôi)' : '') + '</td><td>' + esc(o.service + ' · ' + o.pkg) + '</td><td>' + o.date + '</td>' +
-              '<td>' + badge(st.text, st.tone) + '</td><td class="sw-muted">' + esc(o.remindedAt ? o.progress + ' · đã nhắc ' + o.remindedAt : o.progress) + '</td>' +
+              '<td>' + badge(st.text, st.tone) + '</td>' +
+              '<td class="sw-center"><button type="button" class="sw-eye-btn" data-act="view-order-progress" data-code="' + o.code + '" title="Xem chi tiết tiến độ: ' + esc(o.progress) + '" aria-label="Xem tiến độ đơn #' + o.code + '">' + icon('eye') + '</button></td>' +
               '<td>' + (o.due > 0 ? '<strong class="c-red">Còn ' + money(o.due) + '</strong>' : '<strong class="c-teal">Đã thanh toán đủ</strong>') + '</td>' +
               '<td class="sw-right">' + (isMine(o) ? '<button type="button" class="sw-btn" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button>' : '<span class="sw-muted sw-ro-inline">' + icon('lock') + 'Chỉ xem</span>') + '</td></tr>';
           }).join('') : '<tr><td colspan="9">' + emptyState('Không có đơn nào trong nhóm này.') + '</td></tr>') +
           '</tbody></table></div>' +
       '</section>';
+  }
+
+  function showOrderProgress(code) {
+    const o = db.orders.find(x => x.code === code);
+    if (!o) return;
+    const st = ORD_STATUS[o.status] || { text: 'Đang xử lý', tone: 'blue', step: 1 };
+    const own = isMine(o);
+    const c = (o.customerId && customer(o.customerId)) ||
+              db.customers.find(x => x.name === o.customer || fold(x.name) === fold(o.customer)) ||
+              { id: 'cus-' + o.code, name: o.customer, phone: '0981999000', service: o.service, area: 'Hà Nội', owner: o.owner };
+    const ap = (c && c.id && db.appointments.find(a => a.customerId === c.id)) ||
+               db.appointments.find(a => a.label === o.customer);
+
+    const timeStr = ap
+      ? (ap.start + ' · ' + weekdayOf(ap.date) + ' ' + fmtDMY(ap.date))
+      : ('09:00 · ' + (o.date.includes('/') ? o.date + '/2026' : o.date));
+
+    const roomStr = ap
+      ? ((ap.room === 'Ngoài' ? 'Tại nhà khách' + (ap.place ? ' (' + ap.place + ')' : '') : roomLabel(ap.room)) + ' · Thợ ' + ap.photographer)
+      : ((o.service === 'Tại nhà' ? 'Tại nhà khách' : 'Phòng 1') + ' · Thợ Tuấn');
+
+    const rows = [
+      ['Dịch vụ', o.service],
+      ['Khách', o.customer],
+      ['Thời gian', timeStr],
+      ['Phòng · Thợ ảnh', roomStr],
+      ['Trạng thái', st.text],
+      ['Phụ trách', saleName(o.owner) + (own ? ' (tôi)' : '')],
+      ['Liên hệ', fullPhone(c.phone) + (c.area ? ' · ' + c.area : '')]
+    ];
+
+    const curStep = st.step || 2;
+    const stepsList = [
+      { num: 1, name: 'Đã chụp' },
+      { num: 2, name: 'Khách chọn ảnh' },
+      { num: 3, name: 'Thợ chỉnh sửa' },
+      { num: 4, name: 'Khách duyệt' },
+      { num: 5, name: 'Giao ảnh' }
+    ];
+
+    const stepperHtml = '<div class="sw-mini-steps">' + stepsList.map(s => {
+      const isDone = s.num < curStep || o.status === 'da-giao';
+      const isCur = s.num === curStep && o.status !== 'da-giao';
+      const isWarn = isCur && o.status === 'qua-han';
+      const cls = isDone ? 'step-done' : (isWarn ? 'step-warn' : (isCur ? 'step-cur' : ''));
+      return '<div class="sw-mini-step ' + cls + '">' +
+        '<span class="step-dot">' + (isDone ? icon('check') : s.num) + '</span>' +
+        '<span class="step-label">' + esc(s.name) + '</span>' +
+      '</div>';
+    }).join('<div class="step-line"></div>') + '</div>';
+
+    let progressBox = '';
+    if (o.status === 'cho-chon') {
+      const picked = o.picked != null ? o.picked : 4;
+      const total = o.total != null ? o.total : 15;
+      const days = o.idleDays != null ? o.idleDays : 5;
+      progressBox = '<div class="sw-prog-box">' +
+        '<div class="sw-prog-head"><span class="sw-prog-badge tone-amber">Bước 2: Chờ khách chọn ảnh</span><small class="sw-muted">' + (o.remindedAt ? 'Đã nhắc lúc ' + o.remindedAt : 'Chưa nhắc hôm nay') + '</small></div>' +
+        '<div class="sw-prog-stat">' +
+          '<div class="sw-prog-num"><strong>' + picked + ' / ' + total + '</strong><span>Ảnh đã chọn</span></div>' +
+          '<div class="sw-prog-num"><strong class="c-amber">' + days + ' ngày</strong><span>Chưa chọn xong</span></div>' +
+          '<div class="sw-prog-num"><strong class="c-teal">' + (total - picked) + '</strong><span>Ảnh còn thiếu</span></div>' +
+        '</div>' +
+        '<p class="sw-prog-desc">Khách đã hoàn tất buổi chụp ngày <strong>' + o.date + '</strong>. Hiện đã chọn được <strong>' + picked + '/' + total + ' ảnh</strong>. Đang đợi khách chọn nốt <strong>' + (total - picked) + ' ảnh</strong> còn lại để chuyển cho thợ photoshop blend màu & làm da.</p>' +
+      '</div>';
+    } else if (o.status === 'dang-chinh') {
+      progressBox = '<div class="sw-prog-box">' +
+        '<div class="sw-prog-head"><span class="sw-prog-badge tone-blue">Bước 3: Thợ ảnh đang chỉnh sửa</span><small class="sw-muted">' + esc(o.progress) + '</small></div>' +
+        '<p class="sw-prog-desc">Thợ ảnh đang tiến hành hậu kỳ photoshop kỹ lưỡng (cắt cúp bố cục, chỉnh tone màu ấm áp và làm mịn da bé). Tiến độ: <strong>' + esc(o.progress) + '</strong>. Đảm bảo đúng hẹn gửi bản xem trước cho khách.</p>' +
+      '</div>';
+    } else if (o.status === 'qua-han') {
+      progressBox = '<div class="sw-prog-box warn">' +
+        '<div class="sw-prog-head"><span class="sw-prog-badge tone-red">Bước 3: Quá hạn giao ảnh</span><strong class="c-red">' + esc(o.progress) + '</strong></div>' +
+        '<p class="sw-prog-desc">Đơn ảnh đã quá hạn so với cam kết ban đầu (<strong>' + esc(o.progress) + '</strong>). Thợ ảnh đang dồn sức hoàn thiện gấp. Sale phụ trách cần chủ động liên hệ thợ giục tiến độ và báo lại khách hàng.</p>' +
+      '</div>';
+    } else if (o.status === 'cho-duyet') {
+      progressBox = '<div class="sw-prog-box">' +
+        '<div class="sw-prog-head"><span class="sw-prog-badge tone-blue">Bước 4: Đã gửi bản chỉnh · Chờ khách duyệt</span><small class="sw-muted">' + esc(o.progress) + '</small></div>' +
+        '<p class="sw-prog-desc">Studio đã hoàn thành bản chỉnh lần 1 và gửi link demo cho khách qua tin nhắn. Đang đợi khách xác nhận ưng ý hoặc phản hồi chi tiết để chỉnh sửa thêm trước khi xuất in album.</p>' +
+      '</div>';
+    } else if (o.status === 'da-giao') {
+      progressBox = '<div class="sw-prog-box done">' +
+        '<div class="sw-prog-head"><span class="sw-prog-badge tone-teal">Bước 5: Đã bàn giao ảnh</span><small class="sw-muted">Hoàn thành 100%</small></div>' +
+        '<p class="sw-prog-desc">Đơn hàng đã bàn giao trọn vẹn tới gia đình (<strong>' + esc(o.progress) + '</strong>). Khách đã nhận đầy đủ file gốc dung lượng cao và album hoàn thiện.</p>' +
+      '</div>';
+    }
+
+    const action = o.status === 'dang-chinh' && o.due > 0 ? 'Nhắc thanh toán' : (o.action || st.action || '');
+    const modalBody =
+      '<dl class="sw-dl">' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl>' +
+      '<small class="sw-modal-section-title">Tiến độ thực hiện</small>' +
+      stepperHtml +
+      progressBox +
+      (own
+        ? '<div class="sw-modal-actions">' +
+            (action ? '<button type="button" class="sw-btn sw-btn-accent" data-act="order-action" data-code="' + o.code + '" data-id="' + esc(action) + '">' + esc(action) + '</button>' : '') +
+            '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn khách</button>' +
+            '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' +
+          '</div>'
+        : readOnlyNote(o.owner) +
+          '<div class="sw-modal-actions">' +
+            '<button type="button" class="sw-btn" data-act="msg" data-id="' + c.id + '">' + icon('chat') + 'Nhắn khách</button>' +
+            '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' +
+          '</div>');
+
+    openModal(o.service + ' · ' + o.customer, modalBody);
   }
 
   // ---------- Trang: Chuyển giao khách ----------
@@ -1450,23 +1558,23 @@
   }
 
   function showCall(id, key) {
-    const c = myCustomer(id);
+    const c = customer(id) || myCustomer(id) || db.customers.find(x => x.id === id);
     if (!c) return;
     openModal('Gọi ' + c.name,
-      '<p class="sw-call-num">' + fullPhone(c.phone) + '</p><p class="sw-muted">' + esc(c.service + ' · ' + c.source + ' · ' + c.status.text) + '</p>' +
+      '<p class="sw-call-num">' + fullPhone(c.phone) + '</p><p class="sw-muted">' + esc(c.service + ' · ' + (c.source || 'Aloha Studio') + ' · ' + (c.status ? c.status.text : 'Đang xử lý')) + '</p>' +
       '<div class="sw-modal-actions"><a class="sw-btn sw-btn-teal" href="tel:' + c.phone + '">' + icon('phone') + 'Gọi ngay</a>' +
       '<button type="button" class="sw-btn" data-act="mark-called" data-id="' + c.id + '" data-key="' + esc(key || '') + '">' + icon('check') + 'Đánh dấu đã gọi</button></div>');
   }
 
   function openConversationFor(id) {
-    const c = myCustomer(id);
+    const c = customer(id) || myCustomer(id) || db.customers.find(x => x.id === id);
     if (!c) return;
-    let v = convOf(c.id);
+    let v = db.conversations.find(x => x.customerId === c.id);
     if (!v) {
-      v = { id: 'cv-' + Date.now(), owner: me.id, customerId: c.id, channel: 'Chat trực tiếp', time: 'Vừa xong', messages: [] };
+      v = { id: 'cv-' + Date.now(), owner: c.owner || me.id, customerId: c.id, channel: 'Chat trực tiếp', time: 'Vừa xong', messages: [] };
       db.conversations.unshift(v);
     }
-    if (ui.owner !== 'all' && ui.owner !== me.id) ui.owner = 'all';
+    if (ui.owner !== 'all' && ui.owner !== v.owner) ui.owner = 'all';
     ui.inbox.filter = v.done ? 'da-xong' : (v.unread ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi'));
     closeModal();
     location.hash = '#hop-thu/' + v.id;
@@ -1634,6 +1742,7 @@
       }
       case 'ord-filter': ui.ord.filter = id; return render();
       case 'goto-order': ui.ord.filter = 'all'; location.hash = '#don-anh'; return render();
+      case 'view-order-progress': return showOrderProgress(code);
 
       // Hộp thư
       case 'inbox-filter': ui.inbox.filter = id; ui.inbox.active = null; ui.inbox.mobileChat = false; return render();
