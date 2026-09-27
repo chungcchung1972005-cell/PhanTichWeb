@@ -101,7 +101,7 @@ Người dùng nhận ra 3 file `index.html`/`dat-lich.html`/`chon-anh.html` b�
 - Trang chủ: banner, 5 nhóm dịch vụ, menu công khai, tìm kiếm, thông báo, nút Đặt lịch.
 - Concept: thư viện concept (biển, Noel, sinh nhật, vintage, Hàn Quốc, ngoại cảnh...), nút "Tư vấn concept ngay", có thể đi thẳng từ concept sang luồng đặt lịch.
 - Quản lý lịch hẹn: tab Đặt lịch chụp, tab Đổi lịch hẹn, danh sách lịch đã đặt kèm trạng thái.
-- Ảnh của tôi: Tất cả / Ảnh gốc / Ảnh chỉnh sửa / Yêu thích, lọc theo buổi chụp, thả tim để chọn ảnh, gửi yêu cầu chỉnh sửa, theo dõi dung lượng lưu trữ đã dùng.
+- Ảnh của tôi: Tất cả / Ảnh gốc / Yêu thích / Ảnh đã chỉnh, lọc theo buổi chụp, thả tim để chọn ảnh, gửi yêu cầu chỉnh sửa, theo dõi dung lượng lưu trữ đã dùng. Tab "Ảnh đã chỉnh" (đã triển khai 2026-09-27, người dùng chốt đặt cạnh "Yêu thích") hiện link thư mục Drive ảnh đã chỉnh trong ô trang trí hoa lá + chat trực tiếp với Thợ ảnh bên dưới. Thợ ảnh gửi link và trả lời trong modal kanban `crm/admin.html`; Sếp xem chỉ đọc; Sale/CSKH hiện không xem được đoạn chat này (chưa chốt có cần hay không).
 
 ## Admin / CRM Features
 
