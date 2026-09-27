@@ -25,9 +25,11 @@ const express = require('express');
 // Khớp DEMO_ACCOUNTS trong login.html (tài khoản demo công khai trên trang đăng nhập).
 const DEMO_ACCOUNTS = {
   '0900000001': { password: 'khach123', role: 'khach-hang', name: 'Khách demo' },
-  '0900000002': { password: 'sale123', role: 'sale', name: 'Sale demo' },
-  '0900000005': { password: 'sale123', role: 'sale', name: 'Sale demo 2' },
-  '0900000006': { password: 'sale123', role: 'sale', name: 'Sale demo 3' },
+  '0900000002': { password: 'sale123', role: 'sale', name: 'Ngọc Anh' },
+  '0900000005': { password: 'sale123', role: 'sale', name: 'Minh Thư' },
+  '0900000006': { password: 'sale123', role: 'sale', name: 'Thu Hà' },
+  '0900000007': { password: 'sale123', role: 'sale', name: 'Quốc Bảo' },
+  '0900000008': { password: 'sale123', role: 'sale', name: 'Hải Yến' },
   '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
   '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
 };

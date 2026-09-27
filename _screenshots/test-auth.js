@@ -65,7 +65,7 @@ const ACCOUNTS = {
   // 3) Login từng vai trò -> đúng đích, đúng tab hiển thị
   const ROLE_EXPECT = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
-    'sale': { urlIncludes: 'crm/admin.html', visibleTabs: ['Tin nhắn', 'Khách hàng', 'Lịch hẹn'] },
+    'sale': { urlIncludes: 'crm/sale.html' }, // Không gian Sale riêng, test chi tiết ở test-sale.js
     'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
     'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
   };
@@ -105,13 +105,7 @@ const ACCOUNTS = {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       log('admin sếp mobile không tràn ngang', !overflow);
     }
-    if (role === 'sale') {
-      await page.screenshot({ path: shot('admin-sale-desktop.png'), fullPage: true });
-      // Sale không được thấy cột doanh thu/thanh toán trong bảng khách hàng
-      const headText = await page.$eval('#custTableHead', el => el.textContent);
-      const noRevenueLeak = !/doanh thu|thanh toán/i.test(headText);
-      log('sale không thấy cột doanh thu/thanh toán', noRevenueLeak, headText.trim());
-    }
+    // Bảng CRM/doanh thu của Sale nay nằm ở crm/sale.html, xem test-sale.js.
     if (role === 'tho-anh') {
       await page.screenshot({ path: shot('admin-thoanh-desktop.png'), fullPage: true });
       const hasKanban = await page.$('.kanban') !== null;
