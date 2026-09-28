@@ -463,6 +463,45 @@
     if (cover && img.getAttribute('src') !== cover) img.src = cover;
   });
 
+  // 5 ảnh + dòng 5 dịch vụ đầu trang (khối #dich-vu) mở album nhưng BẮT ĐĂNG NHẬP (người dùng
+  // yêu cầu 2026-09-28; các lối vào album khác vẫn xem công khai). Chưa đăng nhập -> login.html,
+  // xong quay lại đúng album. Đã đăng nhập bấm ẢNH: ảnh phóng to phủ màn hình rồi lộ trang
+  // album (hiệu ứng có từ 27/09, khi đó dẫn vào màn chat Sale).
+  function zoomToRoute(tile) {
+    const route = tile.getAttribute('href').slice(2);
+    const img = tile.querySelector('img');
+    const r = tile.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'svc-zoom';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.backgroundImage = `url("${(img && (img.currentSrc || img.src)) || ''}")`;
+    document.body.appendChild(ghost);
+    const from = { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '16px' };
+    const to = { left: '0px', top: '0px', width: window.innerWidth + 'px', height: window.innerHeight + 'px', borderRadius: '0px' };
+    Object.assign(ghost.style, from);
+    const grow = ghost.animate([from, to], { duration: 460, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'forwards' });
+    grow.onfinish = () => {
+      window.location.hash = '/' + route;
+      const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' });
+      fade.onfinish = () => ghost.remove();
+    };
+  }
+
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('#dich-vu a[href^="#/album/"]');
+    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const auth = window.AlohaAuth;
+    if (auth && !auth.getSession()) {
+      e.preventDefault();
+      window.location.href = 'login.html?next=' + encodeURIComponent(link.getAttribute('href').slice(2));
+      return;
+    }
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!link.classList.contains('svc-tile') || reduce || !Element.prototype.animate) return;
+    e.preventDefault();
+    zoomToRoute(link);
+  });
+
   // ---------------------------------------------------------------- View album
   const chips = (items, activeSlug, hrefOf) => items.map((it) =>
     `<a href="${hrefOf(it)}" class="gallery-chip${it.slug === activeSlug ? ' active' : ''}"${it.slug === activeSlug ? ' aria-current="page"' : ''}>${it.name}</a>`
@@ -610,7 +649,9 @@
 
   function openLightbox(i) {
     if (!current) return;
-    const { concept } = current;
+    const { service, concept } = current;
+    // Ghi vào hành trình khách (js/router.js) -> tóm tắt gửi Sale khi khách chuyển sang chat Sale.
+    if (window.AlohaJourney) window.AlohaJourney.add('photo', { service: service.slug, concept: concept.name });
     openViewer(concept.photos.map((p, k) => photoOf(concept.name, p, k)), i);
   }
 

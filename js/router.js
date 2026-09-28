@@ -11,13 +11,14 @@
 //   (dữ liệu trong js/albums.js, xem công khai không cần đăng nhập)
 //   #/noi-dung/<slug>           -> trang nội dung chi tiết: concept, video, bài tin tức...
 //   (dữ liệu trong js/content.js, xem công khai không cần đăng nhập)
-//   #/chat-sale[/<dịch vụ>]     -> màn hình chat riêng với Sale (view-chat, bắt đăng nhập
-//   khách hàng; 5 ảnh + dòng 5 dịch vụ đầu trang dẫn tới đây, nội dung do js/sale-chat.js vẽ)
+//   #/chat-sale[/<dịch vụ>]     -> KHÔNG phải trang riêng: bắt đăng nhập khách rồi mở khung chat
+//   Sale nhỏ ở góc (js/sale-chat.js) ngay trên trang đang xem, địa chỉ trả về route trước đó
+//   (2026-09-28; 27/09 từng là màn chat toàn trang view-chat).
 //   Cờ trong js/features.js: booking/albumPages đang tắt thì #/dat-lich, #/album/... về Trang chủ.
 //   #dich-vu, #gioi-thieu, #album, #tin-tuc... -> neo cuộn trong Trang chủ,
 //   KHÔNG phải route (không có dấu / ngay sau #).
 (function (window) {
-  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content', 'chat-sale': 'view-chat' };
+  const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content' };
   const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'], 'chat-sale': ['khach-hang'] };
   const FEATURES = window.ALOHA_FEATURES || {};
   // Route đang tạm tắt theo js/features.js -> coi như về Trang chủ.
@@ -34,7 +35,45 @@
     return null; // rỗng hoặc là neo cuộn trong trang (#dich-vu...), không phải route
   }
 
+  // ---------------------------------------------------------------- Hành trình của khách
+  // Ghi lại khách đã xem gì trong lần truy cập này (album dịch vụ, concept, ảnh mở lớn, trang
+  // nội dung, câu đã hỏi trợ lý AI) để khi khách chuyển sang chat với Sale, Sale nhận được bản
+  // tóm tắt (js/sale-chat.js dựng chữ, người dùng yêu cầu 2026-09-28). Lưu sessionStorage
+  // key "aloha_journey" (chỉ trong tab đang mở, đóng tab là mất; không phải dữ liệu CRM).
+  // Mỗi mục: { type: 'service'|'concept'|'photo'|'page'|'ask', service?, concept?, label?, at }.
+  const JOURNEY_KEY = 'aloha_journey';
+  const JOURNEY_MAX = 60;
+  function journeyList() {
+    try { return JSON.parse(sessionStorage.getItem(JOURNEY_KEY) || '[]') || []; } catch (e) { return []; }
+  }
+  function journeyAdd(type, data) {
+    const list = journeyList();
+    const item = Object.assign({ type, at: Date.now() }, data || {});
+    const last = list[list.length - 1];
+    // Tải lại cùng 1 trang không ghi thêm dòng trùng.
+    if (last && last.type === item.type && last.service === item.service && last.concept === item.concept && last.label === item.label && type !== 'photo' && type !== 'ask') return;
+    list.push(item);
+    try { sessionStorage.setItem(JOURNEY_KEY, JSON.stringify(list.slice(-JOURNEY_MAX))); } catch (e) { /* bộ nhớ bị chặn: bỏ qua */ }
+  }
+  window.AlohaJourney = { add: journeyAdd, list: journeyList };
+
+  function noteRoute(base, param, pageTitle) {
+    const [s, c] = param.split('/');
+    if (base === 'album' && s) {
+      const service = window.AlohaAlbums && window.AlohaAlbums.list.find((x) => x.slug === s);
+      const concept = service && c ? service.concepts.find((x) => x.slug === c) : null;
+      if (!service) return;
+      if (concept) journeyAdd('concept', { service: s, concept: concept.name });
+      else journeyAdd('service', { service: s });
+    } else if (base === 'noi-dung' && pageTitle) {
+      journeyAdd('page', { label: pageTitle.replace(/\s*\|\s*ALOHA Baby$/, '') });
+    }
+  }
+
+  let currentRoute = null; // route đang hiện, để #/chat-sale mở khung chat mà không rời trang
+
   function showView(route) {
+    currentRoute = route || '';
     // "album/newborn/cuon-u" -> view "album" + tham số "newborn/cuon-u".
     const [base, ...rest] = (route || '').split('/');
     const param = rest.join('/');
@@ -48,13 +87,7 @@
       window.AlohaContent.stop(); // dừng video đang phát ở trang nội dung trước khi rời
       if (base === 'noi-dung') pageTitle = window.AlohaContent.render(param || '');
     }
-    // Màn chat Sale: js/sale-chat.js nạp SAU router, lần tải trang đầu nó tự vẽ khi sẵn sàng.
-    if (window.AlohaSaleChat) {
-      if (base === 'chat-sale') pageTitle = window.AlohaSaleChat.show(param || '');
-      else window.AlohaSaleChat.hide();
-    }
-    // Màn chat chiếm trọn khung nhìn kiểu ứng dụng nhắn tin -> ẩn footer + nút nổi (css/pages.css).
-    document.body.classList.toggle('chat-view-active', base === 'chat-sale');
+    noteRoute(base, param, pageTitle);
     Object.values(VIEW_ID).forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = (id !== targetId);
@@ -92,12 +125,28 @@
       if (!session) { window.location.href = 'login.html?next=' + encodeURIComponent(route); return; }
       if (roles.indexOf(session.role) === -1) { window.location.href = AlohaAuth.roleHome(session.role); return; }
     }
+    if (base === 'chat-sale') {
+      // Mở khung chat ở góc, ở lại trang đang xem (lần tải đầu thì là Trang chủ).
+      history.replaceState(null, '', '#/' + (currentRoute || ''));
+      if (currentRoute === null) showView('');
+      openSaleChat(route.split('/').slice(1).join('/'));
+      return;
+    }
     showView(route);
+  }
+
+  // js/sale-chat.js nạp SAU router: lần tải đầu (vd vừa đăng nhập xong với next=chat-sale)
+  // chưa có AlohaSaleChat -> để lại yêu cầu, file đó tự mở khi sẵn sàng.
+  let pendingSaleChat = null;
+  function openSaleChat(topic) {
+    if (window.AlohaSaleChat) window.AlohaSaleChat.open(topic);
+    else pendingSaleChat = topic;
   }
 
   function handleHashChange() {
     const route = parseRoute();
     if (route !== null) navigateTo(route);
+    else if (currentRoute === null) currentRoute = ''; // không có route = đang ở Trang chủ
   }
 
   // Neo cuộn trong Trang chủ (#dich-vu, #gioi-thieu...) khi đang ở view khác
@@ -121,6 +170,6 @@
   });
 
   window.addEventListener('hashchange', handleHashChange);
-  window.AlohaRouter = { navigateTo, showView, parseRoute };
+  window.AlohaRouter = { navigateTo, showView, parseRoute, takePendingSaleChat: () => { const t = pendingSaleChat; pendingSaleChat = null; return t; } };
   handleHashChange();
 })(window);
