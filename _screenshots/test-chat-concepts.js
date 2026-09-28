@@ -236,8 +236,8 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
     const { page, bodies, asked } = await suggestPage(() => ({ suggestions: [
       { id: 'khong-co-that', label: 'Nút bịa' },
       { id: 'luu-y', label: 'Tuần mấy chụp đẹp nhất?' },
-      { id: 'ask', label: 'Chụp cùng chồng được không?' }] }));
-    const loading = await page.waitForFunction(() => !!document.querySelector('#chatBody .chat-quick.is-loading'), { timeout: 6000 }).then(() => true, () => false);
+      { id: 'ask', label: 'Chụp cùng chồng được không?' }] }), 800); // chậm 0.8 giây để kịp thấy ô "đang chọn gợi ý"
+    const loading =await page.waitForFunction(() => !!document.querySelector('#chatBody .chat-quick.is-loading'), { timeout: 6000 }).then(() => true, () => false);
     await page.waitForFunction(() => { const w = [...document.querySelectorAll('#chatBody .chat-quick')].pop(); return w && !w.classList.contains('is-loading') && w.querySelector('button'); }, { timeout: 8000 });
     const m = await lastMenu(page);
     const b0 = bodies[0] || {};

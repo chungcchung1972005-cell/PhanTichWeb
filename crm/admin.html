@@ -19,6 +19,8 @@
      theo đúng quyền của từng vai trò, xem crm/js/admin.js và js/auth.js -->
 <script src="../js/auth.js?v=20260927n"></script>
 <script src="../js/data-store.js?v=20260927m"></script>
+<!-- Sale có giao diện riêng crm/sale.html (trang mặc định sau đăng nhập), nhưng vẫn được
+     vào đây để dùng mục Tin nhắn (chat thật với khách, chỉ Sale trả lời được). -->
 <script>AlohaAuth.requireRole(['sale', 'tho-anh', 'sep']);</script>
 <script>
   // Khôi phục trạng thái thu gọn của cột menu NGAY tại đây, trước khi trình duyệt

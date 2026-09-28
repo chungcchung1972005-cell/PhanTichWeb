@@ -50,7 +50,7 @@ Số liệu dashboard/phễu phải giảm dần hợp lý qua từng trạng th
 Các thông số sau **chưa được xác định** trong tài liệu nghiệp vụ — coi là cấu hình cần business xác nhận trước khi hard-code hoặc thiết kế UI phụ thuộc vào giá trị cụ thể:
 
 - ~~Mức cọc~~ **ĐÃ CHỐT 2026-09-25: cọc 50% giá chụp** (người dùng quyết định). Vẫn để dạng cấu hình `BOOKING_CONFIG.depositRate` trong `js/dat-lich.js`. Giá chụp theo concept khách chọn (`BOOKING_CONFIG.conceptPrice`, GIÁ MINH HOẠ chờ bảng giá thật); concept "Khác" (ý tưởng riêng) thì cọc tạm tính theo giá khởi điểm dịch vụ (`basePrice`), Sale báo giá chính xác sau khi trao đổi.
-- Thời gian giữ khung giờ trước khi cọc.
+- ~~Thời gian giữ khung giờ trước khi cọc~~ **ĐÃ CHỐT 2026-09-27 cho lịch Sale tạo hộ: giữ tối đa 1 tiếng** (cấu hình `config.holdHours` trong `crm/js/sale-data.js`), quá giờ chưa cọc thì tự nhả khung giờ. Luồng khách tự đặt trên web (`js/dat-lich.js`, `HOLD_SECONDS` 5 phút giữ chỗ khi đang thao tác) CHƯA đổi theo, người dùng chưa nói có áp dụng chung hay không.
 - Thời hạn cho phép dời lịch ("trong hạn" là bao nhiêu ngày/giờ trước buổi chụp).
 - Số lần khách được dời lịch miễn phí.
 - Chính sách hoàn cọc (khi hủy, khi dời quá hạn).

@@ -214,6 +214,9 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     // ---------------- 3) Sale ở "máy" khác mở Admin ----------------
     const sale = await newTab(saleCtx, errors);
     await login(sale, '0900000005', 'sale123');
+    // Sale đăng nhập mặc định vào Không gian Sale (crm/sale.html); mục Tin nhắn nằm ở crm/admin.html.
+    await sale.goto(ROOT_URL + 'crm/admin.html#tin-nhan', { waitUntil: 'networkidle0' });
+    await wait(400);
     await waitFor(sale, () => document.querySelectorAll('.inbox-item').length === 1);
     let inbox = await inboxState(sale);
     log('Sale đăng nhập (máy khác) vào Admin, thấy ngay cuộc trò chuyện mới (chưa có tin khách, chỉ có tóm tắt)',
@@ -250,7 +253,7 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     const gotReply = await waitFor(page, () => document.querySelectorAll('#chatBody .chat-sale-live .sc-row.from-sale:not(.sc-auto)').length === 1, null, 6000);
     chat = await chatState(page);
     log('Khách (máy khác, không tải lại trang) nhận câu trả lời trong vài giây, kèm tên Sale',
-      gotReply && chat.sale[0].includes('Sale demo 2') && chat.sale[0].includes('9:30'), chat.sale[0]);
+      gotReply && chat.sale[0].includes('Minh Thư') && chat.sale[0].includes('9:30'), chat.sale[0]);
     const [, me2] = await api('/me', { t: session.token });
     log('Khách đang xem -> câu trả lời được đánh dấu đã đọc trên server', me2.chat.customerUnread === 0);
     await page.screenshot({ path: shot('sale-chat-customer-reply.png') });
@@ -265,6 +268,8 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     const otherCtx = await browser.createBrowserContext();
     const other = await newTab(otherCtx, errors);
     await login(other, '0900000002', 'sale123');
+    await other.goto(ROOT_URL + 'crm/admin.html#tin-nhan', { waitUntil: 'networkidle0' });
+    await wait(400);
     await waitFor(other, () => document.querySelectorAll('.inbox-item').length === 1);
     log('Tài khoản Sale khác thấy chung cuộc trò chuyện', (await inboxState(other)).items.length === 1);
     await login(other, '0900000004', 'sep123');
@@ -425,6 +430,8 @@ async function waitFor(page, fn, arg, timeout = 8000) {
       !mob.overflow && mob.composerInView && mob.panelIn && mob.focused !== 'chatInput');
     await m.screenshot({ path: shot('sale-chat-mobile.png') });
     await login(m, '0900000002', 'sale123');
+    await m.goto(ROOT_URL + 'crm/admin.html#tin-nhan', { waitUntil: 'networkidle0' });
+    await wait(400);
     await waitFor(m, () => document.querySelectorAll('.inbox-item').length >= 1);
     await m.click('.inbox-item');
     await waitFor(m, () => !document.getElementById('inboxReply').hidden);

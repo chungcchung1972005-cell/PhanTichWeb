@@ -99,6 +99,8 @@ const log = (n, ok, x) => { results.push(ok); console.log((ok ? 'PASS' : 'FAIL')
     await sp.type('#loginPhone', '0900000005');
     await sp.type('#loginPassword', 'sale123');
     await Promise.all([sp.waitForNavigation({ waitUntil: 'networkidle0' }), sp.click('#loginSubmitBtn')]);
+    // Sale đăng nhập mặc định vào Không gian Sale (crm/sale.html); mục Tin nhắn nằm ở crm/admin.html.
+    await sp.goto(ENV.ROOT_URL + 'crm/admin.html#tin-nhan', { waitUntil: 'networkidle0' });
     await sp.waitForSelector('.inbox-item', { timeout: 8000 });
     await sp.click('.inbox-item');
     const card = await sp.waitForSelector('#inboxMsgs .from-system', { timeout: 8000 }).then(() => true, () => false);
