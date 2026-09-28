@@ -58,6 +58,7 @@ Các thông số sau **chưa được xác định** trong tài liệu nghiệp 
 - Thời hạn lưu trữ ảnh trước khi chuyển archive.
 - Số ảnh chỉnh sửa mặc định theo từng gói dịch vụ.
 - Đơn giá mỗi ảnh chỉnh sửa vượt gói.
+- ~~Hạn thanh toán ảnh chọn thêm~~ **ĐÃ CHỐT 2026-09-28: 30 phút kể từ lúc gửi yêu cầu** (cấu hình `EXTRA_PAY_MINUTES` trong `js/data-store.js`; thời gian chờ ngân hàng báo chậm sau hạn `EXTRA_PAY_LATE_MS` = 2 phút là giá trị kỹ thuật Claude đặt, không phải chính sách), quá hạn chưa thanh toán thì ảnh chọn thêm không được gửi (ảnh trong gói đã gửi ngay). Xem `workflow.md` mục "Chọn & chỉnh sửa ảnh".
 
 Khi triển khai, để các giá trị này ở dạng cấu hình/settings, không hard-code, và đánh dấu rõ trong code/UI rằng giá trị là placeholder chờ xác nhận.
 

@@ -59,7 +59,7 @@ const BASE = ROOT_URL;
   // 4) Ghi chú chung (hiện ở tab Yêu thích), gửi yêu cầu
   await page.click('.ps-tab[data-filter="liked"]');
   await page.type('#psNote', 'Giu tong mau am cho ca bo');
-  await page.click('#psSubmitBtn');
+  await page.click('#psSubmitBtn'); await page.evaluate(() => document.getElementById('psReviewConfirm').click());
   await new Promise(r => setTimeout(r, 300));
 
   const db = await page.evaluate(() => JSON.parse(localStorage.getItem('aloha_demo_db')));

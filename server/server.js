@@ -394,7 +394,11 @@ app.get('/api/payment-status', (req, res) => {
   if (code.length < 8 || code.length > 40 || !Number.isFinite(amount) || amount <= 0) {
     return res.status(400).json({ error: 'bad_request' });
   }
-  const paid = incomingTx.some(t => t.content.includes(code) && t.amount >= amount);
+  // before (tuỳ chọn, mốc thời gian ms): chỉ tính tiền về trước mốc này, vd hạn thanh toán
+  // ảnh chọn thêm (js/chon-anh.js). Không gửi thì tính mọi giao dịch như trước.
+  const before = Number(req.query.before);
+  const inTime = t => !(Number.isFinite(before) && before > 0) || t.at <= before;
+  const paid = incomingTx.some(t => t.content.includes(code) && t.amount >= amount && inTime(t));
   return res.json({ paid });
 });
 

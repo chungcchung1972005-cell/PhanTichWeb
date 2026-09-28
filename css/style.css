@@ -305,8 +305,17 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .nav-util-item .sub { font-size: 11.5px; color: var(--navy-500); }
 .nav-util-item .notif-status { font-size: 11px; font-weight: 700; color: var(--pink-600); margin-top: 2px; }
 .nav-util-item.notif-highlight { background: #e6f7ec; }
+/* Dòng thông báo bấm được (mở tab "Ảnh đã chỉnh"): giữ bố cục dọc như dòng thường,
+   không theo kiểu nút kết quả Tìm kiếm (.nav-util-results button) */
+.nav-util-results button.nav-util-item { display: flex; font: inherit; color: inherit; }
+.nav-util-results button.nav-util-item:hover { background: var(--pink-50); color: inherit; }
+.nav-util-results button.nav-util-item.notif-highlight:hover { background: #d8f2e2; }
 .nav-util-item.notif-highlight strong { color: #1a9d5c; }
 .nav-util-item.notif-highlight .notif-status { color: #1a9d5c; }
+/* Ảnh chọn thêm chờ thanh toán: việc khách cần làm (cam, cùng màu ảnh chọn thêm), khác tin vui (xanh) */
+.nav-util-item.notif-pay { background: #fff4ec; }
+.nav-util-results button.nav-util-item.notif-pay:hover { background: #ffe9db; }
+.nav-util-item.notif-pay strong, .nav-util-item.notif-pay .notif-status { color: #c2410c; }
 .nav-util-empty { font-size: 13px; color: var(--navy-500); padding: 16px 4px; text-align: center; line-height: 1.6; }
 .nav-util-empty a { color: var(--pink-600); font-weight: 700; }
 

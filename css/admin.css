@@ -929,6 +929,9 @@
 .kanban-card-flag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
 .kanban-card .kanban-card-flag.reply { background: #fff4e0; color: #b26a00; }
 .kanban-card .kanban-card-flag.link { background: #e8f7ec; color: #1f7a3a; }
+/* Ảnh chọn thêm của khách: đang chờ thanh toán (cam) / không được gửi vì quá hạn (xám) */
+.kanban-card .kanban-card-flag.pay { background: #fff1e8; color: #c2410c; }
+.kanban-card .kanban-card-flag.dropped { background: #f1f1f4; color: #6b6880; }
 @media (max-width: 560px) {
   .kanban-result-form { flex-direction: column; }
 }
@@ -938,3 +941,10 @@
 .kanban-msg.from-ai .kanban-msg-name { color: #5b4bb7; }
 .kanban-msg-tag { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 1px 8px; border-radius: var(--radius-pill); background: #fff4e0; color: #b26a00; }
 .kanban-advance-hint { font-size: 12px; color: #b26a00; margin: 6px 0 0; text-align: center; }
+
+/* Số ảnh (#N, trùng số khách thấy trong "Ảnh của tôi") trên ô ảnh trong modal kanban */
+.kanban-photo-tile { position: relative; }
+.kanban-photo-num {
+  position: absolute; top: 6px; left: 6px; z-index: 1; padding: 2px 8px; border-radius: 999px;
+  background: rgba(20, 15, 25, 0.6); color: #fff; font-size: 11px; font-weight: 800;
+}

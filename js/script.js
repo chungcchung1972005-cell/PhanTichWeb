@@ -204,40 +204,101 @@ document.addEventListener('DOMContentLoaded', () => {
       dot.hidden = true;
       return;
     }
+    // Tin mới từ Thợ ảnh (link ảnh đã chỉnh / tin trả lời) so với lần khách đã xem gần nhất
+    // (customerSeenEditedSig, cùng dữ liệu với chấm báo trên tab "Ảnh đã chỉnh").
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const newsSig = (r) => AlohaData.editedNewsSig(r);
+    const editedNews = (r) => AlohaData.editedNews(r);
     list.innerHTML = myRequests.map((r) => {
+      const news = editedNews(r);
+      let html = '';
+      // Ảnh chọn thêm chờ thanh toán (30 phút kể từ lúc gửi, js/chon-anh.js): nhắc ở đầu danh sách
+      if (AlohaData.extraPendingActive && AlohaData.extraPendingActive(r)) {
+        const p = r.extraPending;
+        const until = new Date(p.deadline).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        html += `
+        <button type="button" class="nav-util-item notif-pay notif-go-pay">
+          <strong>Còn ${esc(p.count)} ảnh chọn thêm chờ thanh toán</strong>
+          <span class="sub">Thanh toán ${esc(Number(p.fee).toLocaleString('vi-VN'))}đ trước ${esc(until)}, quá hạn các ảnh này sẽ không được gửi đi</span>
+          <span class="notif-status">Bấm để thanh toán</span>
+        </button>`;
+      }
+      if (news.replyNew && news.lastReply) {
+        const text = news.lastReply.text.length > 70 ? news.lastReply.text.slice(0, 70) + '...' : news.lastReply.text;
+        html += `
+        <button type="button" class="nav-util-item notif-highlight notif-go-edited">
+          <strong>Thợ chỉnh ảnh vừa trả lời bạn</strong>
+          <span class="sub">"${esc(text)}"</span>
+          <span class="notif-status">Bấm để xem và trả lời</span>
+        </button>`;
+      }
       const isDoneUnseen = r.status === 'Hoàn thành' && !r.customerSeenDone;
+      // Có link thì dòng link là dòng báo "ảnh xong" duy nhất (không nổi bật trùng với dòng Hoàn thành)
+      const readyNew = news.linkNew || isDoneUnseen;
+      if (r.resultLink) {
+        html += `
+        <button type="button" class="nav-util-item${readyNew ? ' notif-highlight' : ''} notif-go-edited">
+          <strong>${readyNew ? 'Ảnh đã chỉnh đã sẵn sàng' : 'Ảnh đã chỉnh'} · ${esc(r.orderCode)}</strong>
+          <span class="sub">Thợ đã gửi link thư mục ảnh đã chỉnh</span>
+          <span class="notif-status">Bấm để mở tab "Ảnh đã chỉnh"</span>
+        </button>`;
+      }
       if (r.status === 'Hoàn thành') {
-        return `
-        <div class="nav-util-item${isDoneUnseen ? ' notif-highlight' : ''}">
-          <strong>${isDoneUnseen ? 'Ảnh đã sửa xong · ' : ''}${r.orderCode || ''}</strong>
-          <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
+        const doneHi = isDoneUnseen && !r.resultLink;
+        return html + `
+        <div class="nav-util-item${doneHi ? ' notif-highlight' : ''}">
+          <strong>${doneHi ? 'Ảnh đã sửa xong · ' : ''}${esc(r.orderCode)}</strong>
+          <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh${r.extraDropped ? ` · ${esc(r.extraDropped.count)} ảnh chọn thêm không được gửi (quá hạn thanh toán)` : ''}</span>
           <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
         </div>`;
       }
-      return `
+      return html + `
       <div class="nav-util-item">
-        <strong>Yêu cầu chỉnh sửa ${r.orderCode || ''}</strong>
-        <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
-        <span class="notif-status">${r.status}</span>
+        <strong>Yêu cầu chỉnh sửa ${esc(r.orderCode)}</strong>
+        <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh${r.extraDropped ? ` · ${esc(r.extraDropped.count)} ảnh chọn thêm không được gửi (quá hạn thanh toán)` : ''}</span>
+        <span class="notif-status">${esc(r.status)}</span>
       </div>`;
     }).join('');
 
     if (markSeen && window.AlohaData) {
       myRequests.forEach((r) => {
         if (r.status === 'Hoàn thành' && !r.customerSeenDone) AlohaData.markCustomerSeenDone(r.id);
+        // Khách mở chuông đã thấy tin từ thợ -> tắt nổi bật (và chấm báo trên tab "Ảnh đã chỉnh")
+        if (newsSig(r) !== '|0' && r.customerSeenEditedSig !== newsSig(r)) AlohaData.markCustomerSeenEdited(r.id, newsSig(r));
       });
     }
     // Đọc lại sau khi có thể vừa đánh dấu đã xem, để chấm đỏ tắt đúng lúc.
+    // Chấm chỉ sáng khi có tin MỚI chưa xem (thợ trả lời, gửi link, ảnh vừa hoàn thành); yêu cầu
+    // đang xử lý mà không có gì mới thì không sáng (người dùng chọn 2026-09-28, trước đây luôn sáng).
     const freshRequests = markSeen ? (window.AlohaData ? AlohaData.getEditRequests() : []).filter((r) => r.phone === session.phone) : myRequests;
-    dot.hidden = !freshRequests.some((r) => r.status !== 'Hoàn thành' || (r.status === 'Hoàn thành' && !r.customerSeenDone));
+    dot.hidden = !freshRequests.some((r) => (r.status === 'Hoàn thành' && !r.customerSeenDone)
+      || editedNews(r).linkNew || editedNews(r).replyNew);
   }
+  // Bấm tin "thợ trả lời" / "ảnh đã chỉnh" -> đóng chuông, mở tab "Ảnh đã chỉnh" trong "Ảnh của tôi";
+  // bấm tin "ảnh chọn thêm chờ thanh toán" -> mở mã QR thanh toán
+  const notifListEl = document.getElementById('notifList');
+  if (notifListEl) notifListEl.addEventListener('click', (e) => {
+    const goPay = !!e.target.closest('.notif-go-pay');
+    if (!goPay && !e.target.closest('.notif-go-edited')) return;
+    document.querySelectorAll('.nav-util-panel.open').forEach((p) => p.classList.remove('open'));
+    const notifBtn = document.getElementById('notifBtn');
+    if (notifBtn) notifBtn.setAttribute('aria-expanded', 'false');
+    const openTab = () => { if (window.AlohaPhotos) window.AlohaPhotos[goPay ? 'openPayment' : 'openEditedTab'](); };
+    if (location.hash !== '#/chon-anh') { location.hash = '#/chon-anh'; setTimeout(openTab, 150); } else openTab();
+  });
   renderNotifications(false);
   // Mô phỏng "real-time" trong cùng trình duyệt: nếu Thợ ảnh vừa chuyển 1 yêu
   // cầu sang Hoàn thành ở tab/khung khác, chấm đỏ + danh sách ở đây tự cập
   // nhật mà khách không cần tải lại trang. KHÔNG đồng bộ được giữa các thiết
   // bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
-  setInterval(() => renderNotifications(false), 5000);
+  // Đang mở chuông thì không vẽ lại (giữ màu nổi bật khách đang đọc + focus bàn phím);
+  // đóng chuông rồi lần polling sau mới cập nhật.
+  setInterval(() => {
+    const panel = document.getElementById('notifPanel');
+    if (panel && panel.classList.contains('open')) return;
+    renderNotifications(false);
+  }, 5000);
 
   // Scroll-reveal animation cho mọi section (yêu cầu bắt buộc — xem .claude/rules/design.md)
   const revealEls = document.querySelectorAll('.reveal');
