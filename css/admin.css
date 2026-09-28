@@ -929,6 +929,9 @@
 .kanban-card-flag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
 .kanban-card .kanban-card-flag.reply { background: #fff4e0; color: #b26a00; }
 .kanban-card .kanban-card-flag.link { background: #e8f7ec; color: #1f7a3a; }
+/* Ảnh chọn thêm của khách: đang chờ thanh toán (cam) / không được gửi vì quá hạn (xám) */
+.kanban-card .kanban-card-flag.pay { background: #fff1e8; color: #c2410c; }
+.kanban-card .kanban-card-flag.dropped { background: #f1f1f4; color: #6b6880; }
 @media (max-width: 560px) {
   .kanban-result-form { flex-direction: column; }
 }

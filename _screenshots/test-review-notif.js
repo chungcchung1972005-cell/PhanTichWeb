@@ -96,10 +96,12 @@ const LINK = 'https://drive.google.com/drive/folders/1Review_notif_test';
     count: document.querySelectorAll('#psReviewGrid .ps-review-item').length,
     sum: document.getElementById('psReviewSum').textContent.replace(/\s+/g, ' '),
     extra: [...document.querySelectorAll('#psReviewGrid .is-extra figcaption')].map(f => f.textContent).join(','),
-    confirm: document.getElementById('psReviewConfirm').textContent
+    confirm: document.getElementById('psReviewConfirm').textContent,
+    pay: document.getElementById('psReviewPay').hidden ? '' : document.getElementById('psReviewPay').textContent.replace(/s+/g, ' ')
   }));
   check('Xem lại 11 ảnh: báo "1 ảnh chọn thêm (50.000đ)", ảnh #11 viền cam', v.count === 11 && v.sum.includes('10 ảnh trong gói') && v.sum.includes('1 ảnh chọn thêm (50.000đ)') && v.extra === '#11', JSON.stringify(v));
-  check('Xem lại 11 ảnh: nút chính "Tiếp tục thanh toán 50.000đ"', v.confirm === 'Tiếp tục thanh toán 50.000đ', v.confirm);
+  check('Xem lại 11 ảnh: nút chính "Gửi & thanh toán 50.000đ"', v.confirm === 'Gửi & thanh toán 50.000đ', v.confirm);
+  check('Xem lại 11 ảnh: báo trước 10 ảnh gói gửi ngay, ảnh chọn thêm phải thanh toán trong 30 phút', v.pay.includes('10 ảnh trong gói được gửi cho thợ ngay') && v.pay.includes('30 phút') && v.pay.includes('không được gửi đi'), v.pay);
   await page.screenshot({ path: path.resolve(__dirname, 'review-modal-desktop.png') });
 
   await page.setViewport({ width: 390, height: 844 }); await wait(400);
@@ -126,14 +128,12 @@ const LINK = 'https://drive.google.com/drive/folders/1Review_notif_test';
   await page.setViewport({ width: 1440, height: 900 }); await wait(300);
   await submit(); await wait(300);
 
-  await page.click('#psReviewConfirm'); await wait(400);
-  check('Xác nhận khi vượt gói -> mở mã QR thanh toán, vẫn chưa gửi', (await shown('#psQrModalOverlay')) && !(await shown('#psReviewModal')) && (await reqCount()) === 0);
-  await page.click('#psQrCloseBtn'); await wait(300);
-  await submit(); await wait(300);
-  check('Đang chờ thanh toán, bấm gửi lại -> mở thẳng mã QR cũ, không hỏi xem lại lần nữa', (await shown('#psQrModalOverlay')) && !(await shown('#psReviewModal')));
-  await page.click('#psQrCloseBtn'); await wait(300);
+  // Gửi khi có ảnh chọn thêm (ảnh gói gửi ngay, ảnh chọn thêm chờ thanh toán 30 phút) kiểm tra ở
+  // test-extra-pay.js. Ở đây chỉ đóng lại rồi gửi trong gói.
+  await page.keyboard.press('Escape'); await wait(250);
+  check('Đóng bước xem lại khi vượt gói -> chưa gửi gì', !(await shown('#psReviewModal')) && (await reqCount()) === 0);
 
-  // Tải lại (bỏ mã QR đang chờ), bỏ ảnh #11 -> gửi trong gói
+  // Tải lại (ảnh chọn dở vẫn giữ), bỏ ảnh #11 -> gửi trong gói
   await page.reload({ waitUntil: 'networkidle0' }); await wait(700);
   await heart('ph-11'); await wait(300);
   await submit(); await wait(300);

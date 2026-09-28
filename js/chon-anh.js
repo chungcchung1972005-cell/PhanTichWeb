@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const EXTRA_PRICE = 50000;     // đơn giá mỗi ảnh chỉnh sửa thêm: 50K/tấm
   const PACKAGE_COUNT = 10;      // gói tiêu chuẩn: 10 tấm ảnh miễn phí
   const FAV_LIMIT = 10;          // giới hạn ảnh yêu thích miễn phí trong gói
+  // Hạn thanh toán ảnh chọn thêm (phút), cấu hình dùng chung trong js/data-store.js
+  const PAY_MIN = (window.AlohaData && AlohaData.EXTRA_PAY_MINUTES) || 30;
 
   // Chỉ hiện ảnh khi tài khoản này đã từng có buổi chụp (xem js/data-store.js).
   const session = window.AlohaAuth ? AlohaAuth.getSession() : null;
@@ -156,21 +158,21 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </div>
         <div>
-          <h3 id="psQrTitle">Chỉ một bước nữa thôi, ảnh của bé sắp được gửi đi</h3>
-          <p class="ps-qr-subtitle">Bạn đã chọn thêm những khoảnh khắc thật đáng yêu ngoài gói 10 ảnh. Hoàn tất phí chỉnh sửa bên dưới nhé.</p>
+          <h3 id="psQrTitle">Thanh toán trong ${PAY_MIN} phút để gửi ảnh chọn thêm</h3>
+          <p class="ps-qr-subtitle" id="psQrSubtitle"></p>
         </div>
       </div>
 
-      <!-- Đếm ngược thời hạn mã QR (30 phút) -->
+      <!-- Đếm ngược hạn thanh toán ảnh chọn thêm (30 phút kể từ lúc gửi yêu cầu) -->
       <div class="ps-qr-countdown" id="psQrCountdown">
         <div class="ps-qr-countdown-row">
-          <span class="ps-qr-countdown-label" id="psQrCountdownLabel">Mã QR có hiệu lực trong</span>
-          <strong class="ps-qr-countdown-time" id="psQrCountdownTime">30:00</strong>
+          <span class="ps-qr-countdown-label" id="psQrCountdownLabel">Thời gian thanh toán còn lại</span>
+          <strong class="ps-qr-countdown-time" id="psQrCountdownTime">${String(PAY_MIN).padStart(2, "0")}:00</strong>
         </div>
         <div class="ps-qr-countdown-bar"><span id="psQrCountdownFill"></span></div>
         <p class="ps-qr-paystatus" id="psQrPayStatus">
           <span class="ps-qr-paystatus-dot"></span>
-          <span id="psQrPayStatusText">Đang chờ tiền về. Chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh.</span>
+          <span id="psQrPayStatusText">Đang chờ tiền về. Chuyển khoản xong, ảnh chọn thêm sẽ tự động được gửi tới thợ.</span>
         </p>
       </div>
 
@@ -245,12 +247,12 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- Thông điệp: chỉ gửi ảnh sau khi thanh toán (không còn nút "đã chuyển khoản"/"thanh toán sau") -->
+      <!-- Thông điệp: ảnh chọn thêm chỉ gửi đi sau khi thanh toán, quá 30 phút thì không gửi -->
       <div class="ps-qr-promise">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         <div>
           <strong>Thanh toán để ảnh của bé được gửi đến tay những người thợ có tâm, có tầm nhất của ALOHA Baby.</strong>
-          <p>Ảnh chỉ được gửi đi chỉnh sửa sau khi studio nhận được thanh toán. Nếu chưa thanh toán, yêu cầu sẽ chưa được gửi.</p>
+          <p>${PACKAGE_COUNT} ảnh trong gói đã được gửi cho thợ. Ảnh chọn thêm chỉ được gửi đi sau khi studio nhận được thanh toán; quá ${PAY_MIN} phút chưa thanh toán, các ảnh chọn thêm sẽ không được gửi đi.</p>
         </div>
       </div>
     </div>
@@ -275,20 +277,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ===== Thanh toán tự động qua SePay =====
-  // Ngân hàng báo tiền về -> SePay gọi webhook của server/ (server/server.js,
-  // /api/sepay-webhook) -> trang này hỏi server mỗi vài giây xem mã thanh toán
-  // đã có tiền chưa. Có tiền đủ số -> tự gửi yêu cầu tới Thợ ảnh, không cần
-  // khách bấm gì. Không thanh toán thì yêu cầu không được gửi.
+  // ===== Ảnh chọn thêm: gửi ảnh trong gói ngay, ảnh chọn thêm chờ thanh toán 30 phút =====
+  // Người dùng chốt 2026-09-28 (trước đó: chưa thanh toán thì CẢ yêu cầu chưa được gửi).
+  // Bấm gửi -> ảnh trong gói tới thợ ngay; ảnh chọn thêm nằm chờ trong chính yêu cầu
+  // (extraPending, js/data-store.js). Ngân hàng báo tiền về -> SePay gọi webhook của server/
+  // (/api/sepay-webhook) -> trang này hỏi server mỗi vài giây xem mã thanh toán đã có tiền
+  // chưa. Đủ tiền trong 30 phút -> ảnh chọn thêm tự gửi tới thợ; quá hạn -> không được gửi.
+  // Hạn lưu trong yêu cầu nên tải lại trang / sang trang khác của web vẫn đếm tiếp.
   const isLocalHost = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const PAYMENT_API_BASE = isLocalHost ? 'http://localhost:3001' : 'https://phantichweb.onrender.com';
-  const QR_VALID_MS = 30 * 60 * 1000; // Mã QR có hiệu lực 30 phút
+  const QR_VALID_MS = PAY_MIN * 60 * 1000; // Hạn thanh toán ảnh chọn thêm kể từ lúc gửi (cấu hình: js/data-store.js)
   const PAY_POLL_MS = 4000;           // hỏi trạng thái thanh toán mỗi 4 giây
+  const HOTLINE = '0938.125.222';
 
-  let qr = null;        // { code, count, fee, deadline } của mã QR đang chờ tiền
-  let qrTicker = null;
+  let payTicker = null;
   let lastPoll = 0;
   let polling = false;
+  let watching = null; // extraPending đang theo dõi (để biết ảnh nào khi tab khác đã chốt)
+  let qrShown = null;  // extraPending đang hiện trong modal QR
 
   function randomSuffix() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -296,157 +302,158 @@ document.addEventListener('DOMContentLoaded', () => {
     crypto.getRandomValues(buf);
     return Array.from(buf, n => chars[n % chars.length]).join('');
   }
-
-  // Khoá chọn ảnh khi đang chờ tiền, để danh sách gửi đi khớp đúng số tiền đã trả
-  function lockSelection(locked) {
-    document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = locked; });
-    if (locked) hideUndo();
-    syncBulkButtons();
+  // Nội dung CK là mã thanh toán riêng của lần này (viết liền, không dấu cách)
+  // để server đối chiếu chính xác, không nhầm với giao dịch khác.
+  function paymentCode(count) {
+    const cleanCode = (record.orderCode || 'AB240915').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `${cleanCode}CS${count}${randomSuffix()}`;
   }
+
+  // Yêu cầu mới nhất của khách nếu còn ảnh chọn thêm chờ thanh toán
+  function pendingRequest() {
+    const req = latestRequest();
+    return req && req.extraPending ? req : null;
+  }
+  const fmtLeft = (ms) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
 
   function setPayStatus(text, isError) {
     document.getElementById('psQrPayStatusText').textContent = text;
     document.getElementById('psQrPayStatus').classList.toggle('is-error', !!isError);
   }
 
-  function renderQrCountdown() {
-    const left = qr ? Math.max(0, qr.deadline - Date.now()) : 0;
-    const mm = String(Math.floor(left / 60000)).padStart(2, '0');
-    const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+  // Đồng hồ dùng chung: modal QR + mọi chỗ có [data-pay-left] (thông báo đầu trang, tab "Ảnh đã chỉnh")
+  function renderPayCountdown() {
+    const pend = pendingRequest();
+    const left = pend ? Math.max(0, pend.extraPending.deadline - Date.now()) : 0;
+    document.querySelectorAll('[data-pay-left]').forEach((el) => { el.textContent = fmtLeft(left); });
+    if (!qrShown) return;
+    const live = !!pend && pend.extraPending.code === qrShown.code;
+    const leftQr = live ? left : 0;
     const modal = qrOverlay.querySelector('.ps-qr-modal');
-    document.getElementById('psQrCountdownTime').textContent = left > 0 ? `${mm}:${ss}` : '00:00';
-    document.getElementById('psQrCountdownFill').style.width = (left / QR_VALID_MS * 100) + '%';
-    document.getElementById('psQrCountdownLabel').textContent = left > 0
-      ? 'Mã QR có hiệu lực trong'
-      : 'Mã QR đã hết hạn, bấm "Gửi yêu cầu chỉnh sửa" để nhận mã mới';
-    modal.classList.toggle('is-urgent', left > 0 && left <= 5 * 60 * 1000);
-    modal.classList.toggle('is-expired', left === 0);
+    document.getElementById('psQrCountdownTime').textContent = fmtLeft(leftQr);
+    document.getElementById('psQrCountdownFill').style.width = (leftQr / QR_VALID_MS * 100) + '%';
+    document.getElementById('psQrCountdownLabel').textContent = leftQr > 0
+      ? 'Thời gian thanh toán còn lại'
+      : live ? `Đã hết ${PAY_MIN} phút, đang xác nhận thanh toán lần cuối...`
+        : `Đã hết ${PAY_MIN} phút, ${qrShown.count} ảnh chọn thêm không được gửi đi`;
+    modal.classList.toggle('is-urgent', leftQr > 0 && leftQr <= 5 * 60 * 1000);
+    modal.classList.toggle('is-expired', leftQr === 0);
   }
 
-  function stopPaymentWatch() {
-    if (qrTicker) { clearInterval(qrTicker); qrTicker = null; }
+  function startPayWatch() {
+    const req = pendingRequest();
+    if (!req) return;
+    watching = req.extraPending;
+    if (payTicker) return;
+    lastPoll = 0;
+    payTicker = setInterval(payTick, 1000);
+    payTick();
+  }
+  function stopPayWatch() {
+    if (payTicker) { clearInterval(payTicker); payTicker = null; }
   }
 
-  async function checkPayment() {
-    if (!qr || polling) return;
-    polling = true;
-    const watching = qr;
-    try {
-      const url = `${PAYMENT_API_BASE}/api/payment-status?code=${encodeURIComponent(watching.code)}&amount=${watching.fee}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (qr !== watching) return; // mã đã đổi/hết hạn trong lúc chờ phản hồi
-      if (data.paid) {
-        onPaid(watching);
-      } else {
-        setPayStatus('Đang chờ tiền về. Chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh.');
-      }
-    } catch (err) {
-      if (qr === watching) {
-        setPayStatus('Chưa kết nối được hệ thống xác nhận thanh toán, đang thử lại. Nếu đã chuyển khoản, bạn gọi hotline 0938.125.222 để được hỗ trợ nhé.', true);
-      }
-    } finally {
-      polling = false;
-    }
-  }
-
-  function tick() {
-    renderQrCountdown();
-    if (!qr) return;
-    if (Date.now() >= qr.deadline) {
-      // Hết 30 phút chưa thấy tiền: huỷ mã, mở khoá chọn ảnh, yêu cầu vẫn chưa gửi
-      qr = null;
-      stopPaymentWatch();
-      lockSelection(false);
-      if (!qrOverlay.classList.contains('show')) showUnpaidBanner();
+  async function payTick() {
+    const req = pendingRequest();
+    if (!req || !watching || req.extraPending.code !== watching.code) {
+      // Đã chốt ở tab khác cùng trình duyệt -> cập nhật giao diện theo dữ liệu
+      stopPayWatch();
+      const done = latestRequest();
+      if (watching && done) showSettled(done, watching, !done.extraDropped);
       return;
     }
-    if (Date.now() - lastPoll >= PAY_POLL_MS) {
-      lastPoll = Date.now();
-      checkPayment();
+    const p = req.extraPending;
+    renderPayCountdown();
+    const expired = Date.now() >= p.deadline;
+    // Vừa hết hạn: thông báo đầu trang chuyển sang "đang xác nhận thanh toán"
+    if (expired && banner.dataset.kind === 'pending') renderSentBanner(req);
+    // Hết thời gian chờ tiền về chậm thì kiểm tra lần cuối ngay, không đợi lượt 4 giây
+    const lastCall = Date.now() >= p.deadline + AlohaData.EXTRA_PAY_LATE_MS;
+    if (polling || (!lastCall && Date.now() - lastPoll < PAY_POLL_MS)) return;
+    lastPoll = Date.now();
+    polling = true;
+    const result = await AlohaData.checkExtraPayment(PAYMENT_API_BASE, p);
+    polling = false;
+    const fresh = pendingRequest();
+    if (!fresh || fresh.extraPending.code !== p.code) return; // tab khác vừa chốt, lượt sau cập nhật
+    if (result === 'paid') { settleExtras(fresh, true); return; }
+    if (expired) {
+      // Hết hạn: chờ thêm tối đa EXTRA_PAY_LATE_MS cho ngân hàng/SePay báo chậm, máy chủ khởi động;
+      // hết thời gian chờ mà vẫn chưa thấy tiền -> ảnh chọn thêm không được gửi
+      if (AlohaData.extraExpiredDecision(p, result) === 'drop') settleExtras(fresh, false);
+      return;
     }
+    setPayStatus(result === 'error'
+      ? `Chưa kết nối được hệ thống xác nhận thanh toán, đang thử lại. Nếu đã chuyển khoản, bạn gọi hotline ${HOTLINE} để được hỗ trợ nhé.`
+      : 'Đang chờ tiền về. Chuyển khoản xong, ảnh chọn thêm sẽ tự động được gửi tới thợ.', result === 'error');
   }
 
-  function onPaid(paid) {
-    qr = null;
-    stopPaymentWatch();
-    qrOverlay.classList.remove('show');
-    executeSubmit(paid.count, paid.fee, 'Đã thanh toán (tự động xác nhận qua SePay)');
+  function settleExtras(req, paid) {
+    const p = req.extraPending;
+    AlohaData.settleExtraPayment(req.id, paid, paid ? 'Đã thanh toán (tự động xác nhận qua SePay)' : '');
+    stopPayWatch();
+    showSettled(latestRequest(), p, paid);
   }
 
-  function openQrPaymentModal(extraCount, extraFee) {
-    // Mở lại khi mã còn hạn và cùng số tiền: giữ nguyên mã + thời gian còn lại.
-    // Chưa có mã, hết hạn hoặc đổi số ảnh: cấp mã thanh toán mới, đếm lại 30 phút.
-    if (!qr || Date.now() >= qr.deadline || extraFee !== qr.fee) {
-      const cleanCode = (record.orderCode || 'AB240915').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-      qr = {
-        code: `${cleanCode}CS${extraCount}${randomSuffix()}`,
-        count: extraCount,
-        fee: extraFee,
-        deadline: Date.now() + QR_VALID_MS
-      };
+  // Giao diện sau khi chốt: đã thanh toán -> đóng mã QR, báo đã gửi ảnh chọn thêm; quá hạn ->
+  // bỏ chọn các ảnh chọn thêm trên lưới (cho khớp với ảnh thợ nhận), mã QR chuyển "hết hạn".
+  function showSettled(req, p, paid) {
+    watching = null;
+    if (paid) {
+      qrOverlay.classList.remove('show');
+      qrShown = null;
+    } else {
+      (p.photos || []).forEach((ph) => {
+        selected.delete(ph.id);
+        extraPhotos.delete(ph.id);
+        setCardSelected(ph.id, false, false);
+      });
+      extraModeActive = false;
+      updateSummary();
+      applyFilter(currentFilter);
     }
-    lockSelection(true);
-    setPayStatus('Đang chờ tiền về. Chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh.');
-    renderQrCountdown();
-    if (!qrTicker) {
-      lastPoll = 0;
-      qrTicker = setInterval(tick, 1000);
-    }
+    renderPayCountdown();
+    renderSentBanner(req, paid ? 'paid' : 'dropped');
+    renderEdited(true);
+  }
 
-    // Nội dung CK là mã thanh toán riêng của lần này (viết liền, không dấu cách)
-    // để server đối chiếu chính xác, không nhầm với giao dịch khác.
-    const qrDescription = qr.code;
+  function openQrPaymentModal(p) {
+    if (!p) return;
+    qrShown = p;
     const bankId = 'MB';
     const accountNo = '0967237146';
     const accountName = 'ALOHA BABY STUDIO';
-    const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${extraFee}&addInfo=${encodeURIComponent(qrDescription)}&accountName=${encodeURIComponent(accountName)}`;
+    const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${p.fee}&addInfo=${encodeURIComponent(p.code)}&accountName=${encodeURIComponent(accountName)}`;
 
+    document.getElementById('psQrSubtitle').innerHTML =
+      `${PACKAGE_COUNT} ảnh trong gói đã được gửi cho thợ. <strong>${p.count} ảnh chọn thêm</strong> chỉ được gửi tới thợ khi studio nhận đủ tiền trong ${PAY_MIN} phút; quá hạn chưa thanh toán, các ảnh này sẽ không được gửi đi.`;
     document.getElementById('psQrCustCode').textContent = record.orderCode || '#AB240915';
-    document.getElementById('psQrExtraCount').textContent = extraCount;
-    document.getElementById('psQrExtraSub').textContent = extraCount;
-    document.getElementById('psQrTotalAmount').textContent = extraFee.toLocaleString('vi-VN') + 'đ';
-    document.getElementById('psBankAmount').textContent = extraFee.toLocaleString('vi-VN') + 'đ';
-    document.getElementById('psBankContent').textContent = qrDescription;
+    document.getElementById('psQrExtraCount').textContent = p.count;
+    document.getElementById('psQrExtraSub').textContent = p.count;
+    document.getElementById('psQrTotalAmount').textContent = fmtVnd(p.fee);
+    document.getElementById('psBankAmount').textContent = fmtVnd(p.fee);
+    document.getElementById('psBankContent').textContent = p.code;
 
     // Cập nhật giá trị nút copy
-    document.getElementById('psCopyAmountBtn').dataset.copy = extraFee;
-    document.getElementById('psCopyContentBtn').dataset.copy = qrDescription;
+    document.getElementById('psCopyAmountBtn').dataset.copy = p.fee;
+    document.getElementById('psCopyContentBtn').dataset.copy = p.code;
 
     const qrImg = document.getElementById('psQrImage');
     if (qrImg.getAttribute('src') !== qrUrl) qrImg.src = qrUrl;
 
+    setPayStatus('Đang chờ tiền về. Chuyển khoản xong, ảnh chọn thêm sẽ tự động được gửi tới thợ.');
+    renderPayCountdown();
     qrOverlay.classList.add('show');
-    tick();
   }
 
-  // Đóng modal KHÔNG gửi yêu cầu. Nếu mã còn hạn, trang vẫn tiếp tục chờ tiền về
-  // ở nền: khách chuyển khoản xong là ảnh tự gửi đi, không cần mở lại modal.
+  // Đóng modal: trang vẫn chờ tiền về ở nền (thông báo đầu trang có nút "Thanh toán ngay"),
+  // khách chuyển khoản xong là ảnh chọn thêm tự gửi đi, không cần mở lại modal.
   function closeQrPaymentModal() {
     qrOverlay.classList.remove('show');
-    showUnpaidBanner();
-  }
-
-  function showUnpaidBanner() {
-    const waiting = !!qr && Date.now() < qr.deadline;
-    banner.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      <div class="ps-banner-info">
-        <strong>Ảnh của bé chưa được gửi đi</strong>
-        <p>${waiting
-          ? 'Hệ thống đang chờ thanh toán phí ảnh chọn thêm. Bạn chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh, không cần thao tác gì thêm. Danh sách ảnh tạm khoá trong lúc chờ.'
-          : 'Mã QR đã hết hạn. Bấm "Gửi yêu cầu chỉnh sửa" để nhận mã mới và hoàn tất thanh toán.'}</p>
-        ${waiting ? '<button type="button" class="ps-reopen-qr-link" id="psContinuePayBtn">Xem lại mã QR</button>' : ''}
-      </div>
-    `;
-    const continueBtn = banner.querySelector('#psContinuePayBtn');
-    if (continueBtn) {
-      continueBtn.addEventListener('click', () => {
-        if (qr) openQrPaymentModal(qr.count, qr.fee);
-      });
-    }
-    banner.classList.add('show');
+    qrShown = null;
   }
 
   document.getElementById('psQrCloseBtn').addEventListener('click', closeQrPaymentModal);
@@ -455,9 +462,86 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === qrOverlay) closeQrPaymentModal();
   });
 
+  // Nút "Thanh toán ngay" / "Xem tiến độ" nằm ở thông báo đầu trang và tab "Ảnh đã chỉnh"
+  // (vẽ lại liên tục) -> bắt sự kiện chung một chỗ.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-open-pay]')) {
+      const req = pendingRequest();
+      if (req) openQrPaymentModal(req.extraPending);
+    } else if (e.target.closest('[data-go-edited]')) {
+      switchToTab('edited');
+      const tabs = document.querySelector('.ps-tabs');
+      if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  const BANNER_ICONS = {
+    check: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    clock: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.2 2"/></svg>',
+    alert: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'
+  };
+  const goEditedBtn = (cls) => `<button type="button" class="ps-banner-btn${cls ? ' ' + cls : ''}" id="psGoEdited" data-go-edited>Xem tiến độ</button>`;
+
+  // Thông báo đầu lưới ảnh sau khi đã gửi yêu cầu. kind: 'pending' / 'checking' (còn ảnh chọn thêm
+  // chờ thanh toán / đã hết hạn, đang xác nhận lần cuối; tự chọn khi yêu cầu còn extraPending),
+  // 'paid' / 'dropped' (vừa chốt xong), còn lại là "đã gửi" (gửi trong gói, tải lại trang về sau).
+  function renderSentBanner(req, kind) {
+    if (!req) return;
+    const p = req.extraPending;
+    if (p) kind = Date.now() >= p.deadline ? 'checking' : 'pending';
+    const count = req.photoCount || (req.photos || []).length;
+    let html;
+    if (kind === 'checking') {
+      html = BANNER_ICONS.clock + `
+        <div class="ps-banner-info">
+          <strong>Đã hết ${PAY_MIN} phút, đang xác nhận thanh toán ${escHtml(p.count)} ảnh chọn thêm</strong>
+          <p>Nếu studio đã nhận được ${escHtml(fmtVnd(p.fee))} (ngân hàng có thể báo chậm vài phút), ảnh chọn thêm vẫn được gửi tới thợ. Chưa thanh toán thì các ảnh này sẽ không được gửi đi; ${escHtml(count)} ảnh trong gói vẫn được chỉnh bình thường.</p>
+          ${goEditedBtn('ps-banner-btn--ghost')}
+        </div>`;
+    } else if (kind === 'pending') {
+      html = BANNER_ICONS.clock + `
+        <div class="ps-banner-info">
+          <strong>Đã gửi ${escHtml(count)} ảnh trong gói cho thợ. Còn ${escHtml(p.count)} ảnh chọn thêm chờ thanh toán</strong>
+          <p>Thanh toán <b>${escHtml(fmtVnd(p.fee))}</b> trong <b class="ps-pay-left" data-pay-left>${fmtLeft(p.deadline - Date.now())}</b> để ${escHtml(p.count)} ảnh chọn thêm được gửi tới thợ. Quá ${PAY_MIN} phút chưa thanh toán, các ảnh này sẽ không được gửi đi; ${escHtml(count)} ảnh trong gói vẫn được chỉnh bình thường.</p>
+          <div class="ps-banner-actions">
+            <button type="button" class="ps-banner-btn" data-open-pay>Thanh toán ngay</button>
+            ${goEditedBtn('ps-banner-btn--ghost')}
+          </div>
+        </div>`;
+    } else if (kind === 'paid') {
+      html = BANNER_ICONS.check + `
+        <div class="ps-banner-info">
+          <strong>Đã nhận thanh toán, ${escHtml(req.extraCount)} ảnh chọn thêm đã được gửi tới thợ!</strong>
+          <p>Bộ ảnh gồm <strong>${escHtml(count)} ảnh</strong> (${PACKAGE_COUNT} ảnh trong gói + ${escHtml(req.extraCount)} ảnh chọn thêm: ${escHtml(fmtVnd(req.extraFee || 0))}). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</p>
+          ${goEditedBtn()}
+        </div>`;
+    } else if (kind === 'dropped' && req.extraDropped) {
+      const d = req.extraDropped;
+      html = BANNER_ICONS.alert + `
+        <div class="ps-banner-info">
+          <strong>${escHtml(d.count)} ảnh chọn thêm không được gửi đi</strong>
+          <p>Đã quá ${PAY_MIN} phút mà studio chưa nhận được thanh toán ${escHtml(fmtVnd(d.fee || 0))}, nên ${escHtml(d.count)} ảnh chọn thêm không được gửi cho thợ. ${escHtml(count)} ảnh trong gói vẫn được chỉnh bình thường. Nếu bạn đã chuyển khoản, gọi hotline ${HOTLINE} để được hỗ trợ.</p>
+          ${goEditedBtn('ps-banner-btn--ghost')}
+        </div>`;
+    } else {
+      const d = req.extraDropped;
+      kind = 'sent';
+      html = BANNER_ICONS.check + `
+        <div class="ps-banner-info">
+          <strong>Bạn đã gửi ${escHtml(count)} ảnh cho thợ chỉnh ảnh lúc ${escHtml(fmtTime(req.createdAt))}</strong>
+          <p>Danh sách ảnh đã được khóa. Theo dõi tiến độ, nhận ảnh đã chỉnh và trò chuyện với thợ ở tab "Ảnh đã chỉnh".${d ? ` ${escHtml(d.count)} ảnh chọn thêm không được gửi vì quá ${PAY_MIN} phút chưa thanh toán.` : ''}</p>
+          ${goEditedBtn()}
+        </div>`;
+    }
+    banner.className = 'ps-submitted-banner show' + (kind === 'pending' || kind === 'checking' ? ' is-pending' : kind === 'dropped' ? ' is-dropped' : '');
+    banner.dataset.kind = kind;
+    banner.innerHTML = html;
+  }
+
   let currentFilter = 'all';
 
   packageEl.textContent = PACKAGE_COUNT;
+  document.querySelectorAll('[data-pay-minutes]').forEach((el) => { el.textContent = PAY_MIN; });
 
   function updateSummary() {
     const n = selected.size;
@@ -965,7 +1049,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ===== Hàm thực thi gửi yêu cầu lên hệ thống =====
-  function executeSubmit(extraCount, extraFee, paymentStatus) {
+  // Ảnh trong gói gửi thợ ngay. Có ảnh chọn thêm thì các ảnh đó chờ thanh toán 30 phút
+  // (extraPending), mở luôn mã QR (xem khối "Ảnh chọn thêm" ở trên).
+  function executeSubmit() {
+    const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
+    // Ảnh chọn thêm = ảnh viền cam. Phòng khi số ảnh viền cam lệch số ảnh tính phí: lấy các ảnh chọn sau cùng
+    let extraIds = [...selected].filter((id) => extraPhotos.has(id));
+    if (extraIds.length !== extraCount) {
+      extraIds = [...selected].slice(PACKAGE_COUNT);
+      extraPhotos.clear();
+      extraIds.forEach((id) => extraPhotos.add(id));
+      selected.forEach((id) => setCardSelected(id, true, extraPhotos.has(id)));
+    }
+
     requestSent = true;
     clearTimeout(draftTimer);
     if (window.AlohaData && AlohaData.saveSelectionDraft && session) AlohaData.saveSelectionDraft(session.phone, null); // đã gửi -> xoá nháp
@@ -974,45 +1070,38 @@ document.addEventListener('DOMContentLoaded', () => {
     syncBulkButtons();
     submitBtn.disabled = true;
     submitBtn.textContent = 'Đã gửi yêu cầu';
+    if (!window.AlohaData || !session) return;
 
-    if (extraCount > 0) {
-      banner.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <div class="ps-banner-info">
-          <strong>Đã nhận thanh toán, ảnh của bé đã được gửi tới đội ngũ Thợ ảnh!</strong>
-          <p>Bộ ảnh gồm <strong>${selected.size} ảnh</strong> (10 ảnh có trong gói + <strong>${extraCount} ảnh chọn thêm: ${extraFee.toLocaleString('vi-VN')}đ</strong>). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</p>
-        </div>
-      `;
-    } else {
-      banner.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh (10 ảnh trong gói). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</span>
-      `;
-    }
+    const toPhoto = (id) => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) });
+    const inPackage = [...selected].filter((id) => !extraPhotos.has(id)).map(toPhoto);
+    const extras = extraIds.map(toPhoto);
+    const req = AlohaData.createEditRequest({
+      phone: session.phone,
+      customerName: session.name,
+      orderCode: record.orderCode,
+      serviceLabel: record.serviceLabel,
+      photoCount: inPackage.length,
+      extraCount: 0,
+      extraFee: 0,
+      paymentStatus: 'Trong gói 10 ảnh',
+      note: document.getElementById('psNote').value.trim(),
+      photoNotes: inPackage.filter((p) => p.note).map((p) => ({ id: p.id, note: p.note })),
+      photos: inPackage,
+      extraPending: extras.length ? {
+        code: paymentCode(extras.length),
+        count: extras.length,
+        fee: extras.length * EXTRA_PRICE,
+        deadline: Date.now() + QR_VALID_MS,
+        photos: extras
+      } : null
+    });
 
-    banner.classList.add('show');
+    renderSentBanner(req, 'sent');
+    renderEdited(true);
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    if (window.AlohaData && session) {
-      const perPhotoNotes = Array.from(selected)
-        .map(id => ({ id, note: (photoNotes.get(id) || '').trim() }))
-        .filter(n => n.note);
-      const allSelectedPhotos = Array.from(selected)
-        .map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) }));
-
-      AlohaData.createEditRequest({
-        phone: session.phone,
-        customerName: session.name,
-        orderCode: record.orderCode,
-        serviceLabel: record.serviceLabel,
-        photoCount: selected.size,
-        extraCount: extraCount,
-        extraFee: extraFee,
-        paymentStatus: paymentStatus,
-        note: document.getElementById('psNote').value.trim(),
-        photoNotes: perPhotoNotes,
-        photos: allSelectedPhotos
-      });
+    if (req.extraPending) {
+      startPayWatch();
+      openQrPaymentModal(req.extraPending);
     }
   }
 
@@ -1026,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="ps-review-sum" id="psReviewSum"></p>
       <div class="ps-review-grid" id="psReviewGrid"></div>
       <div class="ps-review-note" id="psReviewNote"></div>
+      <p class="ps-review-pay" id="psReviewPay" hidden></p>
       <p class="ps-modal-hint">Sau khi gửi, danh sách ảnh sẽ được khoá để thợ bắt đầu chỉnh.</p>
       <div class="ps-modal-actions">
         <button type="button" class="ps-modal-btn ps-modal-no" id="psReviewBack">Quay lại chỉnh</button>
@@ -1055,7 +1145,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('psReviewNote').innerHTML = general
       ? `<strong>Ghi chú chung:</strong> ${escR(general)}`
       : 'Chưa có ghi chú chung cho cả bộ. Bạn có thể thêm ở tab Yêu thích.';
-    document.getElementById('psReviewConfirm').textContent = extraCount ? `Tiếp tục thanh toán ${fmtVnd(extraFee)}` : 'Gửi cho thợ';
+    // Có ảnh chọn thêm: báo trước ảnh trong gói gửi ngay, ảnh chọn thêm phải thanh toán trong 30 phút
+    const payNote = document.getElementById('psReviewPay');
+    payNote.hidden = !extraCount;
+    payNote.innerHTML = extraCount
+      ? `<strong>${PACKAGE_COUNT} ảnh trong gói được gửi cho thợ ngay.</strong> ${extraCount} ảnh chọn thêm (${fmtVnd(extraFee)}) cần thanh toán qua mã QR trong <strong>${PAY_MIN} phút</strong> để được gửi tiếp; quá hạn chưa thanh toán, các ảnh này sẽ không được gửi đi.`
+      : '';
+    document.getElementById('psReviewConfirm').textContent = extraCount ? `Gửi & thanh toán ${fmtVnd(extraFee)}` : 'Gửi cho thợ';
     reviewModal.classList.add('show');
     document.getElementById('psReviewConfirm').focus();
   }
@@ -1068,21 +1164,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('psReviewConfirm').addEventListener('click', () => {
     closeReview();
     if (selected.size === 0 || requestSent) return;
-    const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
-    const extraFee = extraCount * EXTRA_PRICE;
-    if (extraCount > 0) {
-      // Vượt gói -> mã QR chuyển khoản cá nhân hoá (thanh toán xong mới gửi)
-      openQrPaymentModal(extraCount, extraFee);
-    } else {
-      // Trong gói 10 ảnh -> gửi ngay không cần thanh toán thêm
-      executeSubmit(0, 0, 'Trong gói 10 ảnh');
-    }
+    // Ảnh trong gói gửi ngay; vượt gói thì mở thêm mã QR cho ảnh chọn thêm
+    executeSubmit();
   });
 
-  // ===== Submit: mở bước xem lại (đang chờ thanh toán mã QR còn hạn thì mở lại mã QR) =====
+  // ===== Submit: mở bước xem lại =====
   submitBtn.addEventListener('click', () => {
     if (selected.size === 0 || requestSent) return;
-    if (qr && Date.now() < qr.deadline) { openQrPaymentModal(qr.count, qr.fee); return; }
     openReview();
   });
 
@@ -1138,6 +1226,30 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (!hasNews && dot) dot.remove();
   }
 
+  // Ô trong tab "Ảnh đã chỉnh": ảnh chọn thêm đang chờ thanh toán (kèm đồng hồ + nút thanh toán)
+  // hoặc đã không được gửi vì quá hạn. Đồng hồ [data-pay-left] do renderPayCountdown cập nhật.
+  function extraPayBox(req) {
+    const p = req.extraPending;
+    if (p && Date.now() >= p.deadline) return `
+          <div class="ps-extra-pay is-pending">
+            <strong>Đang xác nhận thanh toán ${escHtml(p.count)} ảnh chọn thêm</strong>
+            <p>Đã hết ${PAY_MIN} phút. Nếu studio đã nhận được ${escHtml(fmtVnd(p.fee))} (ngân hàng có thể báo chậm vài phút), các ảnh này vẫn được gửi tới thợ; chưa thanh toán thì sẽ không được gửi đi.</p>
+          </div>`;
+    if (p) return `
+          <div class="ps-extra-pay is-pending">
+            <strong>${escHtml(p.count)} ảnh chọn thêm đang chờ thanh toán · còn <b data-pay-left>${fmtLeft(p.deadline - Date.now())}</b></strong>
+            <p>Thanh toán ${escHtml(fmtVnd(p.fee))} trong ${PAY_MIN} phút kể từ lúc gửi để các ảnh này được gửi tới thợ. Quá hạn chưa thanh toán, ảnh chọn thêm sẽ không được gửi đi.</p>
+            <button type="button" class="ps-extra-pay-btn" data-open-pay>Thanh toán ngay</button>
+          </div>`;
+    const d = req.extraDropped;
+    if (d) return `
+          <div class="ps-extra-pay is-dropped">
+            <strong>${escHtml(d.count)} ảnh chọn thêm không được gửi đi</strong>
+            <p>Quá ${PAY_MIN} phút studio chưa nhận được thanh toán ${escHtml(fmtVnd(d.fee || 0))}. ${escHtml(req.photoCount || (req.photos || []).length)} ảnh trong gói vẫn được chỉnh bình thường. Nếu bạn đã chuyển khoản, gọi hotline ${HOTLINE} để được hỗ trợ.</p>
+          </div>`;
+    return '';
+  }
+
   function renderEdited(force) {
     const req = latestRequest();
     const open = !!editedPanel && !editedPanel.hidden;
@@ -1149,7 +1261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateEditedDot(req);
     if (!open) return;
     const msgs = req && Array.isArray(req.messages) ? req.messages : [];
-    const sig = req ? [req.id, req.status, req.resultLink || '', msgs.length, aiPending || ''].join('|') : 'none';
+    const sig = req ? [req.id, req.status, req.resultLink || '', msgs.length, aiPending || '',
+      (req.extraPending ? (Date.now() >= req.extraPending.deadline ? 'X' : 'P') : '') + (req.extraDropped ? 'D' : '') + (req.extraCount || 0)].join('|') : 'none';
     if (!force && sig === editedSig) return;
     const prevCount = editedSig.split('|')[3];
     editedSig = sig;
@@ -1182,7 +1295,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Tiến độ: số bước đã xong (1 = đã gửi, 2 = thợ chỉnh xong, 3 = đã có link)
       const doneSteps = safeLink ? 3 : req.status === 'Hoàn thành' ? 2 : 1;
       const stepper = `<ol class="ps-progress-steps" aria-label="Tiến độ chỉnh sửa">${['Đã gửi cho thợ', 'Thợ đang chỉnh ảnh', 'Nhận ảnh đã chỉnh']
-        .map((t, i) => `<li class="${i < doneSteps ? 'done' : i === doneSteps ? 'current' : ''}"><span></span>${t}</li>`).join('')}</ol>`;
+        .map((t, i) => `<li class="${i < doneSteps ? 'done' : i === doneSteps ? 'current' : ''}"><span></span>${t}</li>`).join('')}</ol>`
+        + extraPayBox(req);
       if (safeLink) {
         resultBody.innerHTML = stepper + `
           <a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
@@ -1358,6 +1472,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sentPhotos = Array.isArray(req.photos) ? req.photos : [];
     // Yêu cầu cũ chưa lưu cờ isExtra: ảnh từ thứ (gói + 1) trở đi là ảnh vượt gói
     const hasExtraFlag = sentPhotos.some((p) => 'isExtra' in p);
+    // Ảnh chọn thêm còn chờ thanh toán: vẫn hiện đã chọn (viền cam) như lúc gửi
+    const pendingPhotos = req.extraPending && Array.isArray(req.extraPending.photos) ? req.extraPending.photos : [];
     sentPhotos.forEach((p, i) => {
       if (!photoById[p.id]) return;
       const extra = hasExtraFlag ? !!p.isExtra : i >= PACKAGE_COUNT;
@@ -1366,25 +1482,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p.note) photoNotes.set(p.id, p.note);
       setCardSelected(p.id, true, extra);
     });
+    pendingPhotos.forEach((p) => {
+      if (!photoById[p.id]) return;
+      selected.add(p.id);
+      extraPhotos.add(p.id);
+      if (p.note) photoNotes.set(p.id, p.note);
+      setCardSelected(p.id, true, true);
+    });
     extraModeActive = extraPhotos.size > 0;
     const noteEl = document.getElementById('psNote');
     if (noteEl) { noteEl.value = req.note || ''; noteEl.readOnly = true; }
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
     submitBtn.textContent = 'Đã gửi yêu cầu';
-    const count = req.photoCount || sentPhotos.length;
-    banner.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      <div class="ps-banner-info">
-        <strong>Bạn đã gửi ${escHtml(count)} ảnh cho thợ chỉnh ảnh lúc ${escHtml(fmtTime(req.createdAt))}</strong>
-        <p>Danh sách ảnh đã được khóa. Theo dõi tiến độ, nhận ảnh đã chỉnh và trò chuyện với thợ ở tab "Ảnh đã chỉnh".</p>
-        <button type="button" class="ps-banner-btn" id="psGoEdited">Xem tiến độ</button>
-      </div>`;
-    banner.querySelector('#psGoEdited').addEventListener('click', () => {
-      switchToTab('edited');
-      const tabs = document.querySelector('.ps-tabs');
-      if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    banner.classList.add('show');
+    renderSentBanner(req, 'sent');
+    // Còn ảnh chọn thêm chờ thanh toán -> đếm tiếp; đã quá hạn khi tải lại thì kiểm tra lần cuối rồi chốt
+    if (req.extraPending) startPayWatch();
   }
   restoreSentRequest();
 
@@ -1425,12 +1537,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   restoreDraft();
 
-  // Cho chuông thông báo (js/script.js) mở thẳng tab "Ảnh đã chỉnh"
+  // Cho chuông thông báo (js/script.js) mở thẳng tab "Ảnh đã chỉnh" / mã QR ảnh chọn thêm
   window.AlohaPhotos = {
     openEditedTab() {
       switchToTab('edited');
       const tabs = document.querySelector('.ps-tabs');
       if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    openPayment() {
+      const req = pendingRequest();
+      if (req) openQrPaymentModal(req.extraPending); else this.openEditedTab();
     }
   };
   const psNoteEl = document.getElementById('psNote');

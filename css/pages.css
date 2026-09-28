@@ -1752,3 +1752,51 @@ body.lightbox-open { overflow: hidden; }
 .ps-review-photo-note { overflow-wrap: anywhere; }
 .ps-review-note strong { color: var(--navy-900); }
 .ps-modal--review .ps-modal-hint { text-align: center; margin: 10px 0 14px; }
+
+/* ===== Ảnh chọn thêm chờ thanh toán 30 phút (js/chon-anh.js, 2026-09-28) =====
+   Ảnh trong gói đã gửi thợ; ảnh chọn thêm chờ thanh toán (viền cam = màu ảnh chọn thêm) hoặc
+   đã không được gửi vì quá hạn. Thông báo "còn phải làm" dùng nền trắng viền cam để khác hẳn
+   thông báo "đã xong" nền hồng đậm. */
+.ps-review-pay {
+  margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff4ec; border: 1px solid #ffd2b8;
+  font-size: 13px; line-height: 1.5; color: var(--navy-700);
+}
+.ps-review-pay strong { color: #c2410c; }
+.ps-submitted-banner.is-pending,
+.ps-submitted-banner.is-dropped {
+  align-items: flex-start; background: var(--white); color: var(--navy-900); font-weight: 500;
+  border: 1.5px solid #ffb893; box-shadow: 0 10px 28px rgba(255, 107, 53, 0.12);
+}
+.ps-submitted-banner.is-dropped { background: #fff8fb; border-color: var(--pink-200); box-shadow: none; }
+.ps-submitted-banner.is-pending > svg { color: #ea580c; margin-top: 1px; }
+.ps-submitted-banner.is-dropped > svg { color: var(--pink-600); margin-top: 1px; }
+.ps-submitted-banner.is-pending .ps-banner-info p,
+.ps-submitted-banner.is-dropped .ps-banner-info p { color: var(--navy-700); }
+.ps-pay-left {
+  display: inline-block; padding: 0 7px; border-radius: 6px; background: #fff1e8; color: #ea580c;
+  font-variant-numeric: tabular-nums;
+}
+.ps-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ps-submitted-banner.is-pending .ps-banner-btn:not(.ps-banner-btn--ghost) { background: var(--pink-600); color: var(--white); }
+.ps-banner-btn--ghost { background: transparent; color: var(--pink-600); box-shadow: inset 0 0 0 1.5px var(--pink-200); }
+.ps-banner-btn--ghost:hover { background: var(--pink-50); }
+
+.ps-extra-pay {
+  max-width: 460px; margin: 0 auto 16px; padding: 12px 14px; border-radius: 12px; text-align: left;
+  font-size: 13px; line-height: 1.55;
+}
+.ps-extra-pay.is-pending { background: #fff4ec; border: 1px solid #ffd2b8; }
+.ps-extra-pay.is-dropped { background: var(--pink-50); border: 1px solid var(--pink-100); }
+.ps-extra-pay strong { display: block; color: var(--navy-900); margin-bottom: 2px; }
+.ps-extra-pay b[data-pay-left] { color: #ea580c; font-variant-numeric: tabular-nums; }
+.ps-extra-pay p { margin: 0; color: var(--navy-700); }
+.ps-extra-pay-btn {
+  margin-top: 10px; padding: 7px 16px; border: none; border-radius: var(--radius-pill);
+  background: var(--pink-600); color: var(--white); font-family: var(--font-body); font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: transform .1s ease, box-shadow .2s ease;
+}
+.ps-extra-pay-btn:hover { box-shadow: 0 4px 12px rgba(224, 65, 122, 0.3); }
+.ps-extra-pay-btn:active { transform: scale(.97); }
+@media (max-width: 560px) {
+  .ps-submitted-banner.is-pending, .ps-submitted-banner.is-dropped { padding: 14px 16px; gap: 10px; }
+}

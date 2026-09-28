@@ -92,9 +92,77 @@
       resultLink: '',
       resultLinkAt: null,
       messages: [],
-      customerSeenEditedSig: ''
+      customerSeenEditedSig: '',
+      // Ảnh chọn thêm (vượt gói) chờ thanh toán (người dùng chốt 2026-09-28): 10 ảnh trong gói
+      // gửi thợ ngay, ảnh chọn thêm nằm ở đây và chỉ vào `photos` khi khách thanh toán trong hạn.
+      // { code, count, fee, deadline, photos: [{id, src, note, isExtra}] } | null. Xem settleExtraPayment.
+      extraPending: data.extraPending || null,
+      // Quá hạn chưa thanh toán -> ảnh chọn thêm không được gửi: { count, fee, at } | null
+      extraDropped: null
     };
     db.editRequests.push(req);
+    writeDb(db);
+    return req;
+  }
+
+  // Ảnh chọn thêm: hạn thanh toán kể từ lúc gửi (người dùng chốt 2026-09-28) + thời gian chờ thêm
+  // sau hạn cho ngân hàng/SePay báo tiền về chậm, máy chủ Render đang khởi động. Dùng chung trang
+  // khách (js/chon-anh.js) + trang quản trị (crm/js/admin.js).
+  const EXTRA_PAY_MINUTES = 30;
+  const EXTRA_PAY_LATE_MS = 2 * 60 * 1000;
+
+  // Ảnh chọn thêm còn trong hạn thanh toán (chưa quá deadline, chưa chốt).
+  function extraPendingActive(req) {
+    return !!(req && req.extraPending && Date.now() < req.extraPending.deadline);
+  }
+
+  // Hỏi máy chủ thanh toán (server/ /api/payment-status, SePay báo tiền về) xem ảnh chọn thêm
+  // đã được trả chưa. Chỉ tính tiền về trước hạn + thời gian chờ báo chậm.
+  // -> 'paid' | 'unpaid' | 'error' (không kết nối được).
+  async function checkExtraPayment(apiBase, p) {
+    try {
+      const url = `${apiBase}/api/payment-status?code=${encodeURIComponent(p.code)}&amount=${p.fee}&before=${p.deadline + EXTRA_PAY_LATE_MS}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      return data.paid ? 'paid' : 'unpaid';
+    } catch (e) {
+      return 'error';
+    }
+  }
+  // Quá hạn mà chưa chốt: có tiền -> gửi; còn trong thời gian chờ báo chậm -> chờ tiếp;
+  // hết thời gian chờ -> không gửi. -> 'paid' | 'drop' | 'wait'
+  function extraExpiredDecision(p, result) {
+    if (result === 'paid') return 'paid';
+    return Date.now() >= p.deadline + EXTRA_PAY_LATE_MS ? 'drop' : 'wait';
+  }
+
+  // Chốt ảnh chọn thêm đang chờ thanh toán: paid = true -> đưa ảnh vào yêu cầu (thợ thấy và
+  // chỉnh), false (quá hạn chưa thanh toán) -> bỏ, ghi lại extraDropped để 2 bên đều biết.
+  // Gọi lại lần nữa (tab khác đã chốt) thì không làm gì.
+  function settleExtraPayment(requestId, paid, paymentStatus) {
+    const db = readDb();
+    const req = db.editRequests.find(r => r.id === requestId);
+    if (!req || !req.extraPending) return req || null;
+    const p = req.extraPending;
+    if (paid) {
+      if (!Array.isArray(req.photos)) req.photos = [];
+      if (!Array.isArray(req.photoNotes)) req.photoNotes = [];
+      const have = new Set(req.photos.map(x => x.id));
+      (p.photos || []).forEach((ph) => {
+        if (have.has(ph.id)) return;
+        req.photos.push(Object.assign({}, ph, { isExtra: true }));
+        if (ph.note) req.photoNotes.push({ id: ph.id, note: ph.note });
+      });
+      req.photoCount = req.photos.length;
+      req.extraCount = p.count;
+      req.extraFee = p.fee;
+      req.paymentStatus = paymentStatus || 'Đã thanh toán';
+      req.staffSeen = false; // có thêm ảnh mới -> báo lại cho Thợ ảnh
+    } else {
+      req.extraDropped = { count: p.count, fee: p.fee, at: Date.now() };
+    }
+    req.extraPending = null;
     writeDb(db);
     return req;
   }
@@ -116,6 +184,8 @@
     // "Tải ảnh đã sửa lên là Hoàn thành": chưa gửi link ảnh đã chỉnh thì chưa được Hoàn thành
     // (người dùng chốt 2026-09-27, xem rules/workflow.md)
     if (req.status === 'Đang thực hiện' && !req.resultLink) return req;
+    // Ảnh chọn thêm chưa chốt (còn hạn thanh toán / đang xác nhận) có thể được gửi thêm -> chờ chốt
+    if (req.status === 'Đang thực hiện' && req.extraPending) return req;
     const idx = STATUS_FLOW.indexOf(req.status);
     if (idx >= 0 && idx < STATUS_FLOW.length - 1) {
       req.status = STATUS_FLOW[idx + 1];
@@ -263,6 +333,12 @@
     getCustomerRecord,
     createEditRequest,
     getEditRequests,
+    EXTRA_PAY_MINUTES,
+    EXTRA_PAY_LATE_MS,
+    extraPendingActive,
+    checkExtraPayment,
+    extraExpiredDecision,
+    settleExtraPayment,
     advanceRequestStatus,
     togglePhotoDone,
     markStaffSeen,

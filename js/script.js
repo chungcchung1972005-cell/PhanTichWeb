@@ -212,6 +212,17 @@ document.addEventListener('DOMContentLoaded', () => {
     list.innerHTML = myRequests.map((r) => {
       const news = editedNews(r);
       let html = '';
+      // Ảnh chọn thêm chờ thanh toán (30 phút kể từ lúc gửi, js/chon-anh.js): nhắc ở đầu danh sách
+      if (AlohaData.extraPendingActive && AlohaData.extraPendingActive(r)) {
+        const p = r.extraPending;
+        const until = new Date(p.deadline).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        html += `
+        <button type="button" class="nav-util-item notif-pay notif-go-pay">
+          <strong>Còn ${esc(p.count)} ảnh chọn thêm chờ thanh toán</strong>
+          <span class="sub">Thanh toán ${esc(Number(p.fee).toLocaleString('vi-VN'))}đ trước ${esc(until)}, quá hạn các ảnh này sẽ không được gửi đi</span>
+          <span class="notif-status">Bấm để thanh toán</span>
+        </button>`;
+      }
       if (news.replyNew && news.lastReply) {
         const text = news.lastReply.text.length > 70 ? news.lastReply.text.slice(0, 70) + '...' : news.lastReply.text;
         html += `
@@ -237,14 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return html + `
         <div class="nav-util-item${doneHi ? ' notif-highlight' : ''}">
           <strong>${doneHi ? 'Ảnh đã sửa xong · ' : ''}${esc(r.orderCode)}</strong>
-          <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh</span>
+          <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh${r.extraDropped ? ` · ${esc(r.extraDropped.count)} ảnh chọn thêm không được gửi (quá hạn thanh toán)` : ''}</span>
           <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
         </div>`;
       }
       return html + `
       <div class="nav-util-item">
         <strong>Yêu cầu chỉnh sửa ${esc(r.orderCode)}</strong>
-        <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh</span>
+        <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh${r.extraDropped ? ` · ${esc(r.extraDropped.count)} ảnh chọn thêm không được gửi (quá hạn thanh toán)` : ''}</span>
         <span class="notif-status">${esc(r.status)}</span>
       </div>`;
     }).join('');
@@ -263,14 +274,16 @@ document.addEventListener('DOMContentLoaded', () => {
     dot.hidden = !freshRequests.some((r) => (r.status === 'Hoàn thành' && !r.customerSeenDone)
       || editedNews(r).linkNew || editedNews(r).replyNew);
   }
-  // Bấm tin "thợ trả lời" / "ảnh đã chỉnh" -> đóng chuông, mở tab "Ảnh đã chỉnh" trong "Ảnh của tôi"
+  // Bấm tin "thợ trả lời" / "ảnh đã chỉnh" -> đóng chuông, mở tab "Ảnh đã chỉnh" trong "Ảnh của tôi";
+  // bấm tin "ảnh chọn thêm chờ thanh toán" -> mở mã QR thanh toán
   const notifListEl = document.getElementById('notifList');
   if (notifListEl) notifListEl.addEventListener('click', (e) => {
-    if (!e.target.closest('.notif-go-edited')) return;
+    const goPay = !!e.target.closest('.notif-go-pay');
+    if (!goPay && !e.target.closest('.notif-go-edited')) return;
     document.querySelectorAll('.nav-util-panel.open').forEach((p) => p.classList.remove('open'));
     const notifBtn = document.getElementById('notifBtn');
     if (notifBtn) notifBtn.setAttribute('aria-expanded', 'false');
-    const openTab = () => { if (window.AlohaPhotos) window.AlohaPhotos.openEditedTab(); };
+    const openTab = () => { if (window.AlohaPhotos) window.AlohaPhotos[goPay ? 'openPayment' : 'openEditedTab'](); };
     if (location.hash !== '#/chon-anh') { location.hash = '#/chon-anh'; setTimeout(openTab, 150); } else openTab();
   });
   renderNotifications(false);

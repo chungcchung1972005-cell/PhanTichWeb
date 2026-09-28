@@ -815,12 +815,73 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2026-09-27: "tải ảnh đã sửa lên là Hoàn thành", xem rules/workflow.md).
   function advanceBlockReason(req) {
     if (req.status !== 'Đang thực hiện') return '';
+    // Ảnh chọn thêm chưa chốt (còn hạn thanh toán / đang xác nhận) có thể được gửi thêm vào yêu cầu
+    const s = extraPayState(req);
+    if (s && s.state === 'active') return `Khách còn ${s.count} ảnh chọn thêm đang chờ thanh toán (tối đa ${PAY_MIN} phút), chờ xong mới chuyển sang Hoàn thành`;
+    if (s && s.state === 'checking') return `Đang xác nhận thanh toán ${s.count} ảnh chọn thêm của khách, chờ xong mới chuyển sang Hoàn thành`;
     const total = (req.photos || []).length;
     if (total > 0 && getDoneIds(req).length !== total) return 'Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước';
     if (!req.isStatic && !req.resultLink) return 'Cần gửi link ảnh đã chỉnh cho khách trước khi chuyển sang Hoàn thành';
     return '';
   }
   function canAdvance(req) { return !advanceBlockReason(req); }
+
+  // Ảnh chọn thêm của khách (js/chon-anh.js, 2026-09-28): ảnh trong gói tới thợ ngay, ảnh chọn
+  // thêm chỉ vào yêu cầu khi khách thanh toán trong hạn, quá hạn thì không chỉnh.
+  // state: 'active' (còn hạn) | 'checking' (hết hạn, đang xác nhận tiền về) | 'dropped' (không gửi)
+  const PAY_MIN = (window.AlohaData && AlohaData.EXTRA_PAY_MINUTES) || 30;
+  function extraPayState(req) {
+    if (req.isStatic) return null;
+    const p = req.extraPending;
+    if (p) return { state: Date.now() < p.deadline ? 'active' : 'checking', count: p.count, fee: p.fee, deadline: p.deadline };
+    if (req.extraDropped) return { state: 'dropped', count: req.extraDropped.count, fee: req.extraDropped.fee };
+    return null;
+  }
+  function extraPayFlag(req) {
+    const s = extraPayState(req);
+    if (!s) return '';
+    if (s.state === 'active') return `<span class="kanban-card-flag pay">+${escHtml(s.count)} ảnh thêm chờ khách thanh toán</span>`;
+    if (s.state === 'checking') return `<span class="kanban-card-flag pay">+${escHtml(s.count)} ảnh thêm đang xác nhận thanh toán</span>`;
+    return `<span class="kanban-card-flag dropped">${escHtml(s.count)} ảnh thêm không gửi (khách không thanh toán)</span>`;
+  }
+  function extraPayNote(req) {
+    const s = extraPayState(req);
+    if (!s) return '';
+    const fee = (s.fee || 0).toLocaleString('vi-VN') + 'đ';
+    const box = (bg, line, color, html) => `<p class="kanban-modal-note" style="background:${bg};border-left:3px solid ${line};color:${color};font-style:normal;padding:8px 12px;border-radius:6px;margin-bottom:12px;">${html}</p>`;
+    if (s.state === 'active') {
+      const until = new Date(s.deadline).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      return box('#fff4ec', '#ea580c', '#9a3412', `<strong>+${escHtml(s.count)} ảnh chọn thêm đang chờ khách thanh toán</strong> (${fee}, hạn ${escHtml(until)}). Khách thanh toán trong hạn thì ảnh tự thêm vào yêu cầu này; quá hạn thì không chỉnh các ảnh đó.`);
+    }
+    if (s.state === 'checking') {
+      return box('#fff4ec', '#ea580c', '#9a3412', `<strong>Đang xác nhận thanh toán ${escHtml(s.count)} ảnh chọn thêm</strong> (${fee}): đã hết hạn, hệ thống đang chờ ngân hàng báo tiền về (tối đa vài phút) rồi mới chốt có chỉnh các ảnh đó hay không.`);
+    }
+    return box('#f4f4f7', '#9a98ab', '#46435c', `<strong>${escHtml(s.count)} ảnh chọn thêm không được gửi:</strong> khách không thanh toán ${fee} trong ${PAY_MIN} phút. Chỉ chỉnh các ảnh trong gói bên dưới.`);
+  }
+
+  // Ảnh chọn thêm đã hết hạn mà trang của khách chưa chốt (vd khách đã đóng trình duyệt): trang
+  // này hỏi máy chủ thanh toán rồi chốt thay (cùng quy tắc với trang khách, js/data-store.js), để
+  // yêu cầu không treo mãi và thợ biết chắc có phải chỉnh các ảnh đó không.
+  const extraChecking = new Set();
+  const extraLastCheck = {};
+  function settleExpiredExtras() {
+    if (!window.AlohaData || !window.AlohaAuth || !AlohaAuth.API_BASE) return;
+    AlohaData.getEditRequests().forEach(async (r) => {
+      const p = r.extraPending;
+      if (!p || Date.now() < p.deadline || extraChecking.has(r.id)) return;
+      if (Date.now() - (extraLastCheck[r.id] || 0) < 4000) return;
+      extraChecking.add(r.id);
+      extraLastCheck[r.id] = Date.now();
+      const result = await AlohaData.checkExtraPayment(AlohaAuth.API_BASE, p);
+      extraChecking.delete(r.id);
+      const fresh = AlohaData.getEditRequests().find(x => x.id === r.id);
+      if (!fresh || !fresh.extraPending || fresh.extraPending.code !== p.code) return; // nơi khác đã chốt
+      const decision = AlohaData.extraExpiredDecision(p, result);
+      if (decision === 'wait') return;
+      AlohaData.settleExtraPayment(r.id, decision === 'paid', decision === 'paid' ? 'Đã thanh toán (tự động xác nhận qua SePay)' : '');
+      renderEditRequests();
+    });
+  }
 
   function advance(req) {
     if (req.isStatic) {
@@ -895,6 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
       list.forEach((req, i) => {
         const doneCount = getDoneIds(req).length;
         const total = (req.photos || []).length;
+        const extraFlag = extraPayFlag(req);
         const card = document.createElement('div');
         card.className = 'kanban-card';
         card.tabIndex = 0;
@@ -910,7 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${req.extraCount > 0 ? `<div style="margin:4px 0;"><span class="badge" style="background:#fdf2f8;color:#e91e8c;border:1px solid rgba(233,30,140,.3);font-size:11px;font-weight:700;">+${req.extraCount} ảnh thêm (${(req.extraFee || 0).toLocaleString('vi-VN')}đ)</span></div>` : ''}
           <span class="kanban-card-time">Gửi ${formatRelativeTime(req.createdAt)}</span>
           ${req.photoNotes && req.photoNotes.length ? `<span class="kanban-card-notes-hint">+${req.photoNotes.length} ảnh có ghi chú riêng</span>` : ''}
-          ${!req.isStatic && (awaitingReply(req) || req.resultLink) ? `<div class="kanban-card-flags">${awaitingReply(req) ? '<span class="kanban-card-flag reply">Khách cần thợ trả lời</span>' : ''}${req.resultLink ? '<span class="kanban-card-flag link">Đã gửi link ảnh</span>' : ''}</div>` : ''}
+          ${!req.isStatic && (awaitingReply(req) || req.resultLink || extraFlag) ? `<div class="kanban-card-flags">${extraFlag}${awaitingReply(req) ? '<span class="kanban-card-flag reply">Khách cần thợ trả lời</span>' : ''}${req.resultLink ? '<span class="kanban-card-flag link">Đã gửi link ảnh</span>' : ''}</div>` : ''}
           ${total > 0 ? `
           <div class="kanban-progress-track"><div class="kanban-progress-fill${doneCount === total ? ' done' : ''}" style="width:${Math.round(doneCount / total * 100)}%"></div></div>
           <span class="kanban-progress-label">Đã xong ${doneCount}/${total} ảnh</span>` : ''}
@@ -1095,6 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">${escHtml(req.customerName)} · ${escHtml(req.serviceLabel || 'Chụp ảnh')} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${escHtml(req.status)}</span></p>
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
+      ${extraPayNote(req)}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
@@ -1143,13 +1206,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   renderEditRequests();
+  settleExpiredExtras();
   // Mô phỏng "real-time" trong cùng trình duyệt: nếu Khách vừa gửi yêu cầu mới
   // (hoặc dữ liệu đổi ở tab/khung khác), board + badge "chưa xem" trên tab tự
   // cập nhật mà không cần tải lại trang. Không đụng vào modal đang mở (nếu có)
   // để không ngắt thao tác Thợ ảnh đang làm dở. KHÔNG đồng bộ được giữa các
   // thiết bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
-  setInterval(() => { renderEditRequests(); refreshModalChat(); }, 5000);
+  setInterval(() => { renderEditRequests(); refreshModalChat(); settleExpiredExtras(); }, 5000);
   // Khách nhắn / dữ liệu đổi ở tab khác cùng trình duyệt -> cập nhật ngay
   window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
 
