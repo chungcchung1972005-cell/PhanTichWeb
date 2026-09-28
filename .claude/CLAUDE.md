@@ -25,9 +25,10 @@ Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`
 
 **Quyết định đã chốt gần đây:** logo là wordmark chữ "aloha ♥ BABY STUDIO" (không dùng biểu tượng máy ảnh); khối đầu trang = "DỊCH VỤ" theo bố cục alohababy.vn (tiêu đề giữa, dòng 5 dịch vụ, lưới ảnh 3 cột ô Bầu cao gấp đôi; đổi 2026-09-27), không có danh sách đánh số 01-05; album 3 tầng Dịch vụ -> Concept -> Ảnh (`js/albums.js`); tầng nội dung chi tiết `#/noi-dung/<slug>` (`js/content.js`); nội dung chi tiết xem công khai; **từ 2026-09-28: 5 ảnh + dòng dịch vụ đầu trang mở album `#/album/<dịch vụ>` (bắt đăng nhập, gate ở `js/albums.js`), các thẻ album khác xem công khai; chatbot AI BẬT LẠI: trang chủ máy tính tự mở (điện thoại: bong bóng lời chào), lời chào đổi theo album dịch vụ/concept đang xem, chưa đăng nhập bấm vào chatbot -> đăng nhập; nút "Nhắn Sale" chuyển sang chat thật với Sale NGAY TRONG khung chatbot, Sale nhận tin hệ thống tóm tắt khách đã xem/hỏi gì. Chỉ Đặt lịch còn TẠM TẮT bằng cờ `js/features.js`** (chỉ ẩn, code giữ nguyên để bật lại).
 
-**Phiên 2026-09-28 đã làm (CHƯA commit/push; chi tiết: `docs/changelog.md`):**
+**Phiên 2026-09-28 đã làm (đã commit + push lên nhánh `Chungcook`, CHƯA có PR vào `main`; chi tiết: `docs/changelog.md`):**
 1. 5 ảnh + dòng dịch vụ đầu trang -> đăng nhập -> album dịch vụ -> concept -> ảnh; bật lại toàn bộ trang album.
 2. Bật lại chatbot AI: tự mở ở trang chủ (máy tính) / bong bóng (điện thoại), lời chào đổi theo album dịch vụ/concept; "Nhắn Sale" chat tiếp với Sale ngay trong khung chatbot; Sale nhận tóm tắt hành trình khách (endpoint server mới `/me/handoff`, Render cần deploy lại khi merge). Test `test-chatbot-greeting` 18/18, `test-sale-chat` 52/52. Câu trả lời Gemini thật chưa kiểm lại trong phiên này.
+3. Đổi ảnh bìa 5 ô Dịch vụ đầu trang chủ sang bộ ảnh Pexels tông sáng hồng kem: `images/services/<dịch vụ>.jpg` (+ `sources.json`), khai báo bằng trường `cover` trong `js/albums.js`; ảnh cũ `images/service-*.jpg` giữ cho album concept.
 
 **Phiên 2026-09-27 đã làm (chi tiết từng lượt: `docs/changelog.md`):**
 1. Khối đầu trang chủ theo bố cục "DỊCH VỤ" của alohababy.vn (tiêu đề giữa + dòng 5 dịch vụ + lưới ảnh 3 cột).
