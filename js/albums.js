@@ -25,6 +25,7 @@
     {
       slug: 'newborn',
       name: 'Newborn',
+      cover: 'images/services/newborn.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Những ngày đầu đời của bé, chụp khi bé ngủ sâu trong phòng được giữ ấm, tạo dáng nhẹ nhàng và an toàn.',
       concepts: [
         { slug: 'cuon-u', name: 'Cuộn ủ (wrap) cổ điển', desc: 'Bé được quấn ủ gọn trong vải mềm, tư thế ngủ an toàn và ấm áp.',
@@ -112,6 +113,7 @@
     {
       slug: 'bau',
       name: 'Bầu',
+      cover: 'images/services/bau.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Lưu giữ dáng bụng tròn của mẹ, trong studio hoặc ngoại cảnh, tuỳ sức khoẻ và mong muốn của mỗi mẹ.',
       concepts: [
         { slug: 'ngoai-canh', name: 'Ngoại cảnh thiên nhiên', desc: 'Ánh sáng tự nhiên, cây lá và không gian thoáng.',
@@ -197,6 +199,7 @@
     {
       slug: 'sinh-nhat',
       name: 'Sinh nhật',
+      cover: 'images/services/sinh-nhat.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Thôi nôi và sinh nhật của bé, kết hợp bánh kem, bóng bay và backdrop theo yêu cầu.',
       concepts: [
         { slug: 'bong-bay', name: 'Rực rỡ bóng bay', desc: 'Bóng bay, bánh kem và backdrop nhiều màu cho ngày đặc biệt.',
@@ -274,6 +277,7 @@
     {
       slug: 'be-lon',
       name: 'Bé lớn',
+      cover: 'images/services/be-lon.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Bé từ khoảng 2 đến 10 tuổi, ngoại cảnh hoặc trong studio, có thể chụp thêm cùng bố mẹ trong buổi.',
       concepts: [
         { slug: 'ngoai-canh', name: 'Ngoại cảnh công viên, biển', desc: 'Bé vui chơi tự nhiên ngoài trời, ảnh đầy năng lượng.',
@@ -358,6 +362,7 @@
     {
       slug: 'gia-dinh',
       name: 'Gia đình',
+      cover: 'images/services/gia-dinh.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Không giới hạn số thành viên, chụp được nhiều thế hệ trong cùng một buổi.',
       concepts: [
         { slug: 'dong-phuc', name: 'Đồng phục tông màu', desc: 'Cả nhà phối trang phục cùng tông trên phông studio.',
@@ -444,7 +449,9 @@
   const photoOf = (label, p, i) => (typeof p === 'string'
     ? { src: p, alt: `Ảnh minh hoạ ${label} ${i + 1}` }
     : { src: p.src, alt: p.alt || `Ảnh minh hoạ ${label} ${i + 1}` });
+  // Ảnh bìa: service.cover nếu có, không thì ảnh đầu của concept đầu tiên.
   const coverOf = (service) => {
+    if (service.cover) return service.cover;
     const first = conceptsOf(service)[0];
     return first ? photoOf(service.name, first.photos[0], 0).src : null;
   };
