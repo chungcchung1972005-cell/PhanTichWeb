@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/admin.css?v=20260927m">
+<link rel="stylesheet" href="../css/admin.css?v=20260928m">
 </head>
 <body>
 
@@ -85,6 +85,10 @@
     <a href="#anh" data-roles="sep tho-anh">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
       <span>Ảnh &amp; chỉnh sửa</span>
+    </a>
+    <a href="#hoan-tat" data-roles="sep tho-anh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>
+      <span>Đã hoàn tất</span>
     </a>
     <a href="#doanh-thu" data-roles="sep">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18V9"/><path d="M4 14.5l4.5-4 3.5 3 7.5-7"/><path d="M17 5.5h3v3"/></svg>
@@ -271,29 +275,101 @@
     </div>
 
     <!-- Block Sếp + Thợ ảnh: Quản lý chụp & chỉnh ảnh -->
+    <!-- Layout 3 hàng ngang theo mức độ ưu tiên (2026-09-27):
+         Hàng 1 = Gấp (urgent), Hàng 2 = Trung bình (medium), Hàng 3 = Chưa gấp (normal).
+         Mỗi hàng hiển thị 3 card đầu + nút "Xem thêm" full-width bên dưới.
+         Toàn bộ card do crm/js/admin.js render động từ STATIC_REQUESTS (dữ liệu minh hoạ)
+         và AlohaData (yêu cầu thật). Modal chi tiết bên dưới vẫn giữ nguyên.
+         Trường priority: 'urgent' | 'medium' | 'normal' quyết định xếp vào hàng nào. -->
     <section class="admin-section" id="anh" data-roles="sep tho-anh">
-      <h2>Quản lý chụp & chỉnh ảnh</h2>
-      <p class="sub">Bấm vào 1 thẻ để xem chi tiết: ảnh nào cần làm, thứ tự ưu tiên (đến trước làm trước), tiến độ Thợ ảnh đã xử lý xong bao nhiêu ảnh.</p>
-      <!-- Toàn bộ thẻ (kể cả dữ liệu nền minh hoạ) đều do crm/js/admin.js render
-           động, không còn thẻ tĩnh hard-code trong HTML - để mọi thẻ đều có đủ
-           dữ liệu ảnh/tiến độ và bấm được như nhau. Yêu cầu thật của khách đọc
-           từ js/data-store.js (AlohaData), thẻ minh hoạ nền là STATIC_REQUESTS
-           trong admin.js (không lưu localStorage). id="kanbanCol-..." để JS
-           biết chèn thẻ vào cột nào. Mỗi cột có 1 màu nhận diện riêng (định
-           nghĩa ở css/admin.css, tái dùng đúng bảng màu badge trạng thái đã có
-           sẵn) + icon + số lượng để phân biệt được ngay từ xa. Chỉ 3 giai đoạn
-           (bỏ "Chờ QC" riêng 2026-09-19 - Thợ ảnh tự kiểm tra ảnh trước khi tải
-           lên, không qua vai trò QC riêng - xem js/data-store.js STATUS_FLOW). -->
-      <div class="kanban">
-        <div class="kanban-col" id="kanbanCol-cho-xu-ly">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Chờ xử lý<span class="kanban-col-count" id="kanbanCount-cho-xu-ly"></span></h4>
+      <h2>Quản lý chụp &amp; chỉnh ảnh</h2>
+      <p class="sub">Chọn thợ ảnh để xem mã khách hàng được phân công và tiến độ xử lý. Bấm vào 1 thẻ để xem chi tiết ảnh.</p>
+
+      <!-- Bộ chọn thợ ảnh: 3 ô đại diện Thợ 1 / Thợ 2 / Thợ 3 -->
+      <div class="photo-worker-bar" id="photoWorkerBar" role="group" aria-label="Chọn thợ ảnh">
+        <button type="button" class="photo-worker-card active" id="workerBtn-all" data-worker="all">
+          <span class="photo-worker-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="8" r="2.5"/><path d="M19.5 19a4.5 4.5 0 0 0-4.5-3.5"/></svg>
+          </span>
+          <span class="photo-worker-name">Tất cả</span>
+          <span class="photo-worker-count" id="workerCount-all"></span>
+        </button>
+        <button type="button" class="photo-worker-card" id="workerBtn-tho1" data-worker="tho1">
+          <span class="photo-worker-icon photo-worker-icon--1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          </span>
+          <span class="photo-worker-name">Thợ 1</span>
+          <span class="photo-worker-sub" id="workerName-tho1">Minh</span>
+          <span class="photo-worker-count" id="workerCount-tho1"></span>
+        </button>
+        <button type="button" class="photo-worker-card" id="workerBtn-tho2" data-worker="tho2">
+          <span class="photo-worker-icon photo-worker-icon--2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          </span>
+          <span class="photo-worker-name">Thợ 2</span>
+          <span class="photo-worker-sub" id="workerName-tho2">Nam</span>
+          <span class="photo-worker-count" id="workerCount-tho2"></span>
+        </button>
+        <button type="button" class="photo-worker-card" id="workerBtn-tho3" data-worker="tho3">
+          <span class="photo-worker-icon photo-worker-icon--3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          </span>
+          <span class="photo-worker-name">Thợ 3</span>
+          <span class="photo-worker-sub" id="workerName-tho3">Linh</span>
+          <span class="photo-worker-count" id="workerCount-tho3"></span>
+        </button>
+      </div>
+
+      <!-- Nhãn ngữ cảnh: hiện tên thợ đang xem khi không phải "Tất cả" -->
+      <div class="photo-worker-label" id="photoWorkerLabel">
+        Đang xem đơn của: <span class="pwl-name" id="photoWorkerLabelName"></span>
+      </div>
+
+      <!-- 3 hàng ngang theo mức ưu tiên, do JS render động -->
+
+      <div class="photo-rows" id="photoRows">
+
+        <!-- Hàng 1: Gấp -->
+        <div class="photo-row photo-row--urgent" id="photoRow-urgent">
+          <div class="photo-row-header">
+            <span class="photo-row-badge">🔴 Gấp</span>
+            <span class="photo-row-count" id="photoRowCount-urgent"></span>
+          </div>
+          <div class="photo-row-cards" id="photoRowCards-urgent"></div>
+          <button type="button" class="photo-row-more" id="photoRowMore-urgent" data-row="urgent" hidden>Xem thêm →</button>
         </div>
-        <div class="kanban-col" id="kanbanCol-dang-thuc-hien">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Đang thực hiện<span class="kanban-col-count" id="kanbanCount-dang-thuc-hien"></span></h4>
+
+        <!-- Hàng 2: Trung bình -->
+        <div class="photo-row photo-row--medium" id="photoRow-medium">
+          <div class="photo-row-header">
+            <span class="photo-row-badge">🟡 Trung bình</span>
+            <span class="photo-row-count" id="photoRowCount-medium"></span>
+          </div>
+          <div class="photo-row-cards" id="photoRowCards-medium"></div>
+          <button type="button" class="photo-row-more" id="photoRowMore-medium" data-row="medium" hidden>Xem thêm →</button>
         </div>
-        <div class="kanban-col" id="kanbanCol-hoan-thanh">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Hoàn thành<span class="kanban-col-count" id="kanbanCount-hoan-thanh"></span></h4>
+
+        <!-- Hàng 3: Chưa gấp -->
+        <div class="photo-row photo-row--normal" id="photoRow-normal">
+          <div class="photo-row-header">
+            <span class="photo-row-badge">🟢 Chưa gấp</span>
+            <span class="photo-row-count" id="photoRowCount-normal"></span>
+          </div>
+          <div class="photo-row-cards" id="photoRowCards-normal"></div>
+          <button type="button" class="photo-row-more" id="photoRowMore-normal" data-row="normal" hidden>Xem thêm →</button>
         </div>
+
+      </div><!-- /.photo-rows -->
+
+      <!-- Giữ lại các id kanbanCol-* ẩn để JS cũ không bị lỗi tham chiếu.
+           Phần render thật đã chuyển sang renderPhotoRows() trong admin.js. -->
+      <div style="display:none" aria-hidden="true">
+        <div id="kanbanCol-cho-xu-ly"></div>
+        <div id="kanbanCol-dang-thuc-hien"></div>
+        <div id="kanbanCol-hoan-thanh"></div>
+        <span id="kanbanCount-cho-xu-ly"></span>
+        <span id="kanbanCount-dang-thuc-hien"></span>
+        <span id="kanbanCount-hoan-thanh"></span>
       </div>
     </section>
 
@@ -305,7 +381,91 @@
       </div>
     </div>
 
+    <!-- Mini modal: Gửi link Drive ảnh đã hoàn thành cho khách (mở từ nút trên card hàng ngang) -->
+    <div class="drive-modal-overlay" id="driveModalOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="driveModalTitle">
+      <div class="drive-modal">
+        <button type="button" class="drive-modal-close" id="driveModalClose" aria-label="Đóng">&times;</button>
+        <div class="drive-modal-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </div>
+        <h3 id="driveModalTitle">Gửi link ảnh đã hoàn thành</h3>
+        <p class="drive-modal-order" id="driveModalOrder"></p>
+        <form class="drive-modal-form" id="driveModalForm" novalidate>
+          <label for="driveModalInput" class="drive-modal-label">Link thư mục Google Drive</label>
+          <div class="drive-modal-input-wrap">
+            <svg class="drive-modal-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <input type="url" id="driveModalInput" placeholder="https://drive.google.com/drive/folders/..." aria-label="Link thư mục ảnh đã chỉnh" autocomplete="off">
+          </div>
+          <p class="drive-modal-hint">Đặt thư mục ở chế độ <strong>"Bất kỳ ai có đường liên kết"</strong> để khách mở được.</p>
+          <p class="drive-modal-error" id="driveModalError" hidden>⚠️ Link phải bắt đầu bằng <code>https://</code> (vd https://drive.google.com/...)</p>
+          <div class="drive-modal-current" id="driveModalCurrent" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>
+            Khách đang thấy: <a id="driveModalCurrentLink" target="_blank" rel="noopener noreferrer"></a>
+          </div>
+          <div class="drive-modal-actions">
+            <button type="button" class="drive-modal-cancel" id="driveModalCancel">Huỷ</button>
+            <button type="submit" class="drive-modal-submit" id="driveModalSubmit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Gửi link cho khách
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Block Sếp + Thợ ảnh: Đã hoàn tất (thêm 2026-09-27) -->
+    <!-- Bảng tổng hợp các yêu cầu đã gửi link Drive và chuyển sang Hoàn thành.
+         Dữ liệu do crm/js/admin.js render động từ getAllRequests() lọc status='Hoàn thành'.
+         Popup "Xem ảnh" hiện ảnh thumbnail + note dùng overlay riêng bên dưới. -->
+    <section class="admin-section" id="hoan-tat" data-roles="sep tho-anh">
+      <h2>Đã hoàn tất</h2>
+      <p class="sub" id="completedSub">Danh sách đơn đã gửi link ảnh cho khách và chuyển sang Hoàn thành. Bấm <strong>Xem ảnh</strong> để xem lại ảnh gốc + ghi chú của khách.</p>
+
+      <!-- Thanh tóm tắt số lượng -->
+      <div class="completed-summary" id="completedSummary" hidden>
+        <span class="completed-summary-num" id="completedCount">0</span>
+        <span class="completed-summary-label">đơn hoàn tất</span>
+        <span class="completed-summary-sep">·</span>
+        <span class="completed-summary-paid" id="completedPaidCount">0</span>
+        <span class="completed-summary-label">đã thanh toán</span>
+      </div>
+
+      <div class="data-table-wrap completed-table-wrap">
+        <table class="data-table completed-table" id="completedTable">
+          <thead>
+            <tr>
+              <th class="ct-stt">STT</th>
+              <th class="ct-code">Mã khách hàng</th>
+              <th class="ct-worker">Thợ phụ trách</th>
+              <th class="ct-shoot">Ngày chụp</th>
+              <th class="ct-done">Ngày hoàn thành</th>
+              <th class="ct-photos">Ảnh đã chỉnh</th>
+              <th class="ct-link">Link ảnh</th>
+              <th class="ct-pay">Thanh toán</th>
+            </tr>
+          </thead>
+          <tbody id="completedTableBody">
+            <!-- JS render động -->
+          </tbody>
+        </table>
+        <p class="completed-empty" id="completedEmpty">Chưa có đơn nào hoàn tất. Sau khi Thợ ảnh gửi link Drive và chuyển sang Hoàn thành, đơn sẽ tự động xuất hiện ở đây.</p>
+      </div>
+    </section>
+
+    <!-- Popup xem ảnh gốc + note (mở từ cột "Xem ảnh" trong bảng Đã hoàn tất) -->
+    <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="photoPreviewTitle">
+      <div class="photo-preview-modal">
+        <div class="photo-preview-head">
+          <h3 id="photoPreviewTitle">Ảnh đã chỉnh</h3>
+          <button type="button" class="photo-preview-close" id="photoPreviewClose" aria-label="Đóng">&times;</button>
+        </div>
+        <p class="photo-preview-sub" id="photoPreviewSub"></p>
+        <div class="photo-preview-grid" id="photoPreviewGrid"></div>
+      </div>
+    </div>
+
     <!-- Block Sếp: Doanh thu -->
+
     <!-- Bố cục tham khảo dashboard analytics hiện đại (người dùng cung cấp ảnh
          tham chiếu 2026-09-25): hàng thẻ KPI có sparkline -> biểu đồ đường lớn
          có tab chuyển chỉ số -> khối mục tiêu tháng dạng thanh tiến độ. Bảng
@@ -383,6 +543,6 @@
   </div>
 </main>
 
-<script src="js/admin.js?v=20260927m"></script>
+<script src="js/admin.js?v=20260928m"></script>
 </body>
 </html>

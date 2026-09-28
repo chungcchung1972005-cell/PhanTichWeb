@@ -766,17 +766,47 @@ document.addEventListener('DOMContentLoaded', () => {
   // Ảnh nền minh hoạ dùng lại đúng 16 ảnh demo có sẵn trong images/my-photos/,
   // KHÔNG phải ảnh thật của khách demo 02/03/04/05/06 (những khách này chỉ có
   // trong bảng CUSTOMERS ở trên, chưa có ảnh thật gắn kèm).
+  // priority: 'urgent' | 'medium' | 'normal'  => quyết định hàng trong layout mới
+  // shootDate / deadline: chuỗi 'DD/MM/YYYY'  => hiển thị trên card
+  // Danh sách thợ ảnh và tên hiển thị
+  const WORKER_DEFS = [
+    { id: 'all',  label: 'Tất cả' },
+    { id: 'tho1', label: 'Thợ 1 (Minh)', names: ['minh'] },
+    { id: 'tho2', label: 'Thợ 2 (Nam)',  names: ['nam'] },
+    { id: 'tho3', label: 'Thợ 3 (Linh)', names: ['linh'] }
+  ];
+
+  // Nếu vai trò là thợ ảnh, tự động chọn đúng ô thợ dựa vào tên trong session
+  function detectWorkerFromSession() {
+    if (role !== 'tho-anh') return 'all';
+    const name = ((session && session.name) || '').toLowerCase();
+    for (const w of WORKER_DEFS) {
+      if (w.names && w.names.some(n => name.includes(n))) return w.id;
+    }
+    return 'all'; // thợ chưa được nhận diện thì hiện tất cả
+  }
+  let activeWorker = detectWorkerFromSession();
+
   const STATIC_REQUESTS = [
-    { id: 'static-1', orderCode: '#AB240930', customerName: 'Khách demo 05', serviceLabel: 'Gia đình', status: 'Chờ xử lý', note: 'Muốn ảnh tông sáng, ít chỉnh da.', createdAt: now - 26 * HOUR, photoIds: [1, 2, 3, 4], doneIds: [] },
-    { id: 'static-2', orderCode: '#AB240902', customerName: 'Khách demo 02', serviceLabel: 'Sinh nhật', status: 'Đang thực hiện', note: 'Xoá phông lộn xộn phía sau bé.', createdAt: now - 3 * 24 * HOUR, photoIds: [5, 6, 7, 8, 9], doneIds: [5, 6] },
-    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu', status: 'Hoàn thành', note: '', createdAt: now - 5 * 24 * HOUR, photoIds: [10, 11, 12], doneIds: [10, 11, 12] },
-    { id: 'static-4', orderCode: '#AB240871', customerName: 'Khách demo 04', serviceLabel: 'Bé lớn', status: 'Hoàn thành', note: '', createdAt: now - 9 * 24 * HOUR, photoIds: [13, 14], doneIds: [13, 14] },
-    { id: 'static-5', orderCode: '#AB240860', customerName: 'Khách demo 06', serviceLabel: 'Newborn', status: 'Hoàn thành', note: '', createdAt: now - 10 * 24 * HOUR, photoIds: [15, 16], doneIds: [15, 16] }
+    // --- Gấp (urgent) ---
+    { id: 'static-1', orderCode: '#AB240930', customerName: 'Khách demo 05', serviceLabel: 'Gia đình', status: 'Chờ xử lý',     note: 'Muốn ảnh tông sáng, ít chỉnh da.', createdAt: now - 26 * HOUR,       priority: 'urgent', shootDate: '26/09/2026', deadline: '28/09/2026', photoIds: [1, 2, 3, 4],     doneIds: [], photographer: 'tho1' },
+    { id: 'static-2', orderCode: '#AB240902', customerName: 'Khách demo 02', serviceLabel: 'Sinh nhật',  status: 'Đang thực hiện', note: 'Xoá phông lộn xộn phía sau bé.',    createdAt: now - 3 * 24 * HOUR,    priority: 'urgent', shootDate: '26/09/2026', deadline: '29/09/2026', photoIds: [5, 6, 7, 8, 9], doneIds: [5, 6], photographer: 'tho2' },
+    { id: 'static-6', orderCode: '#AB240871', customerName: 'Khách demo 07', serviceLabel: 'Bé lớn',    status: 'Đang thực hiện', note: '',                                     createdAt: now - 30 * HOUR,        priority: 'urgent', shootDate: '27/09/2026', deadline: '30/09/2026', photoIds: [7, 8],          doneIds: [], photographer: 'tho1' },
+    // --- Trung bình (medium) ---
+    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu',       status: 'Hoàn thành',   note: '',                                     createdAt: now - 5 * 24 * HOUR,    priority: 'medium', shootDate: '29/09/2026', deadline: '05/10/2026', photoIds: [10, 11, 12],    doneIds: [10, 11, 12], photographer: 'tho3' },
+    { id: 'static-7', orderCode: '#AB240915', customerName: 'Khách demo 08', serviceLabel: 'Sinh nhật', status: 'Chờ xử lý',     note: '',                                     createdAt: now - 4 * 24 * HOUR,    priority: 'medium', shootDate: '30/09/2026', deadline: '06/10/2026', photoIds: [13, 14],        doneIds: [], photographer: 'tho2' },
+    { id: 'static-8', orderCode: '#AB240923', customerName: 'Khách demo 09', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 2 * 24 * HOUR,    priority: 'medium', shootDate: '02/10/2026', deadline: '09/10/2026', photoIds: [15, 16],        doneIds: [], photographer: 'tho3' },
+    // --- Chưa gấp (normal) ---
+    { id: 'static-4', orderCode: '#AB240931', customerName: 'Khách demo 04', serviceLabel: 'Gia đình',  status: 'Chờ xử lý',     note: '',                                     createdAt: now - 9 * 24 * HOUR,    priority: 'normal', shootDate: '06/10/2026', deadline: '13/10/2026', photoIds: [1, 2],          doneIds: [], photographer: 'tho1' },
+    { id: 'static-5', orderCode: '#AB240942', customerName: 'Khách demo 06', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 10 * 24 * HOUR,   priority: 'normal', shootDate: '10/10/2026', deadline: '17/10/2026', photoIds: [3, 4],          doneIds: [], photographer: 'tho2' },
+    { id: 'static-9', orderCode: '#AB240956', customerName: 'Khách demo 10', serviceLabel: 'Bầu',       status: 'Chờ xử lý',     note: '',                                     createdAt: now - 8 * 24 * HOUR,    priority: 'normal', shootDate: '15/10/2026', deadline: '22/10/2026', photoIds: [5, 6],          doneIds: [], photographer: 'tho3' }
   ].map(r => {
     staticDoneMap[r.id] = new Set(r.doneIds.map(n => 'ph-' + n));
     return {
       id: r.id, orderCode: r.orderCode, customerName: r.customerName, serviceLabel: r.serviceLabel,
       status: r.status, note: r.note, createdAt: r.createdAt, isStatic: true,
+      priority: r.priority || 'normal', shootDate: r.shootDate || '', deadline: r.deadline || '',
+      photographer: r.photographer || 'tho1',
       photos: r.photoIds.map(n => ({ id: 'ph-' + n, src: '../images/my-photos/photo-' + n + '.jpg', note: '' })),
       photoCount: r.photoIds.length
     };
@@ -863,6 +893,310 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (badge) {
       badge.remove();
     }
+  }
+
+  // ------------------------------- Layout 3 hàng ngang: Gấp / Trung bình / Chưa gấp -------------------------------
+  // Hàm này render khu vực "Quản lý chụp & chỉnh ảnh" theo layout 3 hàng ngang
+  // thay thế Kanban 3 cột. Tận dụng toàn bộ dữ liệu, modal, và logic hiện có;
+  // chỉ thay đổi phần trình bày (card gom theo priority thay vì status).
+  // Mỗi hàng hiện tối đa CARDS_PER_ROW card, nút "Xem thêm" mở rộng phần còn lại.
+  const CARDS_PER_ROW = 3; // số card tối đa hiện trước khi cần "Xem thêm"
+  const rowExpandedState = { urgent: false, medium: false, normal: false };
+
+  // Tính priority từ trường sẵn có hoặc fallback từ createdAt (yêu cầu thật)
+  function getRequestPriority(req) {
+    // Ưu tiên trường priority nếu có (minh hoạ tĩnh)
+    if (req.priority) return req.priority;
+    // Yêu cầu thật từ khách: dùng tuổi yêu cầu làm proxy ưu tiên
+    const ageHours = (Date.now() - req.createdAt) / 3600000;
+    if (ageHours >= 48) return 'urgent';
+    if (ageHours >= 12) return 'medium';
+    return 'normal';
+  }
+
+  // Tạo 1 card DOM cho layout hàng ngang
+  function buildPhotoRowCard(req, indexInRow) {
+    const doneCount = getDoneIds(req).length;
+    const total = (req.photos || []).length;
+    const pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
+    const allDone = total > 0 && doneCount === total;
+    const hasSentLink = !req.isStatic && !!req.resultLink;
+    const card = document.createElement('div');
+    card.className = 'photo-row-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', 'Xem chi tiết yêu cầu ' + (req.orderCode || req.id));
+    const shootDateStr = req.shootDate || '';
+    const deadlineStr  = req.deadline  || '';
+    // Icon SVG nhỏ cho "ngày chụp" và "hạn chụp"
+    const iconCam  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>`;
+    const iconClock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
+    card.innerHTML = `
+      <span class="photo-row-card-num">#${indexInRow + 1}</span>
+      <div class="photo-row-card-code">${escHtml(req.orderCode || req.id)}</div>
+      <div class="photo-row-card-meta">
+        <div class="photo-row-card-meta-row">
+          ${iconCam}
+          <span>Ngày chụp: <strong>${escHtml(shootDateStr || '—')}</strong></span>
+        </div>
+        <div class="photo-row-card-meta-row">
+          ${iconClock}
+          <span>Hạn chụp: <strong>${escHtml(deadlineStr || '—')}</strong></span>
+        </div>
+      </div>
+      <div class="photo-row-progress-wrap">
+        <div class="photo-row-progress-label">Đã xong ${doneCount}/${total || req.photoCount || 0} ảnh</div>
+        <div class="photo-row-progress-track">
+          <div class="photo-row-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+    // Nút "Gửi link Drive" — chỉ hiện khi đã tick xong hết ảnh
+    if (allDone) {
+      const driveBtn = document.createElement('button');
+      driveBtn.type = 'button';
+      driveBtn.className = 'photo-row-drive-btn' + (hasSentLink ? ' sent' : '');
+      driveBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`
+        + (hasSentLink ? ' Cập nhật link Drive' : ' Gửi link Drive cho khách');
+      driveBtn.setAttribute('aria-label', (hasSentLink ? 'Cập nhật' : 'Gửi') + ' link Drive cho ' + (req.orderCode || req.id));
+      // Chặn click nổi bọ tới openRequestModal — driveBtn làm việc riêng
+      driveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDriveModal(req);
+      });
+      card.appendChild(driveBtn);
+    }
+    card.addEventListener('click', () => openRequestModal(req));
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRequestModal(req); }
+    });
+    return card;
+  }
+
+  // ------------------------------- Bộ chọn thợ ảnh: worker bar ở đầu section #anh -------------------------------
+  // Cập nhật badge số đơn cho từng ô thợ và toggle class active.
+  function renderWorkerBar() {
+    const bar = document.getElementById('photoWorkerBar');
+    if (!bar) return;
+    const allReqs = getAllRequests();
+
+    WORKER_DEFS.forEach(w => {
+      const btn = document.getElementById('workerBtn-' + w.id);
+      const countEl = document.getElementById('workerCount-' + w.id);
+      if (!btn) return;
+
+      // Số đơn tương ứng với từng thợ (hoặc tất cả)
+      const count = w.id === 'all'
+        ? allReqs.length
+        : allReqs.filter(r => r.photographer === w.id).length;
+
+      if (countEl) countEl.textContent = count;
+
+      // Trạng thái active
+      btn.classList.toggle('active', w.id === activeWorker);
+    });
+
+    // Nhãn ngữ cảnh bên dưới worker-bar
+    const labelEl = document.getElementById('photoWorkerLabel');
+    const labelName = document.getElementById('photoWorkerLabelName');
+    if (labelEl && labelName) {
+      if (activeWorker === 'all') {
+        labelEl.classList.remove('visible');
+      } else {
+        const wDef = WORKER_DEFS.find(w => w.id === activeWorker);
+        labelName.textContent = wDef ? wDef.label : activeWorker;
+        labelEl.classList.add('visible');
+      }
+    }
+  }
+
+  // Gắn sự kiện click cho từng ô thợ (chỉ 1 lần)
+  const workerBar = document.getElementById('photoWorkerBar');
+  if (workerBar) {
+    workerBar.addEventListener('click', e => {
+      const btn = e.target.closest('.photo-worker-card[data-worker]');
+      if (!btn) return;
+      activeWorker = btn.dataset.worker;
+      // Reset tất cả expanded state khi đổi thợ
+      Object.keys(rowExpandedState).forEach(k => { rowExpandedState[k] = false; });
+      renderWorkerBar();
+      renderPhotoRows();
+    });
+  }
+
+  function renderPhotoRows() {
+    const rowsEl = document.getElementById('photoRows');
+    if (!rowsEl) return; // section chưa có trong DOM (role không được phép)
+
+    const allReqs = getAllRequests();
+
+    // Lọc theo thợ đang được chọn
+    const filteredReqs = activeWorker === 'all'
+      ? allReqs
+      : allReqs.filter(r => r.photographer === activeWorker);
+
+    // Phân nhóm theo priority
+    const buckets = { urgent: [], medium: [], normal: [] };
+    filteredReqs.forEach(req => {
+      const p = getRequestPriority(req);
+      (buckets[p] = buckets[p] || []).push(req);
+    });
+
+    ['urgent', 'medium', 'normal'].forEach(rowKey => {
+      const cardsEl = document.getElementById('photoRowCards-' + rowKey);
+      const countEl = document.getElementById('photoRowCount-' + rowKey);
+      const moreBtn = document.getElementById('photoRowMore-' + rowKey);
+      if (!cardsEl) return;
+
+      // Xoá card cũ (giữ lại .photo-row-empty nếu có)
+      cardsEl.innerHTML = '';
+
+      const list = (buckets[rowKey] || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+
+      if (countEl) countEl.textContent = list.length + ' đơn';
+
+      if (list.length === 0) {
+        const emptyEl = document.createElement('p');
+        emptyEl.className = 'photo-row-empty';
+        emptyEl.textContent = activeWorker === 'all'
+          ? 'Chưa có đơn nào ở mức độ này.'
+          : 'Thợ này chưa có đơn ở mức độ này.';
+        cardsEl.appendChild(emptyEl);
+        if (moreBtn) moreBtn.hidden = true;
+        return;
+      }
+
+      // Số card hiện theo trạng thái mở rộng
+      const expanded = rowExpandedState[rowKey];
+      const visibleList = expanded ? list : list.slice(0, CARDS_PER_ROW);
+
+      visibleList.forEach((req, i) => {
+        cardsEl.appendChild(buildPhotoRowCard(req, i));
+      });
+
+      // Nút "Xem thêm" / "Thu gọn"
+      if (moreBtn) {
+        if (list.length > CARDS_PER_ROW) {
+          moreBtn.hidden = false;
+          if (expanded) {
+            moreBtn.textContent = 'Thu gọn ↑';
+          } else {
+            moreBtn.textContent = 'Xem thêm ' + (list.length - CARDS_PER_ROW) + ' đơn →';
+          }
+        } else {
+          moreBtn.hidden = true;
+        }
+      }
+    });
+
+    // Cập nhật badge trên worker-bar
+    renderWorkerBar();
+    updateTabBadge();
+  }
+
+  // Gắn sự kiện "Xem thêm" toggle (chỉ 1 lần)
+  ['urgent', 'medium', 'normal'].forEach(rowKey => {
+    const btn = document.getElementById('photoRowMore-' + rowKey);
+    if (btn) btn.addEventListener('click', () => {
+      rowExpandedState[rowKey] = !rowExpandedState[rowKey];
+      renderPhotoRows();
+    });
+  });
+
+  // ------------------------------- Drive modal: Gửi link ảnh cho khách -------------------------------
+  // Mở từ nút "📤 Gửi link Drive" trên card (chỉ hiện khi tick xong hết ảnh).
+  // Với yêu cầu thật: gọi AlohaData.setResultLink() và cập nhật thẻ trung gian.
+  // Với thẻ minh hoạ tĩnh: lưu tạm vào req.resultLink trong bộ nhớ (demo).
+  const driveOverlay  = document.getElementById('driveModalOverlay');
+  const driveOrderEl  = document.getElementById('driveModalOrder');
+  const driveInput    = document.getElementById('driveModalInput');
+  const driveErrorEl  = document.getElementById('driveModalError');
+  const driveCurrentEl = document.getElementById('driveModalCurrent');
+  const driveCurrentLink = document.getElementById('driveModalCurrentLink');
+  const driveForm     = document.getElementById('driveModalForm');
+  const driveSubmitBtn = document.getElementById('driveModalSubmit');
+  let driveReq = null; // yêu cầu đang mở trong drive modal
+
+  function openDriveModal(req) {
+    if (!driveOverlay) return;
+    driveReq = req;
+    // Tiêu đề / mã khách
+    if (driveOrderEl) driveOrderEl.textContent = (req.orderCode || req.id) + (req.customerName ? ' · ' + req.customerName : '');
+    // Link hiện tại nếu có
+    const existing = req.resultLink || '';
+    if (driveInput) driveInput.value = existing;
+    if (driveErrorEl) driveErrorEl.hidden = true;
+    // Hiển thị link đang có (nếu đã gửi trước)
+    if (driveCurrentEl && driveCurrentLink) {
+      if (existing && /^https:\/\//i.test(existing)) {
+        driveCurrentLink.href = existing;
+        driveCurrentLink.textContent = existing;
+        driveCurrentEl.hidden = false;
+      } else {
+        driveCurrentEl.hidden = true;
+      }
+    }
+    // Nhãn nút submit thay đổi theo trạng thái
+    if (driveSubmitBtn) {
+      driveSubmitBtn.classList.toggle('sent', !!existing);
+      const svgHtml = driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '';
+      driveSubmitBtn.innerHTML = svgHtml + (existing ? ' Cập nhật link' : ' Gửi link cho khách');
+    }
+    driveOverlay.classList.add('open');
+    driveOverlay.setAttribute('aria-hidden', 'false');
+    if (driveInput) setTimeout(() => driveInput.focus(), 120);
+  }
+
+  function closeDriveModal() {
+    if (!driveOverlay) return;
+    driveOverlay.classList.remove('open');
+    driveOverlay.setAttribute('aria-hidden', 'true');
+    driveReq = null;
+  }
+
+  if (document.getElementById('driveModalClose')) document.getElementById('driveModalClose').addEventListener('click', closeDriveModal);
+  if (document.getElementById('driveModalCancel')) document.getElementById('driveModalCancel').addEventListener('click', closeDriveModal);
+  if (driveOverlay) driveOverlay.addEventListener('click', (e) => { if (e.target === driveOverlay) closeDriveModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && driveOverlay && driveOverlay.classList.contains('open')) closeDriveModal();
+  });
+
+  if (driveForm) {
+    driveForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!driveReq || !driveInput) return;
+      const url = driveInput.value.trim();
+      // Validate: phải bắt đầu bằng https://
+      if (!url || !/^https:\/\//i.test(url)) {
+        if (driveErrorEl) driveErrorEl.hidden = false;
+        driveInput.focus();
+        return;
+      }
+      if (driveErrorEl) driveErrorEl.hidden = true;
+      if (driveReq.isStatic) {
+        // Thẻ demo: lưu tạm vào req trong bộ nhớ
+        driveReq.resultLink = url;
+        driveReq.resultLinkAt = Date.now();
+      } else if (window.AlohaData) {
+        // Yêu cầu thật: gọi API data-store
+        const saved = AlohaData.setResultLink(driveReq.id, url);
+        if (!saved) {
+          if (driveErrorEl) { driveErrorEl.textContent = '⚠️ Link không hợp lệ. Vui lòng kiểm tra lại.'; driveErrorEl.hidden = false; }
+          return;
+        }
+        driveReq.resultLink = saved.resultLink;
+        driveReq.resultLinkAt = saved.resultLinkAt;
+      }
+      // Cập nhật giao diện modal
+      if (driveCurrentLink) { driveCurrentLink.href = url; driveCurrentLink.textContent = url; }
+      if (driveCurrentEl) driveCurrentEl.hidden = false;
+      if (driveSubmitBtn) { driveSubmitBtn.classList.add('sent'); driveSubmitBtn.innerHTML = (driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '') + ' Cập nhật link'; }
+      // Làm mới hàng ngang + bảng hoàn tất để cập nhật ngay
+      renderPhotoRows();
+      renderCompletedTable();
+      // Tự đóng sau 1.2 giây để người dùng thấy xác nhận rồi mới biến
+      setTimeout(closeDriveModal, 1200);
+    });
   }
 
   function renderEditRequests() {
@@ -1141,16 +1475,173 @@ document.addEventListener('DOMContentLoaded', () => {
     bindResultSection(req);
   }
 
-  renderEditRequests();
+  // ------------------------------- Bảng "Đã hoàn tất" (#hoan-tat) -------------------------------
+  // Hiển thị tất cả yêu cầu có status === 'Hoàn thành' theo thứ tự STT.
+  // Dữ liệu lấy từ getAllRequests() — tự động cập nhật khi Thợ ảnh chuyển bước.
+
+  const fmtDate = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+  };
+
+  function payBadgeHtml(payStatus) {
+    const s = (payStatus || '').toLowerCase();
+    // "đã thanh toán" / "paid"
+    if (s.includes('đã thanh toán') || s.includes('paid') || s.includes('hoàn thành')) {
+      return `<span class="ct-pay-badge paid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Đã TT</span>`;
+    }
+    // "trong gói" / in package — không có phí thêm
+    if (s.includes('trong gói') || s.includes('0đ') || s.includes('0 đ')) {
+      return `<span class="ct-pay-badge in-pkg">Trong gói</span>`;
+    }
+    // mặc định: chưa thanh toán
+    return `<span class="ct-pay-badge unpaid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>Chưa TT</span>`;
+  }
+
+  function renderCompletedTable() {
+    const tbody = document.getElementById('completedTableBody');
+    const emptyEl = document.getElementById('completedEmpty');
+    const summaryEl = document.getElementById('completedSummary');
+    const countEl = document.getElementById('completedCount');
+    const paidEl = document.getElementById('completedPaidCount');
+    if (!tbody) return;
+
+    // Lọc: chỉ lấy yêu cầu đã Hoàn thành, sắp xếp theo thời điểm gửi link (mới nhất lên đầu)
+    const all = getAllRequests();
+    const done = all
+      .filter(r => r.status === 'Hoàn thành')
+      .sort((a, b) => (b.resultLinkAt || b.createdAt) - (a.resultLinkAt || a.createdAt));
+
+    // Số đã thanh toán
+    const paidCount = done.filter(r => {
+      const s = (r.paymentStatus || '').toLowerCase();
+      return s.includes('đã thanh toán') || s.includes('paid') || s.includes('hoàn thành');
+    }).length;
+
+    // Summary bar
+    if (summaryEl) summaryEl.hidden = done.length === 0;
+    if (countEl)   countEl.textContent = done.length;
+    if (paidEl)    paidEl.textContent  = paidCount;
+
+    // Empty state
+    if (emptyEl) emptyEl.style.display = done.length ? 'none' : '';
+
+    const iconCal   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>`;
+    const iconCheck = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>`;
+    const iconImg   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+
+    tbody.innerHTML = done.map((req, idx) => {
+      const shootStr = req.shootDate || fmtDate(req.createdAt);
+      const doneStr  = req.resultLinkAt ? fmtDate(req.resultLinkAt) : fmtDate(req.createdAt);
+      const hasPhotos = (req.photos || []).length > 0;
+      const linkHtml = req.resultLink
+        ? `<div class="ct-link-val">
+             <a class="ct-link-anchor" href="${escHtml(req.resultLink)}" target="_blank" rel="noopener noreferrer">${escHtml(req.resultLink)}</a>
+             <button type="button" class="ct-link-copy" data-url="${escHtml(req.resultLink)}" title="Sao chép link">Sao chép</button>
+           </div>`
+        : `<span class="ct-link-none">Chưa có link</span>`;
+
+      // Resolve thông tin thợ phụ trách từ trường photographer
+      const workerMap = {
+        tho1: { label: 'Thợ 1 · Minh', cls: 'ct-worker-1' },
+        tho2: { label: 'Thợ 2 · Nam',  cls: 'ct-worker-2' },
+        tho3: { label: 'Thợ 3 · Linh', cls: 'ct-worker-3' }
+      };
+      const wInfo = workerMap[req.photographer] || null;
+      const workerHtml = wInfo
+        ? `<span class="ct-worker-badge ${wInfo.cls}">${escHtml(wInfo.label)}</span>`
+        : `<span class="ct-worker-badge ct-worker-none">Chưa rõ</span>`;
+
+      return `<tr>
+        <td style="text-align:center"><span class="ct-stt-val">${idx + 1}</span></td>
+        <td>
+          <div class="ct-code-val">${escHtml(req.orderCode || req.id)}</div>
+          <div class="ct-name-val">${escHtml(req.customerName || '')}</div>
+        </td>
+        <td style="text-align:center">${workerHtml}</td>
+        <td><div class="ct-date-val">${iconCal}${escHtml(shootStr)}</div></td>
+        <td><div class="ct-date-val">${iconCheck}${escHtml(doneStr)}</div></td>
+        <td style="text-align:center">
+          ${hasPhotos
+            ? `<button type="button" class="ct-view-btn" data-req-id="${escHtml(req.id)}" data-req-static="${req.isStatic ? '1' : '0'}">${iconImg} Xem ảnh</button>`
+            : `<span style="font-size:12px;color:#94a3b8">Không có</span>`}
+        </td>
+        <td>${linkHtml}</td>
+        <td style="text-align:center">${payBadgeHtml(req.paymentStatus)}</td>
+      </tr>`;
+    }).join('');
+
+    // Gắn sự kiện sau khi render HTML
+    tbody.querySelectorAll('.ct-view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reqId = btn.dataset.reqId;
+        const isStatic = btn.dataset.reqStatic === '1';
+        const req = getAllRequests().find(r => r.id === reqId);
+        if (req) openPhotoPreview(req);
+      });
+    });
+    tbody.querySelectorAll('.ct-link-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard && navigator.clipboard.writeText(btn.dataset.url).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = '✓ Đã sao chép';
+          setTimeout(() => { btn.textContent = orig; }, 1500);
+        });
+      });
+    });
+  }
+
+  // ------------------------------- Popup xem ảnh gốc + note -------------------------------
+  const previewOverlay = document.getElementById('photoPreviewOverlay');
+  const previewGrid    = document.getElementById('photoPreviewGrid');
+  const previewTitle   = document.getElementById('photoPreviewTitle');
+  const previewSub     = document.getElementById('photoPreviewSub');
+
+  function openPhotoPreview(req) {
+    if (!previewOverlay || !previewGrid) return;
+    if (previewTitle) previewTitle.textContent = (req.orderCode || req.id) + ' — Ảnh đã chỉnh';
+    if (previewSub) previewSub.textContent = (req.customerName ? req.customerName + ' · ' : '') + (req.serviceLabel || '') + ' · ' + ((req.photos || []).length) + ' ảnh';
+
+    const photos = req.photos || [];
+    if (photos.length === 0) {
+      previewGrid.innerHTML = '<p class="photo-preview-empty">Yêu cầu này chưa có dữ liệu ảnh chi tiết.</p>';
+    } else {
+      previewGrid.innerHTML = photos.map(p => `
+        <div class="photo-preview-tile">
+          <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(p.id)}" loading="lazy">
+          ${p.note ? `<p class="photo-preview-note">“${escHtml(p.note)}”</p>` : ''}
+        </div>`).join('');
+    }
+    previewOverlay.classList.add('open');
+    previewOverlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePhotoPreview() {
+    if (!previewOverlay) return;
+    previewOverlay.classList.remove('open');
+    previewOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  const previewCloseBtn = document.getElementById('photoPreviewClose');
+  if (previewCloseBtn) previewCloseBtn.addEventListener('click', closePhotoPreview);
+  if (previewOverlay) previewOverlay.addEventListener('click', e => { if (e.target === previewOverlay) closePhotoPreview(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && previewOverlay && previewOverlay.classList.contains('open')) closePhotoPreview();
+  });
+
+  renderPhotoRows();          // layout 3 hàng ngang (mới, 2026-09-27)
+  renderEditRequests();       // giữ nguyên để modal & badge vẫn hoạt động
+  renderCompletedTable();     // bảng đã hoàn tất (mới, 2026-09-27)
   // Mô phỏng "real-time" trong cùng trình duyệt: nếu Khách vừa gửi yêu cầu mới
   // (hoặc dữ liệu đổi ở tab/khung khác), board + badge "chưa xem" trên tab tự
   // cập nhật mà không cần tải lại trang. Không đụng vào modal đang mở (nếu có)
   // để không ngắt thao tác Thợ ảnh đang làm dở. KHÔNG đồng bộ được giữa các
   // thiết bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
-  setInterval(() => { renderEditRequests(); refreshModalChat(); }, 5000);
+  setInterval(() => { renderPhotoRows(); renderEditRequests(); renderCompletedTable(); refreshModalChat(); }, 5000);
   // Khách nhắn / dữ liệu đổi ở tab khác cùng trình duyệt -> cập nhật ngay
-  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
+  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderPhotoRows(); renderEditRequests(); renderCompletedTable(); refreshModalChat(); } });
 
   // ------------------------------- Tin nhắn khách hàng (Sale trả lời, Sếp chỉ xem) -------------------------------
   // Thêm 2026-09-27: chat THẬT qua server (server/sale-chat.js) - khách nhắn từ màn chat
