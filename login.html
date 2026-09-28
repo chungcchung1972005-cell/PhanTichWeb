@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20260928c">
 <link rel="stylesheet" href="css/admin.css">
 <style>
   body { background: var(--cream); }
@@ -81,7 +81,7 @@
     .login-card, .login-step-in { animation: none; opacity: 1; transform: none; }
   }
 </style>
-<script src="js/features.js?v=20260927d"></script>
+<script src="js/features.js?v=20260928b"></script>
 </head>
 <body>
 
@@ -194,9 +194,13 @@
   // phải tên file.
   // "chat-sale" / "chat-sale/<dịch vụ>": bấm ảnh dịch vụ đầu trang chủ -> đăng nhập
   // xong vào thẳng khung chat với Sale (js/sale-chat.js, thêm 2026-09-27).
-  var validNextRoutes = ['dat-lich', 'chon-anh', 'chat-sale'];
+  // "album/<dịch vụ>": từ 2026-09-28 5 ảnh dịch vụ đầu trang mở album, bắt đăng nhập (js/albums.js).
+  // "home" / "album/..." / "noi-dung/...": khách bấm chatbot khi chưa đăng nhập -> quay lại đúng
+  // trang đang xem rồi mở tiếp khung chat (js/script.js, 2026-09-28).
+  var validNextRoutes = ['dat-lich', 'chon-anh', 'chat-sale', 'home'];
   function isValidNext(n) {
-    return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z-]+$/.test(n));
+    return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z-]+$/.test(n) ||
+      /^album\/[a-z-]+(\/[a-z0-9-]+)?$/.test(n) || /^noi-dung\/[a-z0-9-]+$/.test(n));
   }
   // Đặt lịch đang tạm tắt (js/features.js) -> khách vừa đăng ký vào chat với Sale thay vì trang đặt lịch.
   var registerHome = (window.ALOHA_FEATURES && window.ALOHA_FEATURES.booking === false) ? 'chat-sale' : 'dat-lich';
@@ -238,7 +242,7 @@
     submitBtn.textContent = busy ? 'Đang kết nối...' : (isRegisterMode ? 'Đăng ký' : 'Đăng nhập');
   }
   function goAfterLogin(role, next, fallbackRoute) {
-    if (role === 'khach-hang' && isValidNext(next)) window.location.href = 'index.html#/' + next;
+    if (role === 'khach-hang' && isValidNext(next)) window.location.href = 'index.html#/' + (next === 'home' ? '' : next);
     else if (role === 'khach-hang' && fallbackRoute) window.location.href = 'index.html#/' + fallbackRoute;
     else window.location.href = AlohaAuth.roleHome(role);
   }

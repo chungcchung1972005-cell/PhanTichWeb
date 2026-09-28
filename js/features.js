@@ -4,10 +4,12 @@
 // đăng nhập rồi vào thẳng chat với Sale).
 //
 // Chỉ ẨN, không xoá code: muốn bật lại tính năng nào thì đổi false -> true ngay dưới đây.
-// Lưu ý: 5 ảnh + dòng dịch vụ đầu trang chủ LUÔN dẫn tới #/chat-sale (yêu cầu mới, không
-// phụ thuộc cờ). Bật lại albumPages thì các thẻ album khác bấm được lại, còn 5 ảnh đầu trang
-// muốn quay về album thì sửa href trong index.html. Bật lại aiChat thì khung chat nổi là
-// chatbot như cũ và #/chat-sale mở chatbot đó (không còn chat Sale).
+// 2026-09-28: bật lại albumPages theo yêu cầu người dùng - 5 ảnh + dòng dịch vụ đầu trang chủ
+// mở album #/album/<dịch vụ> (bắt đăng nhập, js/albums.js), các thẻ album khác xem công khai.
+// 2026-09-28 (lượt sau): bật lại aiChat - khung chat nổi là chatbot AI, tự mở ở trang chủ,
+// lời chào đổi theo dịch vụ đang xem; khách bấm "Nhắn trực tiếp với Sale" thì chat tiếp với
+// Sale ngay trong khung đó (js/script.js + js/sale-chat.js). Tắt aiChat thì khung chat nổi
+// là chat với Sale riêng (#saleChatPanel).
 //   booking    : nút/link Đặt lịch + trang #/dat-lich
 //   aiChat     : chatbot kịch bản + AI Gemini (tắt thì khung chat nổi là chat với Sale)
 //   albumPages : trang album #/album/... (ảnh bìa trên trang chủ vẫn hiện)
@@ -18,8 +20,8 @@
 (function (window) {
   const FEATURES = Object.assign({
     booking: false,
-    aiChat: false,
-    albumPages: false
+    aiChat: true,
+    albumPages: true
   }, window.ALOHA_FEATURES || {});
   window.ALOHA_FEATURES = FEATURES;
 

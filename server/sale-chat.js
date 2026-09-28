@@ -93,8 +93,12 @@ function samePassword(a, b) {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
-function newMessage(from, senderName, text) {
-  return { id: 'MSG-' + Date.now() + '-' + crypto.randomBytes(3).toString('hex'), from, senderName, text, at: Date.now() };
+// from: 'khach' | 'sale' | 'he-thong' (tin hệ thống, vd bản tóm tắt hành trình khách gửi kèm
+// khi khách chuyển từ trợ lý AI sang Sale - chỉ Sale/Sếp đọc, trang khách không hiện).
+function newMessage(from, senderName, text, kind) {
+  const msg = { id: 'MSG-' + Date.now() + '-' + crypto.randomBytes(3).toString('hex'), from, senderName, text, at: Date.now() };
+  if (kind) msg.kind = kind;
+  return msg;
 }
 
 // Bản tóm tắt cho danh sách hộp thư của Sale (không gửi cả lịch sử tin).
@@ -138,7 +142,7 @@ function memoryStore() {
       if (fields.topic) chat.topic = fields.topic;
       chat.messages.push(msg);
       if (chat.messages.length > MAX_MESSAGES) chat.messages.splice(0, chat.messages.length - MAX_MESSAGES);
-      if (msg.from === 'khach') chat.staffUnread += 1; else chat.customerUnread += 1;
+      if (msg.from === 'sale') chat.customerUnread += 1; else chat.staffUnread += 1;
       chat.updatedAt = msg.at;
       chats.set(phone, chat);
       return clone(chat);
@@ -194,8 +198,8 @@ function mongoStore(uri, dbName) {
       const onInsert = { createdAt: msg.at };
       if (fields.customerName) set.customerName = fields.customerName; else onInsert.customerName = 'Khách hàng';
       if (fields.topic) set.topic = fields.topic; else onInsert.topic = '';
-      const inc = msg.from === 'khach' ? { staffUnread: 1 } : { customerUnread: 1 };
-      if (msg.from === 'khach') onInsert.customerUnread = 0; else onInsert.staffUnread = 0;
+      const inc = msg.from === 'sale' ? { customerUnread: 1 } : { staffUnread: 1 };
+      if (msg.from === 'sale') onInsert.staffUnread = 0; else onInsert.customerUnread = 0;
       return (await chats()).findOneAndUpdate(
         { _id: phone },
         { $push: { messages: { $each: [msg], $slice: -MAX_MESSAGES } }, $inc: inc, $set: set, $setOnInsert: onInsert },
@@ -347,6 +351,19 @@ router.post('/me/messages', requireAuth(['khach-hang']), wrap(async (req, res) =
   const topic = String(req.body.topic || '').trim().slice(0, MAX_TOPIC);
   const chat = await store.appendMessage(req.user.phone, { customerName: req.user.name, topic },
     newMessage('khach', req.user.name, text));
+  res.json({ chat: publicChat(chat) });
+}));
+
+// Khách chuyển từ trợ lý AI sang chat với Sale: lưu bản tóm tắt các mục khách đã xem / đã hỏi
+// (trình duyệt dựng chữ từ hành trình trong phiên, js/sale-chat.js) thành 1 tin hệ thống để Sale
+// đọc trước khi trả lời. Cuộc trò chuyện chưa có thì tạo mới, Sale thấy ngay trong hộp thư.
+router.post('/me/handoff', requireAuth(['khach-hang']), wrap(async (req, res) => {
+  const text = cleanText(req.body.summary);
+  if (!text) return res.status(400).json({ error: 'bad_summary' });
+  if (rateLimited(req.user.phone)) return res.status(429).json({ error: 'too_many_messages' });
+  const topic = String(req.body.topic || '').trim().slice(0, MAX_TOPIC);
+  const chat = await store.appendMessage(req.user.phone, { customerName: req.user.name, topic },
+    newMessage('he-thong', 'Tóm tắt tự động', text, 'summary'));
   res.json({ chat: publicChat(chat) });
 }));
 

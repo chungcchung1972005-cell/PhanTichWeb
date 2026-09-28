@@ -1202,12 +1202,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!chats.length) {
         inboxList.innerHTML = status === 'loading'
           ? '<p class="inbox-empty">Đang tải tin nhắn…</p>'
-          : '<p class="inbox-empty">Chưa có tin nhắn nào. Khi khách bấm ảnh dịch vụ trên trang chủ hoặc nút chat, tin nhắn sẽ hiện ở đây.</p>';
+          : '<p class="inbox-empty">Chưa có tin nhắn nào. Khi khách bấm "Nhắn Sale" trong khung chat của trang web, cuộc trò chuyện kèm tóm tắt khách đã xem gì sẽ hiện ở đây.</p>';
         return;
       }
       inboxList.innerHTML = chats.map(c => {
         const last = c.last;
-        const preview = last ? (last.from === 'sale' ? (last.senderName || 'Sale') + ': ' : '') + last.text : '';
+        const preview = last ? (last.from === 'sale' ? (last.senderName || 'Sale') + ': ' : last.from === 'he-thong' ? 'Tóm tắt: ' : '') + last.text : '';
         const unread = c.staffUnread || 0;
         return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" role="listitem">
           <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.customerName))}</span>
@@ -1239,7 +1239,14 @@ document.addEventListener('DOMContentLoaded', () => {
       inboxHead.innerHTML = `${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone)}
         ${chat.topic ? `<span class="inbox-topic">Quan tâm: ${escHtml(chat.topic)}</span>` : ''}`;
       const nearBottom = inboxMsgs.scrollHeight - inboxMsgs.scrollTop - inboxMsgs.clientHeight < 60;
-      inboxMsgs.innerHTML = msgs.map(m => `
+      // Tin hệ thống (from 'he-thong'): bản tóm tắt hành trình khách gửi kèm khi khách chuyển từ
+      // trợ lý AI sang chat với Sale (server/sale-chat.js /me/handoff), khách không thấy tin này.
+      inboxMsgs.innerHTML = msgs.map(m => m.from === 'he-thong' ? `
+        <div class="inbox-msg from-system">
+          <span class="inbox-msg-name">Khách vừa chuyển từ trợ lý AI sang Sale · tóm tắt tự động</span>
+          <span class="inbox-msg-text">${escHtml(m.text)}</span>
+          <time>${chatTime(m.at)}</time>
+        </div>` : `
         <div class="inbox-msg ${m.from === 'sale' ? 'from-sale' : 'from-khach'}">
           ${m.from === 'sale' ? `<span class="inbox-msg-name">${escHtml(m.senderName || 'Sale')}</span>` : ''}
           <span class="inbox-msg-text">${escHtml(m.text)}</span>

@@ -114,18 +114,16 @@ const BASE = ROOT_URL;
     await page.click('#chatToggle');
     await new Promise(r => setTimeout(r, 1300));
     const quickReplies = await page.$$eval('.chat-quick button', els => els.map(e => e.textContent));
-    const hasMenu = quickReplies.includes('Tư vấn dịch vụ & báo giá') && quickReplies.includes('Quy trình đặt lịch') && quickReplies.includes('Câu hỏi thường gặp');
-    log('chatbot mở ra menu chính nhiều nhánh (không đi thẳng vào chọn dịch vụ)', hasMenu, quickReplies.join(', '));
+    // Từ 2026-09-28 mỗi menu tối đa 2 nút (AI chọn theo hoàn cảnh, lỗi thì 2 nút mặc định).
+    const hasMenu = quickReplies.length === 2 && quickReplies.includes('Tư vấn dịch vụ & báo giá') && quickReplies.includes('Concept & ảnh mẫu');
+    log('chatbot mở ra menu chính (tối đa 2 nút), không đi thẳng vào chọn dịch vụ', hasMenu, quickReplies.join(', '));
 
-    // Chọn "Quy trình đặt lịch" -> có nội dung trả lời + quay lại được menu
-    const menuBtns = await page.$$('.chat-quick button');
-    for (const b of menuBtns) {
-      const t = await page.evaluate(el => el.textContent, b);
-      if (t === 'Quy trình đặt lịch') { await b.click(); break; }
-    }
-    await new Promise(r => setTimeout(r, 1500));
+    // Hỏi "quy trình đặt lịch" (không còn nút riêng khi chỉ 2 gợi ý) -> vẫn trả lời đủ các bước
+    await page.type('#chatInput', 'quy trình đặt lịch thế nào');
+    await page.click('.chat-send');
+    await new Promise(r => setTimeout(r, 2500));
     const bodyText = await page.evaluate(() => document.getElementById('chatBody').textContent);
-    log('nhánh "Quy trình đặt lịch" trả lời đúng nội dung 5 bước', bodyText.includes('Đặt cọc'));
+    log('hỏi "quy trình đặt lịch" -> trả lời đúng nội dung các bước (có đặt cọc)', /đặt cọc/i.test(bodyText) && /5 bước/.test(bodyText));
     await page.close();
   }
 

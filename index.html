@@ -11,9 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260928b">
-<link rel="stylesheet" href="css/pages.css?v=20260928c">
-<script src="js/features.js?v=20260927m"></script>
+<link rel="stylesheet" href="css/style.css?v=20260928m">
+<link rel="stylesheet" href="css/pages.css?v=20260928m">
+<script src="js/features.js?v=20260928b"></script>
 </head>
 <body>
 
@@ -99,39 +99,39 @@
     <!-- Khối Dịch vụ đầu trang: 5 nhóm dịch vụ chính (bắt buộc, xem .claude/CLAUDE.md).
          Bố cục theo khối "DỊCH VỤ" của alohababy.vn (2026-09-27): tiêu đề giữa có gạch 2 bên,
          dòng 5 dịch vụ, lưới ảnh 3 cột (cột giữa là ô Bầu cao gấp đôi), nhãn chữ đặt giữa ảnh.
-         Mỗi ô ảnh / dòng dịch vụ mở #/chat-sale/<slug>: chưa đăng nhập thì sang login.html,
-         đăng nhập xong vào thẳng khung chat với Sale, kèm dịch vụ khách vừa bấm (2026-09-27,
-         js/sale-chat.js; trước đó mở album #/album/<slug>). Ảnh bìa lấy từ js/albums.js.
+         Mỗi ô ảnh / dòng dịch vụ mở album #/album/<slug> (các concept -> ảnh bên trong):
+         chưa đăng nhập thì sang login.html rồi quay lại đúng album (2026-09-28, gate ở
+         js/albums.js; 27/09 từng dẫn vào màn chat Sale). Ảnh bìa lấy từ js/albums.js.
          Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
     <section class="svc-hero" id="dich-vu">
       <div class="container">
         <h1 class="svc-title reveal">Dịch vụ</h1>
         <ul class="svc-list reveal">
-          <li><a href="#/chat-sale/be-lon">Chụp ảnh bé lớn</a></li>
-          <li><a href="#/chat-sale/sinh-nhat">Chụp ảnh sinh nhật</a></li>
-          <li><a href="#/chat-sale/bau">Chụp ảnh bầu</a></li>
-          <li><a href="#/chat-sale/gia-dinh">Chụp ảnh gia đình</a></li>
-          <li><a href="#/chat-sale/newborn">Chụp ảnh Newborn</a></li>
+          <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
+          <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+          <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
+          <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
+          <li><a href="#/album/newborn">Chụp ảnh Newborn</a></li>
         </ul>
 
         <div class="svc-collage reveal-stagger reveal">
-          <a href="#/chat-sale/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
+          <a href="#/album/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
             <img src="images/service-be-lon.jpg" alt="Dịch vụ chụp ảnh bé lớn" loading="eager">
             <span class="svc-tile-name">Chụp ảnh bé lớn</span>
           </a>
-          <a href="#/chat-sale/sinh-nhat" class="svc-tile svc-tile--sinh-nhat stagger-item" data-album="sinh-nhat">
+          <a href="#/album/sinh-nhat" class="svc-tile svc-tile--sinh-nhat stagger-item" data-album="sinh-nhat">
             <img src="images/service-sinh-nhat.jpg" alt="Dịch vụ chụp ảnh sinh nhật" loading="eager">
             <span class="svc-tile-name">Chụp ảnh sinh nhật</span>
           </a>
-          <a href="#/chat-sale/bau" class="svc-tile svc-tile--bau stagger-item" data-album="bau">
+          <a href="#/album/bau" class="svc-tile svc-tile--bau stagger-item" data-album="bau">
             <img src="images/service-bau.jpg" alt="Dịch vụ chụp ảnh bầu" loading="eager">
             <span class="svc-tile-name">Chụp ảnh bầu</span>
           </a>
-          <a href="#/chat-sale/gia-dinh" class="svc-tile svc-tile--gia-dinh stagger-item" data-album="gia-dinh">
+          <a href="#/album/gia-dinh" class="svc-tile svc-tile--gia-dinh stagger-item" data-album="gia-dinh">
             <img src="images/service-gia-dinh.jpg" alt="Dịch vụ chụp ảnh gia đình" loading="eager">
             <span class="svc-tile-name">Chụp ảnh gia đình</span>
           </a>
-          <a href="#/chat-sale/newborn" class="svc-tile svc-tile--newborn stagger-item" data-album="newborn">
+          <a href="#/album/newborn" class="svc-tile svc-tile--newborn stagger-item" data-album="newborn">
             <img src="images/service-newborn.jpg" alt="Dịch vụ chụp ảnh Newborn" loading="eager">
             <span class="svc-tile-name">Chụp ảnh Newborn</span>
           </a>
@@ -841,45 +841,6 @@
     </section>
   </div>
 
-  <!-- ============================== VIEW: Chat với Sale ==============================
-       Route #/chat-sale[/<dịch vụ>] (bắt đăng nhập khách, js/router.js). Màn hình nhắn tin riêng
-       (2026-09-27, người dùng muốn "1 giao diện khác" thay cho khung chat nhỏ): 1 khung trò chuyện ở
-       giữa (đã bỏ cột trái theo yêu cầu). Bấm ảnh dịch vụ ở trang chủ thì ảnh phóng to chuyển sang màn này;
-       mở đầu là các tin chào tự động của Sale đến lần lượt (có nhịp "đang nhập") + nút gợi ý câu hỏi.
-       Tin nhắn + lời chào + hiệu ứng do js/sale-chat.js vẽ, dữ liệu ở AlohaData.chats. -->
-  <div id="view-chat" hidden>
-    <section class="sc-page">
-      <div class="container sc-wrap">
-        <div class="sc-main">
-          <header class="sc-head">
-            <a href="#/" class="sc-head-back" aria-label="Về trang chủ">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-            </a>
-            <span class="sc-avatar"><img src="images/logo-mark.svg" alt="" width="24" height="24"></span>
-            <div class="sc-head-text">
-              <h1>Tư vấn viên ALOHA Baby</h1>
-              <span id="scTopicLine">Tư vấn chung</span>
-            </div>
-            <a href="tel:0938125222" class="sc-call" aria-label="Gọi hotline 0938.125.222" title="Gọi hotline 0938.125.222">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z"/></svg>
-            </a>
-          </header>
-
-          <div class="sc-status" id="scStatus" role="status" hidden></div>
-          <div class="sc-thread" id="scThread" aria-live="polite"></div>
-
-          <form class="sc-composer" id="scForm">
-            <textarea id="scInput" rows="1" placeholder="Nhập tin nhắn cho Sale..." aria-label="Tin nhắn cho Sale"></textarea>
-            <button type="submit" class="sc-send" id="scSend" aria-label="Gửi tin nhắn" disabled>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
-            </button>
-          </form>
-          <p class="sc-demo">Tin nhắn chỉ ba mẹ và đội ngũ Sale ALOHA Baby xem được.</p>
-        </div>
-      </div>
-    </section>
-  </div>
-
   <!-- Lightbox dùng chung cho view Album và view Nội dung (xem ảnh lớn / phát video), điều khiển trong js/albums.js. -->
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh, video phóng to" hidden>
     <div class="lightbox-stage">
@@ -899,9 +860,9 @@
   </div>
 
 </main>
-<script src="js/albums.js"></script>
+<script src="js/albums.js?v=20260928b"></script>
 <script src="js/content.js"></script>
-<script src="js/router.js?v=20260927d"></script>
+<script src="js/router.js?v=20260928b"></script>
 
 <!-- Footer -->
 <footer class="site-footer">
@@ -976,23 +937,34 @@
   </a>
 </div>
 
+<!-- Bong bóng lời chào cạnh nút chat (điện thoại, thay cho việc tự mở khung chat che gần hết
+     màn hình). Nội dung đổi theo trang đang xem, do js/script.js điền. -->
+<div class="chat-teaser" id="chatTeaser" hidden>
+  <button type="button" class="chat-teaser-text" id="chatTeaserText"></button>
+  <button type="button" class="chat-teaser-close" id="chatTeaserClose" aria-label="Ẩn lời nhắn">×</button>
+</div>
+
 <!-- Chatbot tư vấn: bước chọn dịch vụ/concept ban đầu vẫn là kịch bản dựng sẵn
      (quick-reply); khung nhập bên dưới nối sang server proxy (server/) gọi
-     Claude API thật — xem .claude/rules/workflow.md và server/server.js. -->
+     Gemini API thật — xem .claude/rules/workflow.md và server/server.js.
+     2026-09-28: tự mở ở trang chủ (máy tính), lời chào đổi theo dịch vụ đang xem; bấm
+     "Nhắn Sale" thì chat tiếp với Sale ngay trong khung này (js/sale-chat.js embed). -->
 <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
   <div class="chat-header">
     <div class="chat-avatar"><img src="images/logo-mark.svg" alt="" width="28" height="28"></div>
     <div class="chat-header-text">
-      <strong>Trợ lý ALOHA</strong>
-      <span>Tư vấn concept & báo giá</span>
+      <strong id="chatTitle">Trợ lý ALOHA</strong>
+      <span id="chatSubtitle">Tư vấn concept & báo giá</span>
     </div>
     <button class="chat-close" id="chatClose" aria-label="Đóng chat">×</button>
   </div>
   <div class="chat-body" id="chatBody"></div>
-  <div class="chat-sale-bar">
-    <span>Muốn nói chuyện trực tiếp với Sale?</span>
-    <a href="tel:0938125222">Gọi ngay 0938.125.222</a>
+  <div class="chat-sale-bar" id="chatSaleBar">
+    <span id="chatSaleBarText">Cần Sale tư vấn?</span>
+    <button type="button" class="chat-sale-btn" id="chatToSale">Nhắn Sale</button>
+    <a href="tel:0938125222" class="chat-sale-call" aria-label="Gọi hotline 0938.125.222">Gọi 0938.125.222</a>
   </div>
+  <div class="sc-status" id="chatSaleStatus" role="status" hidden></div>
   <form class="chat-input-row" id="chatInputForm">
     <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
     <button type="submit" class="chat-send" aria-label="Gửi">
@@ -1001,8 +973,38 @@
   </form>
 </div>
 
-<script src="js/script.js?v=20260928d"></script>
-<script src="js/sale-chat.js?v=20260927d"></script>
+<!-- Khung chat trực tiếp với Sale (js/sale-chat.js): khung nhỏ ở góc phải dưới, mở bằng nút chat nổi
+     (2026-09-28, người dùng muốn "chatbot ở 1 góc nhỏ như ban đầu", thay màn #/chat-sale toàn trang
+     làm hôm 27/09). Tin nhắn thật qua server, lời chào tự động + nút gợi ý giữ nguyên như trước. -->
+<div class="sc-panel" id="saleChatPanel" role="dialog" aria-label="Chat với Sale ALOHA Baby" aria-hidden="true">
+  <div class="sc-main">
+    <header class="sc-head">
+      <span class="sc-avatar"><img src="images/logo-mark.svg" alt="" width="22" height="22"></span>
+      <div class="sc-head-text">
+        <h2>Tư vấn viên ALOHA Baby</h2>
+        <span id="scTopicLine">Tư vấn chung</span>
+      </div>
+      <a href="tel:0938125222" class="sc-call" aria-label="Gọi hotline 0938.125.222" title="Gọi hotline 0938.125.222">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z"/></svg>
+      </a>
+      <button type="button" class="sc-close" id="scClose" aria-label="Thu nhỏ khung chat">×</button>
+    </header>
+
+    <div class="sc-status" id="scStatus" role="status" hidden></div>
+    <div class="sc-thread" id="scThread" aria-live="polite"></div>
+
+    <form class="sc-composer" id="scForm">
+      <textarea id="scInput" rows="1" placeholder="Nhập tin nhắn cho Sale..." aria-label="Tin nhắn cho Sale"></textarea>
+      <button type="submit" class="sc-send" id="scSend" aria-label="Gửi tin nhắn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </form>
+    <p class="sc-demo">Tin nhắn chỉ ba mẹ và đội ngũ Sale ALOHA Baby xem được.</p>
+  </div>
+</div>
+
+<script src="js/script.js?v=20260928m"></script>
+<script src="js/sale-chat.js?v=20260928b"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
 <script src="js/chon-anh.js?v=20260928c"></script>

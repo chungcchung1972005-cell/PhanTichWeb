@@ -58,6 +58,8 @@ Sau một lượt rà soát UI/UX theo hướng "anti-slop" (tránh cảm giác 
 - **Không lặp lại cùng một bố cục 3-4 card giống hệt nhau** quá 1 lần trên trang — section "Tin tức" đã đổi sang bố cục bất đối xứng (thẻ đầu nổi bật, 2 thẻ nhỏ xếp cạnh), section "Quy trình" có thêm đường nối giữa 4 bước để thể hiện tính tuần tự thay vì 4 khối rời rạc.
 - **Không để lộ đường dẫn file nội bộ** (`.claude/rules/...`) trong nội dung khách hàng nhìn thấy — mọi tham chiếu tới rule file phải nằm trong HTML comment, không nằm trong text hiển thị.
 - Nút bấm có trạng thái `:active` (nhấn nhẹ scale) để tạo cảm giác phản hồi vật lý, không chỉ có `:hover`.
+- **Không để góc vuông** trên khối có nền/viền/bóng (nhãn, chip, thẻ, nút): luôn bo bằng token `--radius-*` (người dùng yêu cầu 2026-09-28). Ngoại lệ đúng thiết kế: dải full-width (topbar, section, footer), cột menu Admin áp mép màn hình, ô giữa lưới lịch tháng.
+- Nút/ô nhập phải dùng font của trang: `style.css` đã có `button, input, select, textarea { font-family: inherit; }`, đừng ghi đè bằng font khác.
 
 ## Đăng nhập & phân quyền: 2 giao diện (Khách hàng / Ban quản trị) — đã triển khai
 
