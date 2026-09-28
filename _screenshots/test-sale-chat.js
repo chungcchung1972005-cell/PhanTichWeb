@@ -1,6 +1,6 @@
 const { CHROME_PATH, ROOT_URL, ROOT, shot } = require('./test-env');
 // Test chat THẬT Khách <-> Sale qua server (2026-09-27, sửa 2026-09-28): khách chưa đăng nhập
-// vẫn lướt web; bấm ảnh / dòng dịch vụ đầu trang -> đăng nhập -> album dịch vụ đó (concept ->
+// vẫn lướt web; bấm ảnh dịch vụ đầu trang -> đăng nhập -> album dịch vụ đó (concept ->
 // ảnh). Nút chat nổi mở chatbot AI ở góc; bấm "Nhắn Sale" thì chat tiếp với Sale NGAY TRONG
 // khung đó, Sale nhận kèm bản tóm tắt khách đã xem gì (tin hệ thống). Tin nhắn đi qua
 // server/sale-chat.js tới mục "Tin nhắn" của crm/admin.html. Khách và Sale ở 2 cửa sổ ẩn danh
@@ -128,7 +128,7 @@ async function waitFor(page, fn, arg, timeout = 8000) {
         ctaFinal: vis(document.querySelector('.cta-final')),
         fab: vis(document.getElementById('chatToggle')),
         tiles: Array.from(document.querySelectorAll('.svc-tile')).map((a) => a.getAttribute('href')),
-        list: Array.from(document.querySelectorAll('.svc-list a')).map((a) => a.getAttribute('href')),
+        list: document.querySelectorAll('.svc-list').length,
         albumCardPE: getComputedStyle(document.querySelector('.album-card')).pointerEvents,
         oldChats: 'chats' in JSON.parse(localStorage.getItem('aloha_demo_db') || '{}')
       };
@@ -137,8 +137,8 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     log('Không còn nút/link Đặt lịch nào hiện trên trang, khối CTA cuối trang ẩn', guest.bookingVisible === 0 && !guest.ctaFinal, `${guest.bookingVisible} nút`);
     log('Nút chat nổi vẫn còn (mở chat với Sale)', guest.fab);
     const slugs = ['be-lon', 'sinh-nhat', 'bau', 'gia-dinh', 'newborn'];
-    log('5 ảnh + 5 dòng dịch vụ đầu trang trỏ album #/album/<dịch vụ>',
-      guest.tiles.join() === slugs.map((s) => '#/album/' + s).join() && guest.list.join() === guest.tiles.join());
+    log('5 ảnh dịch vụ đầu trang trỏ album #/album/<dịch vụ> (dòng 5 dịch vụ đã bỏ 29/09)',
+      guest.tiles.join() === slugs.map((s) => '#/album/' + s).join() && guest.list === 0);
     log('Thẻ album khác trên Trang chủ bấm được lại (trang album đã bật)', guest.albumCardPE !== 'none');
     log('Dữ liệu chat cũ lưu trong trình duyệt (db.chats) đã bị bỏ', !guest.oldChats);
 
@@ -155,8 +155,8 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     await clickToLogin(page, '#chatToggle');
     log('Chưa đăng nhập bấm nút chat nổi -> sang đăng nhập (quay lại Trang chủ)', page.url().includes('login.html?next=home'), page.url().split('/').pop());
     await page.goto(INDEX + '#/', { waitUntil: 'networkidle0' });
-    await clickToLogin(page, '.svc-list a[href="#/album/gia-dinh"]');
-    log('Chưa đăng nhập bấm dòng "Chụp ảnh gia đình" -> sang đăng nhập (next=album/gia-dinh)', page.url().includes('login.html?next=album%2Fgia-dinh'), page.url().split('/').pop());
+    await clickToLogin(page, '.svc-tile--gia-dinh');
+    log('Chưa đăng nhập bấm ảnh "Chụp ảnh gia đình" -> sang đăng nhập (next=album/gia-dinh)', page.url().includes('login.html?next=album%2Fgia-dinh'), page.url().split('/').pop());
     await page.goto(INDEX + '#/', { waitUntil: 'networkidle0' });
     await clickToLogin(page, '.svc-tile--bau');
     log('Chưa đăng nhập bấm ảnh "Chụp ảnh bầu" -> sang trang đăng nhập (next=album/bau)', page.url().includes('login.html?next=album%2Fbau'), page.url().split('/').pop());
@@ -199,7 +199,7 @@ async function waitFor(page, fn, arg, timeout = 8000) {
     await page.waitForSelector('#chatBody .chat-sale-live .sc-chip', { timeout: 10000 });
     let chat = await chatState(page);
     log('"Nhắn Sale" -> vẫn cùng khung chat ở góc (tin trợ lý AI còn phía trên), chuyển sang chat với Sale, vẫn ở trang album',
-      chat.open && chat.aiBefore >= 2 && chat.subtitle === 'Đang chat trực tiếp với Sale' && chat.album && /^#\/album\/bau/.test(chat.hash) && chat.fab &&
+      chat.open && chat.aiBefore >= 2 && chat.subtitle === 'Đang chat với Sale' && chat.album && /^#\/album\/bau/.test(chat.hash) && chat.fab &&
       chat.panel.w <= 400 && chat.panel.right < 40 && chat.panel.bottom > 60, `${Math.round(chat.panel.w)}x${Math.round(chat.panel.h)}, ${chat.hash}`);
     log('Lời chào tự động đủ 3 tin, đúng tên + dịch vụ, ghi "Tin nhắn tự động", 4 nút gợi ý',
       chat.autoName.includes('Tin nhắn tự động') && chat.autoText.includes('Chào Khách demo') && chat.autoText.includes('Chụp ảnh bầu') &&
@@ -403,10 +403,10 @@ async function waitFor(page, fn, arg, timeout = 8000) {
       await p2.click('.svc-tile--sinh-nhat');
       await wait(200);
       const mid = await p2.evaluate(() => ({ ghost: !!document.querySelector('.svc-zoom'), home: !document.getElementById('view-home').hidden }));
-      log('Đã đăng nhập bấm ảnh -> ảnh phóng to phủ dần màn hình, trang chủ vẫn còn phía dưới trong lúc chuyển', mid.ghost && mid.home);
+      log('Đã đăng nhập bấm ảnh -> màn chuyển cảnh loang ra (tên dịch vụ), trang chủ vẫn còn phía dưới trong lúc chuyển', mid.ghost && mid.home);
       await wait(900);
       const landed = await p2.evaluate(() => ({ ghost: !!document.querySelector('.svc-zoom'), hash: location.hash, album: !document.getElementById('view-album').hidden, title: document.getElementById('galleryTitle').textContent }));
-      log('Hết hiệu ứng -> ở album #/album/sinh-nhat, lớp ảnh phóng đã gỡ', !landed.ghost && landed.hash === '#/album/sinh-nhat' && landed.album, `${landed.hash} ${landed.title}`);
+      log('Hết hiệu ứng -> ở album #/album/sinh-nhat, màn chuyển cảnh đã gỡ', !landed.ghost && landed.hash === '#/album/sinh-nhat' && landed.album, `${landed.hash} ${landed.title}`);
       await p2.click('#chatToggle');
       await wait(400);
       const reopen = await p2.evaluate(() => ({ sale: document.getElementById('chatPanel').classList.contains('sale-mode'), auto: (document.querySelector('#chatBody .chat-sale-live .sc-auto') || {}).textContent || '' }));

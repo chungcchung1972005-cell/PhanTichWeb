@@ -28,8 +28,9 @@ const BASE = ROOT_URL;
 
     // 2) Click album-card -> mở album concept công khai, KHÔNG về login.html
     // (người dùng đổi yêu cầu 2026-09-25: Album/Concept xem công khai, chỉ Đặt lịch/Ảnh của tôi mới gate).
+    // Từ 29/09 có màn chuyển cảnh ~0.5s (js/router.js) trước khi đổi địa chỉ -> chờ 900ms.
     await page.click('.album-card');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 900));
     log('click album-card chưa đăng nhập -> mở album công khai, không về login', page.url().includes('#/album/') && !page.url().includes('login.html'), page.url());
     await page.close();
   }
@@ -42,7 +43,7 @@ const BASE = ROOT_URL;
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
     await page.click('.concept-tile');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 900));
     log('click concept-tile chưa đăng nhập -> mở trang concept, không về login', page.url().includes('#/noi-dung/concept-') && !page.url().includes('login.html'), page.url());
     await page.close();
   }

@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260928e">
-<link rel="stylesheet" href="css/pages.css?v=20260928b">
+<link rel="stylesheet" href="css/style.css?v=20260929f">
+<link rel="stylesheet" href="css/pages.css?v=20260929b">
 <script src="js/features.js?v=20260928b"></script>
 </head>
 <body>
@@ -105,14 +105,8 @@
          Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
     <section class="svc-hero" id="dich-vu">
       <div class="container">
-        <h1 class="svc-title reveal">Dịch vụ</h1>
-        <ul class="svc-list reveal">
-          <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
-          <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
-          <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
-          <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
-          <li><a href="#/album/newborn">Chụp ảnh Newborn</a></li>
-        </ul>
+        <h1 class="svc-title reveal"><span>Dịch vụ</span></h1>
+        <p class="svc-sub reveal">Chọn một dịch vụ để xem concept và ảnh mẫu</p>
 
         <div class="svc-collage reveal-stagger reveal">
           <a href="#/album/be-lon" class="svc-tile svc-tile--be-lon stagger-item" data-album="be-lon">
@@ -860,9 +854,9 @@
   </div>
 
 </main>
-<script src="js/albums.js?v=20260928c"></script>
+<script src="js/albums.js?v=20260929b"></script>
 <script src="js/content.js"></script>
-<script src="js/router.js?v=20260928b"></script>
+<script src="js/router.js?v=20260929a"></script>
 
 <!-- Footer -->
 <footer class="site-footer">
@@ -950,20 +944,27 @@
      2026-09-28: tự mở ở trang chủ (máy tính), lời chào đổi theo dịch vụ đang xem; bấm
      "Nhắn Sale" thì chat tiếp với Sale ngay trong khung này (js/sale-chat.js embed). -->
 <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
+  <!-- Đầu khung gọn 1 hàng (29/09): logo chữ + dòng trạng thái | Nhắn Sale, gọi, đóng. Thanh "Nhắn Sale /
+       Gọi" dưới thân khung đã bỏ để phần tin nhắn rộng hơn. -->
   <div class="chat-header">
-    <div class="chat-avatar"><img src="images/logo-mark.svg" alt="" width="28" height="28"></div>
     <div class="chat-header-text">
-      <strong id="chatTitle">Trợ lý ALOHA</strong>
-      <span id="chatSubtitle">Tư vấn concept & báo giá</span>
+      <span class="wordmark chat-wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span></span>
+      <strong id="chatTitle" class="sr-only">Trợ lý ALOHA</strong>
+      <span id="chatSubtitle">Trợ lý tư vấn</span>
     </div>
-    <button class="chat-close" id="chatClose" aria-label="Đóng chat">×</button>
+    <div class="chat-head-actions">
+      <button type="button" class="chat-sale-btn" id="chatToSale" title="Chat trực tiếp với tư vấn viên">
+        <svg class="ico-sale" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg class="ico-ai" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z"/><path d="M19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9L19 14z"/></svg>
+        <span id="chatToSaleText">Nhắn Sale</span>
+      </button>
+      <a href="tel:0938125222" class="chat-head-btn chat-call" aria-label="Gọi hotline 0938.125.222" title="Gọi hotline 0938.125.222">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h4l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v4c0 1-1 2-2 2-8 0-14-6-14-14 0-1 1-2 2-2z"/></svg>
+      </a>
+      <button type="button" class="chat-head-btn chat-close" id="chatClose" aria-label="Đóng chat">×</button>
+    </div>
   </div>
   <div class="chat-body" id="chatBody"></div>
-  <div class="chat-sale-bar" id="chatSaleBar">
-    <span id="chatSaleBarText">Cần Sale tư vấn?</span>
-    <button type="button" class="chat-sale-btn" id="chatToSale">Nhắn Sale</button>
-    <a href="tel:0938125222" class="chat-sale-call" aria-label="Gọi hotline 0938.125.222">Gọi 0938.125.222</a>
-  </div>
   <div class="sc-status" id="chatSaleStatus" role="status" hidden></div>
   <form class="chat-input-row" id="chatInputForm">
     <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
@@ -1003,8 +1004,8 @@
   </div>
 </div>
 
-<script src="js/script.js?v=20260928d"></script>
-<script src="js/sale-chat.js?v=20260928b"></script>
+<script src="js/script.js?v=20260929b"></script>
+<script src="js/sale-chat.js?v=20260929a"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
 <script src="js/chon-anh.js?v=20260927f"></script>

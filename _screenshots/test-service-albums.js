@@ -64,15 +64,33 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
     });
     log(`[${vp.name}] Hero Banner 5 dịch vụ là section đầu tiên, ngay dưới navbar`, hero.id === 'dich-vu' && hero.cls.includes('svc-hero') && hero.gap === 0, `gap ${hero.gap}px`);
     log(`[${vp.name}] Tiêu đề h1 là "Dịch vụ", duy nhất 1 h1 trong Trang chủ, lưới ảnh lộ ngay màn đầu`, hero.h1 === 'Dịch vụ' && hero.h1Count === 1 && hero.visibleCollage);
-    const list = await page.evaluate(() => Array.from(document.querySelectorAll('.svc-list a')).map((a) => a.getAttribute('href') + '|' + a.textContent.trim()).join(','));
-    log(`[${vp.name}] Dòng 5 dịch vụ đúng thứ tự Bé lớn, Sinh nhật, Bầu, Gia đình, Newborn, trỏ #/album/<dịch vụ>`,
-      list === '#/album/be-lon|Chụp ảnh bé lớn,#/album/sinh-nhat|Chụp ảnh sinh nhật,#/album/bau|Chụp ảnh bầu,#/album/gia-dinh|Chụp ảnh gia đình,#/album/newborn|Chụp ảnh Newborn', list);
+    // Dòng 5 dịch vụ dưới tiêu đề đã bỏ (29/09, xấu trên điện thoại), thay bằng 1 dòng mô tả ngắn.
+    const head = await page.evaluate(() => ({ list: document.querySelectorAll('.svc-list').length, sub: (document.querySelector('.svc-sub') || {}).textContent || '' }));
+    log(`[${vp.name}] Không còn dòng 5 dịch vụ dưới tiêu đề, có dòng mô tả ngắn`, head.list === 0 && head.sub.includes('concept'), head.sub);
     const layout = await page.evaluate(() => {
-      const r = (k) => document.querySelector('.svc-tile--' + k).getBoundingClientRect();
-      const bau = r('bau'), beLon = r('be-lon'), sinhNhat = r('sinh-nhat');
-      return { bauTall: bau.height > beLon.height * 1.8, stacked: Math.abs(beLon.left - sinhNhat.left) < 2 && sinhNhat.top > beLon.bottom };
+      const el = (k) => document.querySelector('.svc-tile--' + k);
+      const r = (k) => el(k).getBoundingClientRect();
+      const bau = r('bau'), beLon = r('be-lon'), sinhNhat = r('sinh-nhat'), giaDinh = r('gia-dinh'), newborn = r('newborn');
+      const collage = document.querySelector('.svc-collage').getBoundingClientRect();
+      // Ô có tỉ lệ gần bằng ảnh -> ảnh gần như hiện trọn (lệch tối đa 12%: ảnh Sinh nhật 3:4 trong ô 2:3).
+      const fit = ['be-lon', 'sinh-nhat', 'bau', 'gia-dinh', 'newborn'].map((k) => {
+        const img = el(k).querySelector('img'), b = r(k);
+        return Math.abs((b.width / b.height) / (img.naturalWidth / img.naturalHeight) - 1);
+      });
+      return {
+        bauTall: bau.height > beLon.height * 1.8, stacked: Math.abs(beLon.left - sinhNhat.left) < 2 && sinhNhat.top > beLon.bottom,
+        even: [sinhNhat, bau, giaDinh].every((b) => Math.abs(b.width - beLon.width) < 1 && Math.abs(b.height - beLon.height) < 1),
+        ratio23: Math.abs(beLon.width / beLon.height - 2 / 3) < 0.01,
+        newbornFull: Math.abs(newborn.width - collage.width) < 1 && newborn.top > giaDinh.bottom,
+        maxFit: Math.max(...fit)
+      };
     });
-    log(`[${vp.name}] Ô Bầu cao gấp đôi, Bé lớn nằm trên Sinh nhật`, layout.bauTall && layout.stacked);
+    if (vp.name === 'mobile') {
+      log('[mobile] 4 ô ảnh đứng bằng nhau (tỉ lệ 2:3), Newborn nằm cả hàng cuối', layout.even && layout.ratio23 && layout.newbornFull);
+      log('[mobile] Mọi ô gần đúng tỉ lệ ảnh, ảnh hiện gần trọn (lệch ≤ 12%)', layout.maxFit <= 0.12, 'lệch ' + Math.round(layout.maxFit * 100) + '%');
+    } else {
+      log(`[${vp.name}] Ô Bầu cao gấp đôi, Bé lớn nằm trên Sinh nhật`, layout.bauTall && layout.stacked);
+    }
 
     // 2) 5 ô dịch vụ đủ, trỏ #/album/<dịch vụ>, ảnh bìa đọc từ dữ liệu album.
     const tiles = await page.evaluate(() => Array.from(document.querySelectorAll('.svc-tile')).map((t) => ({
@@ -186,11 +204,11 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
     if (vp.name === 'mobile') {
       // Menu hamburger đang ĐÓNG: danh sách con "Dịch vụ" không được đè lên trang và cướp cú chạm
       // (lỗi thật đã gặp: chạm nút ở vùng giữa màn hình lại nhảy tới #dich-vu).
-      const ctaHit = await page.$eval('.svc-list a', (b) => {
+      const ctaHit = await page.$eval('.svc-tile--be-lon', (b) => {
         const r = b.getBoundingClientRect();
         return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
       });
-      log('[mobile] Menu đóng: dòng dịch vụ đầu trang nhận đúng cú chạm', ctaHit);
+      log('[mobile] Menu đóng: ô ảnh dịch vụ đầu trang nhận đúng cú chạm', ctaHit);
       await page.click('#navToggle');
       await wait(350);
       const menu = await page.evaluate(() => {

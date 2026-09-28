@@ -68,9 +68,9 @@
     return s && s.role === 'khach-hang' ? s : null;
   }
 
-  // Nhãn dịch vụ lấy đúng chữ trên dòng 5 dịch vụ đầu trang chủ, không viết lại lần nữa.
+  // Nhãn dịch vụ lấy đúng chữ trên 5 ô ảnh dịch vụ đầu trang chủ, không viết lại lần nữa.
   function topicLabel(slug) {
-    const a = slug && document.querySelector('.svc-list a[href="#/album/' + slug + '"]');
+    const a = slug && document.querySelector('.svc-tile[data-album="' + slug + '"] .svc-tile-name');
     return a ? a.textContent.trim() : '';
   }
   // Đang xem album của 1 dịch vụ -> lấy dịch vụ đó làm chủ đề chat.
