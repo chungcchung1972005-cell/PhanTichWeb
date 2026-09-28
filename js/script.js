@@ -316,35 +316,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // tech-defaults.md), Sales sẽ báo giá/chính sách chính xác.
     const SERVICE_INFO = {
       'Bé lớn': {
-        img: 'images/service-be-lon.jpg',
+        img: 'images/services/be-lon.jpg',
         concepts: ['Ngoại cảnh công viên, phố cổ', 'Phong cách Hàn Quốc tối giản', 'Vintage cổ điển trong studio'],
         note: 'Phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ trong buổi.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 1.500.000đ'
       },
       'Sinh nhật': {
-        img: 'images/service-sinh-nhat.jpg',
+        img: 'images/services/sinh-nhat.jpg',
         concepts: ['Sinh nhật rực rỡ, nhiều bóng bay', 'Theo mùa/lễ hội (Noel, Trung thu...)', 'Tông pastel nhẹ nhàng'],
         note: 'Có thể kết hợp bánh kem, backdrop theo yêu cầu, phù hợp mốc thôi nôi/sinh nhật.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 1.800.000đ'
       },
       'Bầu': {
-        img: 'images/service-bau.jpg',
+        img: 'images/services/bau.jpg',
         concepts: ['Vintage nhẹ nhàng trong studio', 'Ngoại cảnh thiên nhiên', 'Tối giản, tôn dáng mẹ bầu'],
         note: 'Nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần để dáng bụng tròn đẹp mà vẫn thoải mái di chuyển, mình gợi ý chung vậy thôi nhé, còn tuỳ sức khoẻ mỗi mẹ.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.000.000đ'
       },
       'Gia đình': {
-        img: 'images/service-gia-dinh.jpg',
+        img: 'images/services/gia-dinh.jpg',
         concepts: ['Ngoại cảnh công viên, biển', 'Vintage ấm áp trong studio', 'Đồng phục tông màu theo gia đình'],
         note: 'Không giới hạn số thành viên trong ảnh, có thể chụp nhiều thế hệ trong cùng buổi.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.500.000đ'
       },
       'Newborn': {
-        img: 'images/service-newborn.jpg',
+        img: 'images/services/newborn.jpg',
         concepts: ['Newborn tự nhiên (organic) tại studio', 'Cuộn ủ (wrap) cổ điển', 'Có bố mẹ/anh chị cùng khung hình'],
         note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn — studio giữ ấm phòng chụp phù hợp cho bé.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',

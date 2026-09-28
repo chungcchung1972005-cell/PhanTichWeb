@@ -1,0 +1,23 @@
+{
+  "_note": "Ảnh bìa 5 ô dịch vụ đầu trang chủ (index.html) + thẻ dịch vụ trong chatbot (js/script.js). Ảnh stock miễn phí bản quyền (Pexels License, dùng thương mại được), là ảnh MINH HOẠ, không phải khách hàng thật của ALOHA Baby. Chọn 2026-09-28 theo tông sáng, hồng kem cho đồng bộ (đã xem bằng mắt).",
+  "be-lon.jpg": {
+    "pexelsId": "37101826",
+    "page": "https://www.pexels.com/photo/charming-child-in-pink-dress-sitting-sideways-37101826/"
+  },
+  "sinh-nhat.jpg": {
+    "pexelsId": "28538047",
+    "page": "https://www.pexels.com/photo/adorable-baby-s-first-birthday-celebration-with-cake-28538047/"
+  },
+  "bau.jpg": {
+    "pexelsId": "4778119",
+    "page": "https://www.pexels.com/photo/pregnant-woman-at-sunset-4778119/"
+  },
+  "gia-dinh.jpg": {
+    "pexelsId": "38407506",
+    "page": "https://www.pexels.com/photo/smiling-family-portrait-with-baby-in-cozy-setting-38407506/"
+  },
+  "newborn.jpg": {
+    "pexelsId": "12808972",
+    "page": "https://www.pexels.com/photo/newborn-in-sleepers-lying-in-basket-12808972/"
+  }
+}
