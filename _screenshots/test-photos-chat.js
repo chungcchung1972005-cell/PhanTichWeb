@@ -134,8 +134,8 @@ const BASE = ROOT_URL;
     await page.reload({ waitUntil: 'networkidle0' });
     await page.click('#chatToggle');
     await new Promise(r => setTimeout(r, 300));
-    const href = await page.$eval('.chat-sale-bar a', el => el.getAttribute('href'));
-    log('thanh liên hệ Sale hiện sẵn trong khung chat, trỏ đúng hotline', href === 'tel:0938125222', href);
+    const href = await page.$eval('#chatPanel .chat-call', el => el.getAttribute('href'));
+    log('nút gọi hotline nằm sẵn ở đầu khung chat, trỏ đúng số', href === 'tel:0938125222', href);
     await page.close();
   }
 

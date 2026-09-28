@@ -8,7 +8,7 @@ Website studio chụp ảnh **ALOHA Baby** (35 Lê Văn Thiêm, Thanh Xuân, Hà
 
 Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`ahola-baby.vercel.app`), server chatbot trên Render. HTML/CSS/JS thuần, chưa có backend CRM/booking thật. Quy trình Git và cách làm việc với người dùng: xem "Ghi nhớ nhanh" ngay bên dưới.
 
-## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-09-28)
+## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-09-29)
 
 **Cách người dùng muốn Claude làm việc (áp dụng mặc định, không cần nhắc lại):**
 - Sau mỗi lần sửa xong, tự mở trang web vừa sửa trong trình duyệt cho người dùng (yêu cầu ngày 2026-09-26).
@@ -21,14 +21,26 @@ Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`
 - Không commit/push khi chưa được yêu cầu; KHÔNG bao giờ commit `server/.env`.
 - **KHÔNG nhắc đổi mật khẩu/key** (`GEMINI_API_KEY`, mật khẩu user MongoDB `chungcchung1972005_db_user`) dù từng lộ trong chat: người dùng chốt 2026-09-27 "không cần đổi, đừng nhắc lại nữa".
 
+**Đầu mỗi phiên mới:** đọc "Việc cần làm tiếp theo" ngay bên dưới + chạy `git status`/`git log -3`; người dùng chỉ nói "làm tiếp" thì tóm tắt 2-3 việc đầu danh sách và hỏi làm việc nào (không tự làm việc cần người dùng quyết). Server chat local tắt khi đóng máy: cần thì `cd server && npm start` (không có `AUTH_SECRET` trong `server/.env` nên mỗi lần bật lại phải đăng nhập lại).
+
 **Quy trình Git hiện tại:** làm trên nhánh riêng (của người dùng: `Chungcook`), gửi Pull Request vào `main`. `main` có branch protection: cần 1 approve từ người có quyền Write (tác giả không tự duyệt được; Admin có ô "bypass rules" dùng từng lần). Nhóm 3 người. Người dùng tự commit bằng công cụ riêng -> luôn `git status`/`git log` trước khi đụng Git.
 
-**Quyết định đã chốt gần đây:** logo là wordmark chữ "aloha ♥ BABY STUDIO" (không dùng biểu tượng máy ảnh); khối đầu trang = "DỊCH VỤ" theo bố cục alohababy.vn (tiêu đề giữa, dòng 5 dịch vụ, lưới ảnh 3 cột ô Bầu cao gấp đôi; đổi 2026-09-27), không có danh sách đánh số 01-05; album 3 tầng Dịch vụ -> Concept -> Ảnh (`js/albums.js`); tầng nội dung chi tiết `#/noi-dung/<slug>` (`js/content.js`); nội dung chi tiết xem công khai; **từ 2026-09-28: 5 ảnh + dòng dịch vụ đầu trang mở album `#/album/<dịch vụ>` (bắt đăng nhập, gate ở `js/albums.js`), các thẻ album khác xem công khai; chatbot AI BẬT LẠI: trang chủ máy tính tự mở (điện thoại: bong bóng lời chào), lời chào đổi theo album dịch vụ/concept đang xem, chưa đăng nhập bấm vào chatbot -> đăng nhập; nút "Nhắn Sale" chuyển sang chat thật với Sale NGAY TRONG khung chatbot, Sale nhận tin hệ thống tóm tắt khách đã xem/hỏi gì. Chỉ Đặt lịch còn TẠM TẮT bằng cờ `js/features.js`** (chỉ ẩn, code giữ nguyên để bật lại).
+**Quyết định đã chốt gần đây:** logo là wordmark chữ "aloha ♥ BABY STUDIO" (không dùng biểu tượng máy ảnh); khối đầu trang = "DỊCH VỤ" theo bố cục alohababy.vn (tiêu đề giữa, lưới ảnh 3 cột ô Bầu cao gấp đôi; đổi 2026-09-27. Từ 2026-09-29 BỎ dòng 5 dịch vụ dưới tiêu đề (người dùng chê xấu trên điện thoại), thay bằng 1 dòng mô tả; điện thoại xếp 4 ô ảnh đứng bằng nhau tỉ lệ 2:3 + Newborn cả hàng cuối), không có danh sách đánh số 01-05; album 3 tầng Dịch vụ -> Concept -> Ảnh (`js/albums.js`); tầng nội dung chi tiết `#/noi-dung/<slug>` (`js/content.js`); nội dung chi tiết xem công khai; **từ 2026-09-28: 5 ảnh + dòng dịch vụ đầu trang mở album `#/album/<dịch vụ>` (bắt đăng nhập, gate ở `js/albums.js`), các thẻ album khác xem công khai; chatbot AI BẬT LẠI: trang chủ máy tính tự mở (điện thoại: bong bóng lời chào), lời chào đổi theo album dịch vụ/concept đang xem, chưa đăng nhập bấm vào chatbot -> đăng nhập; nút "Nhắn Sale" chuyển sang chat thật với Sale NGAY TRONG khung chatbot, Sale nhận tin hệ thống tóm tắt khách đã xem/hỏi gì. Chỉ Đặt lịch còn TẠM TẮT bằng cờ `js/features.js`** (chỉ ẩn, code giữ nguyên để bật lại).
 
-**Phiên 2026-09-28 đã làm (đã commit + push lên nhánh `Chungcook`, CHƯA có PR vào `main`; chi tiết: `docs/changelog.md`):**
+**Phiên 2026-09-28 đã làm (ĐÃ lên `main` qua PR #19, merge 28/09; chi tiết: `docs/changelog.md`):**
 1. 5 ảnh + dòng dịch vụ đầu trang -> đăng nhập -> album dịch vụ -> concept -> ảnh; bật lại toàn bộ trang album.
 2. Bật lại chatbot AI: tự mở ở trang chủ (máy tính) / bong bóng (điện thoại), lời chào đổi theo album dịch vụ/concept; "Nhắn Sale" chat tiếp với Sale ngay trong khung chatbot; Sale nhận tóm tắt hành trình khách (endpoint server mới `/me/handoff`, Render cần deploy lại khi merge). Test `test-chatbot-greeting` 18/18, `test-sale-chat` 52/52. Câu trả lời Gemini thật chưa kiểm lại trong phiên này.
 3. Đổi ảnh bìa 5 ô Dịch vụ đầu trang chủ sang bộ ảnh Pexels tông sáng hồng kem: `images/services/<dịch vụ>.jpg` (+ `sources.json`), khai báo bằng trường `cover` trong `js/albums.js`; ảnh cũ `images/service-*.jpg` giữ cho album concept.
+
+**Phiên 2026-09-29 đã làm (CHƯA commit/push; chi tiết từng lượt: `docs/changelog.md`):**
+1. Khối Dịch vụ đầu trang: bỏ dòng 5 dịch vụ dưới tiêu đề (xấu trên điện thoại), tiêu đề "DỊCH VỤ" to hơn + 2 vạch hồng có chấm + dòng mô tả `.svc-sub`; điện thoại: 4 ô ảnh đứng bằng nhau tỉ lệ 2:3 (thấy trọn ảnh) + Newborn cả hàng cuối; sửa nhãn trên ảnh bị bóp hẹp (`width: max-content`).
+2. Chuyển cảnh dùng chung (`js/router.js` `veilTo`): TỪ TRANG CHỦ vào album / trang nội dung / Ảnh của tôi = màn trắng hồng loang tròn từ chỗ bấm, giữa màn là tên trang, tan đi thì trang mới trồi lên; đi tiếp BÊN TRONG album/nội dung = chỉ trồi nhẹ (`.view-enter`); về Trang chủ / neo cuộn / trợ lý AI tự chuyển / chưa đăng nhập / giảm chuyển động = không hiệu ứng (người dùng: "thêm vào chỗ cần thiết, tránh spam").
+3. Điện thoại: nút chatbot lắc nhẹ + vòng sóng hồng 5 giây/lần khi khung chat đang đóng (`css/style.css` `fabShake`/`fabRing`).
+4. Đầu khung chatbot gọn 1 hàng: logo chữ "aloha♥" trắng + dòng trạng thái ("Trợ lý tư vấn" / "Đang chat với Sale") | nút "Nhắn Sale" (chế độ Sale: "Trợ lý AI"), nút gọi tròn, nút đóng; bỏ thanh "Nhắn Sale / Gọi" dưới thân khung, phần tin nhắn cao thêm ~60px.
+5. Chatbot "khách bảo gì làm nấy" (đổi quyết định cũ, xem "Quyết định đã chốt"): server `/api/chat` trả thêm `do`; khách đòi gặp Sale/nhân viên/đặt lịch -> tự chuyển sang Sale; bảo mở album/trang -> tự mở; gõ "quay lại trợ lý AI" khi đang chat Sale -> về trợ lý. Nút "Trợ lý AI" ở chế độ Sale nổi bật (hồng đậm, viền trắng, nhấp nháy 3 lần). Đã thử Gemini thật 9/9 câu + trình duyệt thật 6/6.
+Kiểm tra cuối phiên: cả 18 bộ test PASS sau mục 1-3; sau mục 4-5 chạy lại 8 bộ liên quan chatbot đều PASS. Test sửa theo: `test-service-albums` 134, `test-sale-chat` 52, `test-interest-gate` (chờ 900ms vì màn chuyển cảnh ~0.5s), `test-photos-chat` (nút gọi ở đầu khung chat).
+
+**Trạng thái git (chốt phiên 2026-09-29):** nhánh `Chungcook` khớp `origin/Chungcook` ở `6a18d99`; `origin/main` đi trước 3 commit (merge PR #19 + commit rỗng `f2b8128`, không đổi file) nên không xung đột. Toàn bộ việc phiên 29/09 CHƯA commit: 15 file code/tài liệu (`index.html`, `css/style.css`, `css/pages.css`, `js/router.js`, `js/albums.js`, `js/script.js`, `js/sale-chat.js`, `server/server.js`, 4 file test, `CLAUDE.md`, `changelog.md`, `rules/tech-defaults.md`) + 61 ảnh chụp test `_screenshots/*.png` bị chụp lại (tuỳ người dùng có commit hay không).
 
 **Phiên 2026-09-27 đã làm (chi tiết từng lượt: `docs/changelog.md`):**
 1. Khối đầu trang chủ theo bố cục "DỊCH VỤ" của alohababy.vn (tiêu đề giữa + dòng 5 dịch vụ + lưới ảnh 3 cột).
@@ -39,7 +51,17 @@ Repo Git trên GitHub (`origin`), frontend public trên GitHub Pages + Vercel (`
 6. **MongoDB Atlas đã cài xong, chat Sale chạy thật trên bản public:** cluster M0 `Chungcook` (AWS Hong Kong), IP `0.0.0.0/0`; Render đã có `MONGODB_URI`, `AUTH_SECRET`, `ALLOWED_ORIGINS` (Vercel + GitHub Pages). `/api/health` → `"chatStore":"mongodb"`. Claude đã test bằng trình duyệt thật trên cả Vercel lẫn GitHub Pages: khách ↔ Sale 2 cửa sổ ẩn danh chat qua lại, tải lại trang tin vẫn còn, không lỗi CORS (16/16 PASS).
 7. **Đăng nhập/đăng ký bằng Google** (người dùng chọn: Google trước, Facebook sau; Google lần đầu bắt nhập SĐT 1 lần; giữ SĐT + mật khẩu như cũ, không OTP): nút Google trên `login.html`, server kiểm tra token qua Google tokeninfo, SĐT đã có tài khoản không gắn Google được (chống chiếm tài khoản). Test `test-google-login` 19/19 (giả lập Google). **Code CHƯA commit/push; bản public chưa có nút Google** cho tới khi người dùng tạo OAuth Client ID + đặt `GOOGLE_CLIENT_ID` trên Render (`server/DEPLOY.md` mục "Đăng nhập bằng Google"). Luồng với Google thật CHƯA kiểm chứng.
 
-**Việc cần làm tiếp theo:** (1) người dùng commit + đưa code Google lên `main` (qua PR), tạo OAuth Client ID Google, đặt `GOOGLE_CLIENT_ID` trên Render, rồi nhờ Claude kiểm tra bằng Google thật; (2) làm đăng nhập Facebook (người dùng đã chọn làm sau Google); (3) xem mục "Việc còn mở" trong phần Trạng thái dự án (đã sắp theo thứ tự ưu tiên). Việc nhỏ người dùng tự làm khi muốn: xoá 5 tin test Claude gửi trong chat của `0900000001` (Atlas → Browse Collections → `aloha_baby.chats`) cho hộp thư Sale sạch; cài SePay (mục "Việc còn mở").
+**Việc cần làm tiếp theo (chốt phiên 2026-09-29, theo thứ tự):**
+1. **Commit + push phiên 29/09** lên `Chungcook`, mở PR vào `main` (chỉ làm khi người dùng bảo; hỏi có commit 61 ảnh chụp test không).
+2. **Sau khi merge: kiểm tra Render đã deploy server mới** (`server/server.js` có trường `do` - "khách bảo gì làm nấy") rồi thử trên bản public (Vercel): hỏi thông tin vẫn ở AI, "gặp nhân viên" tự sang Sale, "mở album newborn" tự mở, chuyển cảnh, đầu khung chatbot mới. Đồng thời kiểm luôn phần 28/09 đã lên public nhưng CHƯA kiểm chứng: gợi ý 2 nút do AI chọn (`/api/chat-suggest`), "Nhắn Sale" + bản tóm tắt cho Sale (`/me/handoff`).
+3. **Đăng nhập Google:** code đã có trên `main`; người dùng tạo OAuth Client ID + đặt `GOOGLE_CLIENT_ID` trên Render (`server/DEPLOY.md`), rồi nhờ Claude thử bằng Google thật. Sau đó: đăng nhập Facebook.
+4. Các việc lớn hơn: xem "Việc còn mở" trong phần Trạng thái dự án. Việc nhỏ người dùng tự làm khi muốn: xoá tin test trong chat của `0900000001` (Atlas -> `aloha_baby.chats`); cài SePay; thêm `AUTH_SECRET` vào `server/.env` để khỏi phải đăng nhập lại mỗi lần bật server local.
+
+**Đang chờ người dùng quyết (hỏi trước khi làm, không tự làm):**
+- **Chữ còn quảng cáo "đặt lịch/cọc online" khi Đặt lịch đang tắt:** chip "Đặt lịch & cọc online", section "Đặt lịch chỉ trong 4 bước", bullet "Đặt lịch, đặt cọc... trực tuyến", bài "Cách đặt lịch và đặt cọc chụp ảnh online" -> ẩn tạm / viết lại thành "nhắn Sale giữ lịch" / giữ nguyên.
+- **Nút "Tin nhắn" trong Không gian Sale** (`crm/sale.html`): hiện Sale phải tự mở `crm/admin.html#tin-nhan` mới thấy khách nhắn + bản tóm tắt. Đề xuất thêm nút có số tin chưa đọc vào menu.
+- **Nhãn tên dịch vụ trên 5 ảnh đầu trang:** nền xám đậm hơi nặng với ảnh sáng -> đề xuất đổi sang trắng mờ chữ navy.
+- **Menu "Dịch vụ" trên thanh nav:** 5 mục con vẫn chỉ cuộn tới khối Dịch vụ -> có cho mở thẳng album từng dịch vụ (kèm chuyển cảnh) không.
 
 ## Kiến trúc hệ thống & danh sách file (giữ nguyên — xem guardrail đầu tiên bên dưới)
 
@@ -78,7 +100,7 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 - Toàn bộ ảnh/video là **stock miễn phí bản quyền (Pexels License)**, là ảnh MINH HOẠ, không phải khách hàng thật.
 
 **Test/tiện ích (`_screenshots/*.js`, chạy tay, Puppeteer điều khiển Chrome cài sẵn):**
-- Test không cần server (ưu tiên chạy): `test-auth` (17 case), `test-interest-gate` (11), `test-photos-chat` (9), `test-photo-notes` (5), `test-ai-chat` (1), `test-suggestion-nav` (9), `test-service-albums` (130), `test-chat-concepts` (25), `test-content-pages` (59), `test-booking-required` (68), `test-google-login` (19, tự bật server cổng 3001 + máy chủ Google giả cổng 3009, nút Google giả; tắt `npm start` trước), `test-sale-chat` (52, tự bật `server/server.js` ở cổng 3001 lưu bộ nhớ - tắt `npm start` của bạn trước; khách/Sale ở các cửa sổ ẩn danh riêng như 2 máy; chạy với cờ mặc định), `test-chatbot-greeting` (18, 2026-09-28, tự bật server như trên với `GEMINI_API_KEY` rỗng: chatbot tự mở, lời chào theo trang, chuyển Sale + tóm tắt, bong bóng mobile). Các test còn lại bật lại đủ cờ qua `launchAllFeatures`.
+- Test không cần server (ưu tiên chạy): `test-auth` (17 case), `test-interest-gate` (11), `test-photos-chat` (9), `test-photo-notes` (5), `test-ai-chat` (1), `test-suggestion-nav` (9), `test-service-albums` (134), `test-chat-concepts` (28), `test-content-pages` (59), `test-booking-required` (68), `test-google-login` (19, tự bật server cổng 3001 + máy chủ Google giả cổng 3009, nút Google giả; tắt `npm start` trước), `test-sale-chat` (52, tự bật `server/server.js` ở cổng 3001 lưu bộ nhớ - tắt `npm start` của bạn trước; khách/Sale ở các cửa sổ ẩn danh riêng như 2 máy; chạy với cờ mặc định), `test-chatbot-greeting` (18, 2026-09-28, tự bật server như trên với `GEMINI_API_KEY` rỗng: chatbot tự mở, lời chào theo trang, chuyển Sale + tóm tắt, bong bóng mobile). Các test còn lại bật lại đủ cờ qua `launchAllFeatures`.
 - Test cần server/AI thật (tốn hạn mức Gemini): `test-ai-faq-menu`, `test-chat-navigate`, `test-prod-chat` (chạy trên bản public).
 - Chụp/kiểm tra: `shoot.js`, `shoot-all.js`, `shoot-viewport.js`, `audit-responsive.js`, `inspect.js`.
 - Tải ảnh/xuất logo: `fetch-album-photos.js` (ảnh album), `fetch-images.js`, `fetch-my-photos.js` (đã dùng xong, giữ tham khảo), `make-logo-png.js` (xuất PNG favicon từ SVG).
@@ -108,10 +130,10 @@ Chi tiết từng lượt thay đổi, lỗi đã gặp, lý do quyết định:
 - Đăng nhập 1 trang, KHÔNG chọn vai trò bằng tay (6 tài khoản demo hardcode trong `login.html`: 1 khách, 3 Sale `0900000002/05/06`, 1 Thợ ảnh, 1 Sếp). Đăng ký mới không có `next` → vào `#/dat-lich` (hoặc `#/chat-sale` khi Đặt lịch đang tắt); có `next` thì tôn trọng `next`.
 - 3 vai trò nội bộ dùng chung `crm/admin.html`, phân quyền bằng `data-roles`, phần không thuộc quyền bị **xoá khỏi DOM**.
 - Khách hàng gộp 1 file `index.html` (SPA hash); giữ riêng `login.html` và `crm/admin.html`.
-- Nội dung chi tiết xem **công khai** (2026-09-25). Từ 2026-09-28: trang album bật lại, thẻ album khác xem công khai; RIÊNG 5 ảnh + dòng dịch vụ đầu trang bắt đăng nhập rồi vào album dịch vụ đó (người dùng chọn). Nút chat nổi, mọi nút trong khung chatbot và "Tư vấn concept ngay" vẫn bắt đăng nhập (người dùng chốt lại 2026-09-28 dù chatbot tự mở ở trang chủ).
+- Nội dung chi tiết xem **công khai** (2026-09-25). Từ 2026-09-28: trang album bật lại, thẻ album khác xem công khai; RIÊNG 5 ảnh dịch vụ đầu trang bắt đăng nhập rồi vào album dịch vụ đó (người dùng chọn). Nút chat nổi, mọi nút trong khung chatbot và "Tư vấn concept ngay" vẫn bắt đăng nhập (người dùng chốt lại 2026-09-28 dù chatbot tự mở ở trang chủ).
 - Chỉnh sửa ảnh chỉ 3 bước (Chờ xử lý → Đang thực hiện → Hoàn thành), KHÔNG có vai trò QC riêng. Yêu cầu thật chỉ được chuyển sang Hoàn thành khi Thợ ảnh đã gửi link ảnh đã chỉnh (2026-09-27).
 - Link ảnh đã chỉnh để CÔNG KHAI cho khách gửi người thân: ngoại lệ có chủ đích với nguyên tắc riêng tư ảnh trẻ em, người dùng chốt 2026-09-27 (chi tiết `rules/workflow.md`).
-- Chatbot dùng Gemini (free tier), không tự chuyển trang: chỉ chuyển khi khách BẤM nút gợi ý. Server tự thử chuỗi model dự phòng khi quá tải.
+- Chatbot dùng Gemini (free tier). **Từ 2026-09-29 "khách bảo gì làm nấy"** (thay quy tắc cũ "chỉ chuyển khi khách bấm nút gợi ý"): tin khách là yêu cầu làm ngay (gặp Sale, đặt lịch, mở album/trang) thì tự làm luôn; câu hỏi thông tin thì chỉ trả lời + 2 nút gợi ý. Server tự thử chuỗi model dự phòng khi quá tải.
 - Logo chỉ dùng chữ (wordmark); khối Dịch vụ đầu trang theo bố cục alohababy.vn, không có danh sách đánh số 01-05.
 
 **Việc còn mở (theo thứ tự ưu tiên gợi ý):**

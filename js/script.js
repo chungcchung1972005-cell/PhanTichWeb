@@ -876,7 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sale bản tóm tắt những gì khách đã xem / đã hỏi trợ lý AI (AlohaSaleChat.handoff).
     const chatTitle = document.getElementById('chatTitle');
     const chatSubtitle = document.getElementById('chatSubtitle');
-    const chatSaleBarText = document.getElementById('chatSaleBarText');
+    const chatToSaleText = document.getElementById('chatToSaleText');
     const chatToSale = document.getElementById('chatToSale');
     const chatSaleStatus = document.getElementById('chatSaleStatus');
     const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send') : null;
@@ -902,9 +902,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const setSaleUi = (on) => {
       chatPanel.classList.toggle('sale-mode', on);
       if (chatTitle) chatTitle.textContent = on ? 'Tư vấn viên ALOHA Baby' : 'Trợ lý ALOHA';
-      if (chatSubtitle) chatSubtitle.textContent = on ? 'Đang chat trực tiếp với Sale' : 'Tư vấn concept & báo giá';
-      if (chatSaleBarText) chatSaleBarText.textContent = on ? 'Đang chat với Sale' : 'Cần Sale tư vấn?';
-      if (chatToSale) chatToSale.textContent = on ? 'Quay lại trợ lý AI' : 'Nhắn Sale';
+      if (chatSubtitle) chatSubtitle.textContent = on ? 'Đang chat với Sale' : 'Trợ lý tư vấn';
+      // Nút ở đầu khung: chữ ngắn cho vừa hàng, tên đầy đủ để ở title/aria-label.
+      if (chatToSaleText) chatToSaleText.textContent = on ? 'Trợ lý AI' : 'Nhắn Sale';
+      if (chatToSale) {
+        chatToSale.title = on ? 'Quay lại trợ lý AI' : 'Chat trực tiếp với tư vấn viên';
+        chatToSale.setAttribute('aria-label', on ? 'Quay lại trợ lý AI' : 'Nhắn Sale');
+      }
       if (chatInput) chatInput.placeholder = on ? 'Nhập tin nhắn cho Sale...' : 'Nhập câu hỏi cho trợ lý...';
       if (!on) {
         if (chatInput) chatInput.disabled = false;
@@ -1208,6 +1212,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return ans.suggestions;
       };
 
+      // "Khách bảo gì làm nấy" (người dùng chốt 2026-09-29, thay quy tắc cũ "chỉ chuyển khi khách bấm
+      // nút gợi ý"): AI trả thêm "do" khi tin nhắn là một yêu cầu làm ngay (server/server.js) ->
+      // chuyển sang Sale / mở trang luôn. AI lỗi thì nhận diện lệnh rõ ràng bằng từ khoá (detectLocalDo).
+      const SALE_INTENT = /\bsale\b|tu van vien|nhan vien|nguoi that|gap nguoi|noi chuyen (voi|truc tiep)|nhan (tin )?(truc tiep|cho shop|cho studio)|chat (voi )?(nguoi|nhan vien|truc tiep)|goi lai cho|de lai so/;
+      const detectLocalDo = (raw) => {
+        const t = stripDiacritics(raw);
+        if (SALE_INTENT.test(t)) return 'sale';
+        return detectLocalAction(raw);
+      };
+      const doNow = (name) => {
+        if (!name || name === 'none') return;
+        if (name === 'sale' || (name === 'dat-lich' && FEAT.booking === false)) {
+          setTimeout(() => { if (!saleMode) enterSale(pageContext().service ? pageContext().service.slug : ''); }, 700);
+          return;
+        }
+        runChatAction(name);
+      };
+
       const sendToAI = async (text) => {
         if (!text || aiBusy) return;
         chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
@@ -1232,9 +1254,11 @@ document.addEventListener('DOMContentLoaded', () => {
           typing.remove();
           if (!res.ok || !data.reply) {
             next = answerLocally(text);
+            doNow(detectLocalDo(text));
           } else {
             addMsg(data.reply, 'bot');
             aiHistory.push({ role: 'assistant', content: data.reply });
+            doNow(data.do);
             const valid = Array.isArray(data.suggestions)
               ? data.suggestions.filter((s) => s && typeof s.label === 'string' && s.label)
               : [];
@@ -1246,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           typing.remove();
           next = answerLocally(text);
+          doNow(detectLocalDo(text));
         } finally {
           aiBusy = false;
           sendBtn.disabled = false;
@@ -1259,6 +1284,12 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const text = chatInput.value.trim();
         if (saleMode) {
+          // Khách gõ đòi quay lại trợ lý AI -> quay lại luôn, không gửi câu đó cho Sale.
+          if (text && /^(quay lai |ve |gap |hoi |chat voi |noi chuyen voi )?(tro ly( ai)?|\bai\b|bot|chatbot)( di| nhe| a)?$/.test(stripDiacritics(text).trim())) {
+            chatInput.value = '';
+            leaveSale();
+            return;
+          }
           if (!text || chatInput.disabled || !window.AlohaSaleChat) return;
           chatInput.value = '';
           if (chatSendBtn) chatSendBtn.disabled = true;

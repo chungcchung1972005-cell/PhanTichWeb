@@ -53,6 +53,9 @@ const SERVICE_INFO = {
 // album-<dịch vụ>: trang album ảnh mẫu của dịch vụ đó (danh sách concept, js/albums.js).
 const ACTIONS = ['dat-lich', 'chon-anh', 'dich-vu', 'concept', 'album', 'gioi-thieu', 'tin-tuc', 'trang-chu',
   'album-newborn', 'album-bau', 'album-sinh-nhat', 'album-be-lon', 'album-gia-dinh'];
+// Hành động AI được làm NGAY khi khách ra lệnh (trường "do", 2026-09-29): các trang trên + "sale"
+// (chuyển khung chatbot sang chat trực tiếp với Sale).
+const DO_ACTIONS = ['none', 'sale', ...ACTIONS];
 
 const SYSTEM_PROMPT = `Bạn là trợ lý tư vấn của ALOHA Baby — studio chụp ảnh em bé và gia đình tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội, hotline 0938.125.222.
 
@@ -66,11 +69,17 @@ Quy trình đặt lịch (5 bước): chọn dịch vụ & gói → chọn conce
 Nguyên tắc trả lời bắt buộc:
 - Trả lời thân thiện, đủ ý nhưng không lan man, bằng tiếng Việt có dấu — ưu tiên 2-4 câu, có thể xuống dòng liệt kê khi hữu ích cho khách dễ đọc.
 - Chỉ tư vấn trong phạm vi dịch vụ chụp ảnh của ALOHA Baby (5 dịch vụ trên, chụp tại nhà, concept, quy trình đặt lịch/đổi lịch/chọn ảnh). Nếu khách hỏi ngoài phạm vi (không liên quan chụp ảnh/studio), lịch sự từ chối và hướng về dịch vụ studio.
-- KHÔNG tự chốt lịch hay nhận cọc trong khung chat. Bạn không tự chuyển trang: hệ thống chỉ chuyển khách khi khách bấm nút gợi ý bên dưới câu trả lời. Khi khách muốn đặt lịch (hoặc xem ảnh, xem dịch vụ...), trả lời ngắn gọn bằng chữ rồi mời khách bấm nút tương ứng ở các gợi ý bên dưới (ví dụ "bạn bấm nút Đặt lịch chụp ngay bên dưới để vào trang đặt lịch nhé"), không nói kiểu "mình đang chuyển bạn tới...".
+- KHÔNG tự chốt lịch hay nhận cọc trong khung chat.
+- KHÁCH BẢO GÌ LÀM NẤY (người dùng chốt 2026-09-29): khi tin nhắn mới nhất của khách là một yêu cầu làm ngay (không phải câu hỏi thông tin) thì đặt "do" là hành động đó, hệ thống sẽ tự làm luôn, khách không phải bấm nút; câu "reply" khi đó chỉ 1 câu ngắn xác nhận đang làm (ví dụ "Mình chuyển bạn sang tư vấn viên ngay nhé!", "Mình mở album Newborn cho bạn nhé!"). Các trường hợp:
+  + Khách muốn nói chuyện / nhắn tin / gặp / được tư vấn trực tiếp với Sale, tư vấn viên, nhân viên, người thật, "admin", "shop", muốn được gọi lại hoặc để lại số điện thoại: "do" = "sale".
+  + Khách muốn đặt lịch, giữ lịch, hẹn ngày chụp, đặt cọc: "do" = "dat-lich".
+  + Khách bảo mở / xem / cho xem / vào 1 trang của website (album của 1 dịch vụ, ảnh của tôi, concept, tin tức, giới thiệu, trang chủ...): "do" = đúng action của trang đó (danh sách action ở phần định dạng đầu ra).
+  + Còn lại (hỏi giá, hỏi quy trình, hỏi tư vấn, chào hỏi, phân vân...): "do" = "none" và trả lời bình thường; khi đó KHÔNG nói "mình đang chuyển bạn...".
+  Chỉ dựa vào tin nhắn MỚI NHẤT của khách để quyết định "do", không lặp lại hành động của các lượt trước.
 - KHÔNG bịa số liệu cụ thể về mức cọc, chính sách đổi/huỷ lịch, số ảnh được chỉnh sửa miễn phí — những thông số này chưa được studio chốt, chỉ nói "Sales sẽ tư vấn chi tiết khi bạn đặt lịch".
 - Không tự nhận là con người thay cho AI nếu khách hỏi thẳng.
 
-Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách) và "suggestions" (đúng 2 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi, người dùng chốt 2026-09-28: tối đa 2 nút). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ), "album-newborn" / "album-bau" / "album-sinh-nhat" / "album-be-lon" / "album-gia-dinh" (album ảnh mẫu theo concept của đúng dịch vụ đó; khi khách hỏi về concept hoặc muốn xem ảnh mẫu của 1 dịch vụ thì ưu tiên gợi ý nút này, ví dụ {"label": "Xem album Sinh nhật", "action": "album-sinh-nhat"}). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 2 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
+Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách), "do" (hành động hệ thống làm ngay, xem quy tắc "khách bảo gì làm nấy"; "none" nếu không có) và "suggestions" (đúng 2 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi, người dùng chốt 2026-09-28: tối đa 2 nút). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ), "album-newborn" / "album-bau" / "album-sinh-nhat" / "album-be-lon" / "album-gia-dinh" (album ảnh mẫu theo concept của đúng dịch vụ đó; khi khách hỏi về concept hoặc muốn xem ảnh mẫu của 1 dịch vụ thì ưu tiên gợi ý nút này, ví dụ {"label": "Xem album Sinh nhật", "action": "album-sinh-nhat"}). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 2 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
 if (ALLOWED_ORIGINS.length) {
@@ -142,7 +151,7 @@ app.post('/api/chat', async (req, res) => {
   }));
 
   // Web đang tạm tắt Đặt lịch online (js/features.js) -> nút "dat-lich" thực ra mở chat với Sale.
-  const BOOKING_OFF_NOTE = '\n\nHIỆN TẠI website TẠM TẮT đặt lịch online: khách muốn đặt/giữ lịch thì mời khách bấm nút "Nhắn Sale để đặt lịch" bên dưới để tư vấn viên giữ lịch trực tiếp (vẫn dùng action "dat-lich" cho nút đó), không nhắc tới trang đặt lịch hay đặt cọc online.';
+  const BOOKING_OFF_NOTE = '\n\nHIỆN TẠI website TẠM TẮT đặt lịch online: khách muốn đặt/giữ lịch thì đặt "do" = "sale" (hệ thống chuyển khách sang tư vấn viên giữ lịch trực tiếp) và nói ngắn gọn là đang chuyển sang tư vấn viên; nút gợi ý tương ứng là "Nhắn Sale để đặt lịch" (action "dat-lich"). Không nhắc tới trang đặt lịch hay đặt cọc online.';
   const systemText = SYSTEM_PROMPT + (req.body.bookingOff === true ? BOOKING_OFF_NOTE : '');
 
   try {
@@ -156,6 +165,7 @@ app.post('/api/chat', async (req, res) => {
             type: 'OBJECT',
             properties: {
               reply: { type: 'STRING' },
+              do: { type: 'STRING', enum: DO_ACTIONS },
               suggestions: {
                 type: 'ARRAY',
                 items: {
@@ -168,7 +178,7 @@ app.post('/api/chat', async (req, res) => {
                 }
               }
             },
-            required: ['reply', 'suggestions']
+            required: ['reply', 'do', 'suggestions']
           }
         }
     });
@@ -180,9 +190,11 @@ app.post('/api/chat', async (req, res) => {
     }
     let reply = text;
     let suggestions = [];
+    let doAction = 'none';
     try {
       const parsed = JSON.parse(text);
       if (parsed && typeof parsed.reply === 'string') reply = parsed.reply.trim();
+      if (parsed && DO_ACTIONS.includes(parsed.do)) doAction = parsed.do;
       if (parsed && Array.isArray(parsed.suggestions)) {
         suggestions = parsed.suggestions
           .filter(s => s && typeof s.label === 'string' && s.label.trim())
@@ -192,7 +204,7 @@ app.post('/api/chat', async (req, res) => {
     } catch (e) {
       // Không phải JSON: giữ nguyên text làm câu trả lời, frontend tự dùng gợi ý dự phòng.
     }
-    return res.json({ reply: reply || 'Xin lỗi, mình chưa nghĩ ra câu trả lời phù hợp. Bạn có thể gọi hotline 0938.125.222 để được hỗ trợ trực tiếp nhé.', suggestions });
+    return res.json({ reply: reply || 'Xin lỗi, mình chưa nghĩ ra câu trả lời phù hợp. Bạn có thể gọi hotline 0938.125.222 để được hỗ trợ trực tiếp nhé.', suggestions, do: doAction });
   } catch (err) {
     console.error('Chat proxy error:', err);
     return res.status(500).json({ error: 'server_error' });

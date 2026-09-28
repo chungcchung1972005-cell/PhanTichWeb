@@ -96,6 +96,9 @@
     // nó vừa thừa (khách đã ở đúng luồng) vừa che mất nội dung tương tác phía
     // dưới trên màn hình nhỏ (đã thấy qua screenshot mobile thật). Chỉ giữ nút chat.
     document.body.classList.toggle('hide-floating-book', targetId !== VIEW_ID['']);
+    const targetView = document.getElementById(targetId);
+    if (pendingEnter && targetView && targetId !== VIEW_ID['']) playEnter(targetView);
+    pendingEnter = false;
     if (targetId !== VIEW_ID['']) {
       // Chuyển view kiểu app, không phải cuộn khám phá -> hiện luôn, không chờ animation.
       document.querySelectorAll('#' + targetId + ' .reveal').forEach((el) => el.classList.add('visible'));
@@ -142,6 +145,88 @@
     if (window.AlohaSaleChat) window.AlohaSaleChat.open(topic);
     else pendingSaleChat = topic;
   }
+
+  // ---------------------------------------------------------------- Chuyển cảnh
+  // Người dùng thích hiệu ứng ở 5 ảnh dịch vụ (29/09), muốn dùng "ở những chỗ cần thiết, tránh spam":
+  // - Từ Trang chủ vào 1 khu mới (album, trang nội dung, Ảnh của tôi): màn trắng hồng loang tròn từ
+  //   chỗ bấm (.svc-zoom, css/pages.css), giữa màn là tên trang; tan đi thì trang mới trồi lên.
+  // - Đi tiếp bên trong các khu đó (dịch vụ -> concept, đổi chip, bài này sang bài khác): chỉ trồi lên
+  //   nhẹ (.view-enter), không có màn.
+  // - Về Trang chủ, neo cuộn, trợ lý AI tự chuyển trang, bật prefers-reduced-motion: không hiệu ứng.
+  const VEIL_BASES = ['album', 'noi-dung', 'chon-anh'];
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let pendingEnter = false;
+  let enterTimer = 0;
+
+  function playEnter(view) {
+    view.classList.remove('view-enter');
+    void view.offsetWidth; // chạy lại animation khi bấm liên tiếp
+    view.classList.add('view-enter');
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => view.classList.remove('view-enter'), 900);
+  }
+
+  // Tên hiện giữa màn: đúng chữ khách vừa thấy ở nơi bấm / tiêu đề trang sắp mở.
+  function veilLabel(route, link) {
+    const [base, a, b] = route.split('/');
+    if (base === 'chon-anh') return 'Ảnh của tôi';
+    if (base === 'noi-dung') {
+      const p = window.AlohaContent && window.AlohaContent.list.find((x) => x.slug === a);
+      return p ? p.title : '';
+    }
+    if (base === 'album') {
+      const s = window.AlohaAlbums && window.AlohaAlbums.list.find((x) => x.slug === a);
+      if (b) { const c = s && s.concepts.find((x) => x.slug === b); return c ? c.name : ''; }
+      const tile = document.querySelector('.svc-tile[data-album="' + a + '"] .svc-tile-name');
+      return tile ? tile.textContent.trim() : (s ? 'Album ' + s.name : '');
+    }
+    return (link.textContent || '').trim().slice(0, 40);
+  }
+
+  function veilTo(route, link, e) {
+    const r = link.getBoundingClientRect();
+    const x = e.clientX || r.left + r.width / 2;
+    const y = e.clientY || r.top + r.height / 2;
+    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    const label = veilLabel(route, link);
+    const veil = document.createElement('div');
+    veil.className = 'svc-zoom' + (label.length > 26 ? ' is-long' : '');
+    veil.setAttribute('aria-hidden', 'true');
+    veil.innerHTML = '<div class="svc-zoom-inner"><span class="svc-zoom-heart">♥</span><span class="svc-zoom-name"></span><span class="svc-zoom-line"></span></div>';
+    veil.querySelector('.svc-zoom-name').textContent = label;
+    document.body.appendChild(veil);
+    const inner = veil.querySelector('.svc-zoom-inner');
+    const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+    link.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.97)' }, { transform: 'scale(1)' }], { duration: 280, easing: 'ease-out' });
+    inner.animate([{ opacity: 0, transform: 'translateY(14px)', letterSpacing: '0.3em' }, { opacity: 1, transform: 'none', letterSpacing: '0.14em' }],
+      { duration: 420, delay: 140, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', fill: 'both' });
+    veil.querySelector('.svc-zoom-line').animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 380, delay: 220, easing: ease, fill: 'both' });
+    const open = veil.animate([{ clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)' }, { clipPath: 'circle(' + radius + 'px at ' + x + 'px ' + y + 'px)' }],
+      { duration: 480, easing: ease, fill: 'forwards' });
+    open.onfinish = () => {
+      pendingEnter = true;
+      window.location.hash = '/' + route;
+      inner.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }], { duration: 260, delay: 80, easing: 'ease-in', fill: 'forwards' });
+      const fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 360, delay: 100, easing: 'ease-out', fill: 'forwards' });
+      fade.onfinish = () => veil.remove();
+    };
+  }
+
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href^="#/"]');
+    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const route = link.getAttribute('href').slice(2).split('?')[0];
+    const base = route.split('/')[0];
+    if (VEIL_BASES.indexOf(base) === -1 || DISABLED[base] || reduceMotion()) return;
+    if ('#/' + route === window.location.hash) return;
+    const roles = GATED_ROLES[base];
+    if (roles) { // chưa đăng nhập -> để router đưa sang trang đăng nhập như cũ, không chạy hiệu ứng
+      const s = window.AlohaAuth && window.AlohaAuth.getSession();
+      if (!s || roles.indexOf(s.role) === -1) return;
+    }
+    if (!currentRoute && Element.prototype.animate) { e.preventDefault(); veilTo(route, link, e); }
+    else pendingEnter = true;
+  });
 
   function handleHashChange() {
     const route = parseRoute();
