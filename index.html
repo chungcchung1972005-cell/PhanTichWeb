@@ -12,13 +12,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260927m">
-<link rel="stylesheet" href="css/pages.css?v=20260927m">
+<link rel="stylesheet" href="css/pages.css?v=20260928">
 <script src="js/features.js?v=20260927m"></script>
 </head>
 <body>
 
 <script src="js/auth.js?v=20260927n"></script>
-<script src="js/data-store.js?v=20260927m"></script>
+<script src="js/data-store.js?v=20260928"></script>
 
 <!-- Topbar -->
 <div class="topbar">
@@ -583,14 +583,15 @@
             <h1>Ảnh của tôi</h1>
             <p id="psOrderInfo">Mã đơn <strong>#AB240915</strong>, buổi chụp Newborn, gói Premium</p>
           </div>
-          <!-- Ô link Google Drive để khách tải ảnh gốc chất lượng cao -->
+          <!-- Ô link album Google Photos để khách tải ảnh gốc chất lượng cao -->
           <a href="https://photos.google.com/share/AF1QipO_gMEnUdlOWKT3MUoGnqmKfyJv0cCF-_ZzSF-m0uSQpXEHQL7zwCG4aBa86UP6UQ?key=U3dFWWNVZHREVTkzeURwQnRvTVJLMzQ5SVdhTUJR" target="_blank" rel="noopener" class="ps-drive-link" id="psDriveLink">
             <span class="ps-drive-icon">
-              <svg width="20" height="20" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.85z" fill="#ea4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h22.7c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5 60.65 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.6 25l16.2 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+              <!-- Biểu tượng chong chóng 4 màu kiểu Google Photos (link là album Google Photos, không phải Drive) -->
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 1 5 5v5h-5z" fill="#EA4335"/><path d="M22 12a5 5 0 0 1-5 5h-5v-5z" fill="#4285F4"/><path d="M12 22a5 5 0 0 1-5-5v-5h5z" fill="#34A853"/><path d="M2 12a5 5 0 0 1 5-5h5v5z" fill="#FBBC04"/></svg>
             </span>
             <span class="ps-drive-text">
               <strong>Tải ảnh gốc chất lượng cao</strong>
-              <small>Mở Google Drive để tải & chia sẻ</small>
+              <small>Xem & tải trên Google Photos</small>
             </span>
             <span class="ps-drive-arrow">→</span>
           </a>
@@ -644,9 +645,9 @@
           </div>
 
           <div class="ps-tabs">
-            <button class="ps-tab active" data-filter="all">Tất cả</button>
-            <button class="ps-tab" data-filter="original">Ảnh gốc</button>
-            <button class="ps-tab" data-filter="liked">Yêu thích</button>
+            <!-- Gộp "Tất cả" + "Ảnh gốc" (trước đây hiện y hệt nhau) thành 1 tab "Ảnh gốc" -->
+            <button class="ps-tab active" data-filter="all">Ảnh gốc <span class="ps-tab-count" id="psAllCount"></span></button>
+            <button class="ps-tab" data-filter="liked">Yêu thích <span class="ps-tab-count" id="psLikedCount">0</span></button>
             <button class="ps-tab" data-filter="edited">Ảnh đã chỉnh</button>
           </div>
 
@@ -1004,7 +1005,7 @@
 <script src="js/sale-chat.js?v=20260927d"></script>
 <script src="js/dat-lich.js"></script>
 <script src="js/google-photos-data.js?v=20260925"></script>
-<script src="js/chon-anh.js?v=20260927f"></script>
+<script src="js/chon-anh.js?v=20260928"></script>
 </body>
 </html>
 

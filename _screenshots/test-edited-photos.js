@@ -58,7 +58,7 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   const cust = await login('0900000001', 'khach123');
   await mockAi(cust);
   if (!cust.url().includes('#/chon-anh')) { await cust.goto(cust.url().split('#')[0] + '#/chon-anh'); await wait(500); }
-  const tabNames = await cust.$$eval('.ps-tab', els => els.map(e => e.textContent.trim()));
+  const tabNames = await cust.$$eval('.ps-tab', els => els.map(e => e.textContent.replace(/\d+/g, '').trim()));
   check('Có tab "Ảnh đã chỉnh" ngay cạnh "Yêu thích"', tabNames.join('|').includes('Yêu thích|Ảnh đã chỉnh'), tabNames.join('|'));
   await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
   const shown = (sel) => { const e = document.querySelector(sel); return !!e && getComputedStyle(e).display !== 'none'; };
@@ -73,7 +73,7 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   }, shown.toString());
   check('Mở tab: hiện khung Ảnh đã chỉnh, ẩn lưới ảnh và nút gửi yêu cầu', v.panel && v.grid === 'none' && v.submit === 'none', JSON.stringify(v));
   check('Chưa gửi: giao diện chờ gửi ảnh (3 bước + nút chọn ảnh), chưa hiện khung chat', v.title === 'Chưa gửi ảnh cho thợ chỉnh ảnh' && v.steps === 3 && v.cta === 'Chọn ảnh để gửi cho thợ' && !v.chat, JSON.stringify(v));
-  for (const tab of ['all', 'original', 'liked']) {
+  for (const tab of ['all', 'liked']) {
     await cust.click(`.ps-tab[data-filter="${tab}"]`); await wait(200);
     const leak = await cust.evaluate(() => getComputedStyle(document.getElementById('psEditedPanel')).display !== 'none');
     check(`Tab "${tab}": KHÔNG hiện khung Ảnh đã chỉnh / chat`, !leak);

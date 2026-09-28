@@ -39,26 +39,23 @@ function check(name, ok, extra) {
   await page.waitForFunction(() => { const i = document.querySelector('.ps-photo img'); return i.complete && i.naturalWidth > 0; }, { timeout: 15000 });
   check('Ảnh đầu tiên tải được từ Google Photos', true);
 
-  await page.click('.ps-tab[data-filter="original"]');
-  const originalVisible = await page.$$eval('.ps-photo:not(.hidden-by-filter)', els => els.length);
-  check('Tab Ảnh gốc cũng hiện đủ ảnh', originalVisible === total, originalVisible);
-  await page.click('.ps-tab[data-filter="all"]');
+  check('Đã gộp tab "Tất cả" và "Ảnh gốc" (không còn tab original)', !(await page.$('.ps-tab[data-filter="original"]')));
 
   // Mở lightbox ở ảnh số 5
   await page.click('.ps-photo[data-id="ph-5"] img');
   await new Promise(r => setTimeout(r, 400));
   check('Bấm vào ảnh mở lightbox', await page.$eval('#psLightbox', el => el.classList.contains('show')));
-  check('Bộ đếm hiện 5 / ' + total, (await page.$eval('#psLbCounter', el => el.textContent)) === `5 / ${total}`);
+  check('Bộ đếm hiện 5 / ' + total, (await page.$eval('#psLbCounter', el => el.textContent.split('· ').pop())) === `5 / ${total}`);
   await page.waitForFunction(() => { const i = document.getElementById('psLbImg'); return i.complete && i.naturalWidth > 0; }, { timeout: 15000 });
   check('Ảnh lớn tải được', true);
 
   await page.click('#psLbNext');
-  check('Nút › sang ảnh 6', (await page.$eval('#psLbCounter', el => el.textContent)) === `6 / ${total}`);
+  check('Nút › sang ảnh 6', (await page.$eval('#psLbCounter', el => el.textContent.split('· ').pop())) === `6 / ${total}`);
   await page.keyboard.press('ArrowRight');
-  check('Phím → sang ảnh 7', (await page.$eval('#psLbCounter', el => el.textContent)) === `7 / ${total}`);
+  check('Phím → sang ảnh 7', (await page.$eval('#psLbCounter', el => el.textContent.split('· ').pop())) === `7 / ${total}`);
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
-  check('Phím ← về ảnh 5', (await page.$eval('#psLbCounter', el => el.textContent)) === `5 / ${total}`);
+  check('Phím ← về ảnh 5', (await page.$eval('#psLbCounter', el => el.textContent.split('· ').pop())) === `5 / ${total}`);
 
   await page.click('#psLbZoomIn');
   check('Nút + phóng to 150%', (await page.$eval('#psLbZoomReset', el => el.textContent)) === '150%');
@@ -80,7 +77,7 @@ function check(name, ok, extra) {
   check('Hiện ô ghi chú chỉnh sửa', !(await page.$eval('#psLbNoteWrap', el => el.hidden)));
   await page.type('#psLbNote', 'Làm sáng da, xoá vết đỏ trên má');
   await page.keyboard.press('ArrowRight'); // đang gõ ghi chú: phím mũi tên không được chuyển ảnh
-  check('Đang gõ ghi chú thì phím → không chuyển ảnh', (await page.$eval('#psLbCounter', el => el.textContent)) === `5 / ${total}`);
+  check('Đang gõ ghi chú thì phím → không chuyển ảnh', (await page.$eval('#psLbCounter', el => el.textContent.split('· ').pop())) === `5 / ${total}`);
   await page.screenshot({ path: path.resolve(__dirname, 'test-lightbox-note.png') });
 
   await page.click('#psLbNext');
@@ -93,7 +90,7 @@ function check(name, ok, extra) {
 
   // Bấm vùng tối quanh ảnh thì đóng; bấm vào ảnh, vuốt, bấm hơi lệch nút › thì không đóng
   const isOpen = () => page.$eval('#psLightbox', el => el.classList.contains('show'));
-  const counterText = () => page.$eval('#psLbCounter', el => el.textContent);
+  const counterText = () => page.$eval('#psLbCounter', el => el.textContent.split('· ').pop());
   const rectOf = (sel) => page.$eval(sel, el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   async function openAt(id) {
     await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);

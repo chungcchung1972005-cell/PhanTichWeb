@@ -1107,6 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return `
           <div class="kanban-photo-tile${done ? ' done' : ''}" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(p.id)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
+            ${/^ph-\d+$/.test(p.id || '') ? `<span class="kanban-photo-num" title="Số ảnh khách thấy">#${escHtml(p.id.slice(3))}</span>` : ''}
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             ${canEditProgress
               ? `<button type="button" class="photo-done-toggle" data-photo-id="${escHtml(p.id)}">${done ? '✓ Đã xong' : 'Đánh dấu đã xong'}</button>`

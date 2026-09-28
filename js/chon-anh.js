@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   grid.innerHTML = photos.map((p, i) => `
     <div class="ps-photo" data-id="${p.id}">
       <img src="${p.src}" alt="Ảnh gốc số ${i + 1}, buổi chụp ${record.serviceLabel}" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-      <span class="ps-photo-badge">Ảnh gốc</span>
+      <span class="ps-photo-badge" title="Ảnh số ${i + 1}">#${i + 1}</span>
       <span class="ps-zoom-hint" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></span>
       <button type="button" class="ps-heart" aria-label="Chọn ảnh số ${i + 1}" aria-pressed="false">${heartIcon}</button>
     </div>
@@ -54,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const extraPhotos = new Set();   // ảnh chỉnh sửa thêm (vượt gói)
   let extraModeActive = false;     // khách đã đồng ý chỉnh sửa thêm
   let requestSent = false;         // đã gửi yêu cầu chỉnh sửa (lần này hoặc từ trước) -> nút gửi khoá hẳn
+  let draftTimer = null;           // hẹn giờ lưu nháp ảnh đang chọn dở
+  // Số thứ tự ảnh (#5) = số trong id 'ph-5'; dùng chung lưới ảnh, xem ảnh lớn, trang Thợ ảnh
+  const photoNo = (id) => { const m = /^ph-(\d+)$/.exec(id || ''); return m ? m[1] : ''; };
   const photoNotes = new Map();
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
@@ -473,7 +476,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     submitBtn.disabled = n === 0 || requestSent;
+    const likedCount = document.getElementById('psLikedCount');
+    if (likedCount) likedCount.textContent = n;
     syncLightbox();
+    scheduleDraftSave();
     syncBulkButtons();
   }
 
@@ -757,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lbImg.src = p.large;
     lbImg.alt = `Ảnh số ${photos.indexOf(p) + 1}`;
     applyLbTransform();
-    lb.querySelector('#psLbCounter').textContent = `${lbIndex + 1} / ${lbIds.length}`;
+    lb.querySelector('#psLbCounter').textContent = `Ảnh #${photoNo(id)} · ${lbIndex + 1} / ${lbIds.length}`;
     const single = lbIds.length < 2;
     lb.querySelector('#psLbPrev').hidden = single;
     lb.querySelector('#psLbNext').hidden = single;
@@ -816,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lb.querySelector('#psLbZoomOut').addEventListener('click', () => setZoom(lbScale / 1.5));
   lb.querySelector('#psLbZoomReset').addEventListener('click', () => setZoom(1));
   lb.querySelector('#psLbFav').addEventListener('click', () => toggleSelect(lbIds[lbIndex]));
-  lbNote.addEventListener('input', () => photoNotes.set(lbIds[lbIndex], lbNote.value));
+  lbNote.addEventListener('input', () => { photoNotes.set(lbIds[lbIndex], lbNote.value); scheduleDraftSave(); });
 
   lbStage.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -953,6 +959,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===== Hàm thực thi gửi yêu cầu lên hệ thống =====
   function executeSubmit(extraCount, extraFee, paymentStatus) {
     requestSent = true;
+    clearTimeout(draftTimer);
+    if (window.AlohaData && AlohaData.saveSelectionDraft && session) AlohaData.saveSelectionDraft(session.phone, null); // đã gửi -> xoá nháp
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
     hideUndo();
     syncBulkButtons();
@@ -1315,6 +1323,47 @@ document.addEventListener('DOMContentLoaded', () => {
     banner.classList.add('show');
   }
   restoreSentRequest();
+
+  // ===== Nhớ ảnh đang chọn dở (chưa gửi): tải lại trang / quay lại sau vẫn còn =====
+  function scheduleDraftSave() {
+    if (requestSent || !window.AlohaData || !AlohaData.saveSelectionDraft || !session) return;
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      if (requestSent) return;
+      const notes = {};
+      photoNotes.forEach((v, k) => { if (v && v.trim()) notes[k] = v; });
+      const noteEl = document.getElementById('psNote');
+      const general = noteEl ? noteEl.value : '';
+      const hasAnything = selected.size || Object.keys(notes).length || general.trim();
+      AlohaData.saveSelectionDraft(session.phone, hasAnything ? { ids: [...selected], extra: [...extraPhotos], notes, general } : null);
+    }, 300);
+  }
+  function restoreDraft() {
+    if (requestSent || !window.AlohaData || !AlohaData.getSelectionDraft || !session) return;
+    const d = AlohaData.getSelectionDraft(session.phone);
+    if (!d) return;
+    const extra = new Set(d.extra || []);
+    (d.ids || []).forEach((id) => {
+      if (!photoById[id]) return;
+      selected.add(id);
+      if (extra.has(id)) extraPhotos.add(id);
+      setCardSelected(id, true, extra.has(id));
+    });
+    extraModeActive = extraPhotos.size > 0;
+    Object.entries(d.notes || {}).forEach(([k, v]) => { if (photoById[k]) photoNotes.set(k, v); });
+    const noteEl = document.getElementById('psNote');
+    if (noteEl && d.general) noteEl.value = d.general;
+    if (selected.size && bulkUndo) {
+      bulkUndo.innerHTML = `<span>Đã giữ lại ${selected.size} ảnh bạn chọn lần trước.</span>`;
+      clearTimeout(undoTimer);
+      undoTimer = setTimeout(hideUndo, 6000);
+    }
+  }
+  restoreDraft();
+  const psNoteEl = document.getElementById('psNote');
+  if (psNoteEl) psNoteEl.addEventListener('input', scheduleDraftSave);
+  const allCount = document.getElementById('psAllCount');
+  if (allCount) allCount.textContent = photos.length;
 
   updateSummary();
   applyFilter('all');

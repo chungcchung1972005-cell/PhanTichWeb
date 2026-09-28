@@ -217,7 +217,25 @@
   // không đọc gì thêm (khách chưa đăng nhập...).
   readDb();
 
+  // Ảnh khách đang chọn dở (chưa gửi) + ghi chú đang soạn, lưu theo số điện thoại để tải lại
+  // trang / quay lại sau không mất. Nằm trong aloha_demo_db.selectionDrafts (không tạo key
+  // localStorage riêng). Gửi yêu cầu xong thì xoá. draft = null để xoá.
+  function getSelectionDraft(phone) {
+    const drafts = readDb().selectionDrafts || {};
+    return drafts[phone] || null;
+  }
+  function saveSelectionDraft(phone, draft) {
+    if (!phone) return;
+    const db = readDb();
+    if (!db.selectionDrafts) db.selectionDrafts = {};
+    if (draft) db.selectionDrafts[phone] = Object.assign({}, draft, { at: Date.now() });
+    else delete db.selectionDrafts[phone];
+    writeDb(db);
+  }
+
   window.AlohaData = {
+    getSelectionDraft,
+    saveSelectionDraft,
     getCustomerRecord,
     createEditRequest,
     getEditRequests,
