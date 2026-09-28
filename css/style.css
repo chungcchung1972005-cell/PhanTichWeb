@@ -463,6 +463,10 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   width: 100%; height: 100%; object-fit: cover;
   transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+/* Khung cắt từng ảnh (images/services/) để không mất đầu người ở ô ngang. */
+.svc-tile--be-lon img    { object-position: 50% 12%; }
+.svc-tile--sinh-nhat img { object-position: 50% 42%; }
+.svc-tile--gia-dinh img  { object-position: 50% 18%; }
 .svc-tile::after {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background: rgba(20, 15, 25, 0.12);
@@ -484,6 +488,7 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 .svc-tile--bau .svc-tile-name { top: 84%; }
+.svc-note { margin-top: 12px; text-align: center; font-size: 12.5px; color: var(--navy-500); }
 .svc-tile:hover img, .svc-tile:focus-visible img { transform: scale(1.06); }
 .svc-tile:hover::after, .svc-tile:focus-visible::after { background: rgba(20, 15, 25, 0.22); }
 .svc-tile:hover .svc-tile-name, .svc-tile:focus-visible .svc-tile-name { background: var(--pink-600); border-color: var(--pink-600); }
