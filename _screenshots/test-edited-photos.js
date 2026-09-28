@@ -91,7 +91,7 @@ const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
   check('Bấm nút -> chuyển sang tab Yêu thích để gửi', v === 'liked', v);
 
   // ---------- Khách gửi yêu cầu rồi nhắn thợ
-  await cust.evaluate(() => document.getElementById('psSubmitBtn').click()); await wait(400);
+  await cust.evaluate(() => { document.getElementById('psSubmitBtn').click(); document.getElementById('psReviewConfirm').click(); }); await wait(400);
   await cust.click('.ps-tab[data-filter="edited"]'); await wait(300);
   v = await cust.evaluate(() => ({
     title: document.getElementById('psResultTitle').textContent,

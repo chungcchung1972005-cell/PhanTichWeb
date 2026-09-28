@@ -233,7 +233,31 @@
     writeDb(db);
   }
 
+  // "Chữ ký" tin mới từ Thợ ảnh cho khách: link ảnh đã chỉnh + số tin thợ (người) đã trả lời.
+  // Dùng chung cho chấm báo trên tab "Ảnh đã chỉnh" và chuông thông báo; so với
+  // customerSeenEditedSig để biết khách đã xem hay chưa.
+  function editedNewsSig(req) {
+    const staffMsgs = (Array.isArray(req && req.messages) ? req.messages : []).filter(m => m.from === 'staff').length;
+    return ((req && req.resultLink) || '') + '|' + staffMsgs;
+  }
+  // Tin mới khách chưa xem: link ảnh đã chỉnh mới (khác link đã xem) / thợ nhắn thêm.
+  // Thợ gỡ link thì không tính là tin mới.
+  function editedNews(req) {
+    const staffMsgs = (Array.isArray(req && req.messages) ? req.messages : []).filter(m => m.from === 'staff');
+    const seen = (req && req.customerSeenEditedSig) || '';
+    const cut = seen.lastIndexOf('|');
+    const seenLink = cut >= 0 ? seen.slice(0, cut) : '';
+    const seenStaff = cut >= 0 ? Number(seen.slice(cut + 1)) || 0 : 0;
+    return {
+      linkNew: !!(req && req.resultLink) && seenLink !== req.resultLink,
+      replyNew: staffMsgs.length > seenStaff,
+      lastReply: staffMsgs[staffMsgs.length - 1] || null
+    };
+  }
+
   window.AlohaData = {
+    editedNewsSig,
+    editedNews,
     getSelectionDraft,
     saveSelectionDraft,
     getCustomerRecord,

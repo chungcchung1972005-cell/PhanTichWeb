@@ -119,7 +119,7 @@ const CUSTOMER = { role: 'khach-hang', name: 'Khách demo', phone: '0900000001' 
 
   // ---------- Gửi yêu cầu (trong gói) -> xoá nháp, thợ thấy số ảnh
   await page.evaluate(() => document.querySelector('.ps-photo[data-id="ph-11"] .ps-heart').click()); await wait(300);
-  await page.evaluate(() => document.getElementById('psSubmitBtn').click()); await wait(500);
+  await page.evaluate(() => { document.getElementById('psSubmitBtn').click(); document.getElementById('psReviewConfirm').click(); }); await wait(500);
   v = await page.evaluate(() => { const db = JSON.parse(localStorage.getItem('aloha_demo_db')); return { draft: (db.selectionDrafts || {})['0900000001'] || null, req: db.editRequests.length }; });
   check('Gửi yêu cầu xong -> xoá nháp chọn dở', v.draft === null && v.req === 1, JSON.stringify(v));
 

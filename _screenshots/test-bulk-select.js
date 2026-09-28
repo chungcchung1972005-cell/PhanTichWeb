@@ -166,7 +166,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
   await heart('ph-11'); await wait(300);
   await page.click('.ps-modal-overlay.show .ps-modal-yes'); await wait(300);
   await page.click('.ps-tab[data-filter="all"]'); await wait(200);
-  await page.evaluate(() => document.getElementById('psSubmitBtn').click());
+  await page.evaluate(() => { document.getElementById('psSubmitBtn').click(); document.getElementById('psReviewConfirm').click(); });
   await wait(500);
   s = await state();
   check('Đang chờ thanh toán -> cả 2 nút bị khoá', s.selectAllDisabled && s.clearDisabled, JSON.stringify(s));
@@ -175,7 +175,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
   // ---------- Khoá sau khi đã gửi yêu cầu (trong gói)
   const p2 = await newCustomerPage();
   await p2.evaluate(() => { ['ph-1', 'ph-2'].forEach(i => document.querySelector(`.ps-photo[data-id="${i}"] .ps-heart`).click()); });
-  await p2.evaluate(() => document.getElementById('psSubmitBtn').click());
+  await p2.evaluate(() => { document.getElementById('psSubmitBtn').click(); document.getElementById('psReviewConfirm').click(); });
   await wait(400);
   const locked = await p2.evaluate(() => document.getElementById('psSelectAllBtn').disabled && document.getElementById('psClearAllBtn').disabled);
   check('Đã gửi yêu cầu -> cả 2 nút bị khoá', locked);

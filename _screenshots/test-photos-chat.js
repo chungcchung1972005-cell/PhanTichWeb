@@ -43,7 +43,9 @@ const BASE = ROOT_URL;
     await page.setViewport({ width: 1440, height: 900 });
     await page.goto(BASE + 'login.html?mode=register', { waitUntil: 'networkidle0' });
     await page.type('#loginName', 'Khách Mới');
-    await page.type('#loginPhone', '0933444555');
+    // Số mới mỗi lần chạy: đăng ký giờ lưu trên server (server/sale-chat.js), số đã đăng ký ở
+    // lần chạy trước sẽ bị báo 409 'đã có tài khoản' khi server local còn bật.
+    await page.type('#loginPhone', '093' + String(Date.now()).slice(-7));
     await page.type('#loginPassword', 'matkhau123');
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle0' }),
@@ -69,7 +71,7 @@ const BASE = ROOT_URL;
     // thì chữ rơi vào nút tim vừa bấm, dấu cách bấm lại tim và bỏ chọn ảnh.
     await page.click('.ps-tab[data-filter="liked"]');
     await page.type('#psNote', 'Lam da be sang tu nhien');
-    await page.click('#psSubmitBtn');
+    await page.click('#psSubmitBtn'); await page.evaluate(() => document.getElementById('psReviewConfirm').click());
     await new Promise(r => setTimeout(r, 300));
     const submitted = await page.$eval('#psSubmittedBanner', el => el.classList.contains('show'));
     log('gửi yêu cầu chỉnh sửa -> hiện banner xác nhận', submitted);

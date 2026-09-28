@@ -135,7 +135,7 @@ function check(name, ok, extra) {
   check('Không còn khung danh sách ghi chú riêng dưới lưới ảnh', await page.evaluate(() => !document.getElementById('psPhotoNotes') && !document.querySelector('.ps-photo-note-row')));
 
   // Gửi yêu cầu: ghi chú đi kèm tới Thợ ảnh
-  await page.click('#psSubmitBtn');
+  await page.click('#psSubmitBtn'); await page.evaluate(() => document.getElementById('psReviewConfirm').click());
   await new Promise(r => setTimeout(r, 400));
   const req = await page.evaluate(() => { const db = JSON.parse(localStorage.getItem('aloha_demo_db')); return db.editRequests[db.editRequests.length - 1]; });
   check('Yêu cầu gửi đi có đúng ảnh + ghi chú', req && req.photos.length === 1 && req.photos[0].note === 'Làm sáng da, xoá vết đỏ trên má' && req.photos[0].src.includes('googleusercontent'), JSON.stringify(req && req.photos));

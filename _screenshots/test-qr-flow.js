@@ -77,7 +77,7 @@ const path = require('path');
   await page.screenshot({ path: path.resolve(__dirname, 'test-extra-selected.png') });
 
   // 6. Nhấn nút "Gửi yêu cầu chỉnh sửa" -> TỰ ĐỘNG NHẢY LÊN MÃ QR CÁ NHÂN HÓA!
-  await page.click('#psSubmitBtn');
+  await page.click('#psSubmitBtn'); await page.evaluate(() => document.getElementById('psReviewConfirm').click());
   await new Promise(r => setTimeout(r, 600));
 
   // Chờ ảnh QR tải xong hoàn toàn

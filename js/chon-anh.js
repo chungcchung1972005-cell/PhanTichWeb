@@ -512,6 +512,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.ps-photo').forEach(c => {
           c.classList.remove('ps-extra-photo');
         });
+      } else {
+        // Bỏ 1 ảnh trong gói khi đang có ảnh chọn thêm: ảnh chọn thêm mới nhất được
+        // đưa vào gói, để số ảnh viền cam luôn khớp số ảnh tính phí
+        while (extraPhotos.size > selected.size - PACKAGE_COUNT) {
+          const last = [...extraPhotos].pop();
+          extraPhotos.delete(last);
+          setCardSelected(last, true, false);
+        }
       }
 
       updateSummary();
@@ -1008,20 +1016,74 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ===== Submit =====
-  submitBtn.addEventListener('click', () => {
-    if (selected.size === 0) return;
+  // ===== Xem lại trước khi gửi (gửi rồi là khoá danh sách ảnh) =====
+  const reviewModal = document.createElement('div');
+  reviewModal.className = 'ps-modal-overlay';
+  reviewModal.id = 'psReviewModal';
+  reviewModal.innerHTML = `
+    <div class="ps-modal ps-modal--confirm ps-modal--review" role="dialog" aria-modal="true" aria-labelledby="psReviewTitle">
+      <h3 class="ps-modal-title" id="psReviewTitle">Xem lại trước khi gửi cho thợ</h3>
+      <p class="ps-review-sum" id="psReviewSum"></p>
+      <div class="ps-review-grid" id="psReviewGrid"></div>
+      <div class="ps-review-note" id="psReviewNote"></div>
+      <p class="ps-modal-hint">Sau khi gửi, danh sách ảnh sẽ được khoá để thợ bắt đầu chỉnh.</p>
+      <div class="ps-modal-actions">
+        <button type="button" class="ps-modal-btn ps-modal-no" id="psReviewBack">Quay lại chỉnh</button>
+        <button type="button" class="ps-modal-btn ps-modal-yes" id="psReviewConfirm">Gửi cho thợ</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(reviewModal);
+  const escR = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  function openReview() {
+    const ids = [...selected].sort((a, b) => Number(photoNo(a)) - Number(photoNo(b)));
     const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
     const extraFee = extraCount * EXTRA_PRICE;
-
+    document.getElementById('psReviewSum').innerHTML = `<strong>${selected.size} ảnh</strong> · ${Math.min(selected.size, PACKAGE_COUNT)} ảnh trong gói`
+      + (extraCount ? ` · <strong>${extraCount} ảnh chọn thêm (${fmtVnd(extraFee)})</strong>, viền cam` : '');
+    document.getElementById('psReviewGrid').innerHTML = ids.map((id) => {
+      const note = (photoNotes.get(id) || '').trim();
+      return `
+        <figure class="ps-review-item${extraPhotos.has(id) ? ' is-extra' : ''}">
+          <img src="${escR(photoById[id].src)}" alt="Ảnh #${photoNo(id)}" loading="lazy" referrerpolicy="no-referrer">
+          <figcaption>#${photoNo(id)}</figcaption>
+          ${note ? `<p class="ps-review-photo-note" title="${escR(note)}">${escR(note)}</p>` : ''}
+        </figure>`;
+    }).join('');
+    const general = ((document.getElementById('psNote') || {}).value || '').trim();
+    document.getElementById('psReviewNote').innerHTML = general
+      ? `<strong>Ghi chú chung:</strong> ${escR(general)}`
+      : 'Chưa có ghi chú chung cho cả bộ. Bạn có thể thêm ở tab Yêu thích.';
+    document.getElementById('psReviewConfirm').textContent = extraCount ? `Tiếp tục thanh toán ${fmtVnd(extraFee)}` : 'Gửi cho thợ';
+    reviewModal.classList.add('show');
+    document.getElementById('psReviewConfirm').focus();
+  }
+  function closeReview() {
+    reviewModal.classList.remove('show');
+  }
+  document.getElementById('psReviewBack').addEventListener('click', () => { closeReview(); submitBtn.focus(); });
+  reviewModal.addEventListener('click', (e) => { if (e.target === reviewModal) closeReview(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && reviewModal.classList.contains('show')) closeReview(); });
+  document.getElementById('psReviewConfirm').addEventListener('click', () => {
+    closeReview();
+    if (selected.size === 0 || requestSent) return;
+    const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
+    const extraFee = extraCount * EXTRA_PRICE;
     if (extraCount > 0) {
-      // Tự động nhảy lên mã QR chuyển khoản cá nhân hóa!
+      // Vượt gói -> mã QR chuyển khoản cá nhân hoá (thanh toán xong mới gửi)
       openQrPaymentModal(extraCount, extraFee);
     } else {
       // Trong gói 10 ảnh -> gửi ngay không cần thanh toán thêm
       executeSubmit(0, 0, 'Trong gói 10 ảnh');
     }
+  });
+
+  // ===== Submit: mở bước xem lại (đang chờ thanh toán mã QR còn hạn thì mở lại mã QR) =====
+  submitBtn.addEventListener('click', () => {
+    if (selected.size === 0 || requestSent) return;
+    if (qr && Date.now() < qr.deadline) { openQrPaymentModal(qr.count, qr.fee); return; }
+    openReview();
   });
 
   // ===== Tab "Ảnh đã chỉnh": link thư mục ảnh đã chỉnh Thợ ảnh gửi + chat với Thợ ảnh =====
@@ -1057,10 +1119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .sort((a, b) => b.createdAt - a.createdAt)[0] || null;
   }
   // "Tin mới" = thợ vừa gửi link hoặc nhắn thêm mà khách chưa mở tab xem
-  function newsSig(req) {
-    const staffMsgs = (Array.isArray(req.messages) ? req.messages : []).filter((m) => m.from === 'staff').length;
-    return (req.resultLink || '') + '|' + staffMsgs;
-  }
+  function newsSig(req) { return AlohaData.editedNewsSig(req); }
   // Dấu "đã xem" nằm trong chính yêu cầu (customerSeenEditedSig), không tạo kho localStorage riêng
   function markEditedSeen(req) {
     const sig = newsSig(req);
@@ -1068,7 +1127,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function updateEditedDot(req) {
     if (!editedTab) return;
-    const hasNews = !!req && newsSig(req) !== '|0' && (req.customerSeenEditedSig || '') !== newsSig(req);
+    const news = req ? AlohaData.editedNews(req) : null; // cùng cách tính với chuông thông báo
+    const hasNews = !!news && (news.linkNew || news.replyNew);
     let dot = editedTab.querySelector('.ps-tab-dot');
     if (hasNews && !dot) {
       dot = document.createElement('span');
@@ -1081,7 +1141,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEdited(force) {
     const req = latestRequest();
     const open = !!editedPanel && !editedPanel.hidden;
-    if (open && req) markEditedSeen(req);
+    // Chỉ tính "đã xem" khi khách thật sự đang nhìn tab này: đang ở view "Ảnh của tôi" và
+    // cửa sổ đang mở (ở Trang chủ thì tin mới vẫn phải hiện nổi bật trên chuông thông báo).
+    const view = document.getElementById('view-chon-anh');
+    const viewing = open && !(view && view.hidden) && !document.hidden;
+    if (viewing && req) markEditedSeen(req);
     updateEditedDot(req);
     if (!open) return;
     const msgs = req && Array.isArray(req.messages) ? req.messages : [];
@@ -1360,6 +1424,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   restoreDraft();
+
+  // Cho chuông thông báo (js/script.js) mở thẳng tab "Ảnh đã chỉnh"
+  window.AlohaPhotos = {
+    openEditedTab() {
+      switchToTab('edited');
+      const tabs = document.querySelector('.ps-tabs');
+      if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
   const psNoteEl = document.getElementById('psNote');
   if (psNoteEl) psNoteEl.addEventListener('input', scheduleDraftSave);
   const allCount = document.getElementById('psAllCount');
