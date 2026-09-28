@@ -71,6 +71,8 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
       if (!r.url().includes(':3001/')) return r.continue();
       if (!replyFn) return r.abort(); // AI không dùng được
       if (r.method() === 'OPTIONS') return r.respond({ status: 204, headers: CORS });
+      // AI chọn 2 gợi ý cho menu kịch bản (2026-09-28): test dùng thứ tự mặc định -> trả lỗi.
+      if (r.url().includes('/api/chat-suggest')) return r.respond({ status: 503, headers: CORS, body: '{}' });
       const msgs = JSON.parse(r.postData()).messages;
       r.respond({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(replyFn(msgs[msgs.length - 1].content)) });
     });
@@ -102,58 +104,57 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
     return l;
   })();
 
-  // 2) Nhánh kịch bản "Concept & ảnh mẫu": dịch vụ -> 7 concept -> ảnh + mô tả -> mở album.
+  // 2) Nhánh kịch bản "Concept & ảnh mẫu": dịch vụ -> concept -> ảnh + mô tả -> mở album.
+  //    Từ 2026-09-28 mỗi menu tối đa 2 nút (AI chọn theo hoàn cảnh; ở đây AI lỗi nên là 2 nút mặc định).
   {
     const page = await openChat(null);
     const menu = await lastMenu(page);
-    log('menu chính có nhánh "Concept & ảnh mẫu"', menu.includes('Concept & ảnh mẫu'), menu.join(', '));
+    log('menu chính tối đa 2 nút, có "Concept & ảnh mẫu"', menu.length === 2 && menu.includes('Concept & ảnh mẫu'), menu.join(', '));
     await click(page, 'Concept & ảnh mẫu');
     const hasServices = await waitMenuHas(page, 'Sinh nhật');
-    log('chọn "Concept & ảnh mẫu" -> hỏi chọn dịch vụ (đủ 5 dịch vụ)', hasServices && (await lastMenu(page)).length === 5, (await lastMenu(page)).join(', '));
-
-    for (const s of albums) {
-      await click(page, s.name);
-      await waitMenuHas(page, 'Dịch vụ khác');
-      const m = await lastMenu(page);
-      const ok = s.concepts.every((c) => m.includes(c.name)) && m.length === s.concepts.length + 1;
-      log(`  "${s.name}" -> hiện đủ ${s.concepts.length} concept để chọn`, ok, m.join(' | '));
-      await click(page, 'Dịch vụ khác');
-      await waitMenuHas(page, 'Newborn');
-    }
+    log('chọn "Concept & ảnh mẫu" -> hỏi chọn dịch vụ (2 nút)', hasServices && (await lastMenu(page)).length === 2, (await lastMenu(page)).join(', '));
 
     const sn = albums.find((x) => x.slug === 'sinh-nhat');
-    const tt = sn.concepts.find((c) => c.slug === 'trung-thu');
+    const first = sn.concepts[0];
     await click(page, 'Sinh nhật');
-    await waitMenuHas(page, tt.name);
-    await click(page, tt.name);
+    const allLabel = `Xem cả ${sn.concepts.length} concept`;
+    await waitMenuHas(page, allLabel);
+    const m = await lastMenu(page);
+    log('"Sinh nhật" -> 2 nút: 1 concept gợi ý + "Xem cả N concept"', m.length === 2 && m[0] === first.name && m[1] === allLabel, m.join(' | '));
+    const txt = await page.evaluate(() => document.getElementById('chatBody').textContent);
+    log('  báo đủ số concept của dịch vụ', txt.includes(`có ${sn.concepts.length} concept`));
+    await click(page, first.name);
     await waitMenuHas(page, 'Xem album concept này');
     const shown = await page.evaluate((c) => {
       const img = [...document.querySelectorAll('#chatBody .chat-media img')].pop();
       const text = document.getElementById('chatBody').textContent;
       return { imgOk: !!img && img.getAttribute('src') === c.cover && img.complete && img.naturalWidth > 0, desc: text.includes(c.desc), count: text.includes(`có ${c.count} ảnh mẫu`) };
-    }, tt);
-    log('chọn concept "Trung thu" -> gửi ảnh mẫu + mô tả + số ảnh album', shown.imgOk && shown.desc && shown.count, JSON.stringify(shown));
-    log('  có nút Xem album / Đặt lịch / Concept khác / Về menu', JSON.stringify(await lastMenu(page)) === JSON.stringify(['Xem album concept này', 'Đặt lịch concept này', 'Concept khác', 'Về menu chính']));
+    }, first);
+    log(`chọn concept "${first.name}" -> gửi ảnh mẫu + mô tả + số ảnh album`, shown.imgOk && shown.desc && shown.count, JSON.stringify(shown));
+    log('  2 nút: Xem album / Đặt lịch concept này', JSON.stringify(await lastMenu(page)) === JSON.stringify(['Xem album concept này', 'Đặt lịch concept này']), (await lastMenu(page)).join(' | '));
     await click(page, 'Xem album concept này');
-    const went = await waitHash(page, tt.href);
-    const albumOk = went && await page.evaluate((c) => !document.getElementById('view-album').hidden && document.getElementById('galleryTitle').textContent === c.name && document.querySelectorAll('#galleryGrid .gallery-item').length === c.count, tt);
-    log('bấm "Xem album concept này" -> mở đúng album Trung thu với đủ ảnh', albumOk);
-    log('  sau khi mở album, chatbot vẫn cho chọn concept khác', await waitMenuHas(page, 'Dịch vụ khác'));
+    const went = await waitHash(page, first.href);
+    const albumOk = went && await page.evaluate((c) => !document.getElementById('view-album').hidden && document.getElementById('galleryTitle').textContent === c.name && document.querySelectorAll('#galleryGrid .gallery-item').length === c.count, first);
+    log(`bấm "Xem album concept này" -> mở đúng album ${first.name} với đủ ảnh`, albumOk);
+    log('  sau khi mở album, chatbot vẫn cho xem các concept khác', await waitMenuHas(page, allLabel));
+    await click(page, allLabel);
+    log('  bấm "Xem cả N concept" -> mở trang album dịch vụ có đủ concept', await waitHash(page, sn.href, 6000) &&
+      await page.evaluate((n) => document.querySelectorAll('#galleryConcepts .concept-album').length === n, sn.concepts.length));
     await page.close();
   }
 
-  // 3) Nhánh "Tư vấn dịch vụ & báo giá" giờ liệt kê đủ concept + nút xem ảnh mẫu.
+  // 3) Nhánh "Tư vấn dịch vụ & báo giá" liệt kê đủ concept + nút xem ảnh mẫu.
   {
     const page = await openChat(null);
     await click(page, 'Tư vấn dịch vụ & báo giá');
-    await waitMenuHas(page, 'Newborn');
-    await click(page, 'Newborn');
+    await waitMenuHas(page, 'Sinh nhật');
+    await click(page, 'Sinh nhật');
     await waitMenuHas(page, 'Xem concept & ảnh mẫu', 8000);
-    const nb = albums.find((x) => x.slug === 'newborn');
+    const sn = albums.find((x) => x.slug === 'sinh-nhat');
     const text = await page.evaluate(() => document.getElementById('chatBody').textContent);
-    log('tư vấn "Newborn" liệt kê đủ 7 concept', text.includes(`có ${nb.concepts.length} concept`) && nb.concepts.every((c) => text.includes(c.name)));
+    log('tư vấn "Sinh nhật" liệt kê đủ concept trong tin nhắn, menu tối đa 2 nút', text.includes(`có ${sn.concepts.length} concept`) && sn.concepts.every((c) => text.includes(c.name)) && (await lastMenu(page)).length === 2);
     await click(page, 'Xem concept & ảnh mẫu');
-    log('  bấm "Xem concept & ảnh mẫu" -> chọn concept của Newborn', await waitMenuHas(page, 'Trăng sao cổ tích'));
+    log('  bấm "Xem concept & ảnh mẫu" -> gợi ý concept của Sinh nhật', await waitMenuHas(page, sn.concepts[0].name));
     await page.close();
   }
 
@@ -203,6 +204,69 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
     const t2 = await page.evaluate(() => document.getElementById('chatBody').textContent);
     const gd = albums.find((x) => x.slug === 'gia-dinh');
     log('AI lỗi, hỏi dịch vụ "gia đình" -> liệt kê đủ 7 concept + nút album dịch vụ', t2.includes(`có ${gd.concepts.length} concept`) && gd.concepts.every((c) => t2.includes(c.name)));
+    await page.close();
+  }
+
+  // 7) AI chọn 2 gợi ý theo hoàn cảnh (/api/chat-suggest, 2026-09-28) - phản hồi giả.
+  async function suggestPage(suggestFn, delayMs) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.setRequestInterception(true);
+    const bodies = [];
+    const asked = [];
+    page.on('request', (r) => {
+      if (!r.url().includes(':3001/')) return r.continue();
+      if (r.method() === 'OPTIONS') return r.respond({ status: 204, headers: CORS });
+      const body = JSON.parse(r.postData() || '{}');
+      if (r.url().includes('/api/chat-suggest')) {
+        bodies.push(body);
+        const reply = () => r.respond({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(suggestFn(body)) });
+        return delayMs ? setTimeout(reply, delayMs) : reply();
+      }
+      if (r.url().endsWith('/api/chat')) { asked.push(body.messages[body.messages.length - 1].content); return r.respond({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(PLAIN_REPLY) }); }
+      return r.abort();
+    });
+    await page.goto(BASE + 'index.html', { waitUntil: 'networkidle0' });
+    await page.evaluate(() => localStorage.setItem('aloha_auth', JSON.stringify({ role: 'khach-hang', name: 'Test KH', phone: '0900000001', loginAt: Date.now() })));
+    await page.goto(BASE + 'index.html#/album/bau', { waitUntil: 'networkidle0' });
+    await page.click('#chatToggle');
+    return { page, bodies, asked };
+  }
+  {
+    const { page, bodies, asked } = await suggestPage(() => ({ suggestions: [
+      { id: 'khong-co-that', label: 'Nút bịa' },
+      { id: 'luu-y', label: 'Tuần mấy chụp đẹp nhất?' },
+      { id: 'ask', label: 'Chụp cùng chồng được không?' }] }));
+    const loading = await page.waitForFunction(() => !!document.querySelector('#chatBody .chat-quick.is-loading'), { timeout: 6000 }).then(() => true, () => false);
+    await page.waitForFunction(() => { const w = [...document.querySelectorAll('#chatBody .chat-quick')].pop(); return w && !w.classList.contains('is-loading') && w.querySelector('button'); }, { timeout: 8000 });
+    const m = await lastMenu(page);
+    const b0 = bodies[0] || {};
+    log('Lời chào album Bầu: gửi AI trang đang xem + danh sách lựa chọn, lúc chờ hiện ô "đang chọn gợi ý"',
+      loading && /album dịch vụ Bầu/.test(b0.page || '') && Array.isArray(b0.candidates) && b0.candidates.some((c) => c.id === 'bao-gia') && b0.candidates.length >= 3, (b0.page || '') + ' / ' + (b0.candidates || []).map((c) => c.id).join(','));
+    log('AI chọn -> đúng 2 nút theo AI (bỏ id không có thật, dùng chữ AI viết lại)', JSON.stringify(m) === JSON.stringify(['Tuần mấy chụp đẹp nhất?', 'Chụp cùng chồng được không?']), m.join(' | '));
+    await click(page, 'Chụp cùng chồng được không?');
+    await page.waitForFunction(() => document.querySelectorAll('#chatBody .chat-msg.user').length > 0, { timeout: 5000 }).catch(() => {});
+    await wait(1200);
+    const userMsgs = await page.evaluate(() => [...document.querySelectorAll('#chatBody .chat-msg.user')].map((e) => e.textContent));
+    log('  nút câu hỏi AI tạo (id "ask") bấm vào là gửi câu đó cho trợ lý AI (hiện 1 lần)', asked.includes('Chụp cùng chồng được không?') && userMsgs.filter((t) => t === 'Chụp cùng chồng được không?').length === 1, JSON.stringify(asked));
+    await page.close();
+  }
+  {
+    const { page } = await suggestPage(() => ({ suggestions: [{ id: 'luu-y', label: 'Tuần mấy chụp đẹp nhất?' }, { id: 'sale', label: 'Nhắn Sale giữ lịch' }] }));
+    await page.waitForFunction(() => { const w = [...document.querySelectorAll('#chatBody .chat-quick')].pop(); return w && !w.classList.contains('is-loading') && w.querySelector('button'); }, { timeout: 8000 });
+    await click(page, 'Tuần mấy chụp đẹp nhất?');
+    const note = await page.waitForFunction(() => document.getElementById('chatBody').textContent.includes('32-36 tuần'), { timeout: 5000 }).then(() => true, () => false);
+    log('  bấm nút AI viết lại chữ -> chạy đúng việc của lựa chọn đó ("Lưu ý khi chụp")', note);
+    await page.close();
+  }
+  {
+    const { page } = await suggestPage(() => ({ suggestions: [{ id: 'luu-y', label: 'Đến muộn' }] }), 6000);
+    await page.waitForFunction(() => { const w = [...document.querySelectorAll('#chatBody .chat-quick')].pop(); return w && !w.classList.contains('is-loading') && w.querySelector('button'); }, { timeout: 9000 });
+    const m1 = await lastMenu(page);
+    await wait(4000);
+    const m2 = await lastMenu(page);
+    log('AI chậm quá 3 giây -> 2 nút mặc định, AI trả về muộn cũng không đổi nút dưới tay khách',
+      JSON.stringify(m1) === JSON.stringify(['Báo giá & gói chụp', 'Gợi ý concept']) && JSON.stringify(m2) === JSON.stringify(m1), m1.join(' | ') + ' -> ' + m2.join(' | '));
     await page.close();
   }
 

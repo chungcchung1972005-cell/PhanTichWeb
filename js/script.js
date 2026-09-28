@@ -40,9 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // concept #/album/..., trang concept #/noi-dung/...), xem công khai không cần đăng
   // nhập (người dùng chốt 2026-09-25, thay cho gate "bấm là phải đăng nhập" trước đây).
   // Đặt lịch / Ảnh của tôi vẫn gate trong js/router.js như cũ.
-  // Từ 2026-09-27: 5 ảnh + dòng 5 dịch vụ đầu trang dẫn tới #/chat-sale/<dịch vụ>
-  // (bắt đăng nhập, js/router.js + js/sale-chat.js); trang album và nút Đặt lịch
-  // tạm tắt bằng cờ trong js/features.js.
+  // Từ 2026-09-28: 5 ảnh + dòng 5 dịch vụ đầu trang mở album #/album/<dịch vụ> (bắt đăng
+  // nhập, js/albums.js); chat với Sale là khung nhỏ ở góc (js/sale-chat.js); nút Đặt
+  // lịch + chatbot AI vẫn tạm tắt bằng cờ trong js/features.js.
 
   // Mobile menu toggle
   const navToggle = document.getElementById('navToggle');
@@ -306,8 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const isLocalHost = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const CHAT_API_URL = isLocalHost ? 'http://localhost:3001/api/chat' : PROD_CHAT_API_URL;
 
-  // Chatbot đang tạm tắt (js/features.js, 2026-09-27) -> không gắn gì vào khung
-  // chat; js/sale-chat.js dùng lại đúng khung này để khách chat với Sale.
+  // Cờ aiChat (js/features.js): tắt thì không gắn gì vào khung chatbot, nút chat nổi mở khung
+  // chat Sale riêng (js/sale-chat.js). Bật (mặc định từ 2026-09-28) thì chatbot chạy như dưới.
   const aiChatOn = !window.ALOHA_FEATURES || window.ALOHA_FEATURES.aiChat !== false;
   if (aiChatOn && chatToggle && chatPanel && chatClose && chatBody) {
     // Giá/concept/số ảnh gói dưới đây là MINH HỌA (số ảnh gói dùng lại đúng
@@ -353,6 +353,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let chatStarted = false;
+    let interacted = false; // khách đã bấm/gõ gì trong khung chưa (chưa thì lời chào đổi theo trang được)
+    let saleMode = false;   // đang chat trực tiếp với Sale ngay trong khung này (js/sale-chat.js embed)
+    let botNav = false;     // chính chatbot vừa mở trang (nút gợi ý) -> không chào lại theo trang mới
+    const FEAT = window.ALOHA_FEATURES || {};
 
     const addMsg = (text, who) => {
       const div = document.createElement('div');
@@ -360,6 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
       div.textContent = text;
       chatBody.appendChild(div);
       chatBody.scrollTop = chatBody.scrollHeight;
+      if (who === 'user') {
+        interacted = true;
+        // Ghi vào hành trình (js/router.js) để tóm tắt cho Sale khi khách chuyển sang Sale.
+        if (!saleMode && window.AlohaJourney) window.AlohaJourney.add('ask', { label: text });
+      }
       return div;
     };
 
@@ -418,28 +427,119 @@ document.addEventListener('DOMContentLoaded', () => {
       chatBody.scrollTop = chatBody.scrollHeight;
     };
 
-    const callSale = () => { window.location.href = 'tel:0938125222'; };
+    // ------------------------------------------------ Gợi ý: tối đa 2 nút, AI chọn theo hoàn cảnh
+    // Người dùng yêu cầu 2026-09-28: mỗi lần chỉ 2 nút gợi ý, dùng AI để chọn cho đúng hoàn cảnh.
+    // Mỗi menu đưa ra danh sách lựa chọn làm được (id + chữ + mô tả + việc cần chạy); server
+    // (/api/chat-suggest, Gemini) chọn 2 cái hợp nhất với trang đang xem, đoạn chat gần nhất và
+    // hành trình khách, có thể viết lại chữ cho sát, hoặc thay 1 nút bằng câu hỏi khách hay hỏi
+    // lúc đó (id "ask", bấm là gửi câu đó cho trợ lý AI). AI chậm quá SUGGEST_WAIT_MS / lỗi /
+    // khách chưa đăng nhập -> 2 lựa chọn đầu danh sách (thứ tự mặc định). Nút hiện 1 lần, không
+    // đổi dưới tay khách; cùng 1 hoàn cảnh thì dùng lại kết quả cũ (đỡ tốn lượt gọi AI).
+    const MAX_SUGGEST = 2;
+    const SUGGEST_WAIT_MS = 3000;
+    const SUGGEST_URL = CHAT_API_URL.replace(/\/api\/chat$/, '/api/chat-suggest');
+    const suggestCache = new Map();
+    let askAI = null; // = sendToAI, gán ở phần khung nhập tự do bên dưới
+    const C = (id, label, run, desc) => ({ id, label, run, desc: desc || '' });
 
-    // Menu sau mỗi câu trả lời để cuộc trò chuyện có nhiều nhánh thay vì 1
-    // đường thẳng: quay lại menu chính, hỏi thêm câu khác (gõ tự do), hoặc
-    // gọi thẳng Sale.
+    const pageText = () => {
+      const ctx = pageContext();
+      if (ctx.concept) return `Đang xem album concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name}`;
+      if (ctx.service) return `Đang xem album dịch vụ ${ctx.service.name}`;
+      const h = window.location.hash;
+      if (/^#\/noi-dung\//.test(h)) return 'Đang đọc trang nội dung: ' + document.title.replace(/\s*\|.*$/, '');
+      if (/^#\/chon-anh/.test(h)) return 'Đang ở mục Ảnh của tôi';
+      return 'Đang ở trang chủ';
+    };
+    const recentChat = () => Array.from(chatBody.querySelectorAll(':scope > .chat-msg:not(.chat-typing)')).slice(-8)
+      .map((m) => (m.classList.contains('user') ? 'Khách: ' : 'Trợ lý: ') + m.textContent.trim().slice(0, 300))
+      .filter((s) => s.length > 8);
+
+    const offer = (candidates) => {
+      const list = candidates.filter(Boolean);
+      if (!list.length) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-quick';
+      chatBody.appendChild(wrap);
+      const show = (items) => {
+        if (!wrap.isConnected) return; // khung đã đổi (khách bấm chỗ khác, chuyển Sale...)
+        wrap.classList.remove('is-loading');
+        wrap.removeAttribute('aria-busy');
+        wrap.innerHTML = '';
+        items.slice(0, MAX_SUGGEST).forEach((it) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = it.label;
+          btn.addEventListener('click', () => {
+            wrap.remove();
+            if (it.id === 'ask') { if (askAI) askAI(it.label); return; }
+            addMsg(it.label, 'user');
+            it.run();
+          });
+          wrap.appendChild(btn);
+        });
+        chatBody.scrollTop = chatBody.scrollHeight;
+      };
+      const fallback = list.slice(0, MAX_SUGGEST);
+      // Chưa đăng nhập: bấm là sang đăng nhập nên không cần AI chọn; ít lựa chọn thì khỏi hỏi.
+      if (!isCustomerLoggedIn() || list.length <= MAX_SUGGEST) { show(fallback); return; }
+      const history = recentChat();
+      const key = [pageContext().key, list.map((c) => c.id).join(','), history.slice(-2).join('|')].join('#');
+      if (suggestCache.has(key)) { show(suggestCache.get(key)); return; }
+      wrap.classList.add('is-loading');
+      wrap.setAttribute('aria-busy', 'true');
+      wrap.innerHTML = '<span class="chat-quick-skel"></span><span class="chat-quick-skel"></span>';
+      chatBody.scrollTop = chatBody.scrollHeight;
+      let done = false;
+      const timer = setTimeout(() => { if (!done) { done = true; show(fallback); } }, SUGGEST_WAIT_MS);
+      const journey = window.AlohaSaleChat && window.AlohaSaleChat.summaryText ? window.AlohaSaleChat.summaryText() : '';
+      fetch(SUGGEST_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ page: pageText(), history, journey, candidates: list.map((c) => ({ id: c.id, label: c.label, desc: c.desc })) }),
+        signal: AbortSignal.timeout(10000)
+      }).then((r) => (r.ok ? r.json() : null)).then((data) => {
+        const got = (data && Array.isArray(data.suggestions) ? data.suggestions : []).map((s) => {
+          if (s.id === 'ask') return s.label ? { id: 'ask', label: String(s.label).slice(0, 60) } : null;
+          const c = list.find((x) => x.id === s.id);
+          return c ? Object.assign({}, c, { label: s.label && String(s.label).length <= 40 ? String(s.label) : c.label }) : null;
+        }).filter(Boolean).filter((it, i, arr) => arr.findIndex((o) => o.id === it.id) === i);
+        const picked = got.concat(fallback.filter((f) => !got.some((g) => g.id === f.id))).slice(0, MAX_SUGGEST);
+        if (got.length) suggestCache.set(key, picked);
+        if (!done) { done = true; clearTimeout(timer); show(picked); }
+      }).catch(() => { if (!done) { done = true; clearTimeout(timer); show(fallback); } });
+    };
+
+    // "Nhắn trực tiếp với Sale": chuyển khung chat này sang chat với Sale thật (trước
+    // 2026-09-28 là gọi điện; số hotline vẫn còn ở thanh dưới khung chat).
+    const SALE_LABEL = 'Nhắn trực tiếp với Sale';
+    const callSale = (topic) => { enterSale(topic || ''); };
+    const pageService = () => pageContext().service;
+    const saleCand = () => C('sale', SALE_LABEL, () => callSale(pageService() ? pageService().slug : ''), 'chat trực tiếp với tư vấn viên để báo giá chính xác, giữ lịch');
+    const BOOK_LABEL = FEAT.booking === false ? 'Giữ lịch với Sale' : 'Chốt đơn - Đặt lịch ngay';
+
+    // Menu sau mỗi câu trả lời để cuộc trò chuyện có nhiều nhánh thay vì 1 đường thẳng.
     const askWhatNext = () => {
-      addQuickReplies(['Về menu chính', 'Liên hệ Sale ngay'], (choice) => {
-        addMsg(choice, 'user');
-        if (choice === 'Liên hệ Sale ngay') { callSale(); return; }
-        askMainMenu();
-      });
+      const s = pageService();
+      offer([
+        saleCand(),
+        C('menu', 'Về menu chính', askMainMenu, 'xem lại các chủ đề tư vấn'),
+        s && C('bao-gia', `Báo giá ${s.name}`, () => showServiceAdvice(s.name), `giá tham khảo, gói chụp dịch vụ ${s.name} đang xem`),
+        s && C('concept', `Concept ${s.name}`, () => askConcept(s.name), `các concept của dịch vụ ${s.name}`),
+        C('faq', 'Câu hỏi thường gặp', askFaq, 'địa chỉ, đặt cọc, chụp tại nhà, đổi lịch...')
+      ]);
     };
 
     const askMainMenu = () => {
-      addQuickReplies(['Tư vấn dịch vụ & báo giá', 'Concept & ảnh mẫu', 'Quy trình đặt lịch', 'Câu hỏi thường gặp', 'Liên hệ Sale ngay'], (choice) => {
-        addMsg(choice, 'user');
-        if (choice === 'Tư vấn dịch vụ & báo giá') { askService(); return; }
-        if (choice === 'Concept & ảnh mẫu') { askConceptService(); return; }
-        if (choice === 'Quy trình đặt lịch') { explainProcess(); return; }
-        if (choice === 'Câu hỏi thường gặp') { askFaq(); return; }
-        callSale();
-      });
+      const s = pageService();
+      offer([
+        C('tu-van', 'Tư vấn dịch vụ & báo giá', askService, 'chọn 1 trong 5 dịch vụ để nghe concept và giá tham khảo'),
+        C('concept', 'Concept & ảnh mẫu', askConceptService, 'xem concept và album ảnh mẫu theo dịch vụ'),
+        s && C('bao-gia', `Báo giá ${s.name}`, () => showServiceAdvice(s.name), `giá tham khảo dịch vụ ${s.name} khách đang xem`),
+        C('quy-trinh', 'Quy trình đặt lịch', explainProcess, 'các bước từ đặt lịch tới nhận ảnh'),
+        C('faq', 'Câu hỏi thường gặp', askFaq, 'địa chỉ, đặt cọc, chụp tại nhà, đổi lịch...'),
+        saleCand()
+      ]);
     };
 
     const explainProcess = async () => {
@@ -459,19 +559,19 @@ document.addEventListener('DOMContentLoaded', () => {
       'Có đổi được lịch hẹn đã đặt không?': 'Có, ALOHA Baby hỗ trợ đổi lịch khi cần. Điều kiện cụ thể (còn kịp đổi miễn phí hay cần duyệt lại) tuỳ thời gian còn lại trước buổi chụp, bạn liên hệ Sales/CSKH qua hotline để được hỗ trợ đổi lịch nhanh nhất nhé.'
     };
 
-    const askFaq = () => {
-      addQuickReplies(Object.keys(FAQ), async (q) => {
-        addMsg(q, 'user');
-        await botSay(FAQ[q]);
-        askWhatNext();
-      });
+    const askFaq = async () => {
+      await botSay('Mình gợi ý 2 câu hay được hỏi nhất, bạn cũng có thể gõ câu hỏi khác ở khung dưới nhé.', 400);
+      offer(Object.keys(FAQ).map((q, i) => C('faq-' + i, q, async () => { await botSay(FAQ[q]); askWhatNext(); }, 'câu hỏi thường gặp')));
     };
 
+    // Dịch vụ khách đang xem (nếu có) đứng đầu danh sách.
+    const servicesFirst = (names) => {
+      const s = pageService();
+      return s && names.includes(s.name) ? [s.name, ...names.filter((n) => n !== s.name)] : names;
+    };
     const askService = () => {
-      addQuickReplies(Object.keys(SERVICE_INFO), (service) => {
-        addMsg(service, 'user');
-        showServiceAdvice(service);
-      });
+      offer(servicesFirst(Object.keys(SERVICE_INFO)).map((service) =>
+        C('svc-' + (slugOf(service) || service), service, () => showServiceAdvice(service), `concept + giá tham khảo dịch vụ ${service}`)));
     };
 
     const showServiceAdvice = async (service) => {
@@ -481,21 +581,12 @@ document.addEventListener('DOMContentLoaded', () => {
       await botSay(`Với dịch vụ "${service}", ALOHA Baby có ${concepts.length || info.concepts.length} concept:\n• ${(concepts.length ? concepts : info.concepts).join('\n• ')}`);
       await botSay(info.note, 450);
       await botSay(`${info.packageNote}\nGiá tham khảo ${info.price} (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn).`, 450);
-      const options = ['Chốt đơn - Đặt lịch ngay'];
-      if (concepts.length) options.push('Xem concept & ảnh mẫu');
-      options.push('Xem dịch vụ khác', 'Liên hệ Sale ngay');
-      addQuickReplies(options, (choice) => {
-        addMsg(choice, 'user');
-        if (choice.startsWith('Chốt đơn')) {
-          confirmBooking(service);
-        } else if (choice === 'Xem concept & ảnh mẫu') {
-          askConcept(service);
-        } else if (choice === 'Xem dịch vụ khác') {
-          askService();
-        } else {
-          callSale();
-        }
-      });
+      offer([
+        concepts.length && C('concept', 'Xem concept & ảnh mẫu', () => askConcept(service), `từng concept của dịch vụ ${service} kèm ảnh mẫu`),
+        C('chot-don', BOOK_LABEL, () => confirmBooking(service), 'khách muốn chốt, giữ lịch chụp'),
+        C('dv-khac', 'Xem dịch vụ khác', askService, 'đổi sang dịch vụ khác'),
+        FEAT.booking !== false && saleCand()
+      ]);
     };
 
     // ------------------------------------------------ Kịch bản concept & ảnh mẫu
@@ -503,9 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // trang album: thêm/sửa concept ở đó là chatbot tự cập nhật theo.
     const albumOf = (service) => ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((s) => s.name === service) || null;
     const albumConcepts = (service) => { const a = albumOf(service); return a ? a.concepts : []; };
+    const slugOf = (service) => { const a = albumOf(service); return a ? a.slug : ''; };
     // Mở trang album: trên điện thoại đóng khung chat để khách thấy ngay album.
     const openAlbum = (href) => {
       setTimeout(() => {
+        botNav = true; setTimeout(() => { botNav = false; }, 800); // trang không đổi thì thôi
         window.location.hash = href.slice(1);
         if (window.innerWidth <= 720) chatPanel.classList.remove('open');
       }, 700);
@@ -513,76 +606,251 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const askConceptService = async () => {
       await botSay('Bạn muốn xem concept của dịch vụ nào? Mỗi dịch vụ có nhiều concept, mỗi concept có album ảnh mẫu riêng.', 450);
-      addQuickReplies(Object.keys(SERVICE_INFO).filter((s) => albumConcepts(s).length), (service) => {
-        addMsg(service, 'user');
-        askConcept(service);
-      });
+      offer(servicesFirst(Object.keys(SERVICE_INFO).filter((s) => albumConcepts(s).length)).map((service) =>
+        C('svc-' + slugOf(service), service, () => askConcept(service), `các concept dịch vụ ${service}`)));
     };
 
     const askConcept = async (service) => {
       const concepts = albumConcepts(service);
-      await botSay(`Dịch vụ "${service}" có ${concepts.length} concept, bạn chọn một concept để xem nhé:`, 450);
-      addQuickReplies([...concepts.map((c) => c.name), 'Dịch vụ khác'], (choice) => {
-        addMsg(choice, 'user');
-        if (choice === 'Dịch vụ khác') { askConceptService(); return; }
-        showConcept(service, concepts.find((c) => c.name === choice));
-      });
+      const album = albumOf(service);
+      await botSay(`Dịch vụ "${service}" có ${concepts.length} concept. Mình gợi ý bên dưới, bạn cũng có thể gõ tên concept muốn xem nhé.`, 450);
+      offer([
+        ...concepts.slice(0, 1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
+        album && C('tat-ca', `Xem cả ${concepts.length} concept`, async () => { await botSay(`Mình mở album ${service} cho bạn nhé.`, 350); openAlbum(album.href); }, 'mở trang album có đủ mọi concept của dịch vụ'),
+        ...concepts.slice(1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
+        C('dv-khac', 'Dịch vụ khác', askConceptService, 'xem concept dịch vụ khác')
+      ]);
     };
 
     const showConcept = async (service, concept) => {
       addImageMsg(concept.cover, `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
       await botSay(concept.desc, 500);
       await botSay(`Album "${concept.name}" có ${concept.count} ảnh mẫu. Khi đặt lịch, bạn chọn concept này ở bước chọn concept, hoặc để studio tư vấn thêm nhé.`, 450);
-      addQuickReplies(['Xem album concept này', 'Đặt lịch concept này', 'Concept khác', 'Về menu chính'], (choice) => {
-        addMsg(choice, 'user');
-        if (choice === 'Xem album concept này') {
+      offer([
+        C('xem-album', 'Xem album concept này', () => {
           botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => { openAlbum(concept.href); askConcept(service); });
-        } else if (choice === 'Đặt lịch concept này') {
-          confirmBooking(`${service} · ${concept.name}`);
-        } else if (choice === 'Concept khác') {
-          askConcept(service);
-        } else {
-          askMainMenu();
-        }
-      });
+        }, 'mở album ảnh mẫu của concept'),
+        C('dat-lich', FEAT.booking === false ? 'Giữ lịch concept này' : 'Đặt lịch concept này', () => confirmBooking(`${service} · ${concept.name}`), 'khách muốn chụp concept này'),
+        C('concept-khac', 'Concept khác', () => askConcept(service), 'xem concept khác cùng dịch vụ'),
+        C('menu', 'Về menu chính', askMainMenu, 'các chủ đề tư vấn khác')
+      ]);
     };
 
     const confirmBooking = async (service) => {
+      // Đặt lịch online đang tạm tắt (js/features.js) -> chuyển khách sang Sale để chốt lịch.
+      if (FEAT.booking === false) {
+        await botSay(`Tuyệt vời! Hiện studio giữ lịch qua tư vấn viên, mình chuyển bạn sang Sale để chốt lịch chụp "${service}" nhé.`, 500);
+        callSale(slugOf(String(service).split(' · ')[0]));
+        return;
+      }
       await botSay(`Tuyệt vời! Mình chuyển bạn sang bước đặt lịch cho dịch vụ "${service}" nhé.`, 500);
       setTimeout(() => {
         window.location.hash = '/dat-lich';
       }, 700);
     };
 
-    const startChat = async () => {
-      if (chatStarted) return;
-      chatStarted = true;
-      await botSay('Chào bạn! Mình là trợ lý ALOHA Baby 👋');
-      await botSay('Mình có thể giúp gì cho bạn? Bạn cũng có thể gõ câu hỏi bất kỳ ở khung bên dưới.', 450);
-      askMainMenu();
+    // ------------------------------------------------ Lời chào theo trang đang xem (2026-09-28)
+    // Trang chủ / trang khác: chào chung. Album 1 dịch vụ: chào theo dịch vụ đó. Album 1 concept:
+    // chào theo concept. Khách CHƯA bấm/gõ gì thì lời chào được thay hẳn khi đổi trang; đã trò
+    // chuyện rồi thì chỉ nói thêm 1 lượt khi khách sang dịch vụ khác (không xoá cuộc trò chuyện).
+    const SERVICE_GREET = {
+      'bau': 'Mẹ bầu đang ở tuần thai thứ mấy rồi ạ? Mình gợi ý concept, báo giá tham khảo và thời điểm chụp đẹp cho mẹ nhé.',
+      'newborn': 'Bé nhà mình đã chào đời chưa, hay ba mẹ đang chuẩn bị trước ạ? Mình tư vấn thời điểm chụp newborn đẹp nhất, concept và giá tham khảo nhé.',
+      'be-lon': 'Bé nhà mình năm nay mấy tuổi rồi ạ? Mình gợi ý concept hợp với bé và báo giá tham khảo nhé.',
+      'sinh-nhat': 'Bé sắp đến sinh nhật hay thôi nôi phải không ạ? Mình gợi ý concept trang trí và báo giá tham khảo nhé.',
+      'gia-dinh': 'Gia đình mình định chụp mấy người ạ? Mình gợi ý concept cho cả nhà và báo giá tham khảo nhé.'
     };
+    const pageContext = () => {
+      const m = /^#\/album\/([a-z-]+)(?:\/([a-z0-9-]+))?/.exec(window.location.hash);
+      const s = m && ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === m[1]);
+      if (s) {
+        const c = m[2] ? s.concepts.find((x) => x.slug === m[2]) : null;
+        return { key: 'album:' + s.slug + (c ? '/' + c.slug : ''), service: s, concept: c || null };
+      }
+      return { key: 'home', service: null, concept: null };
+    };
+    const greetingFor = (ctx) => {
+      if (ctx.concept) {
+        return {
+          lines: [`Bạn đang xem concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name} 📸`,
+            'Bạn muốn mình tư vấn thêm về concept này, báo giá tham khảo hay nhắn Sale để giữ lịch chụp ạ?'],
+          teaser: `Bạn thích concept "${ctx.concept.name}"? Mình tư vấn ngay nhé!`
+        };
+      }
+      if (ctx.service) {
+        return {
+          lines: [`Chào bạn! Bạn đang xem album ${ctx.service.name} 📸`, SERVICE_GREET[ctx.service.slug] || 'Bạn cần mình tư vấn concept hay báo giá tham khảo ạ?'],
+          teaser: `Bạn đang xem album ${ctx.service.name} 📸 Mình tư vấn concept, báo giá cho bạn nhé?`
+        };
+      }
+      return {
+        lines: ['Chào bạn! Mình là trợ lý ALOHA Baby 👋', 'Bạn đang cần tư vấn gì ạ? Chọn nhanh bên dưới hoặc gõ câu hỏi bất kỳ ở khung dưới cùng nhé.'],
+        teaser: 'Chào bạn 👋 Bạn cần ALOHA Baby tư vấn gì ạ?'
+      };
+    };
+    const repliesFor = (ctx) => {
+      if (!ctx.service) { askMainMenu(); return; }
+      const name = ctx.service.name;
+      const info = SERVICE_INFO[name];
+      if (ctx.concept) {
+        offer([
+          C('tu-van-concept', 'Tư vấn concept này', () => showConcept(name, ctx.concept), `mô tả, ảnh mẫu concept ${ctx.concept.name}`),
+          C('bao-gia', 'Báo giá & gói chụp', () => showServiceAdvice(name), `giá tham khảo dịch vụ ${name}`),
+          C('concept-khac', 'Concept khác', () => askConcept(name), `concept khác của dịch vụ ${name}`),
+          saleCand()
+        ]);
+        return;
+      }
+      offer([
+        C('bao-gia', 'Báo giá & gói chụp', () => showServiceAdvice(name), `giá tham khảo, gói chụp dịch vụ ${name}`),
+        C('concept', 'Gợi ý concept', () => askConcept(name), `các concept của dịch vụ ${name}`),
+        C('luu-y', 'Lưu ý khi chụp', async () => { await botSay(info ? info.note : 'Sale sẽ tư vấn chi tiết cho gia đình mình nhé.'); askWhatNext(); }, info ? info.note : ''),
+        saleCand()
+      ]);
+    };
+
+    let greetToken = 0;
+    let greetedKey = '';
+    const say = (text, delay, token) => new Promise((resolve) => {
+      const typing = addTyping();
+      setTimeout(() => {
+        typing.remove();
+        if (token === greetToken) addMsg(text, 'bot');
+        resolve(token === greetToken);
+      }, delay);
+    });
+    const greet = async (ctx, replace) => {
+      const token = ++greetToken;
+      greetedKey = ctx.key;
+      if (replace) chatBody.innerHTML = '';
+      chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      const g = greetingFor(ctx);
+      for (let i = 0; i < g.lines.length; i++) {
+        if (!(await say(g.lines[i], i === 0 ? 550 : 450, token))) return;
+      }
+      if (token === greetToken) repliesFor(ctx);
+    };
+    const serviceOfKey = (key) => key.split('/')[0];
+    // Gọi mỗi khi đổi trang (và lúc mở khung chat): đổi lời chào cho hợp trang đang xem.
+    const applyContext = () => {
+      if (!chatStarted || saleMode) return;
+      const ctx = pageContext();
+      if (botNav) { botNav = false; greetedKey = ctx.key; return; } // khách đang theo gợi ý của chatbot
+      if (ctx.key === greetedKey) return;
+      if (!interacted) { greet(ctx, true); return; }
+      // Đã trò chuyện: chỉ nói thêm khi sang dịch vụ khác (vào sâu concept của cùng dịch vụ thì thôi).
+      if (ctx.service && serviceOfKey(ctx.key) !== serviceOfKey(greetedKey)) greet(ctx, false);
+      else greetedKey = ctx.key;
+    };
+
+    const startChat = () => {
+      if (chatStarted) { applyContext(); return; }
+      chatStarted = true;
+      greet(pageContext(), true);
+    };
+
+    // ------------------------------------------------ Mở / đóng, tự mở, bong bóng lời chào
+    // sessionStorage "aloha_chat_ui" (chỉ tuỳ chọn hiển thị trong tab đang mở, không phải dữ
+    // liệu nghiệp vụ): { dismissed: khách đã đóng khung -> không tự mở/không hiện bong bóng nữa,
+    // mode: 'sale' khi đang chat với Sale (tải lại trang vẫn vào đúng chế độ), saleTopic,
+    // openAfterLogin / pendingSale: vừa bị đưa sang đăng nhập từ khung chat -> quay lại thì mở tiếp }.
+    const UI_KEY = 'aloha_chat_ui';
+    const readUi = () => { try { return JSON.parse(sessionStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } };
+    const writeUi = (patch) => { try { sessionStorage.setItem(UI_KEY, JSON.stringify(Object.assign(readUi(), patch))); } catch (e) { /* bị chặn: bỏ qua */ } };
+    const isDesktop = () => window.innerWidth > 720;
+    const onHomeView = () => { const v = document.getElementById('view-home'); return !!v && !v.hidden; };
+    const teaser = document.getElementById('chatTeaser');
+    const teaserText = document.getElementById('chatTeaserText');
+    const hideTeaser = () => { if (teaser) teaser.hidden = true; };
 
     const openChat = () => {
       chatPanel.classList.add('open');
+      hideTeaser();
       startChat();
+      if (!isCustomerLoggedIn() || !window.AlohaSaleChat) return;
+      if (saleMode) { embedSale(); return; }
+      const ui = readUi();
+      // Đang chat với Sale trước khi tải lại trang, hoặc Sale vừa trả lời -> vào thẳng chat Sale.
+      // Chỉ tự vào khi tài khoản đã kết nối được máy chủ chat (có mã): đăng nhập lúc máy chủ tắt
+      // thì chat Sale bị khoá, tự chuyển sang sẽ làm trợ lý AI như "không trả lời" (lỗi 2026-09-28).
+      const session = window.AlohaAuth && AlohaAuth.getSession();
+      if (session && session.token && (ui.mode === 'sale' || window.AlohaSaleChat.unread() > 0)) enterSale(ui.saleTopic || '');
+    };
+    const closeChat = () => {
+      chatPanel.classList.remove('open');
+      writeUi({ dismissed: true });
+      hideTeaser();
+      if (saleMode && window.AlohaSaleChat) window.AlohaSaleChat.pause();
     };
 
-    // Mở chat tư vấn cũng là một tín hiệu quan tâm -> khách chưa đăng nhập
-    // được đưa sang trang đăng nhập trước, đăng nhập xong mới chat được.
+    // Khách chưa đăng nhập bấm vào chatbot -> sang đăng nhập (người dùng chốt 2026-09-28, giữ như
+    // trước), đăng nhập xong quay lại đúng trang đang xem và mở tiếp khung chat.
+    const loginNext = () => {
+      const h = window.location.hash;
+      if (/^#\/(album\/[a-z-]+(\/[a-z0-9-]+)?|noi-dung\/[a-z0-9-]+)$/.test(h)) return h.slice(2);
+      return 'home';
+    };
+    const goLoginForChat = (sale, topic) => {
+      writeUi(Object.assign({ openAfterLogin: true, dismissed: false }, sale ? { pendingSale: topic || '' } : {}));
+      goToLogin(loginNext());
+    };
+
+    // Chưa đăng nhập: khung chat (tự mở / bong bóng) vẫn hiện lời chào, nhưng bấm vào bất cứ
+    // nút, ô nhập nào trong khung là sang trang đăng nhập (trừ nút đóng và nút gọi hotline).
+    chatPanel.addEventListener('click', (e) => {
+      if (isCustomerLoggedIn()) return;
+      const hit = e.target.closest('button, input, a');
+      if (!hit || hit.id === 'chatClose' || /^tel:/.test(hit.getAttribute('href') || '')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      goLoginForChat(hit.id === 'chatToSale');
+    }, true);
+
     chatToggle.addEventListener('click', () => {
-      if (!isCustomerLoggedIn()) { goToLogin('dat-lich'); return; }
-      const willOpen = !chatPanel.classList.contains('open');
-      chatPanel.classList.toggle('open');
-      if (willOpen) startChat();
+      if (!isCustomerLoggedIn()) { goLoginForChat(false); return; }
+      if (chatPanel.classList.contains('open')) closeChat(); else openChat();
     });
-    chatClose.addEventListener('click', () => chatPanel.classList.remove('open'));
+    chatClose.addEventListener('click', closeChat);
+    if (teaserText) teaserText.addEventListener('click', () => { if (!isCustomerLoggedIn()) goLoginForChat(false); else openChat(); });
+    const teaserClose = document.getElementById('chatTeaserClose');
+    if (teaserClose) teaserClose.addEventListener('click', () => { writeUi({ dismissed: true }); hideTeaser(); });
+
+    // Trang chủ trên máy tính: tự mở khung chat sau 1.5 giây. Điện thoại: chỉ hiện bong bóng lời
+    // chào cạnh nút chat (khung chat che gần hết màn hình). Khách đã đóng thì thôi trong lần truy
+    // cập này. Sang trang album dịch vụ: đổi lời chào, KHÔNG tự mở lại (giữ trạng thái mở/đóng).
+    let autoOpenTimer = null;
+    let autoOpened = false;
+    const refreshChatForPage = () => {
+      applyContext();
+      if (chatPanel.classList.contains('open')) { hideTeaser(); return; }
+      const ui = readUi();
+      const ctx = pageContext();
+      if (ui.dismissed) { hideTeaser(); return; }
+      if (isDesktop()) {
+        hideTeaser();
+        if (onHomeView() && ctx.key === 'home' && !autoOpened && !autoOpenTimer) {
+          autoOpenTimer = setTimeout(() => {
+            autoOpenTimer = null;
+            if (readUi().dismissed || chatPanel.classList.contains('open') || !onHomeView()) return;
+            autoOpened = true;
+            openChat();
+          }, 1500);
+        }
+      } else if (teaser && teaserText && ((onHomeView() && ctx.key === 'home') || ctx.service)) {
+        teaserText.textContent = greetingFor(ctx).teaser;
+        teaser.hidden = false;
+      } else {
+        hideTeaser();
+      }
+    };
+    window.addEventListener('hashchange', () => setTimeout(refreshChatForPage, 0));
 
     // Nút "Tư vấn concept ngay" ở section Concept -> mở luôn khung chat tư vấn
     // thay vì dẫn tới link rỗng, khớp đúng flow concept -> tư vấn -> đặt lịch.
     const conceptChatBtn = document.getElementById('conceptChatBtn');
     if (conceptChatBtn) {
       conceptChatBtn.addEventListener('click', () => {
-        if (!isCustomerLoggedIn()) { goToLogin('dat-lich'); return; }
+        if (!isCustomerLoggedIn()) { goLoginForChat(false); return; }
         openChat();
       });
     }
@@ -596,10 +864,102 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!el) return;
       el.addEventListener('click', (e) => {
         e.preventDefault();
-        if (!isCustomerLoggedIn()) { goToLogin('dat-lich'); return; }
+        if (!isCustomerLoggedIn()) { goLoginForChat(false); return; }
         openChat();
       });
     });
+
+    // ------------------------------------------------ Chat tiếp với Sale ngay trong khung này
+    // Khách bấm "Nhắn Sale" / "Nhắn trực tiếp với Sale": cuộc trò chuyện với trợ lý AI giữ
+    // nguyên phía trên, bên dưới là chat thật với Sale (js/sale-chat.js vẽ vào .chat-sale-live,
+    // tin đi qua server, Sale trả lời trong Admin mục "Tin nhắn"). Lúc chuyển, trình duyệt gửi
+    // Sale bản tóm tắt những gì khách đã xem / đã hỏi trợ lý AI (AlohaSaleChat.handoff).
+    const chatTitle = document.getElementById('chatTitle');
+    const chatSubtitle = document.getElementById('chatSubtitle');
+    const chatSaleBarText = document.getElementById('chatSaleBarText');
+    const chatToSale = document.getElementById('chatToSale');
+    const chatSaleStatus = document.getElementById('chatSaleStatus');
+    const chatSendBtn = chatInputForm ? chatInputForm.querySelector('.chat-send') : null;
+    let saleTopic = '';
+
+    const addDivider = (text) => {
+      const div = document.createElement('div');
+      div.className = 'chat-divider';
+      div.textContent = text;
+      chatBody.appendChild(div);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    };
+    const saleLive = () => {
+      let live = chatBody.querySelector('.chat-sale-live');
+      if (!live) { live = document.createElement('div'); live.className = 'chat-sale-live'; }
+      chatBody.appendChild(live); // luôn nằm cuối, sau các tin với trợ lý AI
+      return live;
+    };
+    const embedSale = () => {
+      window.AlohaSaleChat.embed({ container: chatBody.querySelector('.chat-sale-live') || saleLive(), scroller: chatBody,
+        input: chatInput, sendBtn: chatSendBtn, statusBox: chatSaleStatus, topic: saleTopic });
+    };
+    const setSaleUi = (on) => {
+      chatPanel.classList.toggle('sale-mode', on);
+      if (chatTitle) chatTitle.textContent = on ? 'Tư vấn viên ALOHA Baby' : 'Trợ lý ALOHA';
+      if (chatSubtitle) chatSubtitle.textContent = on ? 'Đang chat trực tiếp với Sale' : 'Tư vấn concept & báo giá';
+      if (chatSaleBarText) chatSaleBarText.textContent = on ? 'Đang chat với Sale' : 'Cần Sale tư vấn?';
+      if (chatToSale) chatToSale.textContent = on ? 'Quay lại trợ lý AI' : 'Nhắn Sale';
+      if (chatInput) chatInput.placeholder = on ? 'Nhập tin nhắn cho Sale...' : 'Nhập câu hỏi cho trợ lý...';
+      if (!on) {
+        if (chatInput) chatInput.disabled = false;
+        if (chatSendBtn) chatSendBtn.disabled = false;
+        if (chatSaleStatus) chatSaleStatus.hidden = true;
+      }
+    };
+
+    function enterSale(topic) {
+      if (!isCustomerLoggedIn()) { goLoginForChat(true, topic); return; }
+      if (!window.AlohaSaleChat) { window.location.href = 'tel:0938125222'; return; }
+      chatPanel.classList.add('open');
+      hideTeaser();
+      if (!chatStarted) { chatStarted = true; interacted = true; greetedKey = pageContext().key; }
+      const slug = topic || (pageContext().service ? pageContext().service.slug : '');
+      if (saleMode) { if (slug) saleTopic = slug; embedSale(); return; }
+      saleMode = true;
+      greetToken++; // dừng lời chào của trợ lý AI nếu đang chạy dở
+      saleTopic = slug;
+      writeUi({ mode: 'sale', saleTopic: slug, dismissed: false });
+      chatBody.querySelectorAll('.chat-quick, .chat-typing').forEach((el) => el.remove());
+      addDivider('Bạn đang chat trực tiếp với Sale ALOHA Baby. Để tư vấn nhanh hơn, Sale sẽ xem tóm tắt những mục bạn đã xem và đã hỏi trợ lý AI.');
+      saleLive();
+      setSaleUi(true);
+      embedSale();
+      window.AlohaSaleChat.handoff();
+    }
+    const leaveSale = () => {
+      if (!saleMode) return;
+      saleMode = false;
+      writeUi({ mode: 'ai' });
+      if (window.AlohaSaleChat) window.AlohaSaleChat.unembed();
+      setSaleUi(false);
+      addDivider('Đã quay lại trợ lý AI. Tin nhắn với Sale vẫn được lưu, bấm "Nhắn Sale" để chat tiếp.');
+      askMainMenu();
+    };
+    if (chatToSale) chatToSale.addEventListener('click', () => { if (saleMode) leaveSale(); else enterSale(''); });
+    // Ô nhập của khung chatbot khi đang chat với Sale: nút gửi chỉ sáng khi đã gõ chữ.
+    if (chatInput && chatSendBtn) chatInput.addEventListener('input', () => { if (saleMode) chatSendBtn.disabled = chatInput.disabled || !chatInput.value.trim(); });
+
+    // js/sale-chat.js (link #/chat-sale, route #/chat-sale sau khi đăng nhập) mở chat Sale qua đây.
+    window.AlohaChatbot = { openSale: (topic) => enterSale(String(topic || '').split('/')[0]), open: openChat, backToAi: leaveSale };
+
+    // Vừa đăng nhập xong từ khung chat -> mở tiếp (có thể vào thẳng chat Sale); không thì tự mở /
+    // hiện bong bóng theo trang đang xem.
+    setTimeout(() => {
+      const ui = readUi();
+      if (ui.openAfterLogin && isCustomerLoggedIn()) {
+        const pendingSale = ui.pendingSale;
+        writeUi({ openAfterLogin: false, pendingSale: undefined });
+        if (pendingSale !== undefined) enterSale(pendingSale); else openChat();
+        return;
+      }
+      refreshChatForPage();
+    }, 0);
 
     // ---------------------------------------------------------------------
     // Khung nhập tự do -> gọi server proxy (server/) để trả lời bằng Gemini API
@@ -623,7 +983,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Có action -> bấm là chuyển thẳng tới trang/mục đó (không tốn lượt gọi AI);
       // action "none" -> gửi như khách tự gõ (hoặc trả lời FAQ cục bộ khi AI đang lỗi).
       const suggestNext = (items, local) => {
-        const list = items.slice(0, 3);
+        // Đặt lịch đang tắt: nút "đặt lịch" AI gợi ý thực ra mở chat Sale -> đổi chữ cho khớp.
+        const list = items.slice(0, MAX_SUGGEST).map((s) => (FEAT.booking === false && s.action === 'dat-lich' ? { label: CHAT_ACTIONS['dat-lich'].cta, action: 'dat-lich' } : s));
         addQuickReplies(list.map((s) => s.label), async (label) => {
           const item = list.find((s) => s.label === label);
           const action = item && CHAT_ACTIONS[item.action];
@@ -675,12 +1036,19 @@ document.addEventListener('DOMContentLoaded', () => {
           CHAT_ACTIONS[`album:${s.slug}/${c.slug}`] = { label: `album "${c.name}"`, cta: `Xem album ${c.name}`, go: () => { window.location.hash = c.href.slice(1); } };
         });
       });
+      // Đặt lịch online đang tạm tắt (js/features.js): gợi ý "đặt lịch" chuyển sang chat với Sale.
+      if (FEAT.booking === false) {
+        CHAT_ACTIONS['dat-lich'] = { label: 'tư vấn viên Sale để giữ lịch', cta: 'Nhắn Sale để đặt lịch', stay: true,
+          go: () => enterSale(pageContext().service ? pageContext().service.slug : '') };
+        FALLBACK_SUGGESTIONS[0].label = 'Nhắn Sale để đặt lịch';
+      }
       const runChatAction = (name) => {
         const action = CHAT_ACTIONS[name];
         if (!action) return;
         setTimeout(() => {
+          botNav = !action.stay; setTimeout(() => { botNav = false; }, 800);
           action.go();
-          if (window.innerWidth <= 720) chatPanel.classList.remove('open');
+          if (window.innerWidth <= 720 && !action.stay) chatPanel.classList.remove('open');
         }, 900);
       };
 
@@ -709,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const withIntentButton = (list, raw) => {
         const name = detectLocalAction(raw);
         if (!name || list.some((s) => s.action === name)) return list;
-        return [{ label: CHAT_ACTIONS[name].cta, action: name }, ...list].slice(0, 3);
+        return [{ label: CHAT_ACTIONS[name].cta, action: name }, ...list].slice(0, MAX_SUGGEST);
       };
 
       // Khách nhắc tới 1 concept (kể cả khi đang hỏi: "có chụp trung thu không?")
@@ -760,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const withConceptButton = (list, raw) => {
         const key = detectConcept(raw);
         if (!key || list.some((s) => s.action === key)) return list;
-        return [{ label: CHAT_ACTIONS[key].cta, action: key }, ...list].slice(0, 3);
+        return [{ label: CHAT_ACTIONS[key].cta, action: key }, ...list].slice(0, MAX_SUGGEST);
       };
       const conceptOfAction = (key) => {
         const [s, c] = key.slice('album:'.length).split('/');
@@ -800,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', () => {
             text: `${LOCAL_NOTE}Concept "${hit.concept.name}" (dịch vụ ${hit.service.name}): ${hit.concept.desc} Album có ${hit.concept.count} ảnh mẫu, bạn bấm nút bên dưới để xem nhé.`,
             suggestions: [
               { label: CHAT_ACTIONS[conceptKey].cta, action: conceptKey },
-              { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
+              { label: CHAT_ACTIONS['dat-lich'].cta, action: 'dat-lich' },
               { label: 'Đặt cọc thế nào?', action: 'none' }
             ]
           };
@@ -826,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
           text: 'Trợ lý AI đang bận nên mình chưa trả lời chi tiết câu này được. Bạn chọn một câu hỏi thường gặp bên dưới, hoặc gọi hotline 0938.125.222 để Sales hỗ trợ ngay nhé.',
           suggestions: [
-            { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
+            { label: CHAT_ACTIONS['dat-lich'].cta, action: 'dat-lich' },
             { label: 'Studio ở đâu?', action: 'none' },
             { label: 'Đặt cọc thế nào?', action: 'none' }
           ]
@@ -857,7 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await fetch(CHAT_API_URL, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ messages: aiHistory }),
+            body: JSON.stringify({ messages: aiHistory, bookingOff: FEAT.booking === false }),
             signal: AbortSignal.timeout(90000)
           });
           const data = await res.json();
@@ -885,9 +1253,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
+      askAI = sendToAI; // nút gợi ý dạng câu hỏi (id "ask") gửi thẳng cho trợ lý AI
+
       chatInputForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = chatInput.value.trim();
+        if (saleMode) {
+          if (!text || chatInput.disabled || !window.AlohaSaleChat) return;
+          chatInput.value = '';
+          if (chatSendBtn) chatSendBtn.disabled = true;
+          window.AlohaSaleChat.send(text);
+          return;
+        }
         if (!text || aiBusy) return;
         chatInput.value = '';
         sendToAI(text);

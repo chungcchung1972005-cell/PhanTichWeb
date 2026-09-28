@@ -866,6 +866,9 @@
 .inbox-msg.from-khach { align-self: flex-start; background: var(--white); border: 1px solid var(--pink-100); border-bottom-left-radius: 4px; color: var(--navy-900); }
 .inbox-msg.from-sale { align-self: flex-end; background: linear-gradient(135deg, var(--pink-500), var(--pink-600)); color: var(--white); border-bottom-right-radius: 4px; }
 .inbox-msg-name { font-size: 11px; font-weight: 700; opacity: 0.9; }
+/* Bản tóm tắt tự động khi khách chuyển từ trợ lý AI sang Sale: thẻ ghi chú giữa luồng, giữ xuống dòng. */
+.inbox-msg.from-system { align-self: stretch; max-width: none; background: #fff8e6; border: 1px dashed #e8c77a; color: var(--navy-900); white-space: pre-line; }
+.inbox-msg.from-system .inbox-msg-name { color: #8a5a00; opacity: 1; white-space: normal; }
 .inbox-msg time { font-size: 10.5px; opacity: 0.7; align-self: flex-end; }
 .inbox-reply { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--pink-100); }
 .inbox-reply[hidden] { display: none; }
