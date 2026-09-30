@@ -470,20 +470,12 @@
     if (cover && img.getAttribute('src') !== cover) img.src = cover;
   });
 
-  // 5 ảnh + dòng 5 dịch vụ đầu trang (khối #dich-vu) mở album nhưng BẮT ĐĂNG NHẬP (người dùng
-  // yêu cầu 2026-09-28; các lối vào album khác vẫn xem công khai). Chưa đăng nhập -> login.html,
-  // xong quay lại đúng album. Đã đăng nhập: hiệu ứng chuyển cảnh do js/router.js lo (dùng chung
-  // cho mọi lối từ Trang chủ vào album / trang nội dung / Ảnh của tôi, 29/09).
-  document.addEventListener('click', (e) => {
-    const link = e.target.closest('#dich-vu a[href^="#/album/"]');
-    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const auth = window.AlohaAuth;
-    if (auth && !auth.getSession()) {
-      e.preventDefault();
-      window.location.href = 'login.html?next=' + encodeURIComponent(link.getAttribute('href').slice(2));
-      return;
-    }
-  });
+  // 5 ảnh + dòng 5 dịch vụ đầu trang (khối #dich-vu): mở album XEM CÔNG KHAI, không bắt đăng
+  // nhập (người dùng đổi quyết định so với 2026-09-28: trước đây 5 ô này riêng bắt đăng nhập,
+  // các lối vào album khác đã công khai từ trước). Đăng nhập giờ chỉ còn cần khi khách chủ động
+  // bấm nút "Đăng nhập"/"Đăng ký" trên thanh menu, hoặc vào Đặt lịch/Ảnh của tôi (gate riêng ở
+  // js/router.js, không đổi). Hiệu ứng chuyển cảnh từ Trang chủ vào album do js/router.js lo
+  // (dùng chung cho mọi lối từ Trang chủ vào album / trang nội dung / Ảnh của tôi, 29/09).
 
   // ---------------------------------------------------------------- View album
   const chips = (items, activeSlug, hrefOf) => items.map((it) =>
@@ -538,8 +530,11 @@
       $('galleryTitle').textContent = 'Album ' + service.name;
       $('galleryDesc').textContent = service.desc;
       $('galleryCount').textContent = `${concepts.length} concept · ${photoCount(service)} ảnh`;
-      $('gallerySwitch').setAttribute('aria-label', 'Album các dịch vụ');
-      $('gallerySwitch').innerHTML = chips(SERVICES, service.slug, (s) => '#/album/' + s.slug);
+      // Đã bấm đúng dịch vụ này từ trang chủ rồi nên không cần liệt kê 4 dịch vụ còn lại ở đây nữa
+      // (người dùng phản hồi 2026-09-28: chỉ giữ lại chip của dịch vụ đang xem).
+      $('gallerySwitch').hidden = false;
+      $('gallerySwitch').setAttribute('aria-label', 'Dịch vụ đang xem');
+      $('gallerySwitch').innerHTML = chips([service], service.slug, (s) => '#/album/' + s.slug);
       revealActiveChip();
       $('galleryConcepts').innerHTML = concepts.length
         ? concepts.map((c) => {
@@ -563,6 +558,7 @@
     $('galleryTitle').textContent = concept.name;
     $('galleryDesc').textContent = concept.desc;
     $('galleryCount').textContent = `Album ${service.name} · ${concept.photos.length} ảnh`;
+    $('gallerySwitch').hidden = false;
     $('gallerySwitch').setAttribute('aria-label', 'Các concept khác của ' + service.name);
     $('gallerySwitch').innerHTML = chips(concepts, concept.slug, (c) => serviceHref + '/' + c.slug);
     revealActiveChip();

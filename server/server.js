@@ -73,6 +73,10 @@ Nguyên tắc trả lời bắt buộc:
 - KHÁCH BẢO GÌ LÀM NẤY (người dùng chốt 2026-09-29): khi tin nhắn mới nhất của khách là một yêu cầu làm ngay (không phải câu hỏi thông tin) thì đặt "do" là hành động đó, hệ thống sẽ tự làm luôn, khách không phải bấm nút; câu "reply" khi đó chỉ 1 câu ngắn xác nhận đang làm (ví dụ "Mình chuyển bạn sang tư vấn viên ngay nhé!", "Mình mở album Newborn cho bạn nhé!"). Các trường hợp:
   + Khách muốn nói chuyện / nhắn tin / gặp / được tư vấn trực tiếp với Sale, tư vấn viên, nhân viên, người thật, "admin", "shop", muốn được gọi lại hoặc để lại số điện thoại: "do" = "sale".
   + Khách muốn đặt lịch, giữ lịch, hẹn ngày chụp, đặt cọc: "do" = "dat-lich".
+  + Khách muốn thiết kế riêng 1 concept hoàn toàn mới, độc quyền, theo ý tưởng của riêng mình (không chọn trong các concept có sẵn của studio): "do" = "sale".
+  + Khách đề nghị/mặc cả chiết khấu sâu, giảm giá riêng, gói combo phức tạp ngoài các gói đã có (KHÁC với việc chỉ hỏi giá tham khảo bình thường — hỏi "giá bao nhiêu", "gói giá thế nào" vẫn là "do" = "none", trả lời bằng giá tham khảo có sẵn): "do" = "sale".
+  + Khách phàn nàn, khiếu nại, hoặc hỏi một vấn đề kỹ thuật/chuyên môn sâu ngoài phạm vi tư vấn thông thường: "do" = "sale".
+  + Với 3 trường hợp trên (concept độc quyền riêng, mặc cả/chiết khấu sâu, khiếu nại/kỹ thuật sâu), "reply" nên theo tinh thần: "Dạ, yêu cầu này của chị khá chi tiết/đặc biệt, em kết nối chị sang gặp trực tiếp Sales bên em nhé ạ!" (viết lại tự nhiên theo đúng câu khách vừa nói, không copy y nguyên).
   + Khách bảo mở / xem / cho xem / vào 1 trang của website (album của 1 dịch vụ, ảnh của tôi, concept, tin tức, giới thiệu, trang chủ...): "do" = đúng action của trang đó (danh sách action ở phần định dạng đầu ra).
   + Còn lại (hỏi giá, hỏi quy trình, hỏi tư vấn, chào hỏi, phân vân...): "do" = "none" và trả lời bình thường; khi đó KHÔNG nói "mình đang chuyển bạn...".
   Chỉ dựa vào tin nhắn MỚI NHẤT của khách để quyết định "do", không lặp lại hành động của các lượt trước.
@@ -82,6 +86,11 @@ Nguyên tắc trả lời bắt buộc:
 Định dạng đầu ra: JSON gồm "reply" (câu trả lời cho khách), "do" (hành động hệ thống làm ngay, xem quy tắc "khách bảo gì làm nấy"; "none" nếu không có) và "suggestions" (đúng 2 gợi ý tiếp theo khách có khả năng muốn chọn nhất sau câu trả lời vừa rồi, người dùng chốt 2026-09-28: tối đa 2 nút). Mỗi gợi ý là {"label", "action"}: "label" viết từ góc nhìn của khách, ngắn gọn dưới 50 ký tự, nằm trong phạm vi dịch vụ studio, bám sát nội dung câu trả lời vừa đưa ra, không lặp lại nhau. Nếu gợi ý tương ứng với một trang/mục của website thì đặt "action" để khách bấm vào là được chuyển thẳng tới đó, gồm: "dat-lich" (đặt lịch/hẹn chụp/đặt cọc), "chon-anh" (xem ảnh của tôi, chọn ảnh, gửi yêu cầu chỉnh sửa ảnh), "dich-vu" (danh sách dịch vụ), "concept" (thư viện concept), "album" (album ảnh đẹp), "gioi-thieu" (giới thiệu studio), "tin-tuc" (tin tức/kinh nghiệm), "trang-chu" (về trang chủ), "album-newborn" / "album-bau" / "album-sinh-nhat" / "album-be-lon" / "album-gia-dinh" (album ảnh mẫu theo concept của đúng dịch vụ đó; khi khách hỏi về concept hoặc muốn xem ảnh mẫu của 1 dịch vụ thì ưu tiên gợi ý nút này, ví dụ {"label": "Xem album Sinh nhật", "action": "album-sinh-nhat"}). Nếu chỉ là câu hỏi thêm thì "action" là "none". Khi khách thể hiện ý muốn làm việc gì mà website có trang tương ứng thì BẮT BUỘC 1 trong 2 gợi ý là nút dẫn tới đúng trang đó (ví dụ khách nhắn muốn đặt lịch thì có {"label": "Đặt lịch chụp ngay", "action": "dat-lich"}; muốn xem ảnh của mình thì có {"label": "Xem ảnh của tôi", "action": "chon-anh"}). Nếu khách chưa thể hiện ý cụ thể thì ít nhất 1 gợi ý dẫn tới trang phù hợp nhất với ngữ cảnh cuộc trò chuyện.`;
 
 const app = express();
+// Render (và mọi host chạy sau reverse proxy) chuyển tiếp qua 1 proxy nội bộ -> không bật cái
+// này thì req.ip luôn là IP của proxy (giống nhau cho MỌI khách), làm sai các giới hạn theo IP
+// (vd server/sale-chat.js giới hạn số lần cấp danh tính khách vãng lai). An toàn vì Render tự
+// đặt đúng header X-Forwarded-For, không phải header khách tự gửi lên được.
+app.set('trust proxy', true);
 if (ALLOWED_ORIGINS.length) {
   app.use(cors({ origin: ALLOWED_ORIGINS }));
 } else {
