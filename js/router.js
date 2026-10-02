@@ -19,7 +19,9 @@
 //   KHÔNG phải route (không có dấu / ngay sau #).
 (function (window) {
   const VIEW_ID = { '': 'view-home', 'dat-lich': 'view-dat-lich', 'chon-anh': 'view-chon-anh', 'album': 'view-album', 'noi-dung': 'view-content' };
-  const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'], 'chat-sale': ['khach-hang'] };
+  // 'chat-sale' không còn bắt đăng nhập (js/sale-chat.js tự cấp danh tính khách vãng lai khi
+  // cần) - chỉ Đặt lịch/Ảnh của tôi vẫn cần đúng tài khoản thật để xem lịch/ảnh riêng của khách.
+  const GATED_ROLES = { 'dat-lich': ['khach-hang'], 'chon-anh': ['khach-hang'] };
   const FEATURES = window.ALOHA_FEATURES || {};
   // Route đang tạm tắt theo js/features.js -> coi như về Trang chủ.
   const DISABLED = { 'dat-lich': FEATURES.booking === false, 'album': FEATURES.albumPages === false };

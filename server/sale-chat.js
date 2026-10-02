@@ -326,6 +326,26 @@ router.post('/auth/google/complete', wrap(async (req, res) => {
   return issue(res, { phone, role: 'khach-hang', name });
 }));
 
+// ---- Khách vãng lai chat Sale không cần đăng nhập (người dùng chốt: chỉ bắt đăng nhập khi bấm
+// nút "Đăng nhập" trên menu, hoặc vào Đặt lịch/Ảnh của tôi). Cấp 1 token hợp lệ với requireAuth
+// (['khach-hang']) như tài khoản thật, NHƯNG "phone" là mã tạm sinh ngẫu nhiên - không tạo bản ghi
+// nào trong "users" (token chỉ ký chữ ký, không cần tra database) nên KHÔNG đụng tới dữ liệu tài
+// khoản demo/thật hiện có. Sale thấy tên "Khách vãng lai", không có SĐT thật cho tới khi khách tự
+// cho trong lúc chat. Giới hạn theo IP để tránh spam tạo hàng loạt cuộc trò chuyện rác.
+const guestHits = new Map();
+function guestRateLimited(ip) {
+  const now = Date.now();
+  const list = (guestHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+  list.push(now);
+  guestHits.set(ip, list);
+  return list.length > 5; // tối đa 5 lượt cấp mới / 10 phút / IP
+}
+router.post('/auth/guest', wrap(async (req, res) => {
+  if (guestRateLimited(req.ip)) return res.status(429).json({ error: 'too_many_guests' });
+  const phone = 'khach-vang-lai-' + crypto.randomBytes(5).toString('hex');
+  return issue(res, { phone, role: 'khach-hang', name: 'Khách vãng lai' });
+}));
+
 router.post('/auth/register', wrap(async (req, res) => {
   const phone = normPhone(req.body.phone);
   const name = String(req.body.name || '').trim().slice(0, 80);
