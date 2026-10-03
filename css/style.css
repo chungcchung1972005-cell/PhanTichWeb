@@ -912,7 +912,7 @@ body.hide-floating-book .floating-book { display: none; }
 
 /* Tin nhắn kèm ảnh minh hoạ (tư vấn dịch vụ/concept) — ảnh full-bleed trong
    bubble, chú thích nằm dưới dùng padding riêng vì .chat-msg mặc định có padding. */
-.chat-msg.chat-media { padding: 0; overflow: hidden; }
+.chat-msg.chat-media { padding: 0; overflow: hidden; flex-shrink: 0; } /* khung chat là flex cột: không cho tin ảnh bị co còn vài px khi nhiều tin */
 .chat-msg.chat-media img { display: block; width: 100%; height: 140px; object-fit: cover; }
 .chat-msg.chat-media .chat-media-cap { padding: 10px 14px; }
 .chat-quick { display: flex; flex-wrap: wrap; gap: 8px; }

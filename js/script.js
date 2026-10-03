@@ -359,10 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const FEAT = window.ALOHA_FEATURES || {};
 
     // ------------------------------------------------ Tư vấn theo bé nhà mình (thu thập thông tin)
-    // Hỏi tuần tự tuổi/dự sinh, giới tính, cân nặng, concept quan tâm, lưu ý đặc biệt để gợi ý
-    // đúng album + giá tham khảo, giảm tải hỏi lại cho Sales (2026-09). leadInfo chỉ hỏi 1 lần/phiên.
-    let leadInfo = null;        // { age, gender, weight, service, conceptLabel, conceptObj, note } sau khi hỏi xong
-    let leadPending = null;     // bước đang chờ khách GÕ TỰ DO trả lời ('age'|'weight'|'note'), null = không chờ
+    // Hỏi tuần tự tuổi/dự sinh, giới tính, cân nặng, phong cách quan tâm rồi tự mở album concept hợp
+    // với bé, giảm tải hỏi lại cho Sales (2026-09, đổi 2026-09-30). leadInfo chỉ hỏi 1 lần/phiên.
+    let leadInfo = null;        // { age, gender, weight, style, service, conceptLabel, conceptObj } sau khi hỏi xong
+    let leadPending = null;     // bước đang chờ khách GÕ TỰ DO trả lời ('age'|'gender'|'weight'|'style'), null = không chờ
     let startLeadIntake = null; // gán bên trong khối nhập tự do (cần detectConcept/SERVICE_KEYWORDS)
 
     const addMsg = (text, who) => {
@@ -387,6 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
       div.className = 'chat-msg bot chat-media';
       const img = document.createElement('img');
       img.src = src; img.alt = alt; img.loading = 'lazy';
+      // Ảnh tải xong mới có chiều cao -> cuộn lại xuống cuối để tin nhắn sau ảnh không bị khuất.
+      img.addEventListener('load', () => { chatBody.scrollTop = chatBody.scrollHeight; }, { once: true });
       div.appendChild(img);
       if (caption) {
         const cap = document.createElement('p');
@@ -1148,91 +1150,164 @@ document.addEventListener('DOMContentLoaded', () => {
         ['Gia đình', /gia dinh/],
         ['Bé lớn', /be lon/]
       ];
-      // ---- Tư vấn theo bé nhà mình: hỏi tuần tự tuổi/dự sinh, giới tính, cân nặng, concept quan
-      // tâm, lưu ý đặc biệt rồi gợi ý đúng album + giá tham khảo (giảm tải hỏi lại cho Sales).
-      // Đặt sau SERVICE_KEYWORDS/detectConcept vì bước "concept quan tâm" cần đoán dịch vụ/concept
-      // từ câu khách gõ tự do. leadInfo chỉ hỏi 1 lần cho mỗi lượt mở trang (biến ở scope ngoài).
-      const LEAD_STEPS = ['age', 'gender', 'weight', 'concept', 'note'];
+      // ---- Tư vấn theo bé nhà mình (đổi 2026-09-30, người dùng yêu cầu): hỏi tuần tự tuổi -> giới
+      // tính -> cân nặng -> phong cách quan tâm, rồi TỰ MỞ album concept hợp với bé (kèm tin "Em gửi
+      // album ... mẹ tham khảo nhé" trong khung chat). Đã bỏ câu "lưu ý đặc biệt". Khách tự gõ tuổi bé
+      // ("con tôi 3 tuổi") cũng tự vào luồng này (bỏ qua câu hỏi tuổi), không cần AI/server.
+      // Bảng chọn concept theo tuổi/giới tính/cân nặng/phong cách dưới đây là QUY TẮC MINH HOẠ tự đặt
+      // cho bản demo, chờ studio xác nhận; thực tế cân nặng chủ yếu để chuẩn bị size trang phục.
+      const LEAD_STEPS = ['age', 'gender', 'weight', 'style'];
       const leadDraft = {};
+      const NUM_WORDS = { mot: 1, hai: 2, ba: 3, bon: 4, tu: 4, nam: 5, sau: 6, bay: 7, tam: 8, chin: 9, muoi: 10 };
+      // Đọc tuổi bé từ câu khách gõ / nút bấm -> { label, months, pregnant } hoặc null.
+      const parseAge = (raw) => {
+        const t = stripDiacritics(raw).replace(/\b(mot|hai|ba|bon|tu|nam|sau|bay|tam|chin|muoi)\s+(tuoi|thang)\b/g, (m, w, u) => NUM_WORDS[w] + ' ' + u);
+        if (/mang bau|mang thai|dang bau|\bbau\b|du sinh|tuan thai/.test(t)) return { label: 'Đang mang bầu', months: -1, pregnant: true };
+        if (/moi sinh|so sinh|newborn|\d+\s*ngay( tuoi)?\b/.test(t)) return { label: 'Mới sinh', months: 0 };
+        let m = /(\d+(?:[.,]5)?)\s*(tuoi|t\b)/.exec(t);
+        if (m) { const y = parseFloat(m[1].replace(',', '.')); if (y > 0 && y < 16) return { label: `${m[1]} tuổi`, months: Math.round(y * 12) }; }
+        m = /(\d+)\s*thang/.exec(t);
+        if (m) { const mo = +m[1]; if (mo >= 0 && mo < 72) return { label: mo ? `${mo} tháng` : 'Mới sinh', months: mo }; }
+        if (/thoi noi/.test(t)) return { label: '1 tuổi (thôi nôi)', months: 12 };
+        return null;
+      };
+      const parseGender = (raw) => {
+        const t = stripDiacritics(raw);
+        if (/chua biet|khong biet|bi mat/.test(t)) return 'Chưa biết';
+        if (/gai|\bnu\b|con gai/.test(t)) return 'Bé gái';
+        if (/trai|giai|\bnam\b/.test(t)) return 'Bé trai';
+        return null;
+      };
+      const parseKg = (raw) => {
+        const m = /(\d+(?:[.,]\d+)?)/.exec(raw);
+        return m ? parseFloat(m[1].replace(',', '.')) : null;
+      };
+      // Dịch vụ theo tuổi: bầu -> Bầu, dưới 1 tháng -> Newborn; lớn hơn thì giữ Sinh nhật / Gia đình
+      // nếu khách đang xem album đó, còn lại -> Bé lớn.
+      const leadServiceSlug = (age) => {
+        if (age.pregnant) return 'bau';
+        if (age.months <= 1) return 'newborn';
+        const cur = pageService();
+        if (cur && (cur.slug === 'sinh-nhat' || cur.slug === 'gia-dinh')) return cur.slug;
+        return 'be-lon';
+      };
+      // Phong cách -> concept theo từng dịch vụ (slug concept trong js/albums.js).
+      const LEAD_STYLES = [
+        { label: 'Tự nhiên, ngoài trời', re: /tu nhien|ngoai troi|ngoai canh|cong vien|\bbien\b|thien nhien|organic/,
+          pick: { 'be-lon': 'ngoai-canh', newborn: 'tu-nhien', bau: 'ngoai-canh', 'sinh-nhat': 'picnic', 'gia-dinh': 'ngoai-canh' } },
+        { label: 'Hàn Quốc, tối giản', re: /han quoc|hanbok|toi gian|hien dai|nhe nhang|pastel/,
+          pick: { 'be-lon': 'han-quoc', newborn: 'cuon-u', bau: 'toi-gian', 'sinh-nhat': 'pastel', 'gia-dinh': 'dong-phuc' } },
+        { label: 'Cổ điển, vintage', re: /co dien|vintage|den trang|sepia|hoai co/,
+          pick: { 'be-lon': 'vintage', newborn: 'den-trang', bau: 'vintage', 'sinh-nhat': 'tiec-gia-dinh', 'gia-dinh': 'vintage' } },
+        { label: 'Truyền thống, áo dài', re: /truyen thong|ao dai|\bviet\b|trung thu|co trang|den long/,
+          pick: { 'be-lon': 'ao-dai', newborn: 'hoa-la', bau: 'vong-hoa', 'sinh-nhat': 'trung-thu', 'gia-dinh': 'nhieu-the-he' } },
+        { label: 'Năng động, hoá thân', re: /nang dong|the thao|hoa than|nghe nghiep|vui nhon|ngo nghinh|nhan vat|hoat hinh/,
+          pick: { 'be-lon': (g) => (g === 'Bé gái' ? 'nghe-nghiep' : 'the-thao'), newborn: 'thu-ngo-nghinh', bau: 'bien', 'sinh-nhat': 'bong-bay', 'gia-dinh': 'anh-chi-em' } },
+        { label: 'Chưa biết, gợi ý giúp mình', re: /chua biet|goi y|tuy|sao cung duoc|khong biet|gi cung duoc/,
+          pick: { 'be-lon': (g) => (g === 'Bé gái' ? 'mua-thu' : 'nghe-nghiep'), newborn: (g, kg) => (kg && kg < 3.5 ? 'cuon-u' : 'trang-sao'),
+            bau: 'toi-gian', 'sinh-nhat': (g) => (g === 'Bé trai' ? 'bong-bay' : 'cong-chua'), 'gia-dinh': 'dong-phuc' } }
+      ];
+      // Chọn concept: khớp 1 phong cách ở trên, không thì khớp tên concept khách gõ (CONCEPT_KEYWORDS)
+      // trong đúng dịch vụ, không nữa thì coi như "gợi ý giúp mình".
+      const pickLeadConcept = (serviceSlug, styleText, gender, kg) => {
+        const service = ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === serviceSlug);
+        if (!service || !service.concepts.length) return null;
+        const t = stripDiacritics(styleText);
+        let slug = null;
+        const style = LEAD_STYLES.find((s) => s.re.test(t));
+        if (style) {
+          const p = style.pick[serviceSlug];
+          slug = typeof p === 'function' ? p(gender, kg) : p;
+        } else {
+          const kw = CONCEPT_KEYWORDS.find(([re, map]) => re.test(t) && map[serviceSlug]);
+          if (kw) slug = kw[1][serviceSlug];
+        }
+        if (!slug) {
+          const p = LEAD_STYLES[LEAD_STYLES.length - 1].pick[serviceSlug];
+          slug = typeof p === 'function' ? p(gender, kg) : p;
+        }
+        const concept = service.concepts.find((c) => c.slug === slug) || service.concepts[0];
+        return { service, concept };
+      };
+
+      // Gõ tự do cũng được: leadPending = bước đang chờ, câu gõ đi thẳng vào handleLeadAnswer.
       const askLeadStep = (step) => {
+        leadPending = step;
+        const pick = (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer(step, label); };
         if (step === 'age') {
-          botSay('Bé nhà mình được mấy tháng tuổi rồi ạ? (mẹ đang mang bầu thì cho mình biết dự sinh khoảng nào nhé)', 500).then(() => {
-            leadPending = 'age';
-            addQuickReplies(['Đang mang bầu (dự sinh)', 'Mới sinh - 1 tháng', '1-6 tháng', '6-12 tháng', '1-3 tuổi', 'Trên 3 tuổi'],
-              (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer('age', label); });
+          botSay('Bé nhà mình được mấy tháng/mấy tuổi rồi ạ? (mẹ đang mang bầu thì cho em biết dự sinh khoảng nào nhé)', 500).then(() => {
+            addQuickReplies(['Đang mang bầu', 'Mới sinh', '1-12 tháng', '1-3 tuổi', 'Trên 3 tuổi'], pick);
           });
           return;
         }
         if (step === 'gender') {
-          botSay('Bé nhà mình là bé trai hay bé gái ạ?', 450).then(() => {
-            addQuickReplies(['Bé trai', 'Bé gái'], (label) => { addMsg(label, 'user'); handleLeadAnswer('gender', label); });
+          botSay(leadDraft.age && leadDraft.age.pregnant ? 'Mẹ đã biết em bé là bé trai hay bé gái chưa ạ?' : 'Bé nhà mình là bé trai hay bé gái ạ?', 450).then(() => {
+            addQuickReplies(leadDraft.age && leadDraft.age.pregnant ? ['Bé trai', 'Bé gái', 'Chưa biết'] : ['Bé trai', 'Bé gái'], pick);
           });
           return;
         }
         if (step === 'weight') {
-          botSay('Bé hiện nặng khoảng bao nhiêu ạ? Thông tin này giúp studio chuẩn bị trang phục, bối cảnh vừa vặn và an toàn cho bé.', 450).then(() => {
-            leadPending = 'weight';
-            addQuickReplies(['Dưới 3kg', '3-6kg', '6-10kg', 'Trên 10kg'],
-              (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer('weight', label); });
-          });
+          const mo = leadDraft.age ? leadDraft.age.months : 24;
+          const opts = mo <= 1 ? ['Dưới 3kg', '3-4kg', 'Trên 4kg']
+            : mo < 12 ? ['Dưới 7kg', '7-10kg', 'Trên 10kg']
+              : ['Dưới 12kg', '12-15kg', '15-18kg', 'Trên 18kg'];
+          botSay('Bé nhà mình khoảng mấy kg ạ? Để studio chuẩn bị trang phục, đạo cụ vừa vặn cho bé.', 450).then(() => addQuickReplies(opts, pick));
           return;
         }
-        if (step === 'concept') {
-          botSay('Mẹ đang thích phong cách/dịch vụ nào cho bé ạ? Chọn nhanh bên dưới hoặc gõ đúng tên concept mẹ thích cũng được nhé.', 450).then(() => {
-            leadPending = 'concept';
-            addQuickReplies(servicesFirst(Object.keys(SERVICE_INFO)),
-              (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer('concept', label); });
-          });
-          return;
-        }
-        if (step === 'note') {
-          botSay('Bé nhà mình có điểm gì đặc biệt hoặc mẹ cần lưu ý không ạ (ví dụ bé nhát người, da nhạy cảm, hay quấy khóc...)?', 450).then(() => {
-            leadPending = 'note';
-            addQuickReplies(['Không có gì đặc biệt', 'Bé nhát người, lạ chỗ', 'Da nhạy cảm', 'Hay quấy khóc'],
-              (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer('note', label === 'Không có gì đặc biệt' ? '' : label); });
+        if (step === 'style') {
+          botSay('Nhà mình đang quan tâm phong cách như thế nào ạ? Mẹ chọn nhanh bên dưới hoặc gõ phong cách mẹ thích nhé.', 450).then(() => {
+            addQuickReplies(LEAD_STYLES.map((s) => s.label), pick);
           });
         }
       };
       const handleLeadAnswer = (step, value) => {
-        if (step === 'concept') {
-          const key = detectConcept(value);
-          const hit = key && conceptOfAction(key);
-          if (hit && hit.concept) {
-            leadDraft.service = hit.service.name;
-            leadDraft.conceptObj = hit.concept;
-            leadDraft.conceptLabel = hit.concept.name;
-          } else {
-            const kw = SERVICE_KEYWORDS.find(([, re]) => re.test(stripDiacritics(value)));
-            const svc = Object.keys(SERVICE_INFO).find((s) => s === value) || (kw && kw[0]);
-            if (!svc) {
-              botSay('Mình chưa rõ ý lắm, mẹ chọn giúp mình 1 trong 5 dịch vụ bên dưới nhé.', 400).then(() => askLeadStep('concept'));
-              return;
-            }
-            leadDraft.service = svc;
-            leadDraft.conceptObj = null;
-            leadDraft.conceptLabel = svc;
+        if (step === 'age') {
+          const age = parseAge(value);
+          if (!age) {
+            botSay('Em chưa rõ tuổi của bé ạ, mẹ cho em xin số tháng hoặc số tuổi (ví dụ "8 tháng", "3 tuổi") nhé.', 400).then(() => { leadPending = 'age'; });
+            return;
           }
-        } else {
-          leadDraft[step] = value;
+          leadDraft.age = age;
+        } else if (step === 'gender') {
+          leadDraft.gender = parseGender(value) || value.trim().slice(0, 40);
+        } else if (step === 'weight') {
+          leadDraft.weight = value.trim().slice(0, 40);
+          leadDraft.kg = parseKg(value);
+          if (leadDraft.kg && !/kg|can|ky|ki\b|lang/.test(stripDiacritics(value))) leadDraft.weight += 'kg';
+        } else if (step === 'style') {
+          leadDraft.style = value.trim().slice(0, 80);
         }
-        const next = LEAD_STEPS[LEAD_STEPS.indexOf(step) + 1];
+        let next = LEAD_STEPS[LEAD_STEPS.indexOf(step) + 1];
+        if (next === 'weight' && leadDraft.age.pregnant) next = 'style'; // em bé chưa chào đời: không hỏi cân nặng
         if (next) { askLeadStep(next); return; }
         finishLeadIntake();
       };
       const finishLeadIntake = async () => {
-        leadInfo = { age: leadDraft.age, gender: leadDraft.gender, weight: leadDraft.weight,
-          service: leadDraft.service, conceptObj: leadDraft.conceptObj, conceptLabel: leadDraft.conceptLabel, note: leadDraft.note || '' };
-        const genderWord = /trai/i.test(leadInfo.gender || '') ? 'trai' : 'gái';
-        const bits = [leadInfo.age, `bé ${genderWord}`, leadInfo.weight].filter(Boolean).join(', ');
-        await botSay(`Bé nhà mình (${bits}) đang ở độ tuổi rất đáng yêu, hợp với phong cách ${leadInfo.conceptLabel} lắm ạ! Mình gợi ý ngay bên dưới nhé.`, 500);
+        const age = leadDraft.age;
+        const hit = pickLeadConcept(leadServiceSlug(age), leadDraft.style, leadDraft.gender, leadDraft.kg);
+        leadInfo = { age: age.label, gender: leadDraft.gender, weight: leadDraft.weight || '', style: leadDraft.style,
+          service: hit ? hit.service.name : '', conceptObj: hit ? hit.concept : null, conceptLabel: hit ? hit.concept.name : '' };
         if (window.AlohaJourney) {
-          window.AlohaJourney.add('lead', { service: leadInfo.service, gender: leadInfo.gender, age: leadInfo.age, weight: leadInfo.weight, concept: leadInfo.conceptLabel, note: leadInfo.note });
+          window.AlohaJourney.add('lead', { service: hit ? hit.service.slug : '', gender: leadInfo.gender, age: leadInfo.age, weight: leadInfo.weight,
+            concept: leadInfo.conceptLabel ? `${leadInfo.conceptLabel} (phong cách ${leadInfo.style})` : leadInfo.style });
         }
-        if (leadInfo.conceptObj) await showConcept(leadInfo.service, leadInfo.conceptObj);
-        else await showServiceAdvice(leadInfo.service);
+        if (!hit) { await botSay('Em chuyển mẹ sang tư vấn viên để gợi ý concept phù hợp nhất cho bé nhé.', 450); askWhatNext(); return; }
+        const who = age.pregnant
+          ? ['Mẹ đang mang bầu', leadInfo.gender !== 'Chưa biết' ? leadInfo.gender.toLowerCase() : ''].filter(Boolean).join(', ')
+          : [leadInfo.gender, age.label, leadInfo.weight ? 'khoảng ' + leadInfo.weight : ''].filter(Boolean).join(', ');
+        await botSay(`${who}, thích phong cách "${leadInfo.style}". Em thấy concept "${hit.concept.name}" (${hit.service.name}) rất hợp với bé nhà mình ạ.`, 500);
+        addImageMsg(hit.concept.cover, `Ảnh mẫu concept ${hit.concept.name}`, `${hit.service.name} · ${hit.concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
+        await botSay(`Em gửi album "${hit.concept.name}" mẹ tham khảo nhé 💕`, 400);
+        openAlbum(hit.concept.href);
+        offer([
+          C('concept-khac', 'Xem concept khác', () => askConcept(hit.service.name), `các concept khác của dịch vụ ${hit.service.name}`),
+          saleCand()
+        ]);
       };
-      startLeadIntake = () => {
+      startLeadIntake = (age) => {
         Object.keys(leadDraft).forEach((k) => delete leadDraft[k]);
+        leadInfo = null;
+        if (age) { leadDraft.age = age; askLeadStep('gender'); return; }
         askLeadStep('age');
       };
 
@@ -1388,7 +1463,21 @@ document.addEventListener('DOMContentLoaded', () => {
           addMsg(text, 'user');
           const step = leadPending;
           leadPending = null;
+          chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
           handleLeadAnswer(step, text);
+          return;
+        }
+        // Khách tự kể tuổi bé ("con tôi năm nay 3 tuổi", "bé 8 tháng", "bầu dự sinh tháng 12") -> vào
+        // luồng hỏi thông tin bé ngay (bỏ qua câu hỏi tuổi), không gửi cho AI. Câu hỏi giá / hỏi về 1
+        // concept cụ thể ("bé sơ sinh chụp đen trắng được không") vẫn để AI trả lời như cũ.
+        const kidAge = text && parseAge(text);
+        const plain = stripDiacritics(text);
+        if (kidAge && !PRICE_RE.test(plain) && !detectConcept(text)
+          && /\d+(?:[.,]5)?\s*(tuoi|thang|ngay|tuan)|moi sinh|thoi noi|du sinh|tuan thai|\b(mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\s+(tuoi|thang)/.test(plain)) {
+          chatInput.value = '';
+          chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+          addMsg(text, 'user');
+          startLeadIntake(kidAge);
           return;
         }
         if (!text || aiBusy) return;
