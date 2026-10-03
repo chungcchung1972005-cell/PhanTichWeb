@@ -1051,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // "Tin mới" = thợ vừa gửi link hoặc nhắn thêm mà khách chưa mở tab xem
   function newsSig(req) {
     const staffMsgs = (Array.isArray(req.messages) ? req.messages : []).filter((m) => m.from === 'staff').length;
-    return (req.resultLink || '') + '|' + staffMsgs;
+    return (req.resultLink || '') + '|' + (req.resultLinkOriginal || '') + '|' + staffMsgs;
   }
   // Dấu "đã xem" nằm trong chính yêu cầu (customerSeenEditedSig), không tạo kho localStorage riêng
   function markEditedSeen(req) {
@@ -1104,29 +1104,66 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else {
       const safeLink = /^https:\/\//i.test(req.resultLink || '') ? req.resultLink : '';
-      resultIcon.innerHTML = safeLink ? RESULT_ICONS.done : RESULT_ICONS.sent;
-      resultTitle.textContent = safeLink ? 'Ảnh đã chỉnh của bé đã sẵn sàng' : 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh';
+      const safeLinkOrig = /^https:\/\//i.test(req.resultLinkOriginal || '') ? req.resultLinkOriginal : '';
+      const hasAnyLink = !!(safeLink || safeLinkOrig);
+      resultIcon.innerHTML = hasAnyLink ? RESULT_ICONS.done : RESULT_ICONS.sent;
+      resultTitle.textContent = hasAnyLink ? 'Ảnh của bé đã sẵn sàng' : 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh';
       resultMeta.innerHTML = `Mã đơn <strong>${escHtml(req.orderCode || req.id)}</strong> · ${escHtml(req.photoCount || (req.photos || []).length)} ảnh · gửi lúc ${escHtml(fmtTime(req.createdAt))}`;
       // Tiến độ: số bước đã xong (1 = đã gửi, 2 = thợ chỉnh xong, 3 = đã có link)
-      const doneSteps = safeLink ? 3 : req.status === 'Hoàn thành' ? 2 : 1;
+      const doneSteps = hasAnyLink ? 3 : req.status === 'Hoàn thành' ? 2 : 1;
       const stepper = `<ol class="ps-progress-steps" aria-label="Tiến độ chỉnh sửa">${['Đã gửi cho thợ', 'Thợ đang chỉnh ảnh', 'Nhận ảnh đã chỉnh']
         .map((t, i) => `<li class="${i < doneSteps ? 'done' : i === doneSteps ? 'current' : ''}"><span></span>${t}</li>`).join('')}</ol>`;
-      if (safeLink) {
+      if (hasAnyLink) {
+        // Tạo block 2 link riêng biệt
+        const linkBlockOrig = safeLinkOrig
+          ? `<a class="ps-result-link" id="psResultLinkOrig" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+              <span>Mở thư mục <strong>ảnh gốc</strong></span>
+            </a>
+            <div class="ps-result-url"><span id="psResultUrlOrig"></span><button type="button" class="ps-result-copy" id="psResultCopyOrig">Sao chép link</button></div>`
+          : `<div class="ps-result-link ps-result-link--disabled">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+              <span>Link <strong>ảnh gốc</strong>: Chưa có</span>
+            </div>`;
+        const linkBlock = safeLink
+          ? `<a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+              <span>Mở thư mục <strong>ảnh đã chỉnh theo ý bạn</strong></span>
+            </a>
+            <div class="ps-result-url"><span id="psResultUrl"></span><button type="button" class="ps-result-copy" id="psResultCopy">Sao chép link</button></div>`
+          : `<div class="ps-result-link ps-result-link--disabled">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+              <span>Link <strong>ảnh đã chỉnh</strong>: Chưa có</span>
+            </div>`;
         resultBody.innerHTML = stepper + `
-          <a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
-            <span>Mở thư mục ảnh đã chỉnh</span>
-          </a>
-          <div class="ps-result-url"><span id="psResultUrl"></span><button type="button" class="ps-result-copy" id="psResultCopy">Sao chép link</button></div>
+          <div class="ps-result-links-group">
+            ${linkBlockOrig}
+            ${linkBlock}
+          </div>
           <p class="ps-result-time">Thợ gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}</p>`;
-        // Gán qua thuộc tính DOM (không nối chuỗi HTML); link đã được data-store chặn chỉ cho https
-        document.getElementById('psResultLink').href = safeLink;
-        document.getElementById('psResultUrl').textContent = safeLink;
-        document.getElementById('psResultCopy').addEventListener('click', (e) => {
-          const btn = e.currentTarget;
-          const done = () => { btn.textContent = 'Đã sao chép'; setTimeout(() => { btn.textContent = 'Sao chép link'; }, 1800); };
-          if (navigator.clipboard) navigator.clipboard.writeText(safeLink).then(done, () => {});
-        });
+        // Gán href qua DOM (không nối chuỗi HTML)
+        if (safeLinkOrig) {
+          const el = document.getElementById('psResultLinkOrig');
+          if (el) el.href = safeLinkOrig;
+          const urlEl = document.getElementById('psResultUrlOrig');
+          if (urlEl) urlEl.textContent = safeLinkOrig;
+          document.getElementById('psResultCopyOrig') && document.getElementById('psResultCopyOrig').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const done = () => { btn.textContent = 'Đã sao chép'; setTimeout(() => { btn.textContent = 'Sao chép link'; }, 1800); };
+            if (navigator.clipboard) navigator.clipboard.writeText(safeLinkOrig).then(done, () => {});
+          });
+        }
+        if (safeLink) {
+          const el = document.getElementById('psResultLink');
+          if (el) el.href = safeLink;
+          const urlEl = document.getElementById('psResultUrl');
+          if (urlEl) urlEl.textContent = safeLink;
+          document.getElementById('psResultCopy') && document.getElementById('psResultCopy').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const done = () => { btn.textContent = 'Đã sao chép'; setTimeout(() => { btn.textContent = 'Sao chép link'; }, 1800); };
+            if (navigator.clipboard) navigator.clipboard.writeText(safeLink).then(done, () => {});
+          });
+        }
       } else {
         const waitText = req.status === 'Hoàn thành'
           ? 'Ảnh của bé đã chỉnh xong, thợ đang tải ảnh lên. Link ảnh đã chỉnh sẽ hiện ở đây trong ít phút.'

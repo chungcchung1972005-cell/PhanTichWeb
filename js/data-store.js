@@ -90,6 +90,7 @@
       // Link thư mục ảnh đã chỉnh Thợ ảnh gửi khách + tin nhắn 2 bên (tab "Ảnh đã chỉnh").
       // Bản ghi cũ không có 2 trường này: nơi đọc tự coi như '' và [].
       resultLink: '',
+      resultLinkOriginal: '',
       resultLinkAt: null,
       messages: [],
       customerSeenEditedSig: ''
@@ -163,14 +164,17 @@
   // "Ảnh của tôi"). Chỉ nhận http(s) để không chèn được link javascript:... vào
   // trang khách, và chỉ https (Google Drive luôn là https). Chuỗi rỗng = gỡ link.
   // Trả null nếu link không hợp lệ.
-  function setResultLink(requestId, url) {
+  function setResultLink(requestId, url, urlOriginal) {
     const clean = String(url || '').trim();
+    const cleanOrig = String(urlOriginal || '').trim();
     if (clean && !/^https:\/\/[^\s<>"']+$/i.test(clean)) return null;
+    if (cleanOrig && !/^https:\/\/[^\s<>"']+$/i.test(cleanOrig)) return null;
     const db = readDb();
     const req = db.editRequests.find(r => r.id === requestId);
     if (!req) return null;
     req.resultLink = clean;
-    req.resultLinkAt = clean ? Date.now() : null;
+    req.resultLinkOriginal = cleanOrig;
+    req.resultLinkAt = (clean || cleanOrig) ? Date.now() : null;
     writeDb(db);
     return req;
   }

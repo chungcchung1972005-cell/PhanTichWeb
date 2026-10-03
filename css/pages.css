@@ -1597,6 +1597,15 @@ body.chat-view-active .chat-panel { display: none; }
 }
 .ps-result-time { font-size: 12px; color: var(--navy-500); margin-top: 10px; }
 .ps-result-empty, .ps-result-waiting { font-size: 14px; color: var(--navy-700); max-width: 460px; margin: 0 auto; line-height: 1.6; }
+/* Nhóm 2 link Drive: ảnh gốc + ảnh đã chỉnh */
+.ps-result-links-group { display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px; }
+.ps-result-links-group .ps-result-url { margin-top: 8px; }
+.ps-result-link--disabled {
+  display: inline-flex; align-items: center; gap: 10px; padding: 13px 26px; border-radius: var(--radius-pill);
+  background: var(--navy-100); color: var(--navy-400); font-weight: 600; font-size: 15px;
+  border: 2px dashed var(--navy-200); opacity: .75; cursor: default;
+}
+.ps-result-link--disabled svg { width: 18px; height: 18px; opacity: .5; }
 .ps-result-pulse {
   display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #f6a723; margin-right: 8px; vertical-align: 1px;
   animation: psPayPulse 1.4s ease-in-out infinite;

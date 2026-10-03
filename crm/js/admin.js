@@ -797,9 +797,13 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'static-7', orderCode: '#AB240915', customerName: 'Khách demo 08', serviceLabel: 'Sinh nhật', status: 'Chờ xử lý',     note: '',                                     createdAt: now - 4 * 24 * HOUR,    priority: 'medium', shootDate: '30/09/2026', deadline: '06/10/2026', photoIds: [13, 14],        doneIds: [], photographer: 'tho2' },
     { id: 'static-8', orderCode: '#AB240923', customerName: 'Khách demo 09', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 2 * 24 * HOUR,    priority: 'medium', shootDate: '02/10/2026', deadline: '09/10/2026', photoIds: [15, 16],        doneIds: [], photographer: 'tho3' },
     // --- Chưa gấp (normal) ---
-    { id: 'static-4', orderCode: '#AB240931', customerName: 'Khách demo 04', serviceLabel: 'Gia đình',  status: 'Chờ xử lý',     note: '',                                     createdAt: now - 9 * 24 * HOUR,    priority: 'normal', shootDate: '06/10/2026', deadline: '13/10/2026', photoIds: [1, 2],          doneIds: [], photographer: 'tho1' },
-    { id: 'static-5', orderCode: '#AB240942', customerName: 'Khách demo 06', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 10 * 24 * HOUR,   priority: 'normal', shootDate: '10/10/2026', deadline: '17/10/2026', photoIds: [3, 4],          doneIds: [], photographer: 'tho2' },
-    { id: 'static-9', orderCode: '#AB240956', customerName: 'Khách demo 10', serviceLabel: 'Bầu',       status: 'Chờ xử lý',     note: '',                                     createdAt: now - 8 * 24 * HOUR,    priority: 'normal', shootDate: '15/10/2026', deadline: '22/10/2026', photoIds: [5, 6],          doneIds: [], photographer: 'tho3' }
+    { id: 'static-4',  orderCode: '#AB240931', customerName: 'Khách demo 04', serviceLabel: 'Gia đình',  status: 'Chờ xử lý',     note: '',                                     createdAt: now - 9 * 24 * HOUR,    priority: 'normal', shootDate: '06/10/2026', deadline: '13/10/2026', photoIds: [1, 2],          doneIds: [], photographer: 'tho1' },
+    { id: 'static-5',  orderCode: '#AB240942', customerName: 'Khách demo 06', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 10 * 24 * HOUR,   priority: 'normal', shootDate: '10/10/2026', deadline: '17/10/2026', photoIds: [3, 4],          doneIds: [], photographer: 'tho2' },
+    { id: 'static-9',  orderCode: '#AB240956', customerName: 'Khách demo 10', serviceLabel: 'Bầu',       status: 'Chờ xử lý',     note: '',                                     createdAt: now - 8 * 24 * HOUR,    priority: 'normal', shootDate: '15/10/2026', deadline: '22/10/2026', photoIds: [5, 6],          doneIds: [], photographer: 'tho3' },
+    { id: 'static-10', orderCode: '#AB240964', customerName: 'Khách demo 11', serviceLabel: 'Bé lớn',    status: 'Chờ xử lý',     note: '',                                     createdAt: now - 7 * 24 * HOUR,    priority: 'normal', shootDate: '18/10/2026', deadline: '25/10/2026', photoIds: [7, 8],          doneIds: [], photographer: 'tho1' },
+    { id: 'static-11', orderCode: '#AB240977', customerName: 'Khách demo 12', serviceLabel: 'Sinh nhật', status: 'Chờ xử lý',     note: '',                                     createdAt: now - 6 * 24 * HOUR,    priority: 'normal', shootDate: '20/10/2026', deadline: '27/10/2026', photoIds: [9, 10],         doneIds: [], photographer: 'tho2' },
+    { id: 'static-12', orderCode: '#AB240983', customerName: 'Khách demo 13', serviceLabel: 'Newborn',   status: 'Đang thực hiện', note: 'Tông màu ấm, giữ nguyên nét tự nhiên.', createdAt: now - 5 * 24 * HOUR,    priority: 'normal', shootDate: '22/10/2026', deadline: '29/10/2026', photoIds: [11, 12, 13],    doneIds: [11], photographer: 'tho3' },
+    { id: 'static-13', orderCode: '#AB240995', customerName: 'Khách demo 14', serviceLabel: 'Gia đình',  status: 'Chờ xử lý',     note: '',                                     createdAt: now - 4 * 24 * HOUR,    priority: 'normal', shootDate: '25/10/2026', deadline: '01/11/2026', photoIds: [14, 15, 16],    doneIds: [], photographer: 'tho1' }
   ].map(r => {
     staticDoneMap[r.id] = new Set(r.doneIds.map(n => 'ph-' + n));
     return {
@@ -1124,13 +1128,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (driveOrderEl) driveOrderEl.textContent = (req.orderCode || req.id) + (req.customerName ? ' · ' + req.customerName : '');
     // Link hiện tại nếu có
     const existing = req.resultLink || '';
+    const existingOrig = req.resultLinkOriginal || '';
     if (driveInput) driveInput.value = existing;
+    const driveInputOrig = document.getElementById('driveModalInputOriginal');
+    if (driveInputOrig) driveInputOrig.value = existingOrig;
     if (driveErrorEl) driveErrorEl.hidden = true;
     // Hiển thị link đang có (nếu đã gửi trước)
     if (driveCurrentEl && driveCurrentLink) {
-      if (existing && /^https:\/\//i.test(existing)) {
-        driveCurrentLink.href = existing;
-        driveCurrentLink.textContent = existing;
+      const hasAny = (existing && /^https:\/\//i.test(existing)) || (existingOrig && /^https:\/\//i.test(existingOrig));
+      if (hasAny) {
+        const origEl = document.getElementById('driveModalCurrentLinkOriginal');
+        if (origEl) {
+          origEl.href = existingOrig || '#';
+          origEl.textContent = existingOrig || '(chưa có)';
+          origEl.style.color = existingOrig ? '' : '#94a3b8';
+        }
+        driveCurrentLink.href = existing || '#';
+        driveCurrentLink.textContent = existing || '(chưa có)';
+        driveCurrentLink.style.color = existing ? '' : '#94a3b8';
         driveCurrentEl.hidden = false;
       } else {
         driveCurrentEl.hidden = true;
@@ -1138,13 +1153,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Nhãn nút submit thay đổi theo trạng thái
     if (driveSubmitBtn) {
-      driveSubmitBtn.classList.toggle('sent', !!existing);
+      const alreadySent = !!(existing || existingOrig);
+      driveSubmitBtn.classList.toggle('sent', alreadySent);
       const svgHtml = driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '';
-      driveSubmitBtn.innerHTML = svgHtml + (existing ? ' Cập nhật link' : ' Gửi link cho khách');
+      driveSubmitBtn.innerHTML = svgHtml + (alreadySent ? ' Cập nhật link' : ' Gửi link cho khách');
     }
     driveOverlay.classList.add('open');
     driveOverlay.setAttribute('aria-hidden', 'false');
-    if (driveInput) setTimeout(() => driveInput.focus(), 120);
+    if (driveInputOrig) setTimeout(() => driveInputOrig.focus(), 120);
+    else if (driveInput) setTimeout(() => driveInput.focus(), 120);
   }
 
   function closeDriveModal() {
@@ -1166,29 +1183,40 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       if (!driveReq || !driveInput) return;
       const url = driveInput.value.trim();
-      // Validate: phải bắt đầu bằng https://
-      if (!url || !/^https:\/\//i.test(url)) {
+      const driveInputOrig = document.getElementById('driveModalInputOriginal');
+      const urlOrig = driveInputOrig ? driveInputOrig.value.trim() : '';
+      // Validate: cần ít nhất 1 link và cả 2 (nếu nhập) phải bắt đầu bằng https://
+      if ((url && !/^https:\/\//i.test(url)) || (urlOrig && !/^https:\/\//i.test(urlOrig))) {
         if (driveErrorEl) driveErrorEl.hidden = false;
         driveInput.focus();
+        return;
+      }
+      if (!url && !urlOrig) {
+        if (driveErrorEl) { driveErrorEl.textContent = '⚠️ Vui lòng nhập ít nhất 1 link Drive.'; driveErrorEl.hidden = false; }
+        if (driveInputOrig) driveInputOrig.focus(); else driveInput.focus();
         return;
       }
       if (driveErrorEl) driveErrorEl.hidden = true;
       if (driveReq.isStatic) {
         // Thẻ demo: lưu tạm vào req trong bộ nhớ
         driveReq.resultLink = url;
+        driveReq.resultLinkOriginal = urlOrig;
         driveReq.resultLinkAt = Date.now();
       } else if (window.AlohaData) {
         // Yêu cầu thật: gọi API data-store
-        const saved = AlohaData.setResultLink(driveReq.id, url);
+        const saved = AlohaData.setResultLink(driveReq.id, url, urlOrig);
         if (!saved) {
           if (driveErrorEl) { driveErrorEl.textContent = '⚠️ Link không hợp lệ. Vui lòng kiểm tra lại.'; driveErrorEl.hidden = false; }
           return;
         }
         driveReq.resultLink = saved.resultLink;
+        driveReq.resultLinkOriginal = saved.resultLinkOriginal || '';
         driveReq.resultLinkAt = saved.resultLinkAt;
       }
       // Cập nhật giao diện modal
-      if (driveCurrentLink) { driveCurrentLink.href = url; driveCurrentLink.textContent = url; }
+      const origEl = document.getElementById('driveModalCurrentLinkOriginal');
+      if (origEl) { origEl.href = urlOrig || '#'; origEl.textContent = urlOrig || '(chưa có)'; origEl.style.color = urlOrig ? '' : '#94a3b8'; }
+      if (driveCurrentLink) { driveCurrentLink.href = url || '#'; driveCurrentLink.textContent = url || '(chưa có)'; driveCurrentLink.style.color = url ? '' : '#94a3b8'; }
       if (driveCurrentEl) driveCurrentEl.hidden = false;
       if (driveSubmitBtn) { driveSubmitBtn.classList.add('sent'); driveSubmitBtn.innerHTML = (driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '') + ' Cập nhật link'; }
       // Làm mới hàng ngang + bảng hoàn tất để cập nhật ngay
@@ -1535,10 +1563,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const shootStr = req.shootDate || fmtDate(req.createdAt);
       const doneStr  = req.resultLinkAt ? fmtDate(req.resultLinkAt) : fmtDate(req.createdAt);
       const hasPhotos = (req.photos || []).length > 0;
+      const linkOrigHtml = req.resultLinkOriginal
+        ? `<div class="ct-link-val">
+             <a class="ct-link-anchor" href="${escHtml(req.resultLinkOriginal)}" target="_blank" rel="noopener noreferrer">${escHtml(req.resultLinkOriginal)}</a>
+             <button type="button" class="ct-link-copy" data-url="${escHtml(req.resultLinkOriginal)}" title="Sao chép link ảnh gốc">Sao chép</button>
+           </div>`
+        : `<span class="ct-link-none">Chưa có link</span>`;
+
       const linkHtml = req.resultLink
         ? `<div class="ct-link-val">
              <a class="ct-link-anchor" href="${escHtml(req.resultLink)}" target="_blank" rel="noopener noreferrer">${escHtml(req.resultLink)}</a>
-             <button type="button" class="ct-link-copy" data-url="${escHtml(req.resultLink)}" title="Sao chép link">Sao chép</button>
+             <button type="button" class="ct-link-copy" data-url="${escHtml(req.resultLink)}" title="Sao chép link ảnh đã chỉnh">Sao chép</button>
            </div>`
         : `<span class="ct-link-none">Chưa có link</span>`;
 
@@ -1567,6 +1602,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `<button type="button" class="ct-view-btn" data-req-id="${escHtml(req.id)}" data-req-static="${req.isStatic ? '1' : '0'}">${iconImg} Xem ảnh</button>`
             : `<span style="font-size:12px;color:#94a3b8">Không có</span>`}
         </td>
+        <td>${linkOrigHtml}</td>
         <td>${linkHtml}</td>
         <td style="text-align:center">${payBadgeHtml(req.paymentStatus)}</td>
       </tr>`;

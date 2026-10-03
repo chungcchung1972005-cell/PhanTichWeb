@@ -1269,11 +1269,14 @@
 .drive-modal-input-icon {
   width: 16px; height: 16px; flex-shrink: 0; color: #9ca3af; margin: 0 10px;
 }
-#driveModalInput {
+#driveModalInput, #driveModalInputOriginal {
   flex: 1; border: none; outline: none; background: transparent;
   font-size: 13px; padding: 10px 12px 10px 0; color: #111827; font-family: inherit;
 }
-#driveModalInput::placeholder { color: #9ca3af; }
+#driveModalInput::placeholder, #driveModalInputOriginal::placeholder { color: #9ca3af; }
+
+/* Drive modal có 2 link input: cho phép cuộn nếu không đủ chỗ */
+.drive-modal { max-height: 90vh; overflow-y: auto; }
 
 .drive-modal-hint {
   font-size: 12px; color: #6b7280; margin: 8px 0 0; line-height: 1.55;
