@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/admin.css?v=20260928m">
+  <link rel="stylesheet" href="../css/admin.css?v=20261004c">
 </head>
 
 <body>
@@ -615,6 +615,17 @@
                 Gửi link cho khách
               </button>
             </div>
+            <!-- Nút Hoàn tất: chỉ hiện sau khi đã gửi đủ cả 2 link (gốc + đã chỉnh) -->
+            <div id="driveModalCompleteBtnWrap" hidden style="margin-top:12px">
+              <button type="button" class="drive-modal-complete-btn" id="driveModalCompleteBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8 12.5l2.5 2.5L16 9" />
+                </svg>
+                Hoàn tất, chuyển sang mục Đã hoàn tất
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -756,7 +767,7 @@
     </div>
   </main>
 
-  <script src="js/admin.js?v=20260928m"></script>
+  <script src="js/admin.js?v=20261004c"></script>
 </body>
 
 </html>
