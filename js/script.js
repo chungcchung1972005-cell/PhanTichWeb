@@ -364,6 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let leadInfo = null;        // { age, gender, weight, style, service, conceptLabel, conceptObj } sau khi hỏi xong
     let leadPending = null;     // bước đang chờ khách GÕ TỰ DO trả lời ('age'|'gender'|'weight'|'style'), null = không chờ
     let startLeadIntake = null; // gán bên trong khối nhập tự do (cần detectConcept/SERVICE_KEYWORDS)
+    let startServiceIntake = null; // hỏi thông tin bé theo dịch vụ đang xem (gán cùng chỗ startLeadIntake)
 
     const addMsg = (text, who) => {
       const div = document.createElement('div');
@@ -521,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // "Nhắn trực tiếp với Sale": chuyển khung chat này sang chat với Sale thật (trước
     // 2026-09-28 là gọi điện; số hotline vẫn còn ở thanh dưới khung chat).
-    const SALE_LABEL = 'Nhắn trực tiếp với Sale';
+    const SALE_LABEL = 'Chat để tư vấn thêm';
     const callSale = (topic) => { enterSale(topic || ''); };
     const pageService = () => pageContext().service;
     const saleCand = () => C('sale', SALE_LABEL, () => callSale(pageService() ? pageService().slug : ''), 'chat trực tiếp với tư vấn viên để báo giá chính xác, giữ lịch');
@@ -553,24 +554,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const explainProcess = async () => {
-      await botSay('Quy trình đặt lịch tại ALOHA Baby gồm 5 bước:\n1. Chọn dịch vụ & gói\n2. Chọn concept mình thích, hoặc để studio tư vấn nếu chưa chắc\n3. Chọn ngày & khung giờ còn trống (cập nhật theo thời gian thực, không lo trùng lịch với khách khác)\n4. Nhập thông tin của bé & xác nhận\n5. Đặt cọc để giữ lịch chính thức');
-      await botSay('Sau khi đặt cọc, Sales sẽ gọi xác nhận lại thông tin, studio sắp xếp ekip và phòng chụp phù hợp, và bạn sẽ được nhắc lịch trước buổi chụp.', 500);
-      await botSay('Sau buổi chụp, bạn chọn ảnh ưng ý trong mục "Ảnh của tôi", có thể ghi chú chỉnh sửa riêng cho từng ảnh (ví dụ làm sáng da, xoá vết đỏ...), đội ngũ hậu kỳ xử lý rồi bàn giao ảnh hoàn thiện.', 500);
+      await botSay('Dạ quy trình bên em đơn giản lắm ạ, gồm 5 bước:\n1. Chọn dịch vụ & gói\n2. Chọn concept nhà mình thích, chưa chắc thì để em tư vấn\n3. Chọn ngày & khung giờ còn trống\n4. Gửi thông tin của bé & xác nhận\n5. Đặt cọc để giữ lịch chính thức');
+      await botSay('Đặt cọc xong là bên em gọi xác nhận lại thông tin, sắp xếp ekip và phòng chụp cho bé, trước buổi chụp bên em cũng nhắc lịch để nhà mình không bị quên ạ.', 500);
+      await botSay('Chụp xong anh/chị xem toàn bộ ảnh trong mục "Ảnh của tôi", thả tim ảnh ưng ý và ghi chú muốn chỉnh gì (làm sáng da, xoá vết đỏ...), thợ bên em chỉnh xong sẽ gửi lại ảnh hoàn thiện ạ. Anh/chị còn băn khoăn bước nào không ạ?', 500);
       askWhatNext();
     };
 
     const FAQ = {
-      'Studio ở đâu?': 'ALOHA Baby ở 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội. Hotline 0938.125.222.',
-      'Có mấy loại dịch vụ?': 'ALOHA Baby có 5 dịch vụ chính: Bé lớn, Sinh nhật, Bầu, Gia đình, Newborn. Bạn muốn nghe tư vấn concept & giá tham khảo của dịch vụ nào không?',
-      'Đặt cọc thế nào?': 'Sau khi chọn dịch vụ, concept, ngày giờ và điền thông tin của bé, bạn sẽ đặt cọc để giữ lịch chính thức. Mức cọc cụ thể Sales sẽ báo khi bạn đặt lịch, mình chưa có số liệu chính xác ở đây.',
-      'Có chụp tại nhà không?': 'Có nhé. Ngoài 5 dịch vụ chính chụp tại studio, ALOHA Baby còn nhận chụp tại nhà cho gia đình muốn không gian quen thuộc, riêng tư hơn. Bạn xem chi tiết ở cuối phần "Dịch vụ" trên trang hoặc để Sales tư vấn thêm.',
-      'Chưa biết chọn concept nào thì sao?': 'Không sao cả! Khi đặt lịch, bạn có thể chọn "Cần studio tư vấn" thay vì chọn concept cụ thể, đội ngũ sẽ gợi ý phong cách phù hợp với độ tuổi bé và không khí gia đình mình.',
-      'Ảnh gốc và ảnh đã chỉnh sửa khác nhau thế nào?': 'Sau buổi chụp, bạn xem toàn bộ ảnh gốc trong mục "Ảnh của tôi", thả tim chọn những ảnh ưng ý (có thể ghi chú chỉnh sửa riêng từng ảnh) rồi gửi yêu cầu. Đội ngũ hậu kỳ sẽ chỉnh màu, làm đẹp da, ghép ảnh... rồi bàn giao lại ảnh đã hoàn thiện.',
-      'Có đổi được lịch hẹn đã đặt không?': 'Có, ALOHA Baby hỗ trợ đổi lịch khi cần. Điều kiện cụ thể (còn kịp đổi miễn phí hay cần duyệt lại) tuỳ thời gian còn lại trước buổi chụp, bạn liên hệ Sales/CSKH qua hotline để được hỗ trợ đổi lịch nhanh nhất nhé.'
+      'Studio ở đâu?': 'Dạ studio bên em ở 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội ạ, hotline 0938.125.222. Nhà mình định chụp cho bé vào khoảng thời gian nào ạ?',
+      'Có mấy loại dịch vụ?': 'Dạ bên em có 5 dịch vụ chính: Bé lớn, Sinh nhật, Bầu, Gia đình và Newborn ạ. Nhà mình đang quan tâm dịch vụ nào để em gửi concept và giá tham khảo ạ?',
+      'Đặt cọc thế nào?': 'Dạ sau khi chốt dịch vụ, concept, ngày giờ và thông tin của bé thì nhà mình đặt cọc để giữ lịch chính thức ạ. Mức cọc cụ thể bạn Sale giữ lịch sẽ báo đúng theo gói nhà mình chọn, em không muốn báo sai cho anh/chị ạ.',
+      'Có chụp tại nhà không?': 'Dạ có ạ! Ngoài chụp tại studio, bên em còn nhận chụp tại nhà cho gia đình muốn không gian quen thuộc, riêng tư hơn. Nhà mình định chụp riêng cho bé hay cả gia đình ạ?',
+      'Chưa biết chọn concept nào thì sao?': 'Dạ không sao đâu ạ, nhiều ba mẹ cũng phân vân lắm. Anh/chị cho em biết bé mấy tuổi và nhà mình thích phong cách nào, em gợi ý concept hợp nhất cho bé nhé ạ.',
+      'Ảnh gốc và ảnh đã chỉnh sửa khác nhau thế nào?': 'Dạ chụp xong nhà mình xem toàn bộ ảnh gốc trong mục "Ảnh của tôi", thả tim ảnh ưng ý (ghi chú chỉnh riêng từng ảnh được ạ) rồi gửi yêu cầu. Thợ bên em sẽ chỉnh màu, làm đẹp da, ghép ảnh... rồi gửi lại bộ ảnh hoàn thiện cho mình ạ.',
+      'Có đổi được lịch hẹn đã đặt không?': 'Dạ được ạ, bé ốm hay nhà mình bận đột xuất thì bên em hỗ trợ đổi lịch. Điều kiện cụ thể tuỳ thời gian còn lại trước buổi chụp, anh/chị nhắn bạn Sale giữ lịch hoặc gọi hotline 0938.125.222 để bên em đổi nhanh nhất cho mình nhé.'
     };
 
     const askFaq = async () => {
-      await botSay('Mình gợi ý 2 câu hay được hỏi nhất, bạn cũng có thể gõ câu hỏi khác ở khung dưới nhé.', 400);
+      await botSay('Dạ đây là mấy câu ba mẹ hay hỏi em nhất ạ, anh/chị có thắc mắc gì khác cứ nhắn em nhé.', 400);
       offer(Object.keys(FAQ).map((q, i) => C('faq-' + i, q, async () => { await botSay(FAQ[q]); askWhatNext(); }, 'câu hỏi thường gặp')));
     };
 
@@ -590,9 +591,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const info = SERVICE_INFO[service];
       const concepts = albumConcepts(service).map((c) => c.name);
       addImageMsg(info.img, `Ảnh minh hoạ phong cách ${service} tại ALOHA Baby`, `Ảnh minh hoạ phong cách "${service}" (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
-      await botSay(`Với dịch vụ "${service}", ALOHA Baby có ${concepts.length || info.concepts.length} concept:\n• ${(concepts.length ? concepts : info.concepts).join('\n• ')}`);
+      await botSay(`Dạ dịch vụ ${service} bên em đang có ${concepts.length || info.concepts.length} concept ạ:\n• ${(concepts.length ? concepts : info.concepts).join('\n• ')}`);
       await botSay(info.note, 450);
-      await botSay(`${info.packageNote}\nGiá tham khảo ${info.price} (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn).`, 450);
+      await botSay(`${info.packageNote}\nGiá tham khảo ${info.price} ạ (giá minh hoạ, bên em báo giá chính xác theo gói nhà mình chọn). Anh/chị muốn xem ảnh mẫu concept nào trước ạ?`, 450);
       offer([
         concepts.length && C('concept', 'Xem concept & ảnh mẫu', () => askConcept(service), `từng concept của dịch vụ ${service} kèm ảnh mẫu`),
         C('chot-don', BOOK_LABEL, () => confirmBooking(service), 'khách muốn chốt, giữ lịch chụp'),
@@ -619,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const askConceptService = async () => {
       // Chưa hỏi thông tin bé trong phiên chat này -> hỏi trước để gợi ý đúng concept hơn.
       if (!leadInfo && startLeadIntake) { startLeadIntake(); return; }
-      await botSay('Bạn muốn xem concept của dịch vụ nào? Mỗi dịch vụ có nhiều concept, mỗi concept có album ảnh mẫu riêng.', 450);
+      await botSay('Dạ anh/chị muốn xem concept của dịch vụ nào ạ? Concept nào bên em cũng có album ảnh mẫu để mình tham khảo.', 450);
       offer(servicesFirst(Object.keys(SERVICE_INFO).filter((s) => albumConcepts(s).length)).map((service) =>
         C('svc-' + slugOf(service), service, () => askConcept(service), `các concept dịch vụ ${service}`)));
     };
@@ -627,10 +628,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const askConcept = async (service) => {
       const concepts = albumConcepts(service);
       const album = albumOf(service);
-      await botSay(`Dịch vụ "${service}" có ${concepts.length} concept. Mình gợi ý bên dưới, bạn cũng có thể gõ tên concept muốn xem nhé.`, 450);
+      await botSay(`Dạ ${service} bên em có ${concepts.length} concept ạ. Em gợi ý bên dưới, anh/chị thích concept nào cứ nhắn tên cho em nhé.`, 450);
       offer([
         ...concepts.slice(0, 1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
-        album && C('tat-ca', `Xem cả ${concepts.length} concept`, async () => { await botSay(`Mình mở album ${service} cho bạn nhé.`, 350); openAlbum(album.href); }, 'mở trang album có đủ mọi concept của dịch vụ'),
+        album && C('tat-ca', `Xem cả ${concepts.length} concept`, async () => { await botSay(`Dạ em gửi album ${service} anh/chị tham khảo nhé.`, 350); openAlbum(album.href); }, 'mở trang album có đủ mọi concept của dịch vụ'),
         ...concepts.slice(1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
         C('dv-khac', 'Dịch vụ khác', askConceptService, 'xem concept dịch vụ khác')
       ]);
@@ -639,10 +640,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const showConcept = async (service, concept) => {
       addImageMsg(concept.cover, `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
       await botSay(concept.desc, 500);
-      await botSay(`Album "${concept.name}" có ${concept.count} ảnh mẫu. Khi đặt lịch, bạn chọn concept này ở bước chọn concept, hoặc để studio tư vấn thêm nhé.`, 450);
+      await botSay(`Album "${concept.name}" có ${concept.count} ảnh mẫu ạ. Nhà mình ưng concept này thì báo em, hoặc em tư vấn thêm concept khác cho bé nhé.`, 450);
       offer([
         C('xem-album', 'Xem album concept này', () => {
-          botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => { openAlbum(concept.href); askConcept(service); });
+          botSay(`Dạ em gửi album "${concept.name}" anh/chị tham khảo nhé.`, 350).then(() => { openAlbum(concept.href); askConcept(service); });
         }, 'mở album ảnh mẫu của concept'),
         C('dat-lich', FEAT.booking === false ? 'Giữ lịch concept này' : 'Đặt lịch concept này', () => confirmBooking(`${service} · ${concept.name}`), 'khách muốn chụp concept này'),
         C('concept-khac', 'Concept khác', () => askConcept(service), 'xem concept khác cùng dịch vụ'),
@@ -653,11 +654,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmBooking = async (service) => {
       // Đặt lịch online đang tạm tắt (js/features.js) -> chuyển khách sang Sale để chốt lịch.
       if (FEAT.booking === false) {
-        await botSay(`Tuyệt vời! Hiện studio giữ lịch qua tư vấn viên, mình chuyển bạn sang Sale để chốt lịch chụp "${service}" nhé.`, 500);
+        await botSay(`Dạ tuyệt quá ạ! Em kết nối anh/chị với bạn Sale giữ lịch để chốt lịch chụp "${service}" cho bé luôn nhé.`, 500);
         callSale(slugOf(String(service).split(' · ')[0]));
         return;
       }
-      await botSay(`Tuyệt vời! Mình chuyển bạn sang bước đặt lịch cho dịch vụ "${service}" nhé.`, 500);
+      await botSay(`Dạ tuyệt quá ạ! Em chuyển anh/chị sang bước đặt lịch "${service}" luôn nhé.`, 500);
       setTimeout(() => {
         window.location.hash = '/dat-lich';
       }, 700);
@@ -667,13 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Trang chủ / trang khác: chào chung. Album 1 dịch vụ: chào theo dịch vụ đó. Album 1 concept:
     // chào theo concept. Khách CHƯA bấm/gõ gì thì lời chào được thay hẳn khi đổi trang; đã trò
     // chuyện rồi thì chỉ nói thêm 1 lượt khi khách sang dịch vụ khác (không xoá cuộc trò chuyện).
-    const SERVICE_GREET = {
-      'bau': 'Mẹ bầu đang ở tuần thai thứ mấy rồi ạ? Mình gợi ý concept, báo giá tham khảo và thời điểm chụp đẹp cho mẹ nhé.',
-      'newborn': 'Bé nhà mình đã chào đời chưa, hay ba mẹ đang chuẩn bị trước ạ? Mình tư vấn thời điểm chụp newborn đẹp nhất, concept và giá tham khảo nhé.',
-      'be-lon': 'Bé nhà mình năm nay mấy tuổi rồi ạ? Mình gợi ý concept hợp với bé và báo giá tham khảo nhé.',
-      'sinh-nhat': 'Bé sắp đến sinh nhật hay thôi nôi phải không ạ? Mình gợi ý concept trang trí và báo giá tham khảo nhé.',
-      'gia-dinh': 'Gia đình mình định chụp mấy người ạ? Mình gợi ý concept cho cả nhà và báo giá tham khảo nhé.'
-    };
     const pageContext = () => {
       const m = /^#\/album\/([a-z-]+)(?:\/([a-z0-9-]+))?/.exec(window.location.hash);
       const s = m && ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === m[1]);
@@ -686,20 +680,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const greetingFor = (ctx) => {
       if (ctx.concept) {
         return {
-          lines: [`Bạn đang xem concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name} 📸`,
-            'Bạn muốn mình tư vấn thêm về concept này, báo giá tham khảo hay nhắn Sale để giữ lịch chụp ạ?'],
-          teaser: `Bạn thích concept "${ctx.concept.name}"? Mình tư vấn ngay nhé!`
+          lines: [`Dạ em chào anh/chị ạ! Anh/chị đang xem concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name} 📸`,
+            'Anh/chị muốn em tư vấn thêm về concept này, gửi giá tham khảo hay giữ lịch chụp cho bé ạ?'],
+          teaser: `Anh/chị thích concept "${ctx.concept.name}"? Em tư vấn ngay nhé!`
         };
       }
       if (ctx.service) {
         return {
-          lines: [`Chào bạn! Bạn đang xem album ${ctx.service.name} 📸`, SERVICE_GREET[ctx.service.slug] || 'Bạn cần mình tư vấn concept hay báo giá tham khảo ạ?'],
-          teaser: `Bạn đang xem album ${ctx.service.name} 📸 Mình tư vấn concept, báo giá cho bạn nhé?`
+          // Vào album 1 dịch vụ (2026-10-04): báo đang ở phần dịch vụ nào rồi hỏi thông tin bé (startServiceIntake).
+          lines: [`Dạ anh/chị đang ở phần Chụp ảnh ${ctx.service.name} ạ 📸`,
+            `Em hỏi nhanh vài câu để gợi ý concept hợp với ${ctx.service.slug === 'gia-dinh' ? 'cả nhà' : ctx.service.slug === 'bau' ? 'mẹ' : 'bé'} nhé.`],
+          teaser: `Anh/chị đang xem Chụp ảnh ${ctx.service.name} 📸 Em hỏi nhanh vài câu để gợi ý concept nhé?`
         };
       }
       return {
-        lines: ['Chào bạn! Mình là trợ lý ALOHA Baby 👋', 'Bạn đang cần tư vấn gì ạ? Chọn nhanh bên dưới hoặc gõ câu hỏi bất kỳ ở khung dưới cùng nhé.'],
-        teaser: 'Chào bạn 👋 Bạn cần ALOHA Baby tư vấn gì ạ?'
+        lines: ['Dạ em chào anh/chị ạ! Em là tư vấn viên của ALOHA Baby 👋', 'Nhà mình đang cần tư vấn gì ạ? Anh/chị chọn nhanh bên dưới hoặc nhắn em bất cứ điều gì nhé.'],
+        teaser: 'Dạ em chào anh/chị 👋 Nhà mình cần em tư vấn gì ạ?'
       };
     };
     const repliesFor = (ctx) => {
@@ -718,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
       offer([
         C('bao-gia', 'Báo giá & gói chụp', () => showServiceAdvice(name), `giá tham khảo, gói chụp dịch vụ ${name}`),
         C('concept', 'Gợi ý concept', () => askConcept(name), `các concept của dịch vụ ${name}`),
-        C('luu-y', 'Lưu ý khi chụp', async () => { await botSay(info ? info.note : 'Sale sẽ tư vấn chi tiết cho gia đình mình nhé.'); askWhatNext(); }, info ? info.note : ''),
+        C('luu-y', 'Lưu ý khi chụp', async () => { await botSay(info ? info.note : 'Dạ phần này em tư vấn chi tiết theo từng bé ạ, anh/chị cho em biết thêm về bé nhé.'); askWhatNext(); }, info ? info.note : ''),
         saleCand()
       ]);
     };
@@ -742,7 +738,10 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let i = 0; i < g.lines.length; i++) {
         if (!(await say(g.lines[i], i === 0 ? 550 : 450, token))) return;
       }
-      if (token === greetToken) repliesFor(ctx);
+      if (token !== greetToken) return;
+      leadPending = null;
+      if (ctx.service && !ctx.concept && startServiceIntake) startServiceIntake(ctx.service.slug);
+      else repliesFor(ctx);
     };
     const serviceOfKey = (key) => key.split('/')[0];
     // Gọi mỗi khi đổi trang (và lúc mở khung chat): đổi lời chào cho hợp trang đang xem.
@@ -832,6 +831,15 @@ document.addEventListener('DOMContentLoaded', () => {
             openChat();
           }, 1500);
         }
+        // Vào album 1 dịch vụ (2026-10-04): tự mở để hỏi thông tin bé, trừ khi khách đã đóng khung chat.
+        if (ctx.service && !ctx.concept && !autoOpenTimer) {
+          const key = ctx.key;
+          autoOpenTimer = setTimeout(() => {
+            autoOpenTimer = null;
+            if (readUi().dismissed || chatPanel.classList.contains('open') || pageContext().key !== key) return;
+            openChat();
+          }, 1000);
+        }
       } else if (teaser && teaserText && ((onHomeView() && ctx.key === 'home') || ctx.service)) {
         teaserText.textContent = greetingFor(ctx).teaser;
         teaser.hidden = false;
@@ -905,15 +913,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const setSaleUi = (on) => {
       chatPanel.classList.toggle('sale-mode', on);
-      if (chatTitle) chatTitle.textContent = on ? 'Tư vấn viên ALOHA Baby' : 'Trợ lý ALOHA';
-      if (chatSubtitle) chatSubtitle.textContent = on ? ('Đang chat với Sale - ' + assignedSaleName()) : 'Trợ lý tư vấn';
+      if (chatTitle) chatTitle.textContent = on ? 'Sale ALOHA Baby' : 'Tư vấn ALOHA Baby';
+      if (chatSubtitle) chatSubtitle.textContent = on ? ('Đang chat với Sale - ' + assignedSaleName()) : 'Tư vấn viên';
       // Nút ở đầu khung: chữ ngắn cho vừa hàng, tên đầy đủ để ở title/aria-label.
-      if (chatToSaleText) chatToSaleText.textContent = on ? 'Trợ lý AI' : 'Nhắn Sale';
+      if (chatToSaleText) chatToSaleText.textContent = on ? 'Quay lại' : 'Chat để tư vấn thêm';
       if (chatToSale) {
-        chatToSale.title = on ? 'Quay lại trợ lý AI' : 'Chat trực tiếp với tư vấn viên';
-        chatToSale.setAttribute('aria-label', on ? 'Quay lại trợ lý AI' : 'Nhắn Sale');
+        chatToSale.title = on ? 'Quay lại khung tư vấn' : 'Chat trực tiếp với Sale để tư vấn thêm';
+        chatToSale.setAttribute('aria-label', on ? 'Quay lại khung tư vấn' : 'Chat để tư vấn thêm');
       }
-      if (chatInput) chatInput.placeholder = on ? 'Nhập tin nhắn cho Sale...' : 'Nhập câu hỏi cho trợ lý...';
+      if (chatInput) chatInput.placeholder = on ? 'Nhập tin nhắn cho Sale...' : 'Nhập tin nhắn...';
       if (!on) {
         if (chatInput) chatInput.disabled = false;
         if (chatSendBtn) chatSendBtn.disabled = false;
@@ -936,7 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saleTopic = slug;
       writeUi({ mode: 'sale', saleTopic: slug, dismissed: false });
       chatBody.querySelectorAll('.chat-quick, .chat-typing').forEach((el) => el.remove());
-      addDivider('Bạn đang chat trực tiếp với Sale ALOHA Baby. Để tư vấn nhanh hơn, Sale sẽ xem tóm tắt những mục bạn đã xem và đã hỏi trợ lý AI.');
+      addDivider('Anh/chị đang chat trực tiếp với Sale ALOHA Baby. Bạn Sale đã nắm những gì mình vừa trao đổi để tư vấn nhanh hơn ạ.');
       saleLive();
       setSaleUi(true);
       embedSale();
@@ -948,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
       writeUi({ mode: 'ai' });
       if (window.AlohaSaleChat) window.AlohaSaleChat.unembed();
       setSaleUi(false);
-      addDivider('Đã quay lại trợ lý AI. Tin nhắn với Sale vẫn được lưu, bấm "Nhắn Sale" để chat tiếp.');
+      addDivider('Đã quay lại khung tư vấn. Tin nhắn với Sale vẫn được lưu, bấm "Chat để tư vấn thêm" để chat tiếp.');
       askMainMenu();
     };
     if (chatToSale) chatToSale.addEventListener('click', () => { if (saleMode) leaveSale(); else enterSale(''); });
@@ -992,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const action = item && CHAT_ACTIONS[item.action];
           if (action) {
             addMsg(label, 'user');
-            await botSay(`Mình đưa bạn tới ${action.label} ngay nhé.`, 400);
+            await botSay(`Dạ em đưa anh/chị tới ${action.label} ngay nhé.`, 400);
             runChatAction(item.action);
             suggestNext(list, local);
             return;
@@ -1142,7 +1150,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // nối được server) -> trả lời cục bộ theo từ khoá, dùng đúng dữ liệu FAQ /
       // SERVICE_INFO có sẵn, để khách luôn nhận được câu trả lời thay vì thông báo lỗi.
       // Có nói rõ đây là trả lời nhanh, không giả vờ là AI (guardrail CLAUDE.md).
-      const LOCAL_NOTE = 'Trợ lý AI đang bận nên mình trả lời nhanh theo thông tin có sẵn nhé:\n';
+      // Trả lời dự phòng khi AI không phản hồi: cùng giọng Sale, không báo bận/lỗi (người dùng chốt 2026-10-04,
+      // thay quy tắc cũ "ghi rõ Trợ lý AI đang bận").
+      const LOCAL_NOTE = 'Dạ ';
       const SERVICE_KEYWORDS = [
         ['Newborn', /newborn|so sinh/],
         ['Bầu', /\bbau\b|mang thai|mang bau/],
@@ -1150,24 +1160,23 @@ document.addEventListener('DOMContentLoaded', () => {
         ['Gia đình', /gia dinh/],
         ['Bé lớn', /be lon/]
       ];
-      // ---- Tư vấn theo bé nhà mình (đổi 2026-09-30, người dùng yêu cầu): hỏi tuần tự tuổi -> giới
-      // tính -> cân nặng -> phong cách quan tâm, rồi TỰ MỞ album concept hợp với bé (kèm tin "Em gửi
-      // album ... mẹ tham khảo nhé" trong khung chat). Đã bỏ câu "lưu ý đặc biệt". Khách tự gõ tuổi bé
-      // ("con tôi 3 tuổi") cũng tự vào luồng này (bỏ qua câu hỏi tuổi), không cần AI/server.
-      // Bảng chọn concept theo tuổi/giới tính/cân nặng/phong cách dưới đây là QUY TẮC MINH HOẠ tự đặt
-      // cho bản demo, chờ studio xác nhận; thực tế cân nặng chủ yếu để chuẩn bị size trang phục.
-      const LEAD_STEPS = ['age', 'gender', 'weight', 'style'];
-      const leadDraft = {};
+      // ---- Hỏi thông tin bé theo DỊCH VỤ đang xem (đổi 2026-10-04, người dùng chốt): khách vào album 1
+      // dịch vụ -> chat báo "anh/chị đang ở phần Chụp ảnh X" rồi hỏi lần lượt tuổi -> giới tính -> cân
+      // nặng -> concept (mỗi concept của dịch vụ là 1 nút, bấm là mở album concept đó), cuối cùng cảm ơn
+      // + nút "Chat với Sale". Câu hỏi/nút trả lời theo từng dịch vụ ở LEAD_FLOW (Bầu hỏi tuần thai, không
+      // hỏi cân nặng; Gia đình hỏi số người). Đã trả lời rồi thì sang dịch vụ khác không hỏi lại, chỉ hỏi
+      // câu còn thiếu + concept. Khách tự gõ tuổi bé ("con tôi 3 tuổi") cũng vào luồng này, bỏ qua câu tuổi.
+      const leadDraft = {}; // { service, age, gender, weight, week, people } giữ suốt phiên chat
       const NUM_WORDS = { mot: 1, hai: 2, ba: 3, bon: 4, tu: 4, nam: 5, sau: 6, bay: 7, tam: 8, chin: 9, muoi: 10 };
       // Đọc tuổi bé từ câu khách gõ / nút bấm -> { label, months, pregnant } hoặc null.
       const parseAge = (raw) => {
         const t = stripDiacritics(raw).replace(/\b(mot|hai|ba|bon|tu|nam|sau|bay|tam|chin|muoi)\s+(tuoi|thang)\b/g, (m, w, u) => NUM_WORDS[w] + ' ' + u);
         if (/mang bau|mang thai|dang bau|\bbau\b|du sinh|tuan thai/.test(t)) return { label: 'Đang mang bầu', months: -1, pregnant: true };
-        if (/moi sinh|so sinh|newborn|\d+\s*ngay( tuoi)?\b/.test(t)) return { label: 'Mới sinh', months: 0 };
+        if (/moi sinh|so sinh|newborn|duoi 1 thang|\d+\s*ngay( tuoi)?\b/.test(t)) return { label: 'Dưới 1 tháng tuổi', months: 0 };
         let m = /(\d+(?:[.,]5)?)\s*(tuoi|t\b)/.exec(t);
         if (m) { const y = parseFloat(m[1].replace(',', '.')); if (y > 0 && y < 16) return { label: `${m[1]} tuổi`, months: Math.round(y * 12) }; }
         m = /(\d+)\s*thang/.exec(t);
-        if (m) { const mo = +m[1]; if (mo >= 0 && mo < 72) return { label: mo ? `${mo} tháng` : 'Mới sinh', months: mo }; }
+        if (m) { const mo = +m[1]; if (mo >= 0 && mo < 72) return { label: mo ? `${mo} tháng` : 'Dưới 1 tháng tuổi', months: mo }; }
         if (/thoi noi/.test(t)) return { label: '1 tuổi (thôi nôi)', months: 12 };
         return null;
       };
@@ -1178,137 +1187,127 @@ document.addEventListener('DOMContentLoaded', () => {
         if (/trai|giai|\bnam\b/.test(t)) return 'Bé trai';
         return null;
       };
-      const parseKg = (raw) => {
-        const m = /(\d+(?:[.,]\d+)?)/.exec(raw);
-        return m ? parseFloat(m[1].replace(',', '.')) : null;
-      };
-      // Dịch vụ theo tuổi: bầu -> Bầu, dưới 1 tháng -> Newborn; lớn hơn thì giữ Sinh nhật / Gia đình
-      // nếu khách đang xem album đó, còn lại -> Bé lớn.
+      // Dịch vụ hợp với tuổi bé khách tự gõ: bầu -> Bầu, tới 6 tháng -> Newborn; lớn hơn thì giữ Sinh
+      // nhật / Gia đình nếu khách đang xem album đó, còn lại -> Bé lớn.
       const leadServiceSlug = (age) => {
         if (age.pregnant) return 'bau';
-        if (age.months <= 1) return 'newborn';
+        if (age.months <= 6) return 'newborn';
         const cur = pageService();
         if (cur && (cur.slug === 'sinh-nhat' || cur.slug === 'gia-dinh')) return cur.slug;
         return 'be-lon';
       };
-      // Phong cách -> concept theo từng dịch vụ (slug concept trong js/albums.js).
-      const LEAD_STYLES = [
-        { label: 'Tự nhiên, ngoài trời', re: /tu nhien|ngoai troi|ngoai canh|cong vien|\bbien\b|thien nhien|organic/,
-          pick: { 'be-lon': 'ngoai-canh', newborn: 'tu-nhien', bau: 'ngoai-canh', 'sinh-nhat': 'picnic', 'gia-dinh': 'ngoai-canh' } },
-        { label: 'Hàn Quốc, tối giản', re: /han quoc|hanbok|toi gian|hien dai|nhe nhang|pastel/,
-          pick: { 'be-lon': 'han-quoc', newborn: 'cuon-u', bau: 'toi-gian', 'sinh-nhat': 'pastel', 'gia-dinh': 'dong-phuc' } },
-        { label: 'Cổ điển, vintage', re: /co dien|vintage|den trang|sepia|hoai co/,
-          pick: { 'be-lon': 'vintage', newborn: 'den-trang', bau: 'vintage', 'sinh-nhat': 'tiec-gia-dinh', 'gia-dinh': 'vintage' } },
-        { label: 'Truyền thống, áo dài', re: /truyen thong|ao dai|\bviet\b|trung thu|co trang|den long/,
-          pick: { 'be-lon': 'ao-dai', newborn: 'hoa-la', bau: 'vong-hoa', 'sinh-nhat': 'trung-thu', 'gia-dinh': 'nhieu-the-he' } },
-        { label: 'Năng động, hoá thân', re: /nang dong|the thao|hoa than|nghe nghiep|vui nhon|ngo nghinh|nhan vat|hoat hinh/,
-          pick: { 'be-lon': (g) => (g === 'Bé gái' ? 'nghe-nghiep' : 'the-thao'), newborn: 'thu-ngo-nghinh', bau: 'bien', 'sinh-nhat': 'bong-bay', 'gia-dinh': 'anh-chi-em' } },
-        { label: 'Chưa biết, gợi ý giúp mình', re: /chua biet|goi y|tuy|sao cung duoc|khong biet|gi cung duoc/,
-          pick: { 'be-lon': (g) => (g === 'Bé gái' ? 'mua-thu' : 'nghe-nghiep'), newborn: (g, kg) => (kg && kg < 3.5 ? 'cuon-u' : 'trang-sao'),
-            bau: 'toi-gian', 'sinh-nhat': (g) => (g === 'Bé trai' ? 'bong-bay' : 'cong-chua'), 'gia-dinh': 'dong-phuc' } }
-      ];
-      // Chọn concept: khớp 1 phong cách ở trên, không thì khớp tên concept khách gõ (CONCEPT_KEYWORDS)
-      // trong đúng dịch vụ, không nữa thì coi như "gợi ý giúp mình".
-      const pickLeadConcept = (serviceSlug, styleText, gender, kg) => {
-        const service = ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === serviceSlug);
-        if (!service || !service.concepts.length) return null;
-        const t = stripDiacritics(styleText);
-        let slug = null;
-        const style = LEAD_STYLES.find((s) => s.re.test(t));
-        if (style) {
-          const p = style.pick[serviceSlug];
-          slug = typeof p === 'function' ? p(gender, kg) : p;
-        } else {
-          const kw = CONCEPT_KEYWORDS.find(([re, map]) => re.test(t) && map[serviceSlug]);
-          if (kw) slug = kw[1][serviceSlug];
-        }
-        if (!slug) {
-          const p = LEAD_STYLES[LEAD_STYLES.length - 1].pick[serviceSlug];
-          slug = typeof p === 'function' ? p(gender, kg) : p;
-        }
-        const concept = service.concepts.find((c) => c.slug === slug) || service.concepts[0];
-        return { service, concept };
+      // Câu hỏi + dòng giải thích (hiện dưới câu hỏi) + nút trả lời theo từng dịch vụ.
+      const Q = {
+        age: ['Bé nhà mình được mấy tháng tuổi hoặc bao nhiêu tuổi rồi ạ?', 'Giúp studio định hướng gói chụp Newborn, bé ngồi, thôi nôi hay chụp ngoại cảnh/sinh nhật'],
+        week: ['Mẹ đang ở tuần thai thứ mấy rồi ạ?', 'Giúp studio gợi ý thời điểm chụp và trang phục vừa dáng mẹ'],
+        people: ['Nhà mình định chụp mấy người ạ?', 'Giúp studio chuẩn bị bối cảnh và trang phục cho cả nhà'],
+        gender: ['Giới tính của bé là gì ạ?', 'Giúp studio gợi ý tone màu, trang phục và phụ kiện phù hợp'],
+        weight: ['Cân nặng hiện tại của bé khoảng bao nhiêu kg ạ?', 'Đặc biệt quan trọng đối với các gói chụp Newborn hoặc bé nhỏ để chuẩn bị trang phục, quấn khăn vừa vặn'],
+        concept: ['Ba mẹ đang quan tâm đến concept chụp nào dưới đây ạ?', 'Ba mẹ bấm vào concept để xem album ảnh mẫu']
+      };
+      const GENDER = ['Bé Trai 👦', 'Bé Gái 👧'];
+      const KG_BIG = ['Dưới 12 kg', 'Từ 12kg - 15kg', 'Từ 15kg - 18kg', 'Trên 18 kg'];
+      const LEAD_FLOW = {
+        newborn: [['age', ['Dưới 1 tháng tuổi (Newborn)', 'Từ 1 - 3 tháng tuổi', 'Từ 3 - 6 tháng tuổi']], ['gender', GENDER],
+          ['weight', ['Dưới 3 kg', 'Từ 3kg - 5kg', 'Từ 5kg - 8kg', 'Từ 8kg - 12kg']], ['concept']],
+        'be-lon': [['age', ['Từ 1 - 2 tuổi', 'Từ 2 - 4 tuổi', 'Trên 4 tuổi']], ['gender', GENDER], ['weight', KG_BIG], ['concept']],
+        'sinh-nhat': [['age', ['Thôi nôi (1 tuổi)', 'Từ 2 - 3 tuổi', 'Trên 3 tuổi']], ['gender', GENDER], ['weight', KG_BIG], ['concept']],
+        bau: [['week', ['Dưới 28 tuần', 'Từ 28 - 34 tuần', 'Trên 34 tuần']], ['gender', [...GENDER, 'Chưa biết']], ['concept']],
+        'gia-dinh': [['people', ['3 người', '4 - 5 người', 'Trên 5 người']], ['concept']]
+      };
+      const leadService = () => ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((s) => s.slug === leadDraft.service) || null;
+      const nextLeadStep = () => {
+        const flow = LEAD_FLOW[leadDraft.service] || [];
+        const row = flow.find(([step]) => step === 'concept' || !leadDraft[step]);
+        return row ? row[0] : null;
       };
 
       // Gõ tự do cũng được: leadPending = bước đang chờ, câu gõ đi thẳng vào handleLeadAnswer.
       const askLeadStep = (step) => {
         leadPending = step;
         const pick = (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer(step, label); };
-        if (step === 'age') {
-          botSay('Bé nhà mình được mấy tháng/mấy tuổi rồi ạ? (mẹ đang mang bầu thì cho em biết dự sinh khoảng nào nhé)', 500).then(() => {
-            addQuickReplies(['Đang mang bầu', 'Mới sinh', '1-12 tháng', '1-3 tuổi', 'Trên 3 tuổi'], pick);
+        if (step === 'age0') { // chưa biết dịch vụ (khách ở trang chủ bấm "Tư vấn theo bé nhà mình")
+          botSay(`${Q.age[0]}\n(${Q.age[1]})`, 500).then(() => {
+            addQuickReplies(['Đang mang bầu', 'Dưới 1 tháng tuổi', 'Từ 1 - 6 tháng tuổi', 'Từ 1 - 3 tuổi', 'Trên 3 tuổi'], pick);
           });
           return;
         }
-        if (step === 'gender') {
-          botSay(leadDraft.age && leadDraft.age.pregnant ? 'Mẹ đã biết em bé là bé trai hay bé gái chưa ạ?' : 'Bé nhà mình là bé trai hay bé gái ạ?', 450).then(() => {
-            addQuickReplies(leadDraft.age && leadDraft.age.pregnant ? ['Bé trai', 'Bé gái', 'Chưa biết'] : ['Bé trai', 'Bé gái'], pick);
+        if (step === 'concept') {
+          const service = leadService();
+          const concepts = service ? service.concepts : [];
+          botSay(`${Q.concept[0]}\n(${Q.concept[1]})`, 450).then(() => {
+            addQuickReplies(concepts.map((c) => c.name), (label) => {
+              leadPending = null; addMsg(label, 'user'); finishLead(concepts.find((c) => c.name === label));
+            });
           });
           return;
         }
-        if (step === 'weight') {
-          const mo = leadDraft.age ? leadDraft.age.months : 24;
-          const opts = mo <= 1 ? ['Dưới 3kg', '3-4kg', 'Trên 4kg']
-            : mo < 12 ? ['Dưới 7kg', '7-10kg', 'Trên 10kg']
-              : ['Dưới 12kg', '12-15kg', '15-18kg', 'Trên 18kg'];
-          botSay('Bé nhà mình khoảng mấy kg ạ? Để studio chuẩn bị trang phục, đạo cụ vừa vặn cho bé.', 450).then(() => addQuickReplies(opts, pick));
-          return;
-        }
-        if (step === 'style') {
-          botSay('Nhà mình đang quan tâm phong cách như thế nào ạ? Mẹ chọn nhanh bên dưới hoặc gõ phong cách mẹ thích nhé.', 450).then(() => {
-            addQuickReplies(LEAD_STYLES.map((s) => s.label), pick);
-          });
-        }
+        const row = (LEAD_FLOW[leadDraft.service] || []).find(([s]) => s === step);
+        botSay(`${Q[step][0]}\n(${Q[step][1]})`, 450).then(() => addQuickReplies(row ? row[1] : [], pick));
       };
       const handleLeadAnswer = (step, value) => {
-        if (step === 'age') {
+        const text = value.trim().slice(0, 60);
+        if (step === 'age0') {
           const age = parseAge(value);
           if (!age) {
-            botSay('Em chưa rõ tuổi của bé ạ, mẹ cho em xin số tháng hoặc số tuổi (ví dụ "8 tháng", "3 tuổi") nhé.', 400).then(() => { leadPending = 'age'; });
+            botSay('Dạ em chưa rõ tuổi của bé ạ, ba mẹ cho em xin số tháng hoặc số tuổi (ví dụ "8 tháng", "3 tuổi") nhé.', 400).then(() => { leadPending = 'age0'; });
             return;
           }
-          leadDraft.age = age;
-        } else if (step === 'gender') {
-          leadDraft.gender = parseGender(value) || value.trim().slice(0, 40);
-        } else if (step === 'weight') {
-          leadDraft.weight = value.trim().slice(0, 40);
-          leadDraft.kg = parseKg(value);
-          if (leadDraft.kg && !/kg|can|ky|ki\b|lang/.test(stripDiacritics(value))) leadDraft.weight += 'kg';
-        } else if (step === 'style') {
-          leadDraft.style = value.trim().slice(0, 80);
+          leadDraft.service = leadServiceSlug(age);
+          if (!age.pregnant) leadDraft.age = text;
+        } else if (step === 'concept') {
+          // Khách gõ tên concept thay vì bấm nút: khớp theo tên hoặc từ khoá concept (CONCEPT_KEYWORDS).
+          const service = leadService();
+          const t = stripDiacritics(value);
+          const kw = service && CONCEPT_KEYWORDS.find(([re, map]) => re.test(t) && map[service.slug]);
+          const hit = service && (service.concepts.find((c) => stripDiacritics(c.name).includes(t) || t.includes(stripDiacritics(c.name)))
+            || (kw && service.concepts.find((c) => c.slug === kw[1][service.slug])));
+          if (!hit) { botSay('Dạ ba mẹ chọn giúp em 1 concept bên dưới để xem album nhé.', 400).then(() => askLeadStep('concept')); return; }
+          finishLead(hit);
+          return;
+        } else {
+          leadDraft[step] = step === 'gender' ? (parseGender(value) || text) : text;
         }
-        let next = LEAD_STEPS[LEAD_STEPS.indexOf(step) + 1];
-        if (next === 'weight' && leadDraft.age.pregnant) next = 'style'; // em bé chưa chào đời: không hỏi cân nặng
-        if (next) { askLeadStep(next); return; }
-        finishLeadIntake();
+        const next = nextLeadStep();
+        if (next) askLeadStep(next);
       };
-      const finishLeadIntake = async () => {
-        const age = leadDraft.age;
-        const hit = pickLeadConcept(leadServiceSlug(age), leadDraft.style, leadDraft.gender, leadDraft.kg);
-        leadInfo = { age: age.label, gender: leadDraft.gender, weight: leadDraft.weight || '', style: leadDraft.style,
-          service: hit ? hit.service.name : '', conceptObj: hit ? hit.concept : null, conceptLabel: hit ? hit.concept.name : '' };
+      const finishLead = async (concept) => {
+        const service = leadService();
+        if (!service || !concept) return;
+        leadInfo = { service: service.name, age: leadDraft.age || leadDraft.week || '', gender: leadDraft.gender || '', weight: leadDraft.weight || '',
+          people: leadDraft.people || '', conceptObj: concept, conceptLabel: concept.name };
         if (window.AlohaJourney) {
-          window.AlohaJourney.add('lead', { service: hit ? hit.service.slug : '', gender: leadInfo.gender, age: leadInfo.age, weight: leadInfo.weight,
-            concept: leadInfo.conceptLabel ? `${leadInfo.conceptLabel} (phong cách ${leadInfo.style})` : leadInfo.style });
+          window.AlohaJourney.add('lead', { service: service.slug, age: leadDraft.age || (leadDraft.week ? 'Thai ' + leadDraft.week : ''),
+            gender: leadDraft.gender, weight: leadDraft.weight || (leadDraft.people ? 'Chụp ' + leadDraft.people : ''), concept: concept.name });
         }
-        if (!hit) { await botSay('Em chuyển mẹ sang tư vấn viên để gợi ý concept phù hợp nhất cho bé nhé.', 450); askWhatNext(); return; }
-        const who = age.pregnant
-          ? ['Mẹ đang mang bầu', leadInfo.gender !== 'Chưa biết' ? leadInfo.gender.toLowerCase() : ''].filter(Boolean).join(', ')
-          : [leadInfo.gender, age.label, leadInfo.weight ? 'khoảng ' + leadInfo.weight : ''].filter(Boolean).join(', ');
-        await botSay(`${who}, thích phong cách "${leadInfo.style}". Em thấy concept "${hit.concept.name}" (${hit.service.name}) rất hợp với bé nhà mình ạ.`, 500);
-        addImageMsg(hit.concept.cover, `Ảnh mẫu concept ${hit.concept.name}`, `${hit.service.name} · ${hit.concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
-        await botSay(`Em gửi album "${hit.concept.name}" mẹ tham khảo nhé 💕`, 400);
-        openAlbum(hit.concept.href);
-        offer([
-          C('concept-khac', 'Xem concept khác', () => askConcept(hit.service.name), `các concept khác của dịch vụ ${hit.service.name}`),
-          saleCand()
-        ]);
+        openAlbum(concept.href);
+        await botSay('Cảm ơn ba mẹ đã cung cấp thông tin, ba mẹ hãy tham khảo album ạ.', 450);
+        addQuickReplies(['Chat với Sale'], () => enterSale(service.slug));
       };
+      // Vào album 1 dịch vụ (lời chào theo trang) -> hỏi tiếp câu còn thiếu của dịch vụ đó.
+      startServiceIntake = (slug) => {
+        if (!LEAD_FLOW[slug]) return;
+        leadDraft.service = slug;
+        askLeadStep(nextLeadStep());
+      };
+      // Nút "Tư vấn theo bé nhà mình" / khách tự gõ tuổi bé.
       startLeadIntake = (age) => {
-        Object.keys(leadDraft).forEach((k) => delete leadDraft[k]);
-        leadInfo = null;
-        if (age) { leadDraft.age = age; askLeadStep('gender'); return; }
-        askLeadStep('age');
+        const cur = pageService();
+        if (age) {
+          const fits = cur && LEAD_FLOW[cur.slug] && (cur.slug === 'bau') === !!age.pregnant && !(cur.slug === 'newborn' && age.months > 6);
+          const slug = fits ? cur.slug : leadServiceSlug(age);
+          leadDraft.service = slug;
+          if (!age.pregnant) leadDraft.age = age.label;
+          if (!fits) {
+            const svc = leadService();
+            botSay(`Dạ ${age.pregnant ? 'mẹ bầu' : 'bé ' + age.label} thì hợp với dịch vụ Chụp ảnh ${svc ? svc.name : ''} ạ.`, 400).then(() => askLeadStep(nextLeadStep()));
+            return;
+          }
+          askLeadStep(nextLeadStep());
+          return;
+        }
+        if (cur && LEAD_FLOW[cur.slug]) { startServiceIntake(cur.slug); return; }
+        askLeadStep('age0');
       };
 
       const PRICE_RE = /\bgia\b(?! dinh)|bao nhieu|chi phi|bang gia|bao gia|bao tien/;
@@ -1319,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [/doi lich|doi ngay|doi hen|huy lich|hoan lich/, FAQ['Có đổi được lịch hẹn đã đặt không?']],
         [/anh goc|chinh sua|chon anh|sua anh|hau ky/, FAQ['Ảnh gốc và ảnh đã chỉnh sửa khác nhau thế nào?']],
         [/concept|phong cach/, FAQ['Chưa biết chọn concept nào thì sao?']],
-        [/quy trinh|dat lich|dat hen|cac buoc/, 'Đặt lịch tại ALOHA Baby gồm 5 bước: chọn dịch vụ & gói, chọn concept (hoặc để studio tư vấn), chọn ngày & khung giờ còn trống, nhập thông tin của bé & xác nhận, rồi đặt cọc để giữ lịch.'],
+        [/quy trinh|dat lich|dat hen|cac buoc/, 'Dạ đặt lịch bên em gồm 5 bước ạ: chọn dịch vụ & gói, chọn concept (chưa chắc thì em tư vấn), chọn ngày & khung giờ còn trống, gửi thông tin của bé & xác nhận, rồi đặt cọc để giữ lịch. Nhà mình định chụp dịch vụ nào ạ?'],
         [/dich vu|may loai|chup gi/, FAQ['Có mấy loại dịch vụ?']]
       ];
       const localAnswer = (raw) => {
@@ -1328,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hit = conceptKey && conceptOfAction(conceptKey);
         if (hit && hit.concept) {
           return {
-            text: `${LOCAL_NOTE}Concept "${hit.concept.name}" (dịch vụ ${hit.service.name}): ${hit.concept.desc} Album có ${hit.concept.count} ảnh mẫu, bạn bấm nút bên dưới để xem nhé.`,
+            text: `${LOCAL_NOTE}concept "${hit.concept.name}" bên em thuộc dịch vụ ${hit.service.name} ạ: ${hit.concept.desc} Album có ${hit.concept.count} ảnh mẫu, anh/chị bấm nút bên dưới xem nhé.`,
             suggestions: [
               { label: CHAT_ACTIONS[conceptKey].cta, action: conceptKey },
               { label: CHAT_ACTIONS['dat-lich'].cta, action: 'dat-lich' },
@@ -1342,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const album = albumOf(service[0]);
           const concepts = album ? album.concepts.map((c) => c.name) : info.concepts;
           return {
-            text: `${LOCAL_NOTE}Dịch vụ "${service[0]}" có ${concepts.length} concept: ${concepts.join(', ')}. ${info.note}\n${info.packageNote} Giá tham khảo ${info.price} (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn).`,
+            text: `${LOCAL_NOTE}dịch vụ ${service[0]} bên em có ${concepts.length} concept: ${concepts.join(', ')} ạ. ${info.note}\n${info.packageNote} Giá tham khảo ${info.price} (giá minh hoạ, bên em báo giá chính xác theo gói nhà mình chọn). Bé nhà mình năm nay mấy tuổi rồi ạ?`,
             suggestions: album && CHAT_ACTIONS['album-' + album.slug]
               ? [{ label: CHAT_ACTIONS['album-' + album.slug].cta, action: 'album-' + album.slug }, FALLBACK_SUGGESTIONS[0], FALLBACK_SUGGESTIONS[2]]
               : FALLBACK_SUGGESTIONS
@@ -1350,12 +1349,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (PRICE_RE.test(t)) {
           const list = Object.entries(SERVICE_INFO).map(([name, info]) => `• ${name}: ${info.price}`).join('\n');
-          return { text: `${LOCAL_NOTE}Giá tham khảo 5 dịch vụ (giá minh họa, Sales sẽ báo giá chính xác theo gói bạn chọn):\n${list}`, suggestions: FALLBACK_SUGGESTIONS };
+          return { text: `${LOCAL_NOTE}em gửi anh/chị giá tham khảo 5 dịch vụ ạ (giá minh hoạ, bên em báo giá chính xác theo gói nhà mình chọn):\n${list}\nNhà mình đang quan tâm dịch vụ nào ạ?`, suggestions: FALLBACK_SUGGESTIONS };
         }
         const rule = LOCAL_FAQ_RULES.find(([re]) => re.test(t));
-        if (rule) return { text: LOCAL_NOTE + rule[1], suggestions: FALLBACK_SUGGESTIONS };
+        if (rule) return { text: rule[1], suggestions: FALLBACK_SUGGESTIONS };
         return {
-          text: 'Trợ lý AI đang bận nên mình chưa trả lời chi tiết câu này được. Bạn chọn một câu hỏi thường gặp bên dưới, hoặc gọi hotline 0938.125.222 để Sales hỗ trợ ngay nhé.',
+          text: 'Dạ câu này em muốn tư vấn kỹ hơn cho anh/chị ạ. Anh/chị bấm "Chat để tư vấn thêm" để bạn Sale trao đổi trực tiếp với mình, hoặc gọi hotline 0938.125.222 là bên em hỗ trợ ngay nhé.',
           suggestions: [
             { label: CHAT_ACTIONS['dat-lich'].cta, action: 'dat-lich' },
             { label: 'Studio ở đâu?', action: 'none' },

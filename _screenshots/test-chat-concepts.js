@@ -198,7 +198,7 @@ const ALBUM_REPLY = { reply: 'Sinh nhật có 7 concept, bạn xem album nhé.',
     await send(page, 'studio có chụp công chúa không?');
     const has = await waitMenuHas(page, 'Xem album Công chúa, hoàng tử');
     const r = await page.evaluate(() => ({ text: document.getElementById('chatBody').textContent, error: !!document.querySelector('.chat-msg.error') }));
-    log('AI lỗi, hỏi "công chúa" -> trả lời cục bộ về concept + nút album', has && r.text.includes('Concept "Công chúa, hoàng tử"') && !r.error);
+    log('AI lỗi, hỏi "công chúa" -> trả lời cục bộ về concept + nút album', has && r.text.includes('concept "Công chúa, hoàng tử"') && !r.error);
     await send(page, 'chụp gia đình có concept gì');
     await waitMenuHas(page, 'Xem album Gia đình');
     const t2 = await page.evaluate(() => document.getElementById('chatBody').textContent);

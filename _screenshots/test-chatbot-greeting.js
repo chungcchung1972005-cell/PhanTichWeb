@@ -40,7 +40,7 @@ const log = (n, ok, x) => { results.push(ok); console.log((ok ? 'PASS' : 'FAIL')
       hash: location.hash
     }));
     let s = await st();
-    log('Trang chủ máy tính: chatbot tự mở, chào + hỏi cần tư vấn gì, có nút gợi ý', s.open && s.bot.join(' ').includes('cần tư vấn gì') && s.quick.length > 0, s.bot.join(' | '));
+    log('Trang chủ máy tính: chatbot tự mở, chào + hỏi cần tư vấn gì, có nút gợi ý', s.open && s.bot.join(' ').includes('tư vấn gì') && s.quick.length > 0, s.bot.join(' | '));
     await page.screenshot({ path: ENV.shot('chatbot-home-guest.png') });
     await Promise.all([page.waitForNavigation(), page.click('#chatBody .chat-quick button')]);
     log('Chưa đăng nhập bấm nút trong chatbot -> sang đăng nhập (quay lại Trang chủ)', page.url().includes('login.html?next=home'), page.url().split('/').pop());

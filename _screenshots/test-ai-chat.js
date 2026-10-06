@@ -36,8 +36,9 @@ const BASE = ROOT_URL;
     const hasErrorMsg = await page.$('.chat-msg.error') !== null;
     const body = await page.evaluate(() => document.getElementById('chatBody').textContent);
     const userMsgShown = body.includes('Chi phi chup newborn');
-    const localReply = body.includes('Trợ lý AI đang bận') && body.includes('2.200.000đ');
-    log('server tắt: trả lời cục bộ đúng giá Newborn, không hiện lỗi, không vỡ UI', !hasErrorMsg && userMsgShown && localReply);
+    // Từ 2026-10-04: trả lời dự phòng cùng giọng Sale, KHÔNG báo bận/lỗi (người dùng chốt).
+    const localReply = body.includes('2.200.000đ') && body.includes('Dạ') && !/đang bận|Trợ lý AI|\blỗi\b/.test(body);
+    log('server tắt: trả lời cục bộ giọng Sale đúng giá Newborn, không báo bận/lỗi, không vỡ UI', !hasErrorMsg && userMsgShown && localReply);
     await page.close();
   }
 
