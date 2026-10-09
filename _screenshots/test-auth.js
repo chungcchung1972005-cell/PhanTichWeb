@@ -66,8 +66,8 @@ const ACCOUNTS = {
   const ROLE_EXPECT = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
     'sale': { urlIncludes: 'crm/admin.html', visibleTabs: ['Tin nhắn', 'Khách hàng', 'Lịch hẹn'] },
-    'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
-    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
+    'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa', 'Đã hoàn tất'] },
+    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Đã hoàn tất', 'Doanh thu', 'Cài đặt'] }
   };
 
   for (const role of Object.keys(ROLE_EXPECT)) {
@@ -114,7 +114,7 @@ const ACCOUNTS = {
     }
     if (role === 'tho-anh') {
       await page.screenshot({ path: shot('admin-thoanh-desktop.png'), fullPage: true });
-      const hasKanban = await page.$('.kanban') !== null;
+      const hasKanban = await page.$('#photoRows') !== null;
       const hasCustomerTable = await page.$('#khach-hang') !== null;
       log('thợ ảnh chỉ thấy kanban ảnh, không thấy CRM khách hàng', hasKanban && !hasCustomerTable);
     }

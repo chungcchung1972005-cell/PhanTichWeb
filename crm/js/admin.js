@@ -844,14 +844,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Lý do chưa được chuyển bước ('' = được chuyển). Đang thực hiện -> Hoàn thành cần xong hết
-  // ảnh, và với yêu cầu thật phải gửi link ảnh đã chỉnh cho khách trước (người dùng chốt
-  // 2026-09-27: "tải ảnh đã sửa lên là Hoàn thành", xem rules/workflow.md).
+  // Đã gửi đủ 2 link Drive (ảnh gốc + ảnh đã chỉnh) cho khách chưa
+  function hasBothLinks(req) {
+    return /^https:\/\//i.test(req.resultLink || '') && /^https:\/\//i.test(req.resultLinkOriginal || '');
+  }
+
+  // Lý do chưa được chuyển bước ('' = được chuyển). Đang thực hiện -> Hoàn thành cần xong
+  // hết ảnh và đã gửi đủ 2 link (gốc + đã chỉnh) - "tải ảnh đã sửa lên là Hoàn thành",
+  // xem rules/workflow.md. Cách nhanh: nút Hoàn tất trong drive modal.
   function advanceBlockReason(req) {
     if (req.status !== 'Đang thực hiện') return '';
     const total = (req.photos || []).length;
     if (total > 0 && getDoneIds(req).length !== total) return 'Thợ ảnh cần đánh dấu xong hết ảnh trước khi chuyển bước';
-    if (!req.isStatic && !req.resultLink) return 'Cần gửi link ảnh đã chỉnh cho khách trước khi chuyển sang Hoàn thành';
+    if (!hasBothLinks(req)) return 'Cần gửi đủ 2 link Drive (ảnh gốc + ảnh đã chỉnh) cho khách trước khi chuyển sang Hoàn thành';
     return '';
   }
   function canAdvance(req) { return !advanceBlockReason(req); }
@@ -918,15 +923,23 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'normal';
   }
 
+  // Sinh mã ảnh dạng IMG_xxxx.JPG từ photo id (vd: 'ph-7' -> 'IMG_7812.JPG')
+  // Dùng hash đơn giản để tạo số 4 chữ số ổn định từ id ảnh
+  function photoFilename(photoId) {
+    const n = parseInt((String(photoId).match(/\d+/) || ['0'])[0], 10);
+    // Tạo số bắt đầu từ 7800 + offset để trông như số ảnh máy ảnh thực tế
+    const num = 7800 + ((n * 37 + 13) % 200);
+    return 'IMG_' + num + '.JPG';
+  }
+
   // Tạo 1 card DOM cho layout hàng ngang
   function buildPhotoRowCard(req, indexInRow) {
     const doneCount = getDoneIds(req).length;
     const total = (req.photos || []).length;
     const pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
-    const allDone = total > 0 && doneCount === total;
-    const hasSentLink = !req.isStatic && !!req.resultLink;
     const card = document.createElement('div');
     card.className = 'photo-row-card';
+    card.dataset.reqId = req.id;
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', 'Xem chi tiết yêu cầu ' + (req.orderCode || req.id));
@@ -935,9 +948,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Icon SVG nhỏ cho "ngày chụp" và "hạn chụp"
     const iconCam  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>`;
     const iconClock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
+    // Nhãn nhắc của yêu cầu thật (giữ như thẻ kanban cũ): Mới (thợ chưa mở) / Khách cần thợ trả lời / Đã gửi link
+    const flags = req.isStatic ? [] : [
+      !req.staffSeen ? '<span class="kanban-card-flag link">Mới</span>' : '',
+      awaitingReply(req) ? '<span class="kanban-card-flag reply">Khách cần thợ trả lời</span>' : '',
+      (req.resultLink || req.resultLinkOriginal) ? '<span class="kanban-card-flag link">Đã gửi link ảnh</span>' : ''
+    ].filter(Boolean);
+    const flagsHtml = flags.length ? `<div class="kanban-card-flags photo-row-card-flags">${flags.join('')}</div>` : '';
     card.innerHTML = `
       <span class="photo-row-card-num">#${indexInRow + 1}</span>
       <div class="photo-row-card-code">${escHtml(req.orderCode || req.id)}</div>
+      ${flagsHtml}
       <div class="photo-row-card-meta">
         <div class="photo-row-card-meta-row">
           ${iconCam}
@@ -955,15 +976,16 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `;
-    // Nút "Gửi link Drive" — chỉ hiện khi đã tick xong hết ảnh
-    if (allDone) {
+    // Nút "Gửi link Drive": hiện cho mọi mã khách (cả đã chỉnh lẫn chưa chỉnh), chỉ với Thợ ảnh (Sếp xem chỉ đọc)
+    if (canEditProgress) {
       const driveBtn = document.createElement('button');
       driveBtn.type = 'button';
-      driveBtn.className = 'photo-row-drive-btn' + (hasSentLink ? ' sent' : '');
-      driveBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`
-        + (hasSentLink ? ' Cập nhật link Drive' : ' Gửi link Drive cho khách');
-      driveBtn.setAttribute('aria-label', (hasSentLink ? 'Cập nhật' : 'Gửi') + ' link Drive cho ' + (req.orderCode || req.id));
-      // Chặn click nổi bọ tới openRequestModal — driveBtn làm việc riêng
+      const driveBtnSent = !!(req.resultLink || req.resultLinkOriginal);
+      driveBtn.className = 'photo-row-drive-btn' + (driveBtnSent ? ' sent' : '');
+      const iconDrive = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+      driveBtn.innerHTML = iconDrive + (driveBtnSent ? ' Cập nhật link Drive' : ' Gửi link Drive cho khách');
+      driveBtn.setAttribute('aria-label', (driveBtnSent ? 'Cập nhật' : 'Gửi') + ' link Drive cho ' + (req.orderCode || req.id));
+      // Chặn click nổi bọ tới openRequestModal
       driveBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openDriveModal(req);
@@ -977,12 +999,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
+  // 3 hàng ngang + số đơn trên ô thợ chỉ tính đơn chưa Hoàn thành;
+  // đơn Hoàn thành chuyển xuống mục "Đã hoàn tất" (#hoan-tat).
+  function getPendingRequests() {
+    return getAllRequests().filter(r => r.status !== 'Hoàn thành');
+  }
+
   // ------------------------------- Bộ chọn thợ ảnh: worker bar ở đầu section #anh -------------------------------
   // Cập nhật badge số đơn cho từng ô thợ và toggle class active.
   function renderWorkerBar() {
     const bar = document.getElementById('photoWorkerBar');
     if (!bar) return;
-    const allReqs = getAllRequests();
+    const allReqs = getPendingRequests();
 
     WORKER_DEFS.forEach(w => {
       const btn = document.getElementById('workerBtn-' + w.id);
@@ -1032,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowsEl = document.getElementById('photoRows');
     if (!rowsEl) return; // section chưa có trong DOM (role không được phép)
 
-    const allReqs = getAllRequests();
+    const allReqs = getPendingRequests();
 
     // Lọc theo thợ đang được chọn
     const filteredReqs = activeWorker === 'all'
@@ -1121,6 +1149,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const driveSubmitBtn = document.getElementById('driveModalSubmit');
   let driveReq = null; // yêu cầu đang mở trong drive modal
 
+  // Cập nhật nút Hoàn tất trong drive modal dựa vào trạng thái 2 link
+  function updateDriveModalCompleteBtn(req) {
+    const completeBtnWrap = document.getElementById('driveModalCompleteBtnWrap');
+    if (!completeBtnWrap) return;
+    // Hiện nút Hoàn tất chỉ khi đã có đủ 2 link hợp lệ, chưa hoàn thành, và là Thợ ảnh (Sếp chỉ xem)
+    completeBtnWrap.hidden = !(canEditProgress && hasBothLinks(req) && req.status !== 'Hoàn thành');
+  }
+
+  // Đánh dấu xong mọi ảnh còn lại của 1 yêu cầu (dùng khi Hoàn tất)
+  function markAllPhotosDone(req) {
+    const done = getDoneIds(req);
+    (req.photos || []).forEach(p => { if (done.indexOf(p.id) === -1) togglePhotoDone(req, p.id); });
+  }
+
   function openDriveModal(req) {
     if (!driveOverlay) return;
     driveReq = req;
@@ -1158,6 +1200,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const svgHtml = driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '';
       driveSubmitBtn.innerHTML = svgHtml + (alreadySent ? ' Cập nhật link' : ' Gửi link cho khách');
     }
+    // Cập nhật nút Hoàn tất
+    updateDriveModalCompleteBtn(req);
     driveOverlay.classList.add('open');
     driveOverlay.setAttribute('aria-hidden', 'false');
     if (driveInputOrig) setTimeout(() => driveInputOrig.focus(), 120);
@@ -1178,6 +1222,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape' && driveOverlay && driveOverlay.classList.contains('open')) closeDriveModal();
   });
 
+  // Lưu 2 link Drive (ảnh gốc + ảnh đã chỉnh) cho 1 yêu cầu. Trả '' nếu lưu được, ngược lại
+  // trả câu báo lỗi. Dùng chung cho modal Drive (mở từ thẻ) và form ngay dưới ảnh trong modal chi tiết.
+  function saveDriveLinks(req, url, urlOrig) {
+    // Cần ít nhất 1 link và link nào nhập thì phải bắt đầu bằng https://
+    if ((url && !/^https:\/\//i.test(url)) || (urlOrig && !/^https:\/\//i.test(urlOrig))) {
+      return '⚠️ Link phải bắt đầu bằng https:// (vd https://drive.google.com/...)';
+    }
+    if (!url && !urlOrig) return '⚠️ Vui lòng nhập ít nhất 1 link Drive.';
+    if (req.isStatic) {
+      // Thẻ demo: lưu tạm vào req trong bộ nhớ
+      req.resultLink = url;
+      req.resultLinkOriginal = urlOrig;
+      req.resultLinkAt = Date.now();
+    } else if (window.AlohaData) {
+      const saved = AlohaData.setResultLink(req.id, url, urlOrig);
+      if (!saved) return '⚠️ Link không hợp lệ. Vui lòng kiểm tra lại.';
+      req.resultLink = saved.resultLink;
+      req.resultLinkOriginal = saved.resultLinkOriginal || '';
+      req.resultLinkAt = saved.resultLinkAt;
+    }
+    return '';
+  }
+
+  // Hoàn tất 1 yêu cầu (đã có đủ 2 link): đánh dấu xong mọi ảnh rồi đi lần lượt từng bước
+  // tới Hoàn thành (không nhảy cóc, để data-store vẫn kiểm tra điều kiện link ở bước cuối).
+  function completeRequest(req) {
+    if (!hasBothLinks(req)) return false;
+    markAllPhotosDone(req);
+    for (let i = 0; i < AlohaData.STATUS_FLOW.length && req.status !== 'Hoàn thành'; i++) {
+      const before = req.status;
+      advance(req);
+      if (!req.isStatic) {
+        const fresh = freshRequest(req.id);
+        if (fresh) req.status = fresh.status;
+      }
+      if (req.status === before) break;
+    }
+    renderPhotoRows();
+    renderEditRequests();
+    renderCompletedTable();
+    return req.status === 'Hoàn thành';
+  }
+
   if (driveForm) {
     driveForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1185,45 +1272,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = driveInput.value.trim();
       const driveInputOrig = document.getElementById('driveModalInputOriginal');
       const urlOrig = driveInputOrig ? driveInputOrig.value.trim() : '';
-      // Validate: cần ít nhất 1 link và cả 2 (nếu nhập) phải bắt đầu bằng https://
-      if ((url && !/^https:\/\//i.test(url)) || (urlOrig && !/^https:\/\//i.test(urlOrig))) {
-        if (driveErrorEl) driveErrorEl.hidden = false;
-        driveInput.focus();
-        return;
-      }
-      if (!url && !urlOrig) {
-        if (driveErrorEl) { driveErrorEl.textContent = '⚠️ Vui lòng nhập ít nhất 1 link Drive.'; driveErrorEl.hidden = false; }
-        if (driveInputOrig) driveInputOrig.focus(); else driveInput.focus();
+      const err = saveDriveLinks(driveReq, url, urlOrig);
+      if (err) {
+        if (driveErrorEl) { driveErrorEl.textContent = err; driveErrorEl.hidden = false; }
+        (driveInputOrig && !urlOrig ? driveInputOrig : driveInput).focus();
         return;
       }
       if (driveErrorEl) driveErrorEl.hidden = true;
-      if (driveReq.isStatic) {
-        // Thẻ demo: lưu tạm vào req trong bộ nhớ
-        driveReq.resultLink = url;
-        driveReq.resultLinkOriginal = urlOrig;
-        driveReq.resultLinkAt = Date.now();
-      } else if (window.AlohaData) {
-        // Yêu cầu thật: gọi API data-store
-        const saved = AlohaData.setResultLink(driveReq.id, url, urlOrig);
-        if (!saved) {
-          if (driveErrorEl) { driveErrorEl.textContent = '⚠️ Link không hợp lệ. Vui lòng kiểm tra lại.'; driveErrorEl.hidden = false; }
-          return;
-        }
-        driveReq.resultLink = saved.resultLink;
-        driveReq.resultLinkOriginal = saved.resultLinkOriginal || '';
-        driveReq.resultLinkAt = saved.resultLinkAt;
-      }
       // Cập nhật giao diện modal
       const origEl = document.getElementById('driveModalCurrentLinkOriginal');
       if (origEl) { origEl.href = urlOrig || '#'; origEl.textContent = urlOrig || '(chưa có)'; origEl.style.color = urlOrig ? '' : '#94a3b8'; }
       if (driveCurrentLink) { driveCurrentLink.href = url || '#'; driveCurrentLink.textContent = url || '(chưa có)'; driveCurrentLink.style.color = url ? '' : '#94a3b8'; }
       if (driveCurrentEl) driveCurrentEl.hidden = false;
       if (driveSubmitBtn) { driveSubmitBtn.classList.add('sent'); driveSubmitBtn.innerHTML = (driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '') + ' Cập nhật link'; }
+      // Cập nhật nút Hoàn tất (hiện khi đã có đủ 2 link)
+      updateDriveModalCompleteBtn(driveReq);
       // Làm mới hàng ngang + bảng hoàn tất để cập nhật ngay
       renderPhotoRows();
       renderCompletedTable();
-      // Tự đóng sau 1.2 giây để người dùng thấy xác nhận rồi mới biến
-      setTimeout(closeDriveModal, 1200);
+    });
+  }
+
+  // Nút "Hoàn tất" trong drive modal: chuyển trạng thái sang Hoàn thành
+  const driveCompleteBtn = document.getElementById('driveModalCompleteBtn');
+  if (driveCompleteBtn) {
+    driveCompleteBtn.addEventListener('click', () => {
+      if (!driveReq) return;
+      const req = driveReq;
+      closeDriveModal();
+      completeRequest(req);
     });
   }
 
@@ -1359,30 +1436,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderResultSection(req) {
-    if (req.isStatic) {
-      return `<section class="kanban-result"><p class="kanban-modal-meta">Thẻ minh hoạ: gửi link ảnh đã chỉnh và trao đổi với khách chỉ dùng được với yêu cầu thật của khách.</p></section>`;
-    }
-    const link = req.resultLink || '';
+    const hasAny = !!(req.resultLink || req.resultLinkOriginal);
+    // Link gán qua DOM trong bindResultSection (không nối chuỗi href)
+    const linkLine = (label, id, url) => `<span class="kanban-result-link-row">${label}: ${url
+      ? `<a id="${id}" target="_blank" rel="noopener noreferrer"></a>` : '<em>chưa có</em>'}</span>`;
     return `
       <section class="kanban-result">
-        <h4>Ảnh đã chỉnh gửi khách</h4>
+        <h4>Link Drive gửi khách</h4>
+        <div class="kanban-result-current" id="kanbanResultCurrent">${hasAny
+          ? `Khách đang thấy (gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}):
+             ${linkLine('Ảnh gốc', 'kanbanResultAnchorOrig', req.resultLinkOriginal)}
+             ${linkLine('Ảnh đã chỉnh', 'kanbanResultAnchor', req.resultLink)}`
+          : 'Chưa gửi link Drive cho khách.'}</div>
         ${canEditProgress ? `
-        <form class="kanban-result-form" id="kanbanResultForm" novalidate>
-          <input type="url" id="kanbanResultInput" placeholder="Dán link Google Drive thư mục ảnh đã chỉnh" value="${escHtml(link)}" aria-label="Link thư mục ảnh đã chỉnh">
-          <button type="submit" class="btn btn-primary">${link ? 'Cập nhật link' : 'Gửi link cho khách'}</button>
+        <form class="kanban-link-form" id="kanbanLinkForm" novalidate>
+          <label for="kanbanLinkOrig">Link Drive <strong>ảnh gốc</strong></label>
+          <input type="url" id="kanbanLinkOrig" placeholder="https://drive.google.com/drive/folders/... (ảnh gốc)" autocomplete="off">
+          <label for="kanbanLinkEdit">Link Drive <strong>ảnh đã chỉnh theo ý khách</strong></label>
+          <input type="url" id="kanbanLinkEdit" placeholder="https://drive.google.com/drive/folders/... (ảnh đã chỉnh)" autocomplete="off">
+          <p class="kanban-result-error" id="kanbanLinkError" hidden></p>
+          <button type="submit" class="btn btn-primary">${hasAny ? 'Cập nhật link' : 'Gửi link Drive cho khách'}</button>
         </form>
-        <p class="kanban-result-error" id="kanbanResultError" hidden>Link phải là địa chỉ https:// (vd https://drive.google.com/...)</p>
-        <p class="kanban-result-hint">Để thư mục ở chế độ "Bất kỳ ai có đường liên kết" để khách mở được và gửi cho người thân (studio đã chốt để công khai). Gửi link xong mới chuyển được sang "Hoàn thành".</p>` : ''}
-        <p class="kanban-result-current" id="kanbanResultCurrent">${link
-          ? `Khách đang thấy: <a id="kanbanResultAnchor" target="_blank" rel="noopener noreferrer"></a> · gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}`
-          : 'Chưa gửi link ảnh đã chỉnh cho khách.'}</p>
+        ${hasBothLinks(req) && req.status !== 'Hoàn thành' ? `
+        <button type="button" class="drive-modal-complete-btn kanban-link-complete" id="kanbanLinkComplete">Hoàn tất, chuyển sang mục Đã hoàn tất</button>` : ''}
+        <p class="kanban-result-hint">Gửi đủ 2 link (ảnh gốc + ảnh đã chỉnh) rồi bấm "Hoàn tất" để chuyển đơn sang Hoàn thành. Để thư mục ở chế độ "Bất kỳ ai có đường liên kết" để khách mở được.</p>` : ''}
+        ${req.isStatic ? '<p class="kanban-modal-meta">Thẻ minh hoạ: link chỉ lưu tạm tới khi tải lại trang; trao đổi với khách chỉ dùng được với yêu cầu thật.</p>' : `
         <h4>Trao đổi với khách</h4>
         <div class="kanban-chat-list" id="kanbanChatList"></div>
         ${canEditProgress ? `
         <form class="kanban-chat-form" id="kanbanChatForm">
           <textarea id="kanbanChatInput" rows="2" maxlength="1000" placeholder="Trả lời khách..." aria-label="Trả lời khách"></textarea>
           <button type="submit" class="btn btn-primary">Gửi</button>
-        </form>` : '<p class="kanban-modal-meta">Sếp xem được nội dung trao đổi, Thợ ảnh là người trả lời khách.</p>'}
+        </form>` : '<p class="kanban-modal-meta">Sếp xem được nội dung trao đổi, Thợ ảnh là người trả lời khách.</p>'}`}
       </section>`;
   }
 
@@ -1409,20 +1494,36 @@ document.addEventListener('DOMContentLoaded', () => {
   function bindResultSection(req) {
     modalReqId = req.isStatic ? null : req.id;
     modalChatCount = -1;
-    if (req.isStatic) return;
-    const anchor = document.getElementById('kanbanResultAnchor');
-    if (anchor && /^https:\/\//i.test(req.resultLink || '')) { anchor.href = req.resultLink; anchor.textContent = req.resultLink; }
-    renderModalChat(req);
-    const form = document.getElementById('kanbanResultForm');
-    if (form) form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const saved = AlohaData.setResultLink(req.id, document.getElementById('kanbanResultInput').value);
-      document.getElementById('kanbanResultError').hidden = !!saved;
-      if (!saved) return;
-      req.resultLink = saved.resultLink;
-      req.resultLinkAt = saved.resultLinkAt;
-      renderModalBody(req);
+    [['kanbanResultAnchor', req.resultLink], ['kanbanResultAnchorOrig', req.resultLinkOriginal]].forEach(([id, url]) => {
+      const a = document.getElementById(id);
+      if (a && /^https:\/\//i.test(url || '')) { a.href = url; a.textContent = url; }
     });
+    // Form 2 link ngay dưới ảnh (cùng logic lưu với modal Drive mở từ thẻ)
+    const linkForm = document.getElementById('kanbanLinkForm');
+    if (linkForm) {
+      const inOrig = document.getElementById('kanbanLinkOrig');
+      const inEdit = document.getElementById('kanbanLinkEdit');
+      inOrig.value = req.resultLinkOriginal || '';
+      inEdit.value = req.resultLink || '';
+      linkForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const err = saveDriveLinks(req, inEdit.value.trim(), inOrig.value.trim());
+        const errEl = document.getElementById('kanbanLinkError');
+        errEl.textContent = err;
+        errEl.hidden = !err;
+        if (err) return;
+        renderModalBody(req);
+        renderPhotoRows();
+        renderCompletedTable();
+      });
+    }
+    const completeBtn = document.getElementById('kanbanLinkComplete');
+    if (completeBtn) completeBtn.addEventListener('click', () => {
+      closeModal();
+      completeRequest(req);
+    });
+    if (req.isStatic) return;
+    renderModalChat(req);
     const chatForm = document.getElementById('kanbanChatForm');
     const chatInput = document.getElementById('kanbanChatInput');
     if (chatForm) {
@@ -1434,6 +1535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         req.messages = saved.messages;
         renderModalChat(saved);
         renderEditRequests();
+        renderPhotoRows();
       });
       chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
@@ -1449,9 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderModalBody(req) {
-    const doneIds = getDoneIds(req);
     const total = (req.photos || []).length;
-    const pct = total ? Math.round(doneIds.length / total * 100) : 0;
     modalBody.innerHTML = `
       <h3 id="kanbanModalTitle">${escHtml(req.orderCode || req.id)}</h3>
       <p class="kanban-modal-meta">${escHtml(req.customerName)} · ${escHtml(req.serviceLabel || 'Chụp ảnh')} · <span class="badge ${STATUS_BADGE_CLASS[req.status] || 'badge-dat-lich'}">${escHtml(req.status)}</span></p>
@@ -1459,47 +1559,25 @@ document.addEventListener('DOMContentLoaded', () => {
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
       ${total > 0 ? `
-      <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
-        <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
-        <span class="kanban-progress-label">Đã xong ${doneIds.length}/${total} ảnh${!canEditProgress ? ' (Thợ ảnh cập nhật)' : ''}</span>
-      </div>
       <div class="kanban-photo-grid">
         ${req.photos.map(p => {
-          const done = doneIds.indexOf(p.id) !== -1;
+          const fname = photoFilename(p.id);
           return `
-          <div class="kanban-photo-tile${done ? ' done' : ''}" data-photo-id="${escHtml(p.id)}">
-            <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(p.id)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
+          <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
+            <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
-            ${canEditProgress
-              ? `<button type="button" class="photo-done-toggle" data-photo-id="${escHtml(p.id)}">${done ? '✓ Đã xong' : 'Đánh dấu đã xong'}</button>`
-              : `<span class="photo-done-flag${done ? ' done' : ''}">${done ? '✓ Đã xong' : 'Chưa xong'}</span>`}
+            <div class="photo-file-row">
+              <span class="photo-filename">${escHtml(fname)}</span>
+              <a class="photo-download-btn" href="${escHtml(p.src)}" download="${escHtml(fname)}" title="Tải xuống ${escHtml(fname)}" onclick="event.stopPropagation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </a>
+            </div>
           </div>`;
         }).join('')}
       </div>` : '<p class="kanban-modal-meta">Yêu cầu này chưa có dữ liệu chi tiết từng ảnh (dữ liệu cũ).</p>'}
-      ${req.status !== 'Hoàn thành' ? `
-      <button type="button" class="btn btn-primary kanban-modal-advance"${canAdvance(req) ? '' : ` disabled title="${escHtml(advanceBlockReason(req))}"`}>Chuyển sang bước tiếp theo →</button>
-      ${canAdvance(req) ? '' : `<p class="kanban-advance-hint">${escHtml(advanceBlockReason(req))}</p>`}` : ''}
       ${renderResultSection(req)}
     `;
 
-    if (canEditProgress) {
-      modalBody.querySelectorAll('.photo-done-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-          togglePhotoDone(req, btn.dataset.photoId);
-          renderModalBody(req);
-          renderEditRequests();
-        });
-      });
-    }
-    const advBtn = modalBody.querySelector('.kanban-modal-advance');
-    if (advBtn) {
-      advBtn.addEventListener('click', () => {
-        if (advBtn.disabled) return;
-        advance(req);
-        closeModal();
-        renderEditRequests();
-      });
-    }
     bindResultSection(req);
   }
 

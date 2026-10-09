@@ -924,8 +924,9 @@
 /* Nhắc trên thẻ kanban */
 .kanban-card-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
 .kanban-card-flag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
-.kanban-card .kanban-card-flag.reply { background: #fff4e0; color: #b26a00; }
-.kanban-card .kanban-card-flag.link { background: #e8f7ec; color: #1f7a3a; }
+.kanban-card-flag.reply { background: #fff4e0; color: #b26a00; }
+.kanban-card-flag.link { background: #e8f7ec; color: #1f7a3a; }
+.photo-row-card-flags { margin: -4px 0 9px; }
 @media (max-width: 560px) {
   .kanban-result-form { flex-direction: column; }
 }
@@ -1328,6 +1329,59 @@
   box-shadow: 0 4px 12px rgba(37,99,235,.4);
 }
 
+/* Nút Hoàn tất trong drive modal — hiện sau khi gửi đủ 2 link */
+.drive-modal-complete-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 16px; border-radius: 12px; border: 2px solid #15803d;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #15803d; font-size: 14px; font-weight: 800; cursor: pointer;
+  letter-spacing: .01em;
+  box-shadow: 0 3px 12px rgba(22,163,74,.2);
+  transition: background .18s, box-shadow .18s, transform .12s;
+  animation: complete-btn-in .35s cubic-bezier(.22,1,.36,1) both;
+}
+.drive-modal-complete-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.drive-modal-complete-btn:hover {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  box-shadow: 0 6px 18px rgba(22,163,74,.35);
+}
+.drive-modal-complete-btn:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .drive-modal-complete-btn { animation: none; } }
+
+/* Khung "Link Drive gửi khách" trong modal chi tiết: 2 dòng link + nút mở drive modal */
+.kanban-result-link-row { display: block; margin-top: 4px; }
+.kanban-result-link-row em { color: #94a3b8; font-style: normal; }
+@keyframes complete-btn-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Hàng filename + nút download trong ô ảnh modal */
+.photo-file-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 5px 6px 2px; border-top: 1px solid var(--pink-100);
+  background: #fafafa;
+}
+.photo-filename {
+  font-size: 10.5px; font-weight: 700; color: var(--navy-700);
+  letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+  font-family: 'Courier New', monospace;
+}
+.photo-download-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  background: var(--pink-50); border: 1.5px solid var(--pink-200);
+  color: var(--pink-700); text-decoration: none;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+.photo-download-btn svg { width: 13px; height: 13px; }
+.photo-download-btn:hover {
+  background: var(--pink-100); border-color: var(--pink-400);
+  transform: translateY(-1px);
+}
+.photo-download-btn:active { transform: scale(0.93); }
+
 
 @media (max-width: 480px) {
   .drive-modal { padding: 24px 18px 20px; border-radius: 16px; }
@@ -1554,3 +1608,14 @@
   .photo-preview-sub  { padding: 6px 16px 0; }
   .completed-table { min-width: 820px; }
 }
+
+/* Form 2 link Drive ngay dưới ảnh trong modal chi tiết (Thợ ảnh) */
+.kanban-link-form { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.kanban-link-form label { font-size: 12.5px; color: var(--navy-700); margin-top: 4px; }
+.kanban-link-form input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--pink-100); border-radius: 10px;
+  font: inherit; font-size: 13px; color: var(--navy-900); background: #fff;
+}
+.kanban-link-form input:focus { outline: none; border-color: var(--pink-500); }
+.kanban-link-form .btn { align-self: flex-start; margin-top: 6px; padding: 9px 18px; font-size: 13px; }
+.kanban-link-complete { margin-top: 12px; }
