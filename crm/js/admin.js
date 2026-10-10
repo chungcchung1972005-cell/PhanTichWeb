@@ -1591,26 +1591,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
   };
 
-  function payBadgeHtml(payStatus) {
-    const s = (payStatus || '').toLowerCase();
-    // "đã thanh toán" / "paid"
-    if (s.includes('đã thanh toán') || s.includes('paid') || s.includes('hoàn thành')) {
-      return `<span class="ct-pay-badge paid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Đã TT</span>`;
-    }
-    // "trong gói" / in package — không có phí thêm
-    if (s.includes('trong gói') || s.includes('0đ') || s.includes('0 đ')) {
-      return `<span class="ct-pay-badge in-pkg">Trong gói</span>`;
-    }
-    // mặc định: chưa thanh toán
-    return `<span class="ct-pay-badge unpaid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>Chưa TT</span>`;
-  }
-
   function renderCompletedTable() {
     const tbody = document.getElementById('completedTableBody');
     const emptyEl = document.getElementById('completedEmpty');
     const summaryEl = document.getElementById('completedSummary');
     const countEl = document.getElementById('completedCount');
-    const paidEl = document.getElementById('completedPaidCount');
     if (!tbody) return;
 
     // Lọc: chỉ lấy yêu cầu đã Hoàn thành, sắp xếp theo thời điểm gửi link (mới nhất lên đầu)
@@ -1619,16 +1604,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(r => r.status === 'Hoàn thành')
       .sort((a, b) => (b.resultLinkAt || b.createdAt) - (a.resultLinkAt || a.createdAt));
 
-    // Số đã thanh toán
-    const paidCount = done.filter(r => {
-      const s = (r.paymentStatus || '').toLowerCase();
-      return s.includes('đã thanh toán') || s.includes('paid') || s.includes('hoàn thành');
-    }).length;
-
     // Summary bar
     if (summaryEl) summaryEl.hidden = done.length === 0;
     if (countEl)   countEl.textContent = done.length;
-    if (paidEl)    paidEl.textContent  = paidCount;
 
     // Empty state
     if (emptyEl) emptyEl.style.display = done.length ? 'none' : '';
@@ -1682,7 +1660,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td>${linkOrigHtml}</td>
         <td>${linkHtml}</td>
-        <td style="text-align:center">${payBadgeHtml(req.paymentStatus)}</td>
       </tr>`;
     }).join('');
 

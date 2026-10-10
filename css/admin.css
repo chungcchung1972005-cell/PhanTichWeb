@@ -1400,12 +1400,10 @@
   border: 1.5px solid #bbf7d0; border-radius: 12px;
   padding: 10px 16px; margin-bottom: 16px; font-size: 13px;
 }
-.completed-summary-num, .completed-summary-paid {
+.completed-summary-num {
   font-size: 22px; font-weight: 800; color: #15803d; line-height: 1;
 }
-.completed-summary-paid { color: #1d4ed8; }
 .completed-summary-label { color: #374151; font-weight: 500; }
-.completed-summary-sep { color: #9ca3af; font-size: 16px; }
 
 /* Wrapper cuộn ngang */
 .completed-table-wrap { overflow-x: auto; border-radius: 14px; }
@@ -1434,7 +1432,6 @@
 .ct-done   { width: 130px; }
 .ct-photos { width: 110px; text-align: center !important; }
 .ct-link   { min-width: 160px; }
-.ct-pay    { width: 130px; text-align: center !important; }
 
 /* Rows */
 .completed-table tbody tr {
@@ -1501,17 +1498,6 @@
 }
 .ct-link-copy:hover { background: #e2e8f0; color: #334155; }
 .ct-link-none { font-size: 12px; color: #94a3b8; font-style: italic; }
-
-/* Badge thanh toán */
-.ct-pay-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 700;
-  white-space: nowrap;
-}
-.ct-pay-badge.paid    { background: #dcfce7; color: #15803d; border: 1.5px solid #bbf7d0; }
-.ct-pay-badge.unpaid  { background: #fef9c3; color: #a16207; border: 1.5px solid #fde68a; }
-.ct-pay-badge.in-pkg  { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; }
-.ct-pay-badge svg { width: 12px; height: 12px; }
 
 /* Badge thợ phụ trách trong bảng Đã hoàn tất */
 .ct-worker-badge {
