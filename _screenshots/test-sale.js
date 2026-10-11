@@ -1,4 +1,4 @@
-// Test Không gian Sale (crm/sale.html): 5 tài khoản, phân quyền dữ liệu theo
+// Test Không gian Sale (crm/sale.html): 3 tài khoản, phân quyền dữ liệu theo
 // sale phụ trách, lịch chung cả studio, các luồng chính (xác nhận cọc, tạo lịch
 // nhanh, kéo lead, hộp thư, chuyển giao khách qua duyệt), trang cọc cho khách (coc.html).
 // Chạy: node _screenshots/test-sale.js
@@ -10,9 +10,7 @@ const OUT = (name) => path.join(__dirname, name);
 const SALES = [
   { phone: '0900000002', name: 'Ngọc Anh', own: 'Chị Thu Trang', notOwn: 'Chị Diệu Linh' },
   { phone: '0900000005', name: 'Minh Thư', own: 'Chị Diệu Linh', notOwn: 'Chị Thu Trang' },
-  { phone: '0900000006', name: 'Thu Hà', own: 'Chị Minh Hằng', notOwn: 'Chị Thu Trang' },
-  { phone: '0900000007', name: 'Quốc Bảo', own: 'Chị Bảo Ngọc', notOwn: 'Chị Thu Trang' },
-  { phone: '0900000008', name: 'Hải Yến', own: 'Chị Như Quỳnh', notOwn: 'Chị Thu Trang' }
+  { phone: '0900000006', name: 'Thu Hà', own: 'Chị Minh Hằng', notOwn: 'Chị Thu Trang' }
 ];
 
 let pass = 0, fail = 0;
@@ -239,7 +237,7 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   await page.click('[data-act="tr-next"]');
   await new Promise(r => setTimeout(r, 100));
   t = await text(page);
-  log('Chuyển giao: người nghỉ phép không chọn được', await page.$eval('[data-act="tr-to"][data-id="hai-yen"]', el => el.disabled));
+  log('Chuyển giao: người nghỉ phép không chọn được', await page.$eval('[data-act="tr-to"][data-id="minh-thu"]', el => el.disabled));
   log('Chuyển giao: ghi chú bàn giao gợi ý sẵn', (await page.$eval('[data-tr-note]', el => el.value)).includes('Chị Ngân'));
   await page.click('[data-act="tr-to"][data-id="thu-ha"]');
   await page.click('[data-act="tr-reason"][data-id="Quá tải"]');
