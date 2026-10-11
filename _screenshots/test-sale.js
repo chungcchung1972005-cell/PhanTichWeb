@@ -77,6 +77,18 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
     await pickOwner(page, myId);
     t = await text(page);
     log(s.name + ': lọc theo mình chỉ còn khách của mình', t.includes(s.own) && !t.includes(s.notOwn));
+    if (s.phone === '0900000002') {
+      const cards = () => page.$$eval('.kb-card', els => els.length);
+      const all = await cards();
+      await page.select('[data-lead-filter="dateMode"]', 'ngay'); await new Promise(r => setTimeout(r, 120));
+      const today = await cards();
+      const hasTrang = (await text(page)).includes('Chị Thu Trang'); // "2 phút trước" = hôm nay
+      await page.select('[data-lead-filter="dateMode"]', 'nam'); await new Promise(r => setTimeout(r, 120));
+      const year = await cards();
+      log('Khách hàng: lọc theo ngày/tháng/năm hoạt động', today > 0 && today < all && hasTrang && year >= today && year <= all, all + '/' + today + '/' + year);
+      await page.select('[data-lead-filter="dateMode"]', ''); await new Promise(r => setTimeout(r, 120));
+      log('Khách hàng: bỏ lọc thời gian thấy lại đủ khách', (await cards()) === all);
+    }
 
     await page.click('[data-act="cus-mode"][data-id="danh-sach"]');
     t = await text(page);
@@ -148,6 +160,9 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   log('Lịch sale khác: hồ sơ cọc AB240927 chỉ xem', t.includes('Chị Thùy Dung') && t.includes('chỉ xem được'), t.slice(0, 200));
   await go(page, '#lich-chup');
   await showEv(page, 'ap17'); // tuần có ngày mặc định của Tạo lịch nhanh (hôm nay + 2)
+  log('Lịch chụp: khung Tạo lịch nhanh mặc định ẩn', !(await page.$('#qbPanel')));
+  await page.click('#swQuickBtn'); await new Promise(r => setTimeout(r, 150));
+  log('Lịch chụp: bấm "Tạo lịch nhanh" thì khung hiện ra', !!(await page.$('#qbPanel [data-qb="phone"]')));
 
   // Tạo lịch nhanh: SĐT khách của sale khác bị chặn
   await page.type('[data-qb="phone"]', '0913555666');
@@ -184,22 +199,24 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   log('Kanban: chuyển Chị Hồng Nhung sang Đang tư vấn', col === 'tu-van', col);
   await page.screenshot({ path: OUT('sale-leads-desktop.png') });
 
-  // Khách hàng: Danh sách (nhóm tự suy ra + hồ sơ bên phải)
+  // Khách hàng: Danh sách dạng bảng tính (nhóm tự suy ra + nút mắt mở hồ sơ dạng modal)
   await page.click('[data-act="cus-mode"][data-id="danh-sach"]');
   t = await text(page);
-  log('Danh sách: đủ nhóm Tiềm năng/Khách quen/Không mua', t.includes('Tiềm năng') && t.includes('Khách quen 1') && t.includes('Không mua 1'));
-  await page.click('[data-act="cus-group"][data-id="khach-quen"]');
+  { const heads = await page.$$eval('.cu-sheet th', els => els.map(e => e.textContent.trim()));
+    log('Danh sách: không còn nút lọc nhóm và cột Bé, hiện mọi khách (cả khách quen, chờ cọc)', !(await page.$('[data-act="cus-group"]')) && !heads.includes('Bé') &&
+      t.includes('Chị Lan') && t.includes('Anh Minh Đức'), heads.join(',')); }
+  await page.select('[data-lead-filter="service"]', 'Sinh nhật'); await new Promise(r => setTimeout(r, 120));
+  { const svcs = await page.$$eval('.cu-sheet .svc-tag', els => [...new Set(els.map(e => e.textContent))].join(','));
+    log('Danh sách: lọc Dịch vụ phía trên áp dụng cho bảng', svcs === 'Sinh nhật', svcs); }
+  await page.select('[data-lead-filter="service"]', ''); await new Promise(r => setTimeout(r, 120));
   t = await text(page);
-  log('Danh sách: lọc Khách quen ra Chị Lan, hồ sơ có 2 đơn đã chụp', t.includes('Chị Lan') && t.includes('Bé Su tròn 1 tuổi ' + shiftDM('10/10')) && t.includes('Ưu đãi sinh nhật 1 tuổi') && !t.includes('Anh Tùng'));
-  await page.click('[data-act="cus-group"][data-id="all"]');
-  await page.click('[data-act="cus-select"][data-id="na-duc"]');
-  t = await page.$eval('.cu-aside', el => el.innerText);
-  log('Danh sách: bấm khách mở hồ sơ bên phải', t.includes('Anh Minh Đức') && t.includes('Phụ trách: Ngọc Anh'), t.slice(0, 80));
-  await page.click('[data-act="cus-bday"]');
-  const bdayRows = await page.$$eval('.cu-row', rs => rs.map(r => r.dataset.id).sort().join(','));
-  log('Danh sách: lọc Có bé sắp sinh nhật', bdayRows === 'na-duc,na-lan', bdayRows);
-  await page.click('[data-act="cus-bday"]');
+  log('Danh sách: đã bỏ lọc "Có bé sắp sinh nhật"', !(await page.$('[data-act="cus-bday"]')) && !t.includes('Có bé sắp sinh nhật'));
   await page.screenshot({ path: OUT('sale-customers-desktop.png') });
+  await page.click('.cu-sheet [data-act="cus-select"][data-id="na-duc"]');
+  t = await page.$eval('#swModal', el => el.hidden ? '' : el.innerText);
+  log('Danh sách: bấm nút mắt mở hồ sơ khách (modal)', t.includes('Anh Minh Đức') && t.includes('Phụ trách: Ngọc Anh'), t.slice(0, 80));
+  await page.keyboard.press('Escape'); await new Promise(r => setTimeout(r, 100));
+  if (await page.$eval('#swModal', el => !el.hidden)) await page.click('#swModal [data-act="close-modal"], #swModal .sw-modal-close');
   await page.click('[data-act="cus-mode"][data-id="bang"]');
   await pickOwner(page, 'all');
 
@@ -217,10 +234,13 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   log('Chuyển khách: mở màn Chuyển giao', page.url().endsWith('#chuyen-giao'), page.url());
   const preChecked = await page.$eval('[data-tr-pick="na-ngan"]', el => el.checked);
   log('Chuyển giao: Chị Ngân được chọn sẵn', preChecked);
+  log('Chuyển giao: bước 1 chưa hiện phần chọn người nhận', !(await page.$('[data-act="tr-to"]')));
+  await page.click('[data-tr-pick="na-duc"]');
+  await page.click('[data-act="tr-next"]');
+  await new Promise(r => setTimeout(r, 100));
   t = await text(page);
   log('Chuyển giao: người nghỉ phép không chọn được', await page.$eval('[data-act="tr-to"][data-id="hai-yen"]', el => el.disabled));
   log('Chuyển giao: ghi chú bàn giao gợi ý sẵn', (await page.$eval('[data-tr-note]', el => el.value)).includes('Chị Ngân'));
-  await page.click('[data-tr-pick="na-duc"]');
   await page.click('[data-act="tr-to"][data-id="thu-ha"]');
   await page.click('[data-act="tr-reason"][data-id="Quá tải"]');
   t = await page.$eval('.tr-submit', el => el.innerText);
@@ -329,6 +349,7 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
     const hold = await p2.evaluate(() => { const n = new Date(); n.setMinutes(n.getMinutes() + 40); return String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); });
     log('Giữ lịch: AB240933 hết hạn giữ tính theo giờ thật (còn 40 phút)', t2.includes('hết hạn giữ ' + hold), hold);
     await go(p2, '#lich-chup');
+    await p2.click('#swQuickBtn'); await new Promise(r => setTimeout(r, 150));
     const qbText = await p2.$eval('.qb-deposit', el => el.innerText);
     log('Tạo lịch nhanh: báo giữ lịch 1 tiếng', qbText.includes('giữ lịch 1 tiếng'), qbText);
     await p2.evaluate(() => window.__jump(61 * 60e3));
@@ -381,7 +402,7 @@ const go = async (page, hash) => { await page.evaluate(h => { location.hash = h;
   await page.click('[data-act="close-modal"]');
   await go(page, '#chuyen-giao');
   const trTabs = await page.$$eval('[data-act="tr-tab"]', els => els.map(e => e.textContent));
-  log('Chuyển giao: tab chỉ đếm yêu cầu đang chờ', trTabs[1] === 'Chuyển đến tôi · 1 chờ bạn nhận' && trTabs[2] === 'Tôi đã gửi', trTabs.join(' / '));
+  log('Chuyển giao: tab chỉ đếm yêu cầu đang chờ', trTabs[1].replace(/\s+/g, ' ').trim() === 'Chuyển đến 1' && trTabs[2].trim() === 'Đã gửi', trTabs.join(' / '));
   await page.click('[data-act="tr-tab"][data-id="gui"]');
   t = await text(page);
   log('Chuyển giao: "Tôi đã gửi" tách Đang chờ / Đã chuyển xong', /Đang chờ/i.test(t) && /Đã chuyển xong/i.test(t) && t.includes('Chị Kim Bích'), t.replace(/\n+/g, ' | ').slice(0, 300));
