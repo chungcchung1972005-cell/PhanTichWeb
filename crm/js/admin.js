@@ -793,7 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'static-2', orderCode: '#AB240902', customerName: 'Khách demo 02', serviceLabel: 'Sinh nhật',  status: 'Đang thực hiện', note: 'Xoá phông lộn xộn phía sau bé.',    createdAt: now - 3 * 24 * HOUR,    priority: 'urgent', shootDate: '26/09/2026', deadline: '29/09/2026', photoIds: [5, 6, 7, 8, 9], doneIds: [5, 6], photographer: 'tho2' },
     { id: 'static-6', orderCode: '#AB240871', customerName: 'Khách demo 07', serviceLabel: 'Bé lớn',    status: 'Đang thực hiện', note: '',                                     createdAt: now - 30 * HOUR,        priority: 'urgent', shootDate: '27/09/2026', deadline: '30/09/2026', photoIds: [7, 8],          doneIds: [], photographer: 'tho1' },
     // --- Trung bình (medium) ---
-    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu',       status: 'Hoàn thành',   note: '',                                     createdAt: now - 5 * 24 * HOUR,    priority: 'medium', shootDate: '29/09/2026', deadline: '05/10/2026', photoIds: [10, 11, 12],    doneIds: [10, 11, 12], photographer: 'tho3' },
+    { id: 'static-3', orderCode: '#AB240888', customerName: 'Khách demo 03', serviceLabel: 'Bầu',       status: 'Hoàn thành',   note: '',                                     createdAt: now - 5 * 24 * HOUR,    priority: 'medium', shootDate: '29/09/2026', deadline: '05/10/2026', photoIds: [10, 11, 12],    doneIds: [10, 11, 12], photographer: 'tho3',
+      resultLinkOriginal: 'https://drive.google.com/drive/folders/demo-AB240888-anh-goc', resultLink: 'https://drive.google.com/drive/folders/demo-AB240888-anh-da-chinh' },
     { id: 'static-7', orderCode: '#AB240915', customerName: 'Khách demo 08', serviceLabel: 'Sinh nhật', status: 'Chờ xử lý',     note: '',                                     createdAt: now - 4 * 24 * HOUR,    priority: 'medium', shootDate: '30/09/2026', deadline: '06/10/2026', photoIds: [13, 14],        doneIds: [], photographer: 'tho2' },
     { id: 'static-8', orderCode: '#AB240923', customerName: 'Khách demo 09', serviceLabel: 'Newborn',   status: 'Chờ xử lý',     note: '',                                     createdAt: now - 2 * 24 * HOUR,    priority: 'medium', shootDate: '02/10/2026', deadline: '09/10/2026', photoIds: [15, 16],        doneIds: [], photographer: 'tho3' },
     // --- Chưa gấp (normal) ---
@@ -811,6 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
       status: r.status, note: r.note, createdAt: r.createdAt, isStatic: true,
       priority: r.priority || 'normal', shootDate: r.shootDate || '', deadline: r.deadline || '',
       photographer: r.photographer || 'tho1',
+      resultLink: r.resultLink || '', resultLinkOriginal: r.resultLinkOriginal || '',
       photos: r.photoIds.map(n => ({ id: 'ph-' + n, src: '../images/my-photos/photo-' + n + '.jpg', note: '' })),
       photoCount: r.photoIds.length
     };
@@ -1143,8 +1145,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const driveOrderEl  = document.getElementById('driveModalOrder');
   const driveInput    = document.getElementById('driveModalInput');
   const driveErrorEl  = document.getElementById('driveModalError');
-  const driveCurrentEl = document.getElementById('driveModalCurrent');
-  const driveCurrentLink = document.getElementById('driveModalCurrentLink');
   const driveForm     = document.getElementById('driveModalForm');
   const driveSubmitBtn = document.getElementById('driveModalSubmit');
   let driveReq = null; // yêu cầu đang mở trong drive modal
@@ -1175,24 +1175,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const driveInputOrig = document.getElementById('driveModalInputOriginal');
     if (driveInputOrig) driveInputOrig.value = existingOrig;
     if (driveErrorEl) driveErrorEl.hidden = true;
-    // Hiển thị link đang có (nếu đã gửi trước)
-    if (driveCurrentEl && driveCurrentLink) {
-      const hasAny = (existing && /^https:\/\//i.test(existing)) || (existingOrig && /^https:\/\//i.test(existingOrig));
-      if (hasAny) {
-        const origEl = document.getElementById('driveModalCurrentLinkOriginal');
-        if (origEl) {
-          origEl.href = existingOrig || '#';
-          origEl.textContent = existingOrig || '(chưa có)';
-          origEl.style.color = existingOrig ? '' : '#94a3b8';
-        }
-        driveCurrentLink.href = existing || '#';
-        driveCurrentLink.textContent = existing || '(chưa có)';
-        driveCurrentLink.style.color = existing ? '' : '#94a3b8';
-        driveCurrentEl.hidden = false;
-      } else {
-        driveCurrentEl.hidden = true;
-      }
-    }
     // Nhãn nút submit thay đổi theo trạng thái
     if (driveSubmitBtn) {
       const alreadySent = !!(existing || existingOrig);
@@ -1280,10 +1262,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (driveErrorEl) driveErrorEl.hidden = true;
       // Cập nhật giao diện modal
-      const origEl = document.getElementById('driveModalCurrentLinkOriginal');
-      if (origEl) { origEl.href = urlOrig || '#'; origEl.textContent = urlOrig || '(chưa có)'; origEl.style.color = urlOrig ? '' : '#94a3b8'; }
-      if (driveCurrentLink) { driveCurrentLink.href = url || '#'; driveCurrentLink.textContent = url || '(chưa có)'; driveCurrentLink.style.color = url ? '' : '#94a3b8'; }
-      if (driveCurrentEl) driveCurrentEl.hidden = false;
       if (driveSubmitBtn) { driveSubmitBtn.classList.add('sent'); driveSubmitBtn.innerHTML = (driveSubmitBtn.querySelector('svg') ? driveSubmitBtn.querySelector('svg').outerHTML : '') + ' Cập nhật link'; }
       // Cập nhật nút Hoàn tất (hiện khi đã có đủ 2 link)
       updateDriveModalCompleteBtn(driveReq);
@@ -1444,8 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <section class="kanban-result">
         <h4>Link Drive gửi khách</h4>
         <div class="kanban-result-current" id="kanbanResultCurrent">${hasAny
-          ? `Khách đang thấy (gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}):
-             ${linkLine('Ảnh gốc', 'kanbanResultAnchorOrig', req.resultLinkOriginal)}
+          ? `${linkLine('Ảnh gốc', 'kanbanResultAnchorOrig', req.resultLinkOriginal)}
              ${linkLine('Ảnh đã chỉnh', 'kanbanResultAnchor', req.resultLink)}`
           : 'Chưa gửi link Drive cho khách.'}</div>
         ${canEditProgress ? `

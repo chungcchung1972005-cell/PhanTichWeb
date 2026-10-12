@@ -152,7 +152,7 @@ const CODE = '#ABTEST01';
   await tho.type('#kanbanLinkEdit', LINK_EDIT);
   await tho.evaluate(() => document.getElementById('kanbanLinkForm').requestSubmit()); await wait(300);
   m = await tho.evaluate(() => ({ cur: document.getElementById('kanbanResultCurrent').textContent, done: !!document.getElementById('kanbanLinkComplete') }));
-  check('Form dưới ảnh: gửi đủ 2 link -> hiện "Khách đang thấy" + nút Hoàn tất', m.cur.includes('goc_test') && m.cur.includes('da_chinh_test') && m.done, JSON.stringify(m));
+  check('Form dưới ảnh: gửi đủ 2 link -> hiện link ảnh gốc + ảnh đã chỉnh + nút Hoàn tất', m.cur.includes('goc_test') && m.cur.includes('da_chinh_test') && m.done, JSON.stringify(m));
   await tho.screenshot({ path: shot('tho-anh-chi-tiet.png') });
   await tho.click('#kanbanLinkComplete'); await wait(400);
   check('Hoàn tất từ form dưới ảnh -> #AB240902 sang bảng Đã hoàn tất', (await doneCodes(tho)).includes('#AB240902') && !(await rowCodes(tho)).includes('#AB240902'));
@@ -174,6 +174,12 @@ const CODE = '#ABTEST01';
   await wait(400);
   check('Sếp không thấy nút Gửi link Drive trên thẻ', (await sep.$$('.photo-row-drive-btn')).length === 0);
   check('Sếp thấy đơn đã Hoàn tất trong bảng', (await doneCodes(sep)).includes(CODE));
+  m = await sep.evaluate(() => {
+    const row = [...document.querySelectorAll('#completedTableBody tr')].find(tr => tr.textContent.includes('#AB240888'));
+    return row ? [...row.querySelectorAll('.ct-link-anchor')].map(a => a.href) : [];
+  });
+  check('Đã hoàn tất: đơn demo #AB240888 hiện đủ 2 link Drive demo', m.length === 2 && m.every(h => h.startsWith('https://drive.google.com/')), JSON.stringify(m));
+  check('Không còn chữ "Khách đang thấy" trên trang', !(await sep.evaluate(() => document.body.innerHTML.includes('Khách đang thấy'))));
   await sep.close();
 
   check('Không có lỗi JS', errors.length === 0, errors.join(' | '));
