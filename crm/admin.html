@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/style.css?v=20260928c">
-<link rel="stylesheet" href="../css/admin.css?v=20260928c">
+<link rel="stylesheet" href="../css/admin.css?v=20261012d">
 </head>
 <body>
 
@@ -199,45 +199,25 @@
       <p class="inbox-note">Tin nhắn lưu trên máy chủ chat của studio: khách nhắn từ điện thoại hay máy tính nào cũng hiện ở đây, trang tự cập nhật vài giây một lần.</p>
     </section>
 
-    <!-- Block Sếp + Sale: Khách hàng/CRM (nội dung bảng khác nhau theo quyền, cùng 1 nguồn dữ liệu) -->
+    <!-- Block Sếp + Sale: Khách hàng. Thiết kế giống trang Khách hàng của Không gian Sale
+         (2 kiểu xem Bảng giai đoạn / Danh sách, người dùng yêu cầu 2026-10-12). Thanh lọc,
+         bảng và hồ sơ do crm/js/admin.js dựng vào #custView từ crm/js/sale-data.js. -->
     <section class="admin-section" id="khach-hang" data-roles="sep sale">
       <h2>Khách hàng / CRM</h2>
-      <p class="sub" id="custSectionSub">Toàn bộ hồ sơ khách hàng, tìm kiếm và lọc theo trạng thái.</p>
-      <div class="data-table-toolbar cust-toolbar">
-        <label class="cust-field cust-field-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-          <input type="text" id="custSearch" placeholder="Tìm theo tên hoặc SĐT..." aria-label="Tìm khách hàng theo tên hoặc SĐT">
-        </label>
-        <label class="cust-field">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.2 7.4V18l-3.6 1.8v-7.4z"/></svg>
-          <select id="custFilter" aria-label="Lọc theo trạng thái">
-          <option value="">Tất cả trạng thái</option>
-          <option value="quan-tam">Khách quan tâm</option>
-          <option value="tu-van">Đã tư vấn</option>
-          <option value="dat-lich">Đã đặt lịch</option>
-          <option value="da-chup">Đã chụp</option>
-          <option value="hoan-thanh">Hoàn thành</option>
-        </select>
-        </label>
-      </div>
-      <div class="data-table-wrap">
-        <table class="data-table" id="custTable">
-          <thead id="custTableHead"></thead>
-          <tbody id="custTableBody"></tbody>
-        </table>
-      </div>
+      <p class="sub" id="custSectionSub">Khách của các sale, xem theo giai đoạn phễu hoặc danh sách.</p>
+      <div class="ck" id="custView"></div>
     </section>
 
     <!-- Block Sếp + Sale: Lịch hẹn -->
     <!-- Lịch tháng thay cho bảng danh sách + 3 tab Sắp tới/Hôm nay/Đã qua (người
          dùng yêu cầu 2026-09-25): mỗi ô là 1 ngày, trong ô là các lịch hẹn của
          ngày đó xếp theo giờ từ sớm tới muộn, bấm vào 1 lịch hẹn mở popup chi
-         tiết. Lưới ngày + danh sách do crm/js/admin.js dựng động từ APPOINTMENTS.
+         tiết. Lưới ngày + danh sách do crm/js/admin.js dựng động từ APPOINTMENTS (= lịch chụp chung trong crm/js/sale-data.js).
          Màn hẹp (<=760px) đổi sang danh sách theo ngày vì lưới 7 cột không đọc
          nổi trên điện thoại - xem css/admin.css. -->
     <section class="admin-section" id="lich-hen" data-roles="sep sale">
       <h2>Lịch hẹn</h2>
-      <p class="sub">Lịch chụp theo tháng. Bấm vào một lịch hẹn để xem chi tiết khách hàng, gói chụp và ekip phụ trách.</p>
+      <p class="sub">Lịch chụp chung của studio (lấy từ Không gian Sale). Bấm vào một lịch hẹn để xem khách hàng, phòng, thợ ảnh, thanh toán và sale phụ trách.</p>
 
       <div class="cal-toolbar">
         <button type="button" class="cal-today-btn" id="calToday">Hôm nay</button>
@@ -385,6 +365,7 @@
   </div>
 </main>
 
-<script src="js/admin.js?v=20260928c"></script>
+<script src="js/sale-data.js?v=20261012a"></script>
+<script src="js/admin.js?v=20261012d"></script>
 </body>
 </html>

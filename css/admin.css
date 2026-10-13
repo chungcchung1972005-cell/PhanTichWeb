@@ -938,3 +938,138 @@
 .kanban-msg.from-ai .kanban-msg-name { color: #5b4bb7; }
 .kanban-msg-tag { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 1px 8px; border-radius: var(--radius-pill); background: #fff4e0; color: #b26a00; }
 .kanban-advance-hint { font-size: 12px; color: #b26a00; margin: 6px 0 0; text-align: center; }
+
+/* ---------------- Khách hàng: Bảng giai đoạn + Danh sách (Sếp + Sale, 2026-10-12) ----------------
+   Bố cục giống trang Khách hàng của Không gian Sale (css/sale.css: .kb-*, .cu-*) nhưng viết
+   riêng, gói trong .ck, vì sale.css có quy tắc toàn trang (svg, body...) sẽ làm vỡ admin.
+   Màu tag/trạng thái lấy đúng bảng tone của Không gian Sale; màu nhấn dùng hồng của admin.
+   Markup do crm/js/admin.js dựng vào #custView. */
+.ck {
+  --ck-line: #ece4ea; --ck-line-2: #f3edf1; --ck-soft: #faf6f8; --ck-muted: var(--navy-500);
+  --ck-red: #ae3a2d; --ck-red-soft: #f8dfda; --ck-amber: #7a5608; --ck-amber-soft: #fbefd2;
+  --ck-blue: #2e5a8c; --ck-blue-soft: #e1eaf5; --ck-teal: #1f6b63; --ck-teal-soft: #dcede8;
+  --ck-peach: #9c4522; --ck-peach-soft: #f5e2d7; --ck-purple: #5b4a99; --ck-purple-soft: #e8e3f5;
+  --ck-beige: #5e5448; --ck-beige-soft: #ece5db;
+  font-family: var(--font-body); font-size: 14px; color: var(--navy-900);
+}
+.ck svg { width: 16px; height: 16px; flex-shrink: 0; }
+.ck button, .ck select, .ck input { font: inherit; color: inherit; }
+.ck-muted { color: var(--ck-muted); }
+.ck-block { display: block; }
+.ck-empty { color: var(--ck-muted); text-align: center; padding: 20px 10px; margin: 0; font-size: 13px; }
+
+/* Thanh công cụ */
+.ck-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+.ck-seg { display: inline-flex; gap: 2px; background: var(--ck-beige-soft); border-radius: 12px; padding: 3px; margin-right: 6px; }
+.ck-seg button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--ck-muted); font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.ck-seg button.on { background: var(--white); color: var(--navy-900); box-shadow: 0 1px 3px rgba(44, 42, 61, .14); }
+.ck-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--white); border: 1px solid var(--ck-line); border-radius: 10px; height: 38px; padding: 0 12px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.ck-pill svg { width: 14px; height: 14px; color: var(--ck-muted); }
+.ck-pill select { border: 0; background: transparent; font-weight: 600; outline: 0; cursor: pointer; padding: 0; }
+.ck-pill.on { background: var(--pink-50); border-color: var(--pink-400); color: var(--pink-700); }
+.ck-search { cursor: text; }
+.ck-search input { border: 0; outline: 0; background: transparent; width: 170px; font-weight: 500; }
+.ck-stats { margin: 0 0 0 auto; color: var(--ck-muted); font-size: 13px; }
+.ck-stats strong { color: var(--navy-900); }
+
+/* Tag / badge / màu trạng thái */
+.ck-tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.ck .tone-red { background: var(--ck-red-soft); color: var(--ck-red); }
+.ck .tone-amber { background: var(--ck-amber-soft); color: var(--ck-amber); }
+.ck .tone-blue { background: var(--ck-blue-soft); color: var(--ck-blue); }
+.ck .tone-green, .ck .tone-teal { background: var(--ck-teal-soft); color: var(--ck-teal); }
+.ck .tone-muted, .ck .tone-beige { background: var(--ck-beige-soft); color: var(--ck-beige); }
+.ck .tone-peach, .ck .tone-accent { background: var(--ck-peach-soft); color: var(--ck-peach); }
+.ck .tone-purple { background: var(--ck-purple-soft); color: var(--ck-purple); }
+.ck .c-red { color: var(--ck-red); }
+.ck .c-amber { color: var(--ck-amber); }
+.ck .c-blue { color: var(--ck-blue); }
+.ck .c-teal, .ck .c-green { color: var(--ck-teal); }
+.ck .c-muted { color: var(--ck-muted); }
+
+/* Bảng giai đoạn (kanban 5 cột) */
+.ck-board { display: grid; grid-template-columns: repeat(5, minmax(200px, 1fr)); gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+.ck-col { min-width: 0; }
+.ck-col header { display: flex; justify-content: space-between; align-items: center; padding: 4px 4px 10px; }
+.ck-col h3 { font-family: var(--font-heading); font-size: 14.5px; font-weight: 700; margin: 0; }
+.ck-col header span { background: var(--ck-beige-soft); border-radius: 999px; font-size: 12px; font-weight: 600; padding: 1px 8px; }
+.ck-card { background: var(--white); border: 1px solid var(--ck-line); border-radius: 16px; box-shadow: 0 1px 2px rgba(44, 42, 61, .04); padding: 14px; margin-bottom: 12px; }
+.ck-card-ro { background: var(--ck-soft); }
+.ck-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ck-card-top strong { font-size: 14px; min-width: 0; }
+.ck-card > small { display: block; font-size: 12.5px; }
+.ck-status { display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; font-size: 13px; font-weight: 600; }
+.ck-status svg { width: 15px; height: 15px; }
+.ck-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ck-owner { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ck-muted); min-width: 0; }
+.ck-owner svg { width: 13px; height: 13px; }
+.ck-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ck-line); background: var(--white); font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.ck-btn:hover { background: var(--pink-50); border-color: var(--pink-200); color: var(--pink-700); }
+.ck-btn-sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+.ck-btn-sm svg { width: 14px; height: 14px; }
+
+/* Danh sách + hồ sơ */
+.ck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.ck-panel { background: var(--white); border: 1px solid var(--ck-line); border-radius: 16px; box-shadow: 0 1px 2px rgba(44, 42, 61, .04); padding: 18px 20px; min-width: 0; }
+.ck-aside { position: sticky; top: 16px; }
+.ck-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ck-chip { border: 0; background: var(--ck-beige-soft); color: var(--navy-700); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ck-chip.on { background: var(--navy-900); color: var(--white); }
+.ck-rule { color: var(--ck-muted); font-size: 12.5px; margin: 10px 0 4px; }
+.ck-table-wrap { overflow-x: auto; }
+.ck-table { width: 100%; min-width: 680px; border-collapse: collapse; table-layout: fixed; font-size: 13.5px; }
+.ck-table th { text-align: left; font-weight: 500; color: var(--ck-muted); font-size: 12.5px; padding: 10px; border-bottom: 1px solid var(--ck-line); }
+.ck-table th:nth-child(1) { width: 32%; }
+.ck-table th:nth-child(2) { width: 15%; }
+.ck-table th:nth-child(3) { width: 19%; }
+.ck-table th:nth-child(5) { width: 13%; }
+.ck-table td { padding: 12px 10px; border-bottom: 1px solid var(--ck-line-2); vertical-align: middle; overflow-wrap: anywhere; }
+.ck-row { cursor: pointer; }
+.ck-row:hover td { background: var(--ck-soft); }
+.ck-row.on td { background: var(--pink-50); }
+.ck-row.on td:first-child { box-shadow: inset 3px 0 0 var(--pink-600); }
+.ck-link { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; }
+.ck-link:hover strong { color: var(--pink-700); }
+.ck-next { font-weight: 600; font-size: 13.5px; }
+.ck-detail h3 { font-family: var(--font-heading); font-size: 18px; font-weight: 700; margin: 0; }
+.ck-id { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.ck-id p { margin: 2px 0 0; font-size: 13px; }
+.ck-avatar { width: 46px; height: 46px; font-size: 15px; }
+.ck-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ck-ro { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; font-size: 12.5px; color: var(--ck-muted); }
+.ck-ro svg { width: 14px; height: 14px; margin-top: 1px; }
+.ck-soft { background: var(--ck-soft); border-radius: 12px; padding: 12px 14px; margin: 14px 0; }
+.ck-label { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ck-muted); margin: 16px 0 8px; }
+.ck-soft .ck-label { margin-top: 0; }
+.ck-baby { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ck-baby span { font-size: 13px; }
+.ck-offer { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1px solid var(--ck-line); border-radius: 12px; padding: 9px 12px; margin: 10px 0 0; font-size: 13px; }
+.ck-offer svg { color: var(--pink-600); }
+.ck-stats-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ck-stats-3 strong { display: block; font-family: var(--font-heading); font-size: 18px; }
+.ck-stats-3 small { color: var(--ck-muted); font-size: 12px; }
+.ck-detail .ck-status { margin: 0; flex-wrap: wrap; }
+.ck-log { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 2px solid var(--ck-line-2); }
+.ck-log li { position: relative; padding: 0 0 14px 8px; }
+.ck-log li::before { content: ""; position: absolute; left: -22px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--ck-teal); }
+.ck-log li.sale::before { background: var(--pink-600); }
+.ck-log time { font-weight: 700; font-size: 13px; }
+.ck-log p { margin: 4px 0 0; font-size: 13px; }
+.ck-note { margin: 0; border: 1px dashed var(--ck-line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; color: var(--navy-700); white-space: pre-line; }
+
+/* Màn hẹp: hồ sơ xuống dưới bảng; điện thoại: kanban cuộn ngang từng cột */
+@media (max-width: 1180px) {
+  .ck-layout { grid-template-columns: minmax(0, 1fr); }
+  .ck-aside { position: static; }
+  .ck-stats { margin-left: 0; width: 100%; }
+}
+@media (max-width: 760px) {
+  .ck-seg { width: 100%; margin-right: 0; }
+  .ck-seg button { flex: 1; justify-content: center; }
+  .ck-pill { flex: 1 1 auto; }
+  .ck-pill select { min-width: 0; flex: 1; }
+  .ck-search input { width: 100%; }
+  .ck-board { grid-template-columns: repeat(5, 78vw); scroll-snap-type: x mandatory; }
+  .ck-col { scroll-snap-align: start; }
+  .ck-panel { padding: 14px; }
+}
