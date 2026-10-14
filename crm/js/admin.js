@@ -8,11 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('userName').textContent = (session && session.name) || 'Người dùng';
   document.getElementById('userRole').textContent = AlohaAuth.roleLabel(role);
 
-  const adminSaleWorkspaceBtn = document.getElementById('adminSaleWorkspaceBtn');
-  if (adminSaleWorkspaceBtn && role === 'sep') {
-    adminSaleWorkspaceBtn.style.display = 'inline-flex';
-  }
-
   // ------------------------------- Dữ liệu đồng bộ từ Không gian Sale (crm/js/sale-data.js) -------------------------------
   const saleDb = window.ALOHA_SALE_DATA ? JSON.parse(JSON.stringify(window.ALOHA_SALE_DATA)) : null;
   const SALE_NAMES = {
@@ -473,80 +468,59 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTransferApprovals();
   }
 
-  // ------------------------------- Khách hàng / CRM (1 nguồn dữ liệu, 2 kiểu hiển thị) -------------------------------
-  let CUSTOMERS = [];
-  if (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length) {
-    CUSTOMERS = saleDb.customers.map(c => {
-      let status = 'dat-lich';
-      let label = 'Đang phục vụ';
-      let badge = 'badge-dat-lich';
+  // ------------------------------- Dữ liệu & Helper Khách hàng (Sếp + Sale) -------------------------------
+  const SALE_DB = saleDb;
+  const p2 = pad2;
+  const isoKey = dateKey;
+  const SALE_TODAY = isoKey(new Date());
 
-      if (c.stage === 'moi') {
-        status = 'quan-tam'; label = 'Khách mới'; badge = 'badge-quan-tam';
-      } else if (c.stage === 'tu-van') {
-        status = 'tu-van'; label = 'Đang tư vấn'; badge = 'badge-tu-van';
-      } else if (c.stage === 'bao-gia') {
-        status = 'tu-van'; label = 'Đã báo giá'; badge = 'badge-tu-van';
-      } else if (c.stage === 'cho-coc') {
-        status = 'dat-lich'; label = 'Chờ đặt cọc'; badge = 'badge-dat-lich';
-      } else if (c.stage === 'da-chot') {
-        status = 'dat-lich'; label = 'Đã chốt / Đã cọc'; badge = 'badge-dat-lich';
-      } else {
-        const stText = (c.status && c.status.text) || '';
-        if (stText === 'Đã chụp' || (c.status && c.status.tone === 'green' && stText.includes('chụp'))) {
-          status = 'da-chup'; label = 'Đã chụp'; badge = 'badge-da-chup';
-        } else if (stText === 'Khách cũ' || (c.tags && c.tags.includes('Khách cũ'))) {
-          status = 'hoan-thanh'; label = 'Hoàn thành / Khách cũ'; badge = 'badge-hoan-thanh';
-        } else if (c.lost) {
-          status = 'huy'; label = 'Không mua (' + (c.lost.reason || 'Dừng') + ')'; badge = 'badge-huy';
-        } else {
-          status = 'dat-lich'; label = stText || 'Đang phục vụ'; badge = 'badge-dat-lich';
-        }
-      }
+  const SALE_GROUPS = {
+    'tiem-nang': { label: 'Tiềm năng', tone: 'amber' },
+    'cho-coc': { label: 'Chờ cọc', tone: 'red' },
+    'da-chot': { label: 'Đã chốt', tone: 'blue' },
+    'da-chup': { label: 'Đã chụp', tone: 'teal' },
+    'khach-quen': { label: 'Khách quen', tone: 'peach' },
+    'khong-mua': { label: 'Không mua', tone: 'muted' }
+  };
 
-      const noteParts = [];
-      if (c.service) noteParts.push(c.service);
-      if (c.area) noteParts.push(c.area);
-      if (c.baby) {
-        const b = c.baby;
-        noteParts.push('Bé: ' + (b.name ? b.name + ' · ' : '') + (b.kind === 'due' ? 'Dự sinh ' + b.date : 'Sinh ' + b.date));
-      }
-      if (c.note) noteParts.push(c.note);
-      if (c.status && c.status.text && !noteParts.includes(c.status.text)) noteParts.push(c.status.text);
-
-      return {
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        source: c.source || 'Website',
-        status: status,
-        label: label,
-        badge: badge,
-        created: c.since || 'Hôm nay',
-        note: noteParts.join(' · ') || 'Chưa có ghi chú',
-        saleName: SALE_NAMES[c.owner] || c.owner || 'Chưa phân công',
-        owner: c.owner || '',
-        service: c.service || '',
-        area: c.area || ''
-      };
-    });
-  } else {
-    CUSTOMERS = [
-      { name: 'Khách demo 01', phone: '0987 xxx 321', source: 'Facebook', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '12/09/2026', note: 'Quan tâm gói Newborn.', saleName: 'Sale demo' },
-      { name: 'Khách demo 02', phone: '0912 xxx 456', source: 'Giới thiệu', status: 'da-chup', label: 'Đã chụp', badge: 'badge-da-chup', created: '05/09/2026', note: 'Hỏi thêm về album in.', saleName: 'Sale demo' },
-      { name: 'Khách demo 03', phone: '0977 xxx 789', source: 'TikTok', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '18/09/2026', note: 'Mới để lại số điện thoại.', saleName: '' },
-      { name: 'Khách demo 04', phone: '0901 xxx 234', source: 'Website', status: 'hoan-thanh', label: 'Hoàn thành', badge: 'badge-hoan-thanh', created: '20/08/2026', note: 'Đã nhận ảnh, hẹn chụp 6 tháng tuổi.', saleName: 'Sale demo' },
-      { name: 'Khách demo 05', phone: '0933 xxx 567', source: 'Instagram', status: 'tu-van', label: 'Đã tư vấn', badge: 'badge-tu-van', created: '15/09/2026', note: 'Đang cân nhắc gói Gia đình.', saleName: 'Sale demo' },
-      { name: 'Khách demo 06', phone: '0966 xxx 890', source: 'Hotline', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '10/09/2026', note: 'Chụp Bé lớn, concept Hàn Quốc.', saleName: 'Sale demo' },
-      { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.', saleName: '' }
-    ];
+  function saleShootCount(c) {
+    if (c.history) return c.history.filter(h => h.shoot).length;
+    if (!c.stage) return c.lost ? 0 : 1;
+    if (c.stage !== 'da-chot') return 0;
+    return ((c.status && (c.status.text === 'Đã chụp' || (c.status.tone === 'green' && c.status.text.includes('chụp')))) ||
+      (SALE_DB && SALE_DB.orders && SALE_DB.orders.some(o => o.customerId === c.id)) ||
+      (SALE_DB && SALE_DB.appointments && SALE_DB.appointments.some(a => a.customerId === c.id && a.date < SALE_TODAY))) ? 1 : 0;
   }
 
-  // Avatar chữ viết tắt: tính lại từ tên MỖI LẦN vẽ bảng, không lưu riêng, nên
-  // đổi tên khách là chữ viết tắt tự đổi theo, không ai phải nhập avatar tay.
-  // Quy tắc: chữ cái đầu của từ đầu (họ) + từ cuối (tên): "Nguyễn Minh Anh" -> NA,
-  // "Lê Thu Hà" -> LH. Bỏ qua từ không bắt đầu bằng chữ cái (vd số "01" trong tên
-  // demo), nên "Khách demo 01" -> KD. Tên chỉ có 1 từ thì lấy 2 chữ đầu của từ đó.
+  function saleGroupOf(c) {
+    if (c.lost) return 'khong-mua';
+    if (['moi', 'tu-van', 'bao-gia'].includes(c.stage)) return 'tiem-nang';
+    if (c.stage === 'cho-coc') return 'cho-coc';
+    const n = saleShootCount(c);
+    return n >= 2 ? 'khach-quen' : n === 1 ? 'da-chup' : 'da-chot';
+  }
+
+  function fmtSalePhone(p) {
+    const d = String(p).replace(/\D/g, '');
+    return d.slice(0, 4) + ' ' + d.slice(4, 7) + ' ' + d.slice(7);
+  }
+
+  function maskSalePhone(p) {
+    const d = String(p).replace(/\D/g, '');
+    return d.slice(0, 4) + ' *** ' + d.slice(-3);
+  }
+
+  const saleName = id => ((SALE_DB && SALE_DB.sales && SALE_DB.sales.find(s => s.id === id)) || {}).name || (SALE_NAMES[id] || id || '');
+  const SALE_ME = SALE_DB && role === 'sale' ? (SALE_DB.sales || []).find(s => s.phone === (session && session.phone)) : null;
+  const canSeeContact = ownerId => role !== 'sale' || (!!SALE_ME && SALE_ME.id === ownerId);
+
+  const CUST_AV_TONES = 5;
+  function customerTone(key) {
+    let h = 0;
+    for (const ch of String(key || '')) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+    return h % CUST_AV_TONES;
+  }
+
   function customerInitials(name) {
     const words = String(name || '').normalize('NFC').trim().split(/\s+/)
       .filter(w => /^\p{L}/u.test(w));
@@ -556,115 +530,264 @@ document.addEventListener('DOMContentLoaded', () => {
     return (first[0] + second).toLocaleUpperCase('vi');
   }
 
-  // Màu avatar: băm theo SĐT (định danh ổn định của khách) chứ không theo tên hay
-  // vị trí dòng, nên cùng một khách luôn giữ một màu dù lọc/tìm kiếm hay đổi tên.
-  // 5 tông pastel tái dùng đúng bảng màu badge sẵn có - xem .cust-av-* trong css/admin.css.
-  const CUST_AV_TONES = 5;
-  function customerTone(key) {
-    let h = 0;
-    for (const ch of String(key)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
-    return h % CUST_AV_TONES;
-  }
-
-  // Dòng phụ dưới tên suy ra từ trạng thái phễu, để không ghi "tiềm năng" cho
-  // một khách đã chụp xong.
-  const CUST_STAGE = {
-    'quan-tam': 'Khách hàng tiềm năng', 'tu-van': 'Khách hàng tiềm năng',
-    'dat-lich': 'Đang phục vụ', 'da-chup': 'Đang phục vụ', 'hoan-thanh': 'Khách hàng cũ'
-  };
-
   const svgIcon = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-  const CUST_ICON = {
-    phone: svgIcon('<path d="M5 4h3.2l1.6 4-2 1.3a11 11 0 0 0 5 5l1.3-2 4 1.6V17a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
-    calendar: svgIcon('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/>')
-  };
-  // Nguồn khách: icon line-style + màu nhận diện của kênh, nền chip trung tính để
-  // bảng không bị loè loẹt. Nguồn lạ (chưa có trong bảng) vẫn hiện chip chữ.
-  const CUST_SOURCE = {
-    'Facebook': { color: '#1877f2', d: '<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="M13.2 20.5V13.6h2.1l.4-2.6h-2.5V9.5c0-.7.3-1.2 1.3-1.2h1.3V6.1a15 15 0 0 0-2-.1c-2 0-3.2 1.2-3.2 3.3V11H8.5v2.6h2.1v6.9" fill="#fff" stroke="none"/>' },
-    'TikTok': { color: '#2c2a3d', d: '<path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5M14 4c.4 2.4 2 4 4.5 4.3"/>' },
-    'Instagram': { color: '#d6336c', d: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><path d="M16.6 7.4h.01"/>' },
-    'Website': { color: '#4472dd', d: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.3 2.2 3.4 4.9 3.4 8S14.3 17.8 12 20M12 4c-2.3 2.2-3.4 4.9-3.4 8s1.1 5.8 3.4 8"/>' },
-    'Hotline': { color: '#1a9d5c', d: '<path d="M5 4h3.2l1.6 4-2 1.3a11 11 0 0 0 5 5l1.3-2 4 1.6V17a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>' },
-    'Giới thiệu': { color: '#7a5bd6', d: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.8a3 3 0 0 1 0 5.4M17.5 14.2A5.5 5.5 0 0 1 20.5 19"/>' },
-    'Đối tác spa bầu': { color: '#6b6880', d: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>' }
-  };
 
   function escHtml(s) {
-    return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
+
   function custPerson(c, subline) {
     return `<div class="cust-person">
       <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.name))}</span>
       <span class="cust-person-text"><span class="cust-name">${escHtml(c.name)}</span><span class="cust-sub">${escHtml(subline)}</span></span>
     </div>`;
   }
-  function custSource(source) {
-    const s = CUST_SOURCE[source];
-    const icon = s ? `<span class="cust-src-ic" style="color:${s.color}">${svgIcon(s.d)}</span>` : '';
-    return `<span class="cust-src">${icon}${escHtml(source)}</span>`;
-  }
 
-  const custTable = document.getElementById('custTable');
-  if (custTable) {
-    const head = document.getElementById('custTableHead');
-    const body = document.getElementById('custTableBody');
-    const isSep = role === 'sep';
+  // ------------------------------- Khách hàng / CRM (Bảng giai đoạn + Danh sách) -------------------------------
+  const custView = document.getElementById('custView');
+  if (custView) {
+    const CK_ICON = {
+      filter: '<path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/>',
+      users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.2.6 3.5 2.8 3.5 6"/>',
+      user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+      lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+      search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+      arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+    };
+    const ic = name => svgIcon(CK_ICON[name] || '');
 
-    if (isSep) {
-      document.getElementById('custSectionSub').textContent = 'Toàn bộ ' + CUSTOMERS.length + ' hồ sơ khách hàng đồng bộ từ đội ngũ Sale. Tìm kiếm và lọc theo trạng thái hoặc nhân viên phụ trách.';
-      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo / Giai đoạn</th><th>Ghi chú & Dịch vụ</th><th>Sale phụ trách</th></tr>';
-    } else {
-      document.getElementById('custSectionSub').textContent = 'Thông tin khách hàng để chăm sóc và tư vấn. Không hiển thị dữ liệu thanh toán/doanh thu.';
-      head.innerHTML = '<tr><th>Liên hệ</th><th>Nguồn khách</th><th>Lịch sử lịch hẹn</th><th>Ghi chú tư vấn</th><th>Sale phụ trách</th></tr>';
+    const STAGES = [
+      { id: 'moi', label: 'Mới' },
+      { id: 'tu-van', label: 'Đang tư vấn' },
+      { id: 'bao-gia', label: 'Đã báo giá' },
+      { id: 'cho-coc', label: 'Chờ đặt cọc' },
+      { id: 'da-chot', label: 'Đã chốt' }
+    ];
+    const stageLabel = id => (STAGES.find(s => s.id === id) || { label: 'Khách cũ' }).label;
+    const SVC_TONE = { 'Newborn': 'teal', 'Gia đình': 'blue', 'Bầu': 'peach', 'Sinh nhật': 'amber', 'Bé lớn': 'purple', 'Tại nhà': 'beige' };
+    const SERVICES = ['Newborn', 'Bé lớn', 'Sinh nhật', 'Bầu', 'Gia đình', 'Tại nhà'];
+    const AP_TEXT = { 'checkin': 'Đã check-in', 'da-coc': 'Đã cọc', 'chua-thu-du': 'Chưa thu đủ', 'giu-cho': 'Giữ chỗ, chưa cọc' };
+    const ORD_TEXT = { 'cho-chon': 'Chờ khách chọn ảnh', 'dang-chinh': 'Thợ ảnh đang chỉnh', 'qua-han': 'Quá hạn giao', 'cho-duyet': 'Chờ khách duyệt', 'da-giao': 'Đã giao ảnh' };
+
+    const all = SALE_DB ? SALE_DB.customers : [];
+    const SOURCES = Array.from(new Set(all.map(c => c.source)));
+    const ui = { mode: 'bang', owner: '', source: '', service: '', q: '', group: 'all', bday: false, selected: null };
+
+    const parseIso = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+    const fmtDM = k => { const d = parseIso(k); return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1); };
+    const fmtDMY = k => fmtDM(k) + '/' + parseIso(k).getFullYear();
+    const money = n => Number(n).toLocaleString('vi-VN') + 'đ';
+    const fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const tag = s => `<span class="ck-tag tone-${SVC_TONE[s] || 'beige'}">${escHtml(s)}</span>`;
+    const badge = (text, tone) => `<span class="ck-tag tone-${tone || 'muted'}">${escHtml(text)}</span>`;
+    const phoneOf = c => canSeeContact(c.owner) ? fmtSalePhone(c.phone) : maskSalePhone(c.phone);
+    const roNote = c => `<p class="ck-ro">${ic('lock')}<span>Khách do <strong>${escHtml(saleName(c.owner))}</strong> phụ trách · chỉ xem</span></p>`;
+
+    // ----- Thông tin bé, việc tiếp theo, lịch sử: cùng cách suy ra với crm/js/sale.js -----
+    function ageText(k) {
+      const days = Math.round((parseIso(SALE_TODAY) - parseIso(k)) / 864e5);
+      if (days < 0) return 'chưa sinh';
+      if (days < 60) return days + ' ngày tuổi';
+      return Math.floor(days / 30.4) + ' tháng tuổi';
+    }
+    function nextMilestone(b) {
+      if (!b || b.kind !== 'birth') return null;
+      const born = parseIso(b.date); const today = parseIso(SALE_TODAY);
+      const cands = [{ label: 'tròn 100 ngày', d: new Date(born.getFullYear(), born.getMonth(), born.getDate() + 100) }];
+      for (let y = 1; y <= 12; y++) cands.push({ label: 'tròn ' + y + ' tuổi', d: new Date(born.getFullYear() + y, born.getMonth(), born.getDate()) });
+      const hit = cands.find(x => x.d >= today && (x.d - today) / 864e5 <= 30);
+      return hit ? { label: hit.label, key: dateKey(hit.d), birthday: /tuổi/.test(hit.label) } : null;
+    }
+    function babyText(c) {
+      const b = c.baby;
+      if (!b) return 'Chưa có';
+      if (b.kind === 'due') return 'Dự sinh ' + fmtDM(b.date);
+      const m = nextMilestone(b);
+      if (m) return (b.name || 'Bé') + ' ' + m.label + ' ' + fmtDM(m.key);
+      return (b.name ? b.name + ', ' : 'Bé ') + ageText(b.date);
+    }
+    const nextAppointment = c => (SALE_DB.appointments || []).filter(a => a.customerId === c.id && a.date >= SALE_TODAY)
+      .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0];
+    function nextStep(c) {
+      if (c.lost) return { text: 'Gửi lại khi có khuyến mại', tone: 'muted' };
+      const dep = (SALE_DB.deposits || []).find(d => d.customerId === c.id && d.state !== 'confirmed');
+      if (dep && (dep.state === 'sent' || dep.state === 'opened')) return { text: 'Nhắc cọc trước ' + dep.holdUntil, tone: 'red' };
+      if (dep && dep.state === 'paid') return { text: 'Xác nhận cọc ' + money(dep.received), tone: 'blue' };
+      if (dep && dep.state === 'short') return { text: 'Kiểm tra cọc thiếu', tone: 'red' };
+      const ap = nextAppointment(c);
+      if (ap && ap.status !== 'giu-cho') return { text: 'Chụp ' + ap.service + ' ' + fmtDM(ap.date) + ' ' + ap.start, tone: '' };
+      const o = (SALE_DB.orders || []).find(x => x.customerId === c.id && x.status === 'cho-chon');
+      if (o) return { text: 'Nhắc chọn ảnh (' + o.picked + '/' + o.total + ')', tone: 'amber' };
+      const m = !c.stage && nextMilestone(c.baby);
+      if (m) return { text: m.birthday ? 'Ưu đãi sinh nhật ' + m.label.replace('tròn ', '') : 'Ưu đãi chụp 100 ngày', tone: 'red' };
+      if (c.stage === 'moi' && c.status && c.status.tone === 'red') return { text: 'Liên hệ lần đầu', tone: 'red' };
+      return { text: (c.status && c.status.text) || '', tone: (c.status && c.status.tone === 'muted' ? '' : (c.status && c.status.tone)) || '' };
+    }
+    function cusHistory(c) {
+      if (c.history) return c.history;
+      const out = [];
+      (SALE_DB.appointments || []).filter(a => a.customerId === c.id && a.date >= SALE_TODAY).forEach(a =>
+        out.push({ date: fmtDM(a.date), text: 'Lịch chụp ' + a.service + ' ' + a.start + ' · ' + (AP_TEXT[a.status] || a.status), shoot: false }));
+      (SALE_DB.orders || []).filter(o => o.customerId === c.id).forEach(o =>
+        out.push({ date: o.date, text: 'Chụp ' + o.service + ' · đơn #' + o.code + ' · ' + (ORD_TEXT[o.status] || o.status).toLowerCase(), shoot: true }));
+      out.push({ date: 'Lần đầu', text: 'Liên hệ qua ' + c.source + (c.lost ? ' · không mua (' + c.lost.reason.toLowerCase() + ')' : ''), shoot: false });
+      return out;
     }
 
-    function renderCustomers(list) {
-      if (!list.length) {
-        body.innerHTML = `<tr><td colspan="${isSep ? 7 : 5}" class="cust-empty">Không có khách hàng nào khớp bộ lọc.</td></tr>`;
-        return;
+    // ----- Lọc chung cho cả 2 kiểu xem -----
+    function filtered() {
+      const q = fold(ui.q.trim()); const qd = ui.q.replace(/\D/g, '');
+      return all.filter(c =>
+        (!ui.owner || c.owner === ui.owner) &&
+        (!ui.source || c.source === ui.source) &&
+        (!ui.service || c.service === ui.service) &&
+        (!q || fold(c.name).includes(q) || (qd.length >= 3 && canSeeContact(c.owner) && c.phone.includes(qd))));
+    }
+
+    function toolbar() {
+      const seg = '<div class="ck-seg" role="tablist" aria-label="Kiểu xem">' +
+        [['bang', 'Bảng giai đoạn', 'filter'], ['danh-sach', 'Danh sách', 'users']].map(([k, l, i]) =>
+          `<button type="button" role="tab" aria-selected="${ui.mode === k}" class="${ui.mode === k ? 'on' : ''}" data-ck="mode" data-id="${k}">${ic(i)}${l}</button>`).join('') + '</div>';
+      const sel = (name, label, opts, val, icon) => `<label class="ck-pill">${ic(icon || 'filter')}<span>${label}:</span><select data-ck-filter="${name}" aria-label="Lọc theo ${label.toLowerCase()}">` +
+        `<option value="">${name === 'owner' ? 'Tất cả sale' : 'Tất cả'}</option>` +
+        opts.map(o => `<option value="${escHtml(o.v)}"${o.v === val ? ' selected' : ''}>${escHtml(o.l)}</option>`).join('') + '</select></label>';
+      const leads = filtered().filter(c => c.stage);
+      const rate = leads.length ? Math.round(leads.filter(c => c.stage === 'da-chot').length / leads.length * 100) : 0;
+      const rs = ui.owner ? (SALE_DB.sales || []).find(s => s.id === ui.owner) : null;
+      const respMin = rs ? rs.responseMin : Math.round((SALE_DB.sales || []).reduce((t, s) => t + s.responseMin, 0) / ((SALE_DB.sales && SALE_DB.sales.length) || 1));
+      return '<div class="ck-toolbar">' + seg +
+        sel('owner', 'Sale phụ trách', (SALE_DB.sales || []).map(s => ({ v: s.id, l: s.name })), ui.owner, 'users') +
+        sel('source', 'Nguồn', SOURCES.map(s => ({ v: s, l: s })), ui.source) +
+        sel('service', 'Dịch vụ', SERVICES.map(s => ({ v: s, l: s })), ui.service) +
+        `<label class="ck-pill ck-search">${ic('search')}<input type="search" data-ck-search value="${escHtml(ui.q)}" placeholder="Tìm tên hoặc SĐT..." aria-label="Tìm khách theo tên hoặc SĐT"></label>` +
+        (ui.mode === 'bang'
+          ? `<p class="ck-stats">Tỉ lệ chốt: <strong>${rate}%</strong> · Thời gian phản hồi TB: <strong>${respMin} phút</strong></p>`
+          : `<button type="button" class="ck-pill${ui.bday ? ' on' : ''}" data-ck="bday" aria-pressed="${ui.bday}">${ic('gift')}<span>Có bé sắp sinh nhật</span></button>`) +
+      '</div>';
+    }
+
+    function leadCard(c) {
+      const ro = !canSeeContact(c.owner);
+      return `<article class="ck-card${ro ? ' ck-card-ro' : ''}">
+        <div class="ck-card-top"><strong>${escHtml(c.name)}</strong>${tag(c.service)}</div>
+        <small class="ck-muted">${escHtml(c.source)} · ${escHtml(c.since)}</small>
+        <p class="ck-status c-${c.status.tone}">${ic('clock')}${escHtml(c.status.text)}</p>
+        <div class="ck-card-foot">
+          <span class="ck-owner">${ro ? ic('lock') : ic('user')}${escHtml(saleName(c.owner))}</span>
+          <button type="button" class="ck-btn ck-btn-sm" data-ck="profile" data-id="${c.id}" aria-label="Xem hồ sơ ${escHtml(c.name)}">Hồ sơ${ic('arrow')}</button>
+        </div>
+      </article>`;
+    }
+
+    function board(list) {
+      const leads = list.filter(c => c.stage);
+      return '<div class="ck-board">' + STAGES.map(s => {
+        const cards = leads.filter(c => c.stage === s.id);
+        return `<section class="ck-col" aria-label="${s.label}"><header><h3>${s.label}</h3><span>${cards.length}</span></header>` +
+          (cards.length ? cards.map(leadCard).join('') : '<p class="ck-empty">Chưa có khách</p>') + '</section>';
+      }).join('') + '</div>';
+    }
+
+    function detail(c) {
+      const g = SALE_GROUPS[saleGroupOf(c)];
+      const b = c.baby; const m = b && nextMilestone(b);
+      const see = canSeeContact(c.owner);
+      return `<div class="ck-detail">
+        <div class="ck-id"><span class="cust-av cust-av-${customerTone(c.phone)} ck-avatar" aria-hidden="true">${escHtml(customerInitials(c.name))}</span>
+          <div><h3>${escHtml(c.name)}</h3><p class="ck-muted">${escHtml(phoneOf(c))} · ${escHtml(c.area)}</p></div></div>
+        <div class="ck-tags">${badge(g.label, g.tone)}${tag(c.service)}<span class="ck-tag tone-beige">Phụ trách: ${escHtml(saleName(c.owner))}</span></div>
+        ${see ? '' : roNote(c)}
+        <div class="ck-soft"><small class="ck-label">Các bé</small>
+          ${b ? `<div class="ck-baby"><strong>${escHtml(b.name || 'Bé')}</strong><span class="ck-muted">${b.kind === 'due' ? 'dự sinh ' + fmtDMY(b.date) : 'sinh ' + fmtDMY(b.date) + ' · ' + ageText(b.date)}</span></div>` +
+            (m ? `<p class="ck-offer">${ic('gift')}<span>Bé sắp ${m.label} (${fmtDM(m.key)}). Gợi ý gói ${m.birthday ? 'Sinh nhật' : 'chụp 100 ngày'}.</span></p>` : '')
+          : '<p class="ck-muted">Chưa có thông tin bé</p>'}
+        </div>
+        <div class="ck-stats-3"><div><strong>${saleShootCount(c)}</strong><small>Đơn đã chụp</small></div>
+          <div><strong>[Tổng]</strong><small>Tổng đã chi</small></div>
+          <div><strong>${c.referrals || 0}</strong><small>Khách giới thiệu</small></div></div>
+        <small class="ck-label">Tình trạng</small>
+        <p class="ck-status c-${c.status.tone}">${ic('clock')}${escHtml(c.status.text)} <span class="ck-muted">· ${escHtml(c.since)}</span></p>
+        <small class="ck-label">Lịch sử với studio</small>
+        <ol class="ck-log">${cusHistory(c).map(h => `<li class="${h.shoot ? '' : 'sale'}"><time>${escHtml(h.date)}</time><p>${escHtml(h.text)}</p></li>`).join('')}</ol>
+        <small class="ck-label">Ghi chú</small>
+        <p class="ck-note">${see ? escHtml(c.note || (c.lost && ('Lý do không mua: ' + c.lost.reason)) || 'Chưa có ghi chú') : 'Chỉ sale phụ trách xem được ghi chú.'}</p>
+      </div>`;
+    }
+
+    function list(base) {
+      const pool = ui.bday ? base.filter(c => c.baby && nextMilestone(c.baby)) : base;
+      const shown = ui.group === 'all' ? pool : pool.filter(c => saleGroupOf(c) === ui.group);
+      if (!shown.some(c => c.id === ui.selected)) ui.selected = (shown[0] || {}).id || null;
+      const sel = shown.find(c => c.id === ui.selected);
+      const chip = (id, label) => `<button type="button" class="ck-chip${ui.group === id ? ' on' : ''}" data-ck="group" data-id="${id}">${label} ${id === 'all' ? pool.length : pool.filter(c => saleGroupOf(c) === id).length}</button>`;
+      const sub = c => {
+        const g = saleGroupOf(c);
+        if (g === 'tiem-nang') return stageLabel(c.stage);
+        if (g === 'khach-quen') return saleShootCount(c) + ' đơn';
+        if (g === 'khong-mua') return c.lost.reason;
+        return '';
+      };
+      return '<div class="ck-layout"><section class="ck-panel">' +
+        '<div class="ck-chips">' + chip('all', 'Tất cả') + Object.keys(SALE_GROUPS).map(id => chip(id, SALE_GROUPS[id].label)).join('') + '</div>' +
+        '<p class="ck-rule">Giai đoạn tự đổi: cọc xong thành Đã chốt, sau buổi chụp thành Đã chụp, từ đơn thứ hai thành Khách quen.</p>' +
+        '<div class="ck-table-wrap"><table class="ck-table"><thead><tr><th>Khách</th><th>Giai đoạn</th><th>Bé</th><th>Việc tiếp theo</th><th>Sale phụ trách</th></tr></thead><tbody>' +
+        (shown.length ? shown.map(c => {
+          const g = SALE_GROUPS[saleGroupOf(c)]; const n = nextStep(c); const s = sub(c);
+          return `<tr class="ck-row${c.id === ui.selected ? ' on' : ''}" data-ck="select" data-id="${c.id}">
+            <td><button type="button" class="ck-link" data-ck="select" data-id="${c.id}"><strong>${escHtml(c.name)}</strong></button>
+              <small class="ck-muted ck-block">${escHtml(phoneOf(c))} · ${escHtml(c.source)} · ${escHtml(c.since)}</small></td>
+            <td>${badge(g.label, g.tone)}${s ? `<small class="ck-muted ck-block">${escHtml(s)}</small>` : ''}</td>
+            <td>${escHtml(babyText(c))}</td>
+            <td><strong class="ck-next${n.tone ? ' c-' + n.tone : ''}">${escHtml(n.text)}</strong></td>
+            <td>${escHtml(saleName(c.owner))}</td></tr>`;
+        }).join('') : '<tr><td colspan="5"><p class="ck-empty">Không có khách nào khớp bộ lọc.</p></td></tr>') +
+        '</tbody></table></div></section>' +
+        `<aside class="ck-panel ck-aside" id="ckAside" aria-label="Hồ sơ khách">${sel ? detail(sel) : '<p class="ck-empty">Chọn một khách để xem hồ sơ.</p>'}</aside></div>`;
+    }
+
+    function render() {
+      if (!SALE_DB) { custView.innerHTML = '<p class="ck-empty">Chưa nạp được dữ liệu Không gian Sale.</p>'; return; }
+      const base = filtered();
+      // Giữ con trỏ ô tìm kiếm khi vẽ lại theo từng phím gõ.
+      const typing = document.activeElement && document.activeElement.matches('[data-ck-search]');
+      const caret = typing ? document.activeElement.selectionStart : 0;
+      custView.innerHTML = toolbar() + (ui.mode === 'bang' ? board(base) : list(base));
+      if (typing) { const s = custView.querySelector('[data-ck-search]'); s.focus(); s.setSelectionRange(caret, caret); }
+    }
+
+    custView.addEventListener('click', e => {
+      const t = e.target.closest('[data-ck]');
+      if (!t) return;
+      const act = t.dataset.ck;
+      if (act === 'mode') ui.mode = t.dataset.id;
+      else if (act === 'group') ui.group = t.dataset.id;
+      else if (act === 'bday') ui.bday = !ui.bday;
+      else if (act === 'select') ui.selected = t.dataset.id;
+      else if (act === 'profile') { ui.mode = 'danh-sach'; ui.group = 'all'; ui.bday = false; ui.selected = t.dataset.id; }
+      render();
+      // Màn hẹp: hồ sơ nằm dưới bảng -> cuộn tới cho người xem thấy ngay.
+      if ((act === 'select' || act === 'profile') && window.matchMedia('(max-width: 1180px)').matches) {
+        const aside = document.getElementById('ckAside');
+        if (aside) aside.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (act === 'profile') {
+        const row = custView.querySelector('.ck-row.on');
+        if (row) row.scrollIntoView({ block: 'nearest' });
       }
-      if (isSep) {
-        body.innerHTML = list.map(c => `
-          <tr>
-            <td>${custPerson(c, CUST_STAGE[c.status] || (c.service ? 'Gói ' + c.service : 'Khách hàng'))}</td>
-            <td><span class="cust-meta">${CUST_ICON.phone}${escHtml(c.phone)}</span></td>
-            <td>${custSource(c.source)}</td>
-            <td><span class="badge badge-dot ${c.badge}">${c.label}</span></td>
-            <td><span class="cust-meta">${CUST_ICON.calendar}${c.created}</span></td>
-            <td class="cust-note">${escHtml(c.note)}</td>
-            <td class="cust-sale"><strong style="color:var(--navy-900);">${escHtml(c.saleName || 'Chưa phân công')}</strong></td>
-          </tr>`).join('');
-      } else {
-        // Sale: cột Liên hệ gộp tên + SĐT, nên dòng phụ dưới tên là SĐT
-        body.innerHTML = list.map(c => `
-          <tr>
-            <td>${custPerson(c, c.phone)}</td>
-            <td>${custSource(c.source)}</td>
-            <td>${c.label} (${c.created})</td>
-            <td class="cust-note">${escHtml(c.note)}</td>
-            <td class="cust-sale">${escHtml(c.saleName || 'Chưa phân công')}</td>
-          </tr>`).join('');
-      }
-    }
-    renderCustomers(CUSTOMERS);
+    });
+    custView.addEventListener('change', e => {
+      const f = e.target.dataset.ckFilter;
+      if (f) { ui[f] = e.target.value; render(); }
+    });
+    custView.addEventListener('input', e => {
+      if (e.target.matches('[data-ck-search]')) { ui.q = e.target.value; render(); }
+    });
 
-    function applyCustomerFilters() {
-      const q = document.getElementById('custSearch').value.trim().toLowerCase();
-      const status = document.getElementById('custFilter').value;
-      const saleFilter = document.getElementById('custSaleFilter') ? document.getElementById('custSaleFilter').value : '';
-      const filtered = CUSTOMERS.filter(c => {
-        const matchQ = !q || c.name.toLowerCase().includes(q) || c.phone.includes(q) || (c.service && c.service.toLowerCase().includes(q));
-        const matchStatus = !status || c.status === status;
-        const matchSale = !saleFilter || c.owner === saleFilter || (c.saleName && c.saleName.toLowerCase().includes(saleFilter.toLowerCase()));
-        return matchQ && matchStatus && matchSale;
-      });
-      renderCustomers(filtered);
+    if (role === 'sep') {
+      document.getElementById('custSectionSub').textContent = 'Toàn bộ khách của các sale (lấy từ Không gian Sale). Sếp chỉ xem; đổi giai đoạn, gọi, nhắn do sale phụ trách làm bên Không gian Sale.';
     }
-    document.getElementById('custSearch').addEventListener('input', applyCustomerFilters);
-    document.getElementById('custFilter').addEventListener('change', applyCustomerFilters);
-    const saleFilterEl = document.getElementById('custSaleFilter');
-    if (saleFilterEl) saleFilterEl.addEventListener('change', applyCustomerFilters);
+    render();
   }
 
   // ------------------------------- Lịch hẹn dạng lịch tháng (Sếp + Sale) -------------------------------
@@ -1412,33 +1535,118 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
 
   // ------------------------------- Tin nhắn khách hàng (Sale trả lời, Sếp chỉ xem) -------------------------------
-  // Thêm 2026-09-27: chat THẬT qua server (server/sale-chat.js) - khách nhắn từ màn chat
-  // trên trang web (js/sale-chat.js), mọi tài khoản Sale thấy chung 1 hộp thư ở đây và trả
-  // lời, khác máy/khác trình duyệt vẫn thấy nhau. Trang tự hỏi server tin mới mỗi 3 giây.
-  // Sếp xem được nhưng không trả lời và không làm mất trạng thái "chưa đọc" của Sale.
+  // Hiển thị toàn bộ cuộc hội thoại của TẤT CẢ nhân viên Sale (Ngọc Anh, Minh Thư, Thu Hà,
+  // Quốc Bảo, Hải Yến) từ saleDb.conversations. Sếp xem được toàn bộ, có bộ lọc theo từng Sale,
+  // theo trạng thái, tìm kiếm nhanh và xem hồ sơ CRM của khách. Nếu có kết nối máy chủ chat,
+  // dữ liệu sẽ tự động đồng bộ thêm các tin nhắn mới nhất.
   const inboxList = document.getElementById('inboxList');
-  if (inboxList && window.AlohaAuth && AlohaAuth.api) {
+  if (inboxList) {
     const inboxHead = document.getElementById('inboxHead');
     const inboxMsgs = document.getElementById('inboxMsgs');
     const inboxReply = document.getElementById('inboxReply');
     const inboxInput = document.getElementById('inboxInput');
     const inboxStatus = document.getElementById('inboxStatus');
+    const inboxSub = document.getElementById('inboxSub');
+    const inboxBossBar = document.getElementById('inboxBossBar');
+    const inboxBossBarText = document.getElementById('inboxBossBarText');
+    const inboxSearch = document.getElementById('inboxSearch');
+    const inboxSaleFilter = document.getElementById('inboxSaleFilter');
+    const inboxChannelFilter = document.getElementById('inboxChannelFilter');
+
+    const isSep = role === 'sep';
     const canReply = role === 'sale';
-    let chats = [];          // bản tóm tắt từ GET /inbox
-    let activeChat = null;   // cuộc trò chuyện đang mở, đủ tin (GET /inbox/:phone)
-    let activePhone = null;
-    let status = 'loading';  // 'ok' | 'offline' | 'auth'
+    let filterSale = '';
+    let filterChannel = '';
+    let searchQuery = '';
+
+    // Khởi tạo danh sách cuộc hội thoại ban đầu từ saleDb.conversations (tất cả các Sale)
+    function buildLocalChats() {
+      if (!saleDb || !Array.isArray(saleDb.conversations)) return [];
+      const custMap = new Map();
+      (saleDb.customers || []).forEach(c => {
+        if (c.id) custMap.set(c.id, c);
+        if (c.phone) custMap.set(c.phone, c);
+      });
+
+      return saleDb.conversations.map((cv, idx) => {
+        const cust = custMap.get(cv.customerId) || {};
+        const phone = cust.phone || ('0900' + String(idx).padStart(6, '0'));
+        const saleName = SALE_NAMES[cv.owner] || cv.owner || 'Sale';
+        const msgs = (cv.messages || []).map((m, mIdx) => ({
+          id: cv.id + '-m' + mIdx,
+          from: m.from === 'sale' ? 'sale' : (m.from === 'system' || m.from === 'he-thong' ? 'he-thong' : 'khach'),
+          senderName: m.from === 'sale' ? (m.by || saleName) : (cust.name || 'Khách'),
+          text: m.text,
+          at: m.time || cv.time || ''
+        }));
+        const last = msgs[msgs.length - 1];
+
+        return {
+          id: cv.id,
+          phone: phone,
+          customerId: cv.customerId,
+          customerName: cust.name || 'Khách hàng',
+          customerArea: cust.area || '',
+          service: cust.service || '',
+          topic: cust.service ? `${cust.service}` : (cv.channel || ''),
+          channel: cv.channel || 'Trực tiếp',
+          owner: cv.owner,
+          saleName: saleName,
+          bot: !!cv.bot,
+          botSummary: cv.botSummary || '',
+          unread: !!cv.unread,
+          staffUnread: cv.unread ? 1 : 0,
+          online: !!cv.online,
+          time: cv.time || (last ? last.at : ''),
+          last: last,
+          messages: msgs,
+          updatedAt: Date.now() - idx * 60000
+        };
+      });
+    }
+
+    let chats = buildLocalChats();
+    let activeChat = chats[0] || null;
+    let activePhone = activeChat ? activeChat.phone : null;
+    let status = 'ok';
     let lastListKey = '';
     let lastThreadKey = '';
     let busy = false;
 
-    if (!canReply) {
-      document.getElementById('inboxSub').textContent = 'Tin nhắn khách gửi từ trang web và câu trả lời của các tài khoản Sale. Chế độ chỉ xem.';
+    // Cập nhật số lượng trên các option lọc Sale
+    function updateSaleFilterCounts() {
+      if (!inboxSaleFilter) return;
+      const counts = {};
+      chats.forEach(c => {
+        counts[c.owner] = (counts[c.owner] || 0) + 1;
+      });
+      const currentVal = inboxSaleFilter.value;
+      inboxSaleFilter.innerHTML = `
+        <option value="">Tất cả Sale phụ trách (${chats.length})</option>
+        <option value="ngoc-anh">Sale · Ngọc Anh (${counts['ngoc-anh'] || 0})</option>
+        <option value="minh-thu">Sale · Minh Thư (${counts['minh-thu'] || 0})</option>
+        <option value="thu-ha">Sale · Thu Hà (${counts['thu-ha'] || 0})</option>
+        <option value="quoc-bao">Sale · Quốc Bảo (${counts['quoc-bao'] || 0})</option>
+        <option value="hai-yen">Sale · Hải Yến (${counts['hai-yen'] || 0})</option>
+      `;
+      inboxSaleFilter.value = currentVal;
+    }
+    updateSaleFilterCounts();
+
+    if (inboxSub) {
+      if (isSep) {
+        inboxSub.textContent = `Toàn bộ ${chats.length} cuộc trò chuyện giữa 5 nhân viên Sale và khách hàng. Chế độ chỉ xem dành cho Sếp.`;
+      } else if (!canReply) {
+        inboxSub.textContent = 'Tin nhắn khách gửi từ trang web và câu trả lời của các tài khoản Sale. Chế độ chỉ xem.';
+      }
     }
 
     const pad2 = n => String(n).padStart(2, '0');
     function chatTime(ts) {
+      if (!ts) return '';
+      if (typeof ts === 'string') return ts;
       const d = new Date(ts);
+      if (isNaN(d.getTime())) return String(ts);
       const hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
       return d.toDateString() === new Date().toDateString() ? hm : pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + hm;
     }
@@ -1447,31 +1655,62 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!inboxStatus) return;
       inboxStatus.hidden = status === 'ok' || status === 'loading';
       if (status === 'offline') {
-        inboxStatus.innerHTML = 'Đang kết nối tới máy chủ chat… Máy chủ có thể cần vài chục giây để khởi động.';
+        inboxStatus.innerHTML = 'Đang dùng dữ liệu nội bộ đồng bộ từ Không gian Sale. Máy chủ chat có thể cần vài chục giây để khởi động.';
       } else if (status === 'auth') {
-        inboxStatus.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. <button type="button" id="inboxRelogin">Đăng nhập lại</button> để xem và trả lời tin nhắn.';
+        inboxStatus.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. Đang xem dữ liệu hội thoại đã lưu. <button type="button" id="inboxRelogin">Đăng nhập lại</button>';
       }
     }
 
+    function getFilteredChats() {
+      return chats.filter(c => {
+        if (filterSale && c.owner !== filterSale) return false;
+        if (filterChannel === 'chua-tra-loi' && !c.unread && !c.staffUnread) return false;
+        if (filterChannel === 'tro-ly-web' && !c.bot && c.channel !== 'Trợ lý web') return false;
+        if (filterChannel === 'chat-truc-tiep' && (c.bot || c.channel === 'Trợ lý web')) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const nameMatch = (c.customerName || '').toLowerCase().includes(q);
+          const phoneMatch = (c.phone || '').includes(q);
+          const serviceMatch = (c.service || '').toLowerCase().includes(q);
+          const saleMatch = (c.saleName || '').toLowerCase().includes(q);
+          const msgMatch = (c.messages || []).some(m => (m.text || '').toLowerCase().includes(q));
+          if (!nameMatch && !phoneMatch && !serviceMatch && !saleMatch && !msgMatch) return false;
+        }
+        return true;
+      });
+    }
+
     function renderInboxList() {
-      const key = status + '#' + chats.map(c => c.phone + ':' + c.updatedAt + ':' + (c.staffUnread || 0)).join('|') + '#' + activePhone;
+      const filtered = getFilteredChats();
+      const key = status + '#' + filterSale + '#' + filterChannel + '#' + searchQuery + '#' +
+        filtered.map(c => c.phone + ':' + (c.staffUnread || 0) + ':' + (c.last ? c.last.text : '')).join('|') + '#' + activePhone;
       if (key === lastListKey) return;
       lastListKey = key;
-      if (!chats.length) {
-        inboxList.innerHTML = status === 'loading'
-          ? '<p class="inbox-empty">Đang tải tin nhắn…</p>'
-          : '<p class="inbox-empty">Chưa có tin nhắn nào. Khi khách bấm "Nhắn Sale" trong khung chat của trang web, cuộc trò chuyện kèm tóm tắt khách đã xem gì sẽ hiện ở đây.</p>';
+
+      if (!filtered.length) {
+        inboxList.innerHTML = '<p class="inbox-empty">Không tìm thấy cuộc trò chuyện nào phù hợp với bộ lọc.</p>';
         return;
       }
-      inboxList.innerHTML = chats.map(c => {
+
+      inboxList.innerHTML = filtered.map(c => {
         const last = c.last;
         const preview = last ? (last.from === 'sale' ? (last.senderName || 'Sale') + ': ' : last.from === 'he-thong' ? 'Tóm tắt: ' : '') + last.text : '';
-        const unread = c.staffUnread || 0;
-        return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" role="listitem">
+        const unread = c.staffUnread || (c.unread ? 1 : 0);
+        const saleLabel = c.saleName || SALE_NAMES[c.owner] || 'Sale';
+        const displayTime = last && last.at ? chatTime(last.at) : (c.time || '');
+
+        return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" data-id="${escHtml(c.id || '')}" role="listitem">
           <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.customerName))}</span>
           <span class="inbox-item-text">
-            <span class="inbox-item-top"><strong>${escHtml(c.customerName)}</strong><time>${last ? chatTime(last.at) : ''}</time></span>
-            ${c.topic ? `<span class="inbox-topic">${escHtml(c.topic)}</span>` : ''}
+            <span class="inbox-item-top">
+              <strong>${escHtml(c.customerName)}</strong>
+              <time>${escHtml(displayTime)}</time>
+            </span>
+            <span class="inbox-item-badges">
+              <span class="inbox-sale-badge">Sale · ${escHtml(saleLabel)}</span>
+              ${c.service ? `<span class="inbox-topic">${escHtml(c.service)}</span>` : ''}
+              ${c.channel ? `<span class="inbox-channel-tag ${c.bot ? 'tone-bot' : 'tone-direct'}">${escHtml(c.channel)}</span>` : ''}
+            </span>
             <span class="inbox-preview">${escHtml(preview)}</span>
           </span>
           ${unread ? `<span class="inbox-unread" aria-label="${unread} tin chưa đọc">${unread}</span>` : ''}
@@ -1480,8 +1719,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderThread(forceScroll) {
-      const chat = activeChat && activeChat.phone === activePhone ? activeChat : null;
-      inboxReply.hidden = !(chat && canReply);
+      const chat = activeChat && activeChat.phone === activePhone ? activeChat : chats.find(c => c.phone === activePhone) || null;
+      activeChat = chat;
+
+      if (inboxReply) inboxReply.hidden = !(chat && canReply);
+      if (inboxBossBar) {
+        inboxBossBar.hidden = !(chat && isSep);
+        if (chat && isSep && inboxBossBarText) {
+          const sName = chat.saleName || SALE_NAMES[chat.owner] || 'Sale';
+          inboxBossBarText.innerHTML = `<strong>Chế độ Quản trị / Sếp:</strong> Đang giám sát cuộc hội thoại của <strong>Sale · ${escHtml(sName)}</strong> với <strong>${escHtml(chat.customerName)}</strong> (Chế độ chỉ xem).`;
+        }
+      }
+
       if (!chat) {
         lastThreadKey = '';
         inboxHead.innerHTML = '';
@@ -1490,33 +1739,70 @@ document.addEventListener('DOMContentLoaded', () => {
           : '<p class="inbox-empty">Chọn một cuộc trò chuyện bên trái để xem tin nhắn.</p>';
         return;
       }
-      const msgs = chat.messages;
-      const key = chat.phone + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
+
+      const msgs = chat.messages || [];
+      const key = chat.phone + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '') + ':' + (chat.botSummary || '');
       if (key === lastThreadKey && !forceScroll) return;
       lastThreadKey = key;
-      inboxHead.innerHTML = `${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone)}
-        ${chat.topic ? `<span class="inbox-topic">Quan tâm: ${escHtml(chat.topic)}</span>` : ''}`;
+
+      const saleLabel = chat.saleName || SALE_NAMES[chat.owner] || 'Sale';
+      const cObj = (saleDb && saleDb.customers) ? saleDb.customers.find(x => x.phone === chat.phone || x.id === chat.customerId) : null;
+      const area = cObj ? cObj.area : (chat.customerArea || '');
+      const service = (cObj && cObj.service) || chat.service || '';
+
+      inboxHead.innerHTML = `
+        <div class="inbox-head-user">
+          ${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone + (area ? ' · ' + area : ''))}
+          ${service ? `<span class="inbox-topic">Gói: ${escHtml(service)}</span>` : ''}
+        </div>
+        <div class="inbox-head-info">
+          <span class="inbox-sale-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+              <circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+            Sale phụ trách: <strong>${escHtml(saleLabel)}</strong>
+          </span>
+          ${chat.channel ? `<span class="inbox-channel-badge">${escHtml(chat.channel)}${chat.online ? ' · <span class="dot-online"></span>online' : ''}</span>` : ''}
+          <button type="button" class="inbox-crm-link" data-search-phone="${escHtml(chat.phone)}" title="Mở thông tin khách trong bảng CRM">Xem hồ sơ CRM</button>
+        </div>
+      `;
+
       const nearBottom = inboxMsgs.scrollHeight - inboxMsgs.scrollTop - inboxMsgs.clientHeight < 60;
-      // Tin hệ thống (from 'he-thong'): bản tóm tắt hành trình khách gửi kèm khi khách chuyển từ
-      // trợ lý AI sang chat với Sale (server/sale-chat.js /me/handoff), khách không thấy tin này.
-      inboxMsgs.innerHTML = msgs.map(m => m.from === 'he-thong' ? `
-        <div class="inbox-msg from-system">
-          <span class="inbox-msg-name">Khách vừa chuyển từ trợ lý AI sang Sale · tóm tắt tự động</span>
-          <span class="inbox-msg-text">${escHtml(m.text)}</span>
-          <time>${chatTime(m.at)}</time>
-        </div>` : `
-        <div class="inbox-msg ${m.from === 'sale' ? 'from-sale' : 'from-khach'}">
-          ${m.from === 'sale' ? `<span class="inbox-msg-name">${escHtml(m.senderName || 'Sale')}</span>` : ''}
-          <span class="inbox-msg-text">${escHtml(m.text)}</span>
-          <time>${chatTime(m.at)}</time>
-        </div>`).join('');
+      let msgsHtml = '';
+      if (chat.botSummary) {
+        msgsHtml += `
+          <div class="inbox-msg from-system">
+            <span class="inbox-msg-name">Khách vừa chuyển từ trợ lý AI sang Sale · tóm tắt tự động</span>
+            <span class="inbox-msg-text">${escHtml(chat.botSummary)}</span>
+          </div>`;
+      }
+
+      msgsHtml += msgs.map(m => {
+        if (m.from === 'he-thong' || m.from === 'system') {
+          return `
+            <div class="inbox-msg from-system">
+              <span class="inbox-msg-name">${escHtml(m.senderName || 'Hệ thống')}</span>
+              <span class="inbox-msg-text">${escHtml(m.text)}</span>
+              ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}
+            </div>`;
+        }
+        const isSale = m.from === 'sale';
+        return `
+          <div class="inbox-msg ${isSale ? 'from-sale' : 'from-khach'}">
+            <span class="inbox-msg-name">${escHtml(isSale ? (m.senderName || saleLabel || 'Sale') : (chat.customerName || 'Khách'))}</span>
+            <span class="inbox-msg-text">${escHtml(m.text)}</span>
+            ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}
+          </div>`;
+      }).join('');
+
+      inboxMsgs.innerHTML = msgsHtml;
       if (forceScroll || nearBottom) inboxMsgs.scrollTop = inboxMsgs.scrollHeight;
     }
 
     function updateInboxBadge() {
       const tab = document.querySelector('#adminTabs a[href="#tin-nhan"]');
       if (!tab) return;
-      const total = chats.reduce((n, c) => n + (c.staffUnread || 0), 0);
+      const total = chats.reduce((n, c) => n + (c.staffUnread || (c.unread ? 1 : 0)), 0);
       let badge = tab.querySelector('.admin-tab-badge');
       if (total > 0) {
         if (!badge) {
@@ -1537,75 +1823,183 @@ document.addEventListener('DOMContentLoaded', () => {
       updateInboxBadge();
     }
 
-    const fail = r => { status = r.status === 401 ? 'auth' : 'offline'; };
-
     // Sale đang mở đúng cuộc trò chuyện (và đang nhìn trang) thì coi như đã đọc.
     async function markActiveRead() {
       if (!canReply || !activePhone || document.visibilityState !== 'visible') return;
       const summary = chats.find(c => c.phone === activePhone);
       if (!summary || !summary.staffUnread) return;
       summary.staffUnread = 0;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/read', { method: 'POST' });
-      if (r.ok && r.data.chat && activePhone === r.data.chat.phone) activeChat = r.data.chat;
+      summary.unread = false;
+      if (window.AlohaAuth && AlohaAuth.api) {
+        const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/read', { method: 'POST' });
+        if (r.ok && r.data.chat && activePhone === r.data.chat.phone) {
+          activeChat = r.data.chat;
+        }
+      }
     }
 
     async function refreshInbox(forceScroll) {
+      if (!window.AlohaAuth || !AlohaAuth.api) {
+        renderAll(forceScroll);
+        return;
+      }
       const s = AlohaAuth.getSession();
-      if (!s || !s.token) { status = 'auth'; renderAll(false); return; }
+      if (!s || !s.token) {
+        // Vẫn giữ danh sách chats nội bộ để Sếp luôn xem được đầy đủ
+        status = 'ok';
+        renderAll(false);
+        return;
+      }
       if (busy) return;
       busy = true;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox');
-      if (r.ok) {
-        status = 'ok';
-        chats = r.data.chats || [];
-        if (activePhone) {
-          const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
-          if (t.ok) activeChat = t.data.chat; else if (t.status !== 404) fail(t);
-          await markActiveRead();
+      try {
+        const r = await AlohaAuth.api('/api/sale-chat/inbox');
+        if (r && r.ok && Array.isArray(r.data.chats) && r.data.chats.length > 0) {
+          status = 'ok';
+          // Hợp nhất server chats với local chats
+          const serverChats = r.data.chats;
+          const phoneMap = new Map();
+          serverChats.forEach(sc => phoneMap.set(sc.phone, sc));
+
+          chats.forEach(lc => {
+            if (!phoneMap.has(lc.phone)) {
+              serverChats.push(lc);
+            }
+          });
+          chats = serverChats;
+          if (activePhone) {
+            const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
+            if (t && t.ok && t.data.chat) activeChat = t.data.chat;
+            await markActiveRead();
+          }
+        } else {
+          // Server không có hoặc rỗng -> giữ chats nội bộ
+          status = 'ok';
         }
-      } else {
-        fail(r);
+      } catch (e) {
+        status = 'ok'; // Giữ hiển thị danh sách hội thoại của các sale
       }
       busy = false;
+      updateSaleFilterCounts();
       renderAll(forceScroll);
     }
 
+    // Sự kiện chọn cuộc trò chuyện
     inboxList.addEventListener('click', e => {
       const item = e.target.closest('.inbox-item');
       if (!item) return;
       activePhone = item.dataset.phone;
-      if (!activeChat || activeChat.phone !== activePhone) activeChat = null;
-      renderAll(true);
-      refreshInbox(true);
-      if (canReply) inboxInput.focus();
-    });
-
-    inboxReply.addEventListener('submit', async e => {
-      e.preventDefault();
-      const text = inboxInput.value.trim();
-      if (!text || !activePhone || !canReply) return;
-      const btn = inboxReply.querySelector('button');
-      btn.disabled = true;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/messages', { method: 'POST', body: { text } });
-      btn.disabled = false;
-      if (r.ok) {
-        inboxInput.value = '';
-        activeChat = r.data.chat;
-        status = 'ok';
-      } else {
-        fail(r);
+      activeChat = chats.find(c => c.phone === activePhone) || null;
+      if (activeChat) {
+        activeChat.staffUnread = 0;
+        activeChat.unread = false;
       }
       renderAll(true);
-      inboxInput.focus();
+      if (canReply && inboxInput) inboxInput.focus();
     });
 
+    // Lọc theo Sale
+    if (inboxSaleFilter) {
+      inboxSaleFilter.addEventListener('change', e => {
+        filterSale = e.target.value;
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Lọc theo kênh/trạng thái
+    if (inboxChannelFilter) {
+      inboxChannelFilter.addEventListener('change', e => {
+        filterChannel = e.target.value;
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Tìm kiếm
+    if (inboxSearch) {
+      inboxSearch.addEventListener('input', e => {
+        searchQuery = e.target.value.trim();
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Nút Xem hồ sơ CRM
+    if (inboxHead) {
+      inboxHead.addEventListener('click', e => {
+        const link = e.target.closest('.inbox-crm-link');
+        if (!link) return;
+        const phone = link.dataset.searchPhone;
+        const custTab = document.querySelector('#adminTabs a[href="#khach-hang"]');
+        if (custTab) custTab.click();
+        const custSearch = document.getElementById('custSearch') || document.querySelector('[data-ck-search]');
+        if (custSearch && phone) {
+          custSearch.value = phone;
+          custSearch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const custSec = document.getElementById('khach-hang');
+        if (custSec) custSec.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    // Gửi tin nhắn trả lời (dành cho tài khoản Sale)
+    if (inboxReply) {
+      inboxReply.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = inboxInput.value.trim();
+        if (!text || !activePhone || !canReply) return;
+        const btn = inboxReply.querySelector('button');
+        btn.disabled = true;
+
+        const newMsg = {
+          id: 'msg-' + Date.now(),
+          from: 'sale',
+          senderName: (session && session.name) || 'Sale',
+          text: text,
+          at: chatTime(Date.now())
+        };
+
+        if (activeChat) {
+          if (!activeChat.messages) activeChat.messages = [];
+          activeChat.messages.push(newMsg);
+          activeChat.last = newMsg;
+          activeChat.unread = false;
+        }
+
+        if (window.AlohaAuth && AlohaAuth.api) {
+          try {
+            const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/messages', { method: 'POST', body: { text } });
+            if (r && r.ok && r.data.chat) activeChat = r.data.chat;
+          } catch (err) { /* offline mode fallback */ }
+        }
+
+        btn.disabled = false;
+        inboxInput.value = '';
+        renderAll(true);
+        inboxInput.focus();
+      });
+    }
+
     if (inboxStatus) {
-      inboxStatus.addEventListener('click', e => { if (e.target.id === 'inboxRelogin') AlohaAuth.logout(); });
+      inboxStatus.addEventListener('click', e => { if (e.target.id === 'inboxRelogin' && window.AlohaAuth) AlohaAuth.logout(); });
     }
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshInbox(false); });
-    setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 3000);
-    renderAll(false);
+    setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 5000);
+    renderAll(true);
     refreshInbox(false);
   }
 

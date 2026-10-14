@@ -152,9 +152,6 @@
 
     <div class="admin-user">
       <span class="admin-user-info">Xin chào, <strong id="userName">—</strong><br><span id="userRole"></span></span>
-      <a href="sale.html" class="btn btn-outline btn-sm" id="adminSaleWorkspaceBtn"
-        style="width:100%; text-decoration:none; justify-content:center; display:none; margin-bottom:6px; font-size:12.5px;"
-        data-roles="sep">Không gian Sale &rarr;</a>
       <button class="admin-logout" onclick="AlohaAuth.logout()">Đăng xuất</button>
     </div>
   </aside>
@@ -264,22 +261,9 @@
 
       <!-- Block Sếp: Hiệu suất Đội ngũ Sale & Duyệt chuyển giao khách (Đồng bộ dữ liệu Sale) -->
       <section class="admin-section" id="sale-team-section" data-roles="sep">
-        <div
-          style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-          <div>
-            <h2 style="margin-bottom:2px;">Hiệu suất Đội ngũ Sale</h2>
-            <p class="sub" style="margin-bottom:0;">Theo dõi chỉ tiêu doanh số, tốc độ phản hồi và khối lượng khách của
-              5 nhân viên Sale.</p>
-          </div>
-          <a href="sale.html" class="btn btn-primary btn-sm"
-            style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" style="width:15px;height:15px;">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
-            </svg>
-            Mở Không gian Sale
-          </a>
-        </div>
+        <h2>Hiệu suất Đội ngũ Sale</h2>
+        <p class="sub">Theo dõi chỉ tiêu doanh số, tốc độ phản hồi và khối lượng khách của
+          5 nhân viên Sale.</p>
         <div class="sale-perf-grid" id="salePerfGrid"></div>
 
         <!-- Yêu cầu chuyển giao khách chờ Sếp duyệt -->
@@ -307,11 +291,55 @@
         <p class="sub" id="inboxSub">Khách nhắn từ trang web hiện ở đây, mọi tài khoản Sale dùng chung hộp thư này. Bấm
           vào một cuộc trò chuyện để đọc và trả lời.</p>
         <div class="inbox-status" id="inboxStatus" role="status" hidden></div>
+        <div class="data-table-toolbar inbox-toolbar cust-toolbar">
+          <label class="cust-field cust-field-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M20 20l-4.2-4.2" />
+            </svg>
+            <input type="text" id="inboxSearch" placeholder="Tìm theo tên khách, SĐT hoặc nội dung tin..."
+              aria-label="Tìm cuộc hội thoại">
+          </label>
+          <label class="cust-field" id="inboxSaleFilterWrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="7" r="4" />
+              <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            </svg>
+            <select id="inboxSaleFilter" aria-label="Lọc theo Sale phụ trách">
+              <option value="">Tất cả Sale phụ trách (18)</option>
+              <option value="ngoc-anh">Sale · Ngọc Anh</option>
+              <option value="minh-thu">Sale · Minh Thư</option>
+              <option value="thu-ha">Sale · Thu Hà</option>
+              <option value="quoc-bao">Sale · Quốc Bảo</option>
+              <option value="hai-yen">Sale · Hải Yến</option>
+            </select>
+          </label>
+          <label class="cust-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 5h16l-6.2 7.4V18l-3.6 1.8v-7.4z" />
+            </svg>
+            <select id="inboxChannelFilter" aria-label="Lọc theo trạng thái">
+              <option value="">Tất cả trạng thái</option>
+              <option value="chua-tra-loi">Chưa trả lời</option>
+              <option value="tro-ly-web">Từ Trợ lý AI (Web)</option>
+              <option value="chat-truc-tiep">Chat trực tiếp</option>
+            </select>
+          </label>
+        </div>
         <div class="inbox">
           <div class="inbox-list" id="inboxList" role="list"></div>
           <div class="inbox-thread">
             <div class="inbox-thread-head" id="inboxHead"></div>
             <div class="inbox-msgs" id="inboxMsgs" aria-live="polite"></div>
+            <div class="inbox-boss-bar" id="inboxBossBar" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span id="inboxBossBarText">Chế độ Quản trị / Sếp: Chế độ chỉ xem toàn bộ cuộc trò chuyện của các tài khoản Sale với khách hàng.</span>
+            </div>
             <form class="inbox-reply" id="inboxReply" hidden>
               <input type="text" id="inboxInput" placeholder="Nhập câu trả lời cho khách..." autocomplete="off"
                 aria-label="Câu trả lời cho khách">
@@ -323,56 +351,13 @@
           hiện ở đây, trang tự cập nhật vài giây một lần.</p>
       </section>
 
-      <!-- Block Sếp + Sale: Khách hàng/CRM (nội dung bảng khác nhau theo quyền, cùng 1 nguồn dữ liệu) -->
+      <!-- Block Sếp + Sale: Khách hàng. Thiết kế giống trang Khách hàng của Không gian Sale
+           (2 kiểu xem Bảng giai đoạn / Danh sách, người dùng yêu cầu 2026-10-12). Thanh lọc,
+           bảng và hồ sơ do crm/js/admin.js dựng vào #custView từ crm/js/sale-data.js. -->
       <section class="admin-section" id="khach-hang" data-roles="sep sale">
         <h2>Khách hàng / CRM</h2>
-        <p class="sub" id="custSectionSub">Toàn bộ hồ sơ khách hàng, tìm kiếm và lọc theo trạng thái.</p>
-        <div class="data-table-toolbar cust-toolbar">
-          <label class="cust-field cust-field-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              aria-hidden="true">
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="M20 20l-4.2-4.2" />
-            </svg>
-            <input type="text" id="custSearch" placeholder="Tìm theo tên hoặc SĐT..."
-              aria-label="Tìm khách hàng theo tên hoặc SĐT">
-          </label>
-          <label class="cust-field">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 5h16l-6.2 7.4V18l-3.6 1.8v-7.4z" />
-            </svg>
-            <select id="custFilter" aria-label="Lọc theo trạng thái">
-              <option value="">Tất cả trạng thái</option>
-              <option value="quan-tam">Khách quan tâm / Mới</option>
-              <option value="tu-van">Đang tư vấn / Báo giá</option>
-              <option value="dat-lich">Đã đặt lịch / Chờ cọc</option>
-              <option value="da-chup">Đã chụp</option>
-              <option value="hoan-thanh">Hoàn thành / Khách cũ</option>
-            </select>
-          </label>
-          <label class="cust-field" id="custSaleFilterWrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="7" r="4" />
-              <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-            </svg>
-            <select id="custSaleFilter" aria-label="Lọc theo Sale phụ trách">
-              <option value="">Tất cả Sale phụ trách</option>
-              <option value="ngoc-anh">Sale · Ngọc Anh</option>
-              <option value="minh-thu">Sale · Minh Thư</option>
-              <option value="thu-ha">Sale · Thu Hà</option>
-              <option value="quoc-bao">Sale · Quốc Bảo</option>
-              <option value="hai-yen">Sale · Hải Yến</option>
-            </select>
-          </label>
-        </div>
-        <div class="data-table-wrap">
-          <table class="data-table" id="custTable">
-            <thead id="custTableHead"></thead>
-            <tbody id="custTableBody"></tbody>
-          </table>
-        </div>
+        <p class="sub" id="custSectionSub">Toàn bộ khách của các sale (lấy từ Không gian Sale). Sếp chỉ xem; đổi giai đoạn, gọi, nhắn do sale phụ trách làm bên Không gian Sale.</p>
+        <div class="ck" id="custView"></div>
       </section>
 
       <!-- Block Sếp + Sale: Lịch hẹn -->
