@@ -938,3 +938,112 @@
 .kanban-msg.from-ai .kanban-msg-name { color: #5b4bb7; }
 .kanban-msg-tag { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 1px 8px; border-radius: var(--radius-pill); background: #fff4e0; color: #b26a00; }
 .kanban-advance-hint { font-size: 12px; color: #b26a00; margin: 6px 0 0; text-align: center; }
+
+/* ---------------------------------- Hiệu suất Đội ngũ Sale trên Dashboard Sếp ---------------------------------- */
+.sale-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.sale-perf-card {
+  background: var(--white);
+  border: 1px solid var(--pink-100);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.sale-perf-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+.sale-perf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sale-perf-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--pink-100);
+  color: var(--pink-700);
+  flex-shrink: 0;
+}
+.sale-perf-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--navy-900);
+}
+.sale-perf-role {
+  font-size: 11.5px;
+  color: var(--navy-500);
+}
+.sale-perf-track {
+  background: var(--pink-50);
+  border-radius: var(--radius-pill);
+  height: 8px;
+  overflow: hidden;
+}
+.sale-perf-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--pink-500), var(--pink-600));
+  transition: width 0.8s ease;
+}
+.sale-perf-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--navy-500);
+}
+.sale-perf-stat-row strong {
+  color: var(--navy-900);
+}
+.sale-perf-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+/* Yêu cầu chuyển giao khách chờ duyệt */
+.sale-transfer-card {
+  background: var(--white);
+  border: 1px solid var(--pink-100);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-soft);
+  flex-wrap: wrap;
+}
+.sale-transfer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sale-transfer-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--navy-900);
+}
+.sale-transfer-desc {
+  font-size: 12px;
+  color: var(--navy-500);
+}
+

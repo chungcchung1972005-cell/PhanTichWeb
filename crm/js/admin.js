@@ -8,6 +8,48 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('userName').textContent = (session && session.name) || 'Người dùng';
   document.getElementById('userRole').textContent = AlohaAuth.roleLabel(role);
 
+  const adminSaleWorkspaceBtn = document.getElementById('adminSaleWorkspaceBtn');
+  if (adminSaleWorkspaceBtn && role === 'sep') {
+    adminSaleWorkspaceBtn.style.display = 'inline-flex';
+  }
+
+  // ------------------------------- Dữ liệu đồng bộ từ Không gian Sale (crm/js/sale-data.js) -------------------------------
+  const saleDb = window.ALOHA_SALE_DATA ? JSON.parse(JSON.stringify(window.ALOHA_SALE_DATA)) : null;
+  const SALE_NAMES = {
+    'ngoc-anh': 'Ngọc Anh',
+    'minh-thu': 'Minh Thư',
+    'thu-ha': 'Thu Hà',
+    'quoc-bao': 'Quốc Bảo',
+    'hai-yen': 'Hải Yến'
+  };
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const dateKey = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  const parseKey = k => { const parts = k.split('-').map(Number); return new Date(parts[0], parts[1] - 1, parts[2]); };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+
+  if (saleDb && saleDb.now) {
+    const TODAY = dateKey(new Date());
+    const shiftDays = Math.round((parseKey(TODAY) - parseKey(saleDb.now.slice(0, 10))) / 864e5);
+    if (shiftDays) {
+      const baseYear = Number(saleDb.now.slice(0, 4));
+      const iso = (s) => s.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => dateKey(addDays(new Date(+y, mo - 1, +d), shiftDays)));
+      const dm = (s) => s.replace(/\b(\d{2})\/(\d{2})(\/(\d{4}))?\b(?!\s*ảnh)/g, (m, d, mo, _, y) => {
+        if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+        const x = addDays(new Date(y ? +y : baseYear, mo - 1, +d), shiftDays);
+        return pad2(x.getDate()) + '/' + pad2(x.getMonth() + 1) + (y ? '/' + x.getFullYear() : '');
+      });
+      const walk = (o) => {
+        Object.keys(o).forEach(k => {
+          const v = o[k];
+          if (typeof v === 'string') o[k] = dm(iso(v));
+          else if (v && typeof v === 'object') walk(v);
+        });
+      };
+      ['customers', 'appointments', 'deposits', 'unmatched', 'orders', 'conversations', 'transfers', 'sales'].forEach(k => walk(saleDb[k]));
+    }
+  }
+
   // ------------------------------- Ẩn/hiện tab + section theo đúng quyền -------------------------------
   function allowedForRole(el) {
     const roles = (el.dataset.roles || '').split(' ').filter(Boolean);
@@ -262,7 +304,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Khách hàng/CRM (badge-quan-tam/tu-van/dat-lich/da-chup/hoan-thanh) và ở
   // KPI card phía trên - để phễu đọc thành 1 dải màu chuyển tiếp thay vì
   // thanh hồng đơn sắc lặp lại 5 lần.
-  const FUNNEL_DATA = [
+  const countMoi = saleDb ? saleDb.customers.filter(c => c.stage === 'moi').length : 320;
+  const countTuVan = saleDb ? saleDb.customers.filter(c => c.stage === 'tu-van' || c.stage === 'bao-gia').length : 210;
+  const countDatLich = saleDb ? saleDb.customers.filter(c => c.stage === 'cho-coc' || c.stage === 'da-chot').length : 150;
+  const countDaChup = saleDb ? saleDb.customers.filter(c => (c.status && c.status.text === 'Đã chụp') || (c.status && c.status.tone === 'green' && c.status.text.includes('chụp'))).length : 96;
+  const countHoanThanh = saleDb ? saleDb.customers.filter(c => (c.status && c.status.text === 'Khách cũ') || (c.tags && c.tags.includes('Khách cũ'))).length : 88;
+
+  const FUNNEL_DATA = saleDb ? [
+    { name: 'Khách quan tâm', val: countMoi, color: '#4148c9' },
+    { name: 'Đã tư vấn', val: countTuVan, color: '#b06a00' },
+    { name: 'Đã đặt lịch', val: countDatLich, color: 'var(--pink-600)' },
+    { name: 'Đã chụp', val: countDaChup, color: 'var(--blue-600)' },
+    { name: 'Hoàn thành', val: countHoanThanh, color: '#1a9d5c' }
+  ] : [
     { name: 'Khách quan tâm', val: 320, color: '#4148c9' },
     { name: 'Đã tư vấn', val: 210, color: '#b06a00' },
     { name: 'Đã đặt lịch', val: 150, color: 'var(--pink-600)' },
@@ -271,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
   const funnelWrap = document.getElementById('funnelChart');
   if (funnelWrap) {
-    const funnelMax = FUNNEL_DATA[0].val;
+    const funnelMax = Math.max(...FUNNEL_DATA.map(d => d.val), 1);
     FUNNEL_DATA.forEach(d => {
       const pct = Math.round((d.val / funnelMax) * 100);
       const row = document.createElement('div');
@@ -303,6 +357,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // phải khai báo lại danh sách số ở 2 nơi rồi lệch nhau.
   const kpiGrid = document.querySelector('#kpi .kpi-grid');
   if (kpiGrid) {
+    if (saleDb && Array.isArray(saleDb.customers)) {
+      const qCards = [
+        { sel: '.kpi-quan-tam', val: countMoi },
+        { sel: '.kpi-tu-van', val: countTuVan },
+        { sel: '.kpi-dat-lich', val: countDatLich },
+        { sel: '.kpi-da-chup', val: countDaChup },
+        { sel: '.kpi-hoan-thanh', val: countHoanThanh }
+      ];
+      qCards.forEach(c => {
+        const num = kpiGrid.querySelector(c.sel + ' .num');
+        if (num) num.textContent = c.val;
+      });
+    }
     const kpiCards = Array.from(kpiGrid.querySelectorAll('.kpi-card'));
     kpiCards.forEach(card => {
       const numEl = card.querySelector('.num');
@@ -323,18 +390,157 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ------------------------------- Hiệu suất Đội ngũ Sale & Duyệt chuyển giao (chỉ Sếp) -------------------------------
+  const salePerfGrid = document.getElementById('salePerfGrid');
+  if (salePerfGrid && saleDb && saleDb.sales) {
+    salePerfGrid.innerHTML = saleDb.sales.map(s => {
+      const pct = Math.min(100, Math.round(s.achieved / s.target * 100));
+      const custCount = (saleDb.customers || []).filter(c => c.owner === s.id).length;
+      const initials = customerInitials(s.name);
+      const isLeave = s.leave && s.leave.from;
+      return `
+        <div class="sale-perf-card">
+          <div class="sale-perf-head">
+            <span class="sale-perf-av">${escHtml(initials)}</span>
+            <div style="flex:1; min-width:0;">
+              <div class="sale-perf-name">${escHtml(s.name)}</div>
+              <div class="sale-perf-role">SĐT: ${escHtml(s.phone)} · Phản hồi ~${s.responseMin}p</div>
+            </div>
+            <span class="badge ${isLeave ? 'badge-tu-van' : 'badge-hoan-thanh'} sale-perf-badge">${isLeave ? 'Nghỉ phép' : 'Đang trực'}</span>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+              <span>Doanh số: <strong>${s.achieved}tr</strong> / ${s.target}tr</span>
+              <strong style="color:var(--pink-600);">${pct}%</strong>
+            </div>
+            <div class="sale-perf-track">
+              <div class="sale-perf-fill" style="width:${pct}%;"></div>
+            </div>
+          </div>
+          <div class="sale-perf-stat-row">
+            <span>Khách đang phụ trách:</span>
+            <strong>${custCount} khách</strong>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const transferListEl = document.getElementById('saleTransferList');
+  const transferCountEl = document.getElementById('saleTransferPendingCount');
+  if (transferListEl && saleDb && saleDb.transfers) {
+    function renderTransferApprovals() {
+      const pending = saleDb.transfers.filter(t => t.status === 'cho-duyet');
+      if (transferCountEl) transferCountEl.textContent = pending.length + ' yêu cầu chờ duyệt';
+
+      if (!pending.length) {
+        transferListEl.innerHTML = '<p style="font-size:13px; color:var(--navy-500); margin:6px 0;">Hiện không có yêu cầu chuyển giao nào chờ quản lý duyệt.</p>';
+        return;
+      }
+
+      transferListEl.innerHTML = pending.map(t => {
+        const fromName = SALE_NAMES[t.from] || t.from;
+        const toName = SALE_NAMES[t.to] || t.to;
+        return `
+          <div class="sale-transfer-card">
+            <div class="sale-transfer-info">
+              <span class="sale-transfer-title">${escHtml(t.names ? t.names.join(', ') : 'Khách hàng')}</span>
+              <span class="sale-transfer-desc">
+                Từ: <strong>${escHtml(fromName)}</strong> &rarr; Đến: <strong>${escHtml(toName)}</strong> · Lý do: <em>${escHtml(t.reason)}</em> · Gửi lúc: ${escHtml(t.createdAt)}
+              </span>
+              ${t.note ? `<span style="font-size:12px; color:var(--navy-700); margin-top:3px;">"${escHtml(t.note)}"</span>` : ''}
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary btn-sm btn-approve-transfer" data-tr-id="${escHtml(t.id)}">Duyệt chuyển giao</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      transferListEl.querySelectorAll('.btn-approve-transfer').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.trId;
+          const tr = saleDb.transfers.find(x => x.id === id);
+          if (tr) {
+            tr.status = 'cho-nhan';
+            tr.approvedAt = new Date().toLocaleString('vi-VN');
+            alert('Đã duyệt chuyển giao khách: ' + (tr.names ? tr.names.join(', ') : '') + ' sang cho ' + (SALE_NAMES[tr.to] || tr.to) + ' thành công!');
+            renderTransferApprovals();
+          }
+        });
+      });
+    }
+    renderTransferApprovals();
+  }
+
   // ------------------------------- Khách hàng / CRM (1 nguồn dữ liệu, 2 kiểu hiển thị) -------------------------------
-  // Sếp: xem đầy đủ hồ sơ. Sale: chỉ xem phần cần để chăm sóc khách, không có
-  // trạng thái nội bộ dạng badge riêng của vận hành, gộp lịch sử ngắn gọn.
-  const CUSTOMERS = [
-    { name: 'Khách demo 01', phone: '0987 xxx 321', source: 'Facebook', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '12/09/2026', note: 'Quan tâm gói Newborn.', saleName: 'Sale demo' },
-    { name: 'Khách demo 02', phone: '0912 xxx 456', source: 'Giới thiệu', status: 'da-chup', label: 'Đã chụp', badge: 'badge-da-chup', created: '05/09/2026', note: 'Hỏi thêm về album in.', saleName: 'Sale demo' },
-    { name: 'Khách demo 03', phone: '0977 xxx 789', source: 'TikTok', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '18/09/2026', note: 'Mới để lại số điện thoại.', saleName: '' },
-    { name: 'Khách demo 04', phone: '0901 xxx 234', source: 'Website', status: 'hoan-thanh', label: 'Hoàn thành', badge: 'badge-hoan-thanh', created: '20/08/2026', note: 'Đã nhận ảnh, hẹn chụp 6 tháng tuổi.', saleName: 'Sale demo' },
-    { name: 'Khách demo 05', phone: '0933 xxx 567', source: 'Instagram', status: 'tu-van', label: 'Đã tư vấn', badge: 'badge-tu-van', created: '15/09/2026', note: 'Đang cân nhắc gói Gia đình.', saleName: 'Sale demo' },
-    { name: 'Khách demo 06', phone: '0966 xxx 890', source: 'Hotline', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '10/09/2026', note: 'Chụp Bé lớn, concept Hàn Quốc.', saleName: 'Sale demo' },
-    { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.', saleName: '' }
-  ];
+  let CUSTOMERS = [];
+  if (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length) {
+    CUSTOMERS = saleDb.customers.map(c => {
+      let status = 'dat-lich';
+      let label = 'Đang phục vụ';
+      let badge = 'badge-dat-lich';
+
+      if (c.stage === 'moi') {
+        status = 'quan-tam'; label = 'Khách mới'; badge = 'badge-quan-tam';
+      } else if (c.stage === 'tu-van') {
+        status = 'tu-van'; label = 'Đang tư vấn'; badge = 'badge-tu-van';
+      } else if (c.stage === 'bao-gia') {
+        status = 'tu-van'; label = 'Đã báo giá'; badge = 'badge-tu-van';
+      } else if (c.stage === 'cho-coc') {
+        status = 'dat-lich'; label = 'Chờ đặt cọc'; badge = 'badge-dat-lich';
+      } else if (c.stage === 'da-chot') {
+        status = 'dat-lich'; label = 'Đã chốt / Đã cọc'; badge = 'badge-dat-lich';
+      } else {
+        const stText = (c.status && c.status.text) || '';
+        if (stText === 'Đã chụp' || (c.status && c.status.tone === 'green' && stText.includes('chụp'))) {
+          status = 'da-chup'; label = 'Đã chụp'; badge = 'badge-da-chup';
+        } else if (stText === 'Khách cũ' || (c.tags && c.tags.includes('Khách cũ'))) {
+          status = 'hoan-thanh'; label = 'Hoàn thành / Khách cũ'; badge = 'badge-hoan-thanh';
+        } else if (c.lost) {
+          status = 'huy'; label = 'Không mua (' + (c.lost.reason || 'Dừng') + ')'; badge = 'badge-huy';
+        } else {
+          status = 'dat-lich'; label = stText || 'Đang phục vụ'; badge = 'badge-dat-lich';
+        }
+      }
+
+      const noteParts = [];
+      if (c.service) noteParts.push(c.service);
+      if (c.area) noteParts.push(c.area);
+      if (c.baby) {
+        const b = c.baby;
+        noteParts.push('Bé: ' + (b.name ? b.name + ' · ' : '') + (b.kind === 'due' ? 'Dự sinh ' + b.date : 'Sinh ' + b.date));
+      }
+      if (c.note) noteParts.push(c.note);
+      if (c.status && c.status.text && !noteParts.includes(c.status.text)) noteParts.push(c.status.text);
+
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        source: c.source || 'Website',
+        status: status,
+        label: label,
+        badge: badge,
+        created: c.since || 'Hôm nay',
+        note: noteParts.join(' · ') || 'Chưa có ghi chú',
+        saleName: SALE_NAMES[c.owner] || c.owner || 'Chưa phân công',
+        owner: c.owner || '',
+        service: c.service || '',
+        area: c.area || ''
+      };
+    });
+  } else {
+    CUSTOMERS = [
+      { name: 'Khách demo 01', phone: '0987 xxx 321', source: 'Facebook', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '12/09/2026', note: 'Quan tâm gói Newborn.', saleName: 'Sale demo' },
+      { name: 'Khách demo 02', phone: '0912 xxx 456', source: 'Giới thiệu', status: 'da-chup', label: 'Đã chụp', badge: 'badge-da-chup', created: '05/09/2026', note: 'Hỏi thêm về album in.', saleName: 'Sale demo' },
+      { name: 'Khách demo 03', phone: '0977 xxx 789', source: 'TikTok', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '18/09/2026', note: 'Mới để lại số điện thoại.', saleName: '' },
+      { name: 'Khách demo 04', phone: '0901 xxx 234', source: 'Website', status: 'hoan-thanh', label: 'Hoàn thành', badge: 'badge-hoan-thanh', created: '20/08/2026', note: 'Đã nhận ảnh, hẹn chụp 6 tháng tuổi.', saleName: 'Sale demo' },
+      { name: 'Khách demo 05', phone: '0933 xxx 567', source: 'Instagram', status: 'tu-van', label: 'Đã tư vấn', badge: 'badge-tu-van', created: '15/09/2026', note: 'Đang cân nhắc gói Gia đình.', saleName: 'Sale demo' },
+      { name: 'Khách demo 06', phone: '0966 xxx 890', source: 'Hotline', status: 'dat-lich', label: 'Đã đặt lịch', badge: 'badge-dat-lich', created: '10/09/2026', note: 'Chụp Bé lớn, concept Hàn Quốc.', saleName: 'Sale demo' },
+      { name: 'Khách demo 07', phone: '0944 xxx 112', source: 'Đối tác spa bầu', status: 'quan-tam', label: 'Khách quan tâm', badge: 'badge-quan-tam', created: '19/09/2026', note: 'Chưa liên hệ lại.', saleName: '' }
+    ];
+  }
 
   // Avatar chữ viết tắt: tính lại từ tên MỖI LẦN vẽ bảng, không lưu riêng, nên
   // đổi tên khách là chữ viết tắt tự đổi theo, không ai phải nhập avatar tay.
@@ -406,7 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSep = role === 'sep';
 
     if (isSep) {
-      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ghi chú</th><th>Sale phụ trách</th></tr>';
+      document.getElementById('custSectionSub').textContent = 'Toàn bộ ' + CUSTOMERS.length + ' hồ sơ khách hàng đồng bộ từ đội ngũ Sale. Tìm kiếm và lọc theo trạng thái hoặc nhân viên phụ trách.';
+      head.innerHTML = '<tr><th>Tên khách hàng</th><th>SĐT</th><th>Nguồn khách</th><th>Trạng thái</th><th>Ngày tạo / Giai đoạn</th><th>Ghi chú & Dịch vụ</th><th>Sale phụ trách</th></tr>';
     } else {
       document.getElementById('custSectionSub').textContent = 'Thông tin khách hàng để chăm sóc và tư vấn. Không hiển thị dữ liệu thanh toán/doanh thu.';
       head.innerHTML = '<tr><th>Liên hệ</th><th>Nguồn khách</th><th>Lịch sử lịch hẹn</th><th>Ghi chú tư vấn</th><th>Sale phụ trách</th></tr>';
@@ -420,13 +627,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isSep) {
         body.innerHTML = list.map(c => `
           <tr>
-            <td>${custPerson(c, CUST_STAGE[c.status] || '')}</td>
+            <td>${custPerson(c, CUST_STAGE[c.status] || (c.service ? 'Gói ' + c.service : 'Khách hàng'))}</td>
             <td><span class="cust-meta">${CUST_ICON.phone}${escHtml(c.phone)}</span></td>
             <td>${custSource(c.source)}</td>
             <td><span class="badge badge-dot ${c.badge}">${c.label}</span></td>
             <td><span class="cust-meta">${CUST_ICON.calendar}${c.created}</span></td>
             <td class="cust-note">${escHtml(c.note)}</td>
-            <td class="cust-sale">${escHtml(c.saleName || 'Chưa phân công')}</td>
+            <td class="cust-sale"><strong style="color:var(--navy-900);">${escHtml(c.saleName || 'Chưa phân công')}</strong></td>
           </tr>`).join('');
       } else {
         // Sale: cột Liên hệ gộp tên + SĐT, nên dòng phụ dưới tên là SĐT
@@ -445,15 +652,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyCustomerFilters() {
       const q = document.getElementById('custSearch').value.trim().toLowerCase();
       const status = document.getElementById('custFilter').value;
+      const saleFilter = document.getElementById('custSaleFilter') ? document.getElementById('custSaleFilter').value : '';
       const filtered = CUSTOMERS.filter(c => {
-        const matchQ = !q || c.name.toLowerCase().includes(q) || c.phone.includes(q);
+        const matchQ = !q || c.name.toLowerCase().includes(q) || c.phone.includes(q) || (c.service && c.service.toLowerCase().includes(q));
         const matchStatus = !status || c.status === status;
-        return matchQ && matchStatus;
+        const matchSale = !saleFilter || c.owner === saleFilter || (c.saleName && c.saleName.toLowerCase().includes(saleFilter.toLowerCase()));
+        return matchQ && matchStatus && matchSale;
       });
       renderCustomers(filtered);
     }
     document.getElementById('custSearch').addEventListener('input', applyCustomerFilters);
     document.getElementById('custFilter').addEventListener('change', applyCustomerFilters);
+    const saleFilterEl = document.getElementById('custSaleFilter');
+    if (saleFilterEl) saleFilterEl.addEventListener('change', applyCustomerFilters);
   }
 
   // ------------------------------- Lịch hẹn dạng lịch tháng (Sếp + Sale) -------------------------------
@@ -469,23 +680,72 @@ document.addEventListener('DOMContentLoaded', () => {
   // và khớp với vị trí của buổi chụp so với hôm nay.
   const calGrid = document.getElementById('calGrid');
   if (calGrid) {
-    const APPOINTMENTS = [
-      { dayOffset: -14, time: '09:00', cust: 'Khách demo 04', phone: '0901 xxx 234', service: 'Newborn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Tự nhiên', status: 'Hoàn thành', crew: 'Thợ ảnh Minh · Makeup Hà', note: 'Đã bàn giao ảnh, hẹn chụp mốc 6 tháng tuổi.' },
-      { dayOffset: -9,  time: '14:00', cust: 'Khách demo 02', phone: '0912 xxx 456', service: 'Sinh nhật', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Rực rỡ', status: 'Đã chụp', crew: 'Thợ ảnh Nam · Stylist Linh', note: 'Khách hỏi thêm về album in.' },
-      { dayOffset: -5,  time: '10:30', cust: 'Khách demo 07', phone: '0944 xxx 112', service: 'Bầu', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Ngoại cảnh', status: 'Đã chụp', crew: 'Thợ ảnh Minh', note: 'Khách đến từ đối tác spa bầu.' },
-      { dayOffset: -2,  time: '15:30', cust: 'Khách demo 03', phone: '0977 xxx 789', service: 'Gia đình', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Vintage', status: 'Đã chụp', crew: 'Thợ ảnh Nam · Makeup Hà', note: 'Chụp cùng ông bà, 6 người trong ảnh.' },
-      { dayOffset: 0,   time: '08:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Gia đình', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Ngoại cảnh', status: 'Đã đến/Đang chụp', crew: 'Thợ ảnh Minh · Stylist Linh', note: 'Đang cân nhắc nâng lên gói Tiêu chuẩn.' },
-      { dayOffset: 0,   time: '11:00', cust: 'Khách demo 01', phone: '0987 xxx 321', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Sắp đến', crew: 'Thợ ảnh Nam', note: 'Bé 12 ngày tuổi, cần phòng ấm và nhiều thời gian đệm.' },
-      { dayOffset: 0,   time: '16:30', cust: 'Khách demo 06', phone: '0966 xxx 890', service: 'Bé lớn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Hàn Quốc', status: 'Sắp đến', crew: 'Thợ ảnh Minh · Makeup Hà', note: 'Đã đối soát cọc sáng nay.' },
-      { dayOffset: 1,   time: '09:30', cust: 'Khách demo 06', phone: '0966 xxx 890', service: 'Bé lớn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Hàn Quốc', status: 'Sắp đến', crew: 'Thợ ảnh Nam · Stylist Linh', note: 'Buổi thứ hai trong gói combo 2 buổi.' },
-      { dayOffset: 2,   time: '13:30', cust: 'Khách demo 01', phone: '0987 xxx 321', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: 'Chờ Sales gọi xác nhận lại thông tin bé.' },
-      { dayOffset: 3,   time: '15:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Bầu', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Biển', status: 'Chưa cọc', crew: 'Chưa phân công', note: 'Khung giờ đang giữ tạm, chưa nhận được cọc.' },
-      { dayOffset: 3,   time: '17:00', cust: 'Khách demo 03', phone: '0977 xxx 789', service: 'Sinh nhật', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Rực rỡ', status: 'Chờ duyệt dời lịch', crew: 'Thợ ảnh Minh', note: 'Khách xin dời vì bé ốm, quá hạn dời miễn phí nên chờ Sales duyệt.' },
-      { dayOffset: 6,   time: '10:00', cust: 'Khách demo 02', phone: '0912 xxx 456', service: 'Gia đình', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Vintage', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: '' },
-      { dayOffset: 8,   time: '08:30', cust: 'Khách demo 07', phone: '0944 xxx 112', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Chưa cọc', crew: 'Chưa phân công', note: 'Dự sinh tuần sau, ngày chụp có thể đổi theo ngày sinh thật.' },
-      { dayOffset: 11,  time: '14:30', cust: 'Khách demo 04', phone: '0901 xxx 234', service: 'Bé lớn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Hàn Quốc', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: 'Mốc 6 tháng tuổi như đã hẹn ở buổi trước.' },
-      { dayOffset: -6,  time: '09:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Sinh nhật', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Rực rỡ', status: 'Đã hủy', crew: '—', note: 'Khách báo hủy trước 3 ngày, đã xử lý cọc theo chính sách.' }
-    ];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let APPOINTMENTS = [];
+    if (saleDb && Array.isArray(saleDb.appointments) && saleDb.appointments.length) {
+      APPOINTMENTS = saleDb.appointments.map((a, i) => {
+        const parts = (a.date || '').split('-').map(Number);
+        const aDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(today);
+        aDate.setHours(0, 0, 0, 0);
+        const dayOffset = Math.round((aDate.getTime() - today.getTime()) / 864e5);
+
+        const custObj = (saleDb.customers || []).find(c => c.id === a.customerId) || {};
+        const custName = custObj.name || a.label || ('Khách hàng #' + (i + 1));
+        const custPhone = custObj.phone || '09xx xxx xxx';
+
+        let status = 'Sắp đến';
+        if (a.status === 'checkin') status = 'Đã đến/Đang chụp';
+        else if (a.status === 'da-coc') status = dayOffset < 0 ? 'Đã chụp' : 'Sắp đến';
+        else if (a.status === 'chua-thu-du') status = 'Chưa cọc';
+        else if (a.status === 'giu-cho') status = 'Chờ xác nhận';
+
+        const roomNames = { 'P1': 'Phòng 1 (ấm)', 'P2': 'Phòng 2', 'P3': 'Phòng 3', 'Ngoài': 'Tại nhà khách' };
+        const roomLabel = roomNames[a.room] || ('Phòng ' + (a.room || '1'));
+        const crew = 'Thợ ảnh ' + (a.photographer || 'Tuấn') + ' · ' + roomLabel;
+
+        const noteParts = [];
+        if (custObj.note) noteParts.push(custObj.note);
+        if (a.depositCode) noteParts.push('Mã cọc: ' + a.depositCode);
+        if (a.place) noteParts.push('Địa điểm: ' + a.place);
+
+        return {
+          id: a.id || ('appt-' + i),
+          dayOffset: dayOffset,
+          date: aDate,
+          time: a.start || '09:00',
+          cust: custName,
+          phone: custPhone,
+          service: a.service || 'Chụp ảnh',
+          pkg: 'Gói ' + (a.service || 'Studio') + ' (' + (a.dur || 1.5) + 'h)',
+          concept: roomLabel,
+          status: status,
+          crew: crew,
+          owner: a.owner,
+          saleName: SALE_NAMES[a.owner] || a.owner || 'Chưa phân công',
+          note: noteParts.join(' · ') || 'Chưa có ghi chú'
+        };
+      });
+    } else {
+      APPOINTMENTS = [
+        { dayOffset: -14, time: '09:00', cust: 'Khách demo 04', phone: '0901 xxx 234', service: 'Newborn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Tự nhiên', status: 'Hoàn thành', crew: 'Thợ ảnh Minh · Makeup Hà', note: 'Đã bàn giao ảnh, hẹn chụp mốc 6 tháng tuổi.' },
+        { dayOffset: -9,  time: '14:00', cust: 'Khách demo 02', phone: '0912 xxx 456', service: 'Sinh nhật', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Rực rỡ', status: 'Đã chụp', crew: 'Thợ ảnh Nam · Stylist Linh', note: 'Khách hỏi thêm về album in.' },
+        { dayOffset: -5,  time: '10:30', cust: 'Khách demo 07', phone: '0944 xxx 112', service: 'Bầu', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Ngoại cảnh', status: 'Đã chụp', crew: 'Thợ ảnh Minh', note: 'Khách đến từ đối tác spa bầu.' },
+        { dayOffset: -2,  time: '15:30', cust: 'Khách demo 03', phone: '0977 xxx 789', service: 'Gia đình', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Vintage', status: 'Đã chụp', crew: 'Thợ ảnh Nam · Makeup Hà', note: 'Chụp cùng ông bà, 6 người trong ảnh.' },
+        { dayOffset: 0,   time: '08:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Gia đình', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Ngoại cảnh', status: 'Đã đến/Đang chụp', crew: 'Thợ ảnh Minh · Stylist Linh', note: 'Đang cân nhắc nâng lên gói Tiêu chuẩn.' },
+        { dayOffset: 0,   time: '11:00', cust: 'Khách demo 01', phone: '0987 xxx 321', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Sắp đến', crew: 'Thợ ảnh Nam', note: 'Bé 12 ngày tuổi, cần phòng ấm và nhiều thời gian đệm.' },
+        { dayOffset: 0,   time: '16:30', cust: 'Khách demo 06', phone: '0966 xxx 890', service: 'Bé lớn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Hàn Quốc', status: 'Sắp đến', crew: 'Thợ ảnh Minh · Makeup Hà', note: 'Đã đối soát cọc sáng nay.' },
+        { dayOffset: 1,   time: '09:30', cust: 'Khách demo 06', phone: '0966 xxx 890', service: 'Bé lớn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Hàn Quốc', status: 'Sắp đến', crew: 'Thợ ảnh Nam · Stylist Linh', note: 'Buổi thứ hai trong gói combo 2 buổi.' },
+        { dayOffset: 2,   time: '13:30', cust: 'Khách demo 01', phone: '0987 xxx 321', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: 'Chờ Sales gọi xác nhận lại thông tin bé.' },
+        { dayOffset: 3,   time: '15:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Bầu', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Biển', status: 'Chưa cọc', crew: 'Chưa phân công', note: 'Khung giờ đang giữ tạm, chưa nhận được cọc.' },
+        { dayOffset: 3,   time: '17:00', cust: 'Khách demo 03', phone: '0977 xxx 789', service: 'Sinh nhật', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Rực rỡ', status: 'Chờ duyệt dời lịch', crew: 'Thợ ảnh Minh', note: 'Khách xin dời vì bé ốm, quá hạn dời miễn phí nên chờ Sales duyệt.' },
+        { dayOffset: 6,   time: '10:00', cust: 'Khách demo 02', phone: '0912 xxx 456', service: 'Gia đình', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Vintage', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: '' },
+        { dayOffset: 8,   time: '08:30', cust: 'Khách demo 07', phone: '0944 xxx 112', service: 'Newborn', pkg: 'Gói Tiêu chuẩn 25 ảnh', concept: 'Tự nhiên', status: 'Chưa cọc', crew: 'Chưa phân công', note: 'Dự sinh tuần sau, ngày chụp có thể đổi theo ngày sinh thật.' },
+        { dayOffset: 11,  time: '14:30', cust: 'Khách demo 04', phone: '0901 xxx 234', service: 'Bé lớn', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Hàn Quốc', status: 'Chờ xác nhận', crew: 'Chưa phân công', note: 'Mốc 6 tháng tuổi như đã hẹn ở buổi trước.' },
+        { dayOffset: -6,  time: '09:00', cust: 'Khách demo 05', phone: '0933 xxx 567', service: 'Sinh nhật', pkg: 'Gói Cơ bản 15 ảnh', concept: 'Rực rỡ', status: 'Đã hủy', crew: '—', note: 'Khách báo hủy trước 3 ngày, đã xử lý cọc theo chính sách.' }
+      ];
+    }
 
     // Màu badge tái dùng đúng bộ đã có trong css/admin.css, không thêm màu mới
     const STATUS_BADGE = {
@@ -499,8 +759,6 @@ document.addEventListener('DOMContentLoaded', () => {
       'Đã hủy': 'badge-huy'
     };
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const dayKey = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
 
     // Quy đổi độ lệch ngày thành ngày thật rồi gom theo ngày, mỗi ngày sắp xếp
@@ -530,7 +788,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Dùng cùng người phụ trách với hồ sơ CRM, không lưu tên Sale riêng ở lịch hẹn.
     function apptSaleName(a) {
-      const customer = CUSTOMERS.find(c => c.phone === a.phone);
+      if (a.saleName) return a.saleName;
+      const customer = CUSTOMERS.find(c => c.phone === a.phone || (a.customerId && c.id === a.customerId));
       return customer && customer.saleName ? customer.saleName : 'Chưa phân công';
     }
 

@@ -13,10 +13,9 @@
 
 <!-- Không gian Sale: giao diện riêng cho 5 tài khoản Sale/CSKH (thiết kế theo
      "ALOHA Sale Workspace"). Mỗi sale chỉ thấy khách/hộp thư/cọc/đơn do mình
-     phụ trách; Lịch chụp là lịch chung của cả studio. Dữ liệu minh hoạ, xem
-     crm/js/sale-data.js; logic hiển thị ở crm/js/sale.js. -->
+     phụ trách; Lịch chụp là lịch chung của cả studio. Sếp có quyền quản lý toàn studio. -->
 <script src="../js/auth.js"></script>
-<script>AlohaAuth.requireRole(['sale']);</script>
+<script>AlohaAuth.requireRole(['sale', 'sep']);</script>
 
 <div class="sw-app">
   <aside class="sw-side" id="swSide">
@@ -59,6 +58,7 @@
           </button>
           <div class="sw-bell-panel" id="swBellPanel" hidden></div>
         </div>
+        <a class="sw-btn" href="admin.html" id="swBackAdmin" style="display:none; text-decoration:none;"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Về Quản trị</span></a>
         <a class="sw-btn sw-btn-accent" href="#lich-chup" id="swQuickBtn">
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Tạo lịch nhanh</span>
         </a>
