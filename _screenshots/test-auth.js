@@ -133,7 +133,7 @@ const ACCOUNTS = {
     await page.goto(BASE + 'index.html#/dat-lich', { waitUntil: 'networkidle0' });
     await page.$eval('.bk-service[data-service="Newborn"]', el => el.click());
     // Bước 1 giờ phải chọn thêm concept (xem js/dat-lich.js) mới bấm Tiếp tục được
-    await page.$eval('.bk-concept[data-concept="cuon-u"] .bk-concept-pick', el => el.click());
+    await page.$eval('.bk-concept[data-concept="baby-butterfly"] .bk-concept-pick', el => el.click());
     await page.$eval('#bkNextBtn', el => el.click());
     await page.waitForSelector('#bkSlotGrid .bk-slot.free', { timeout: 5000 });
     await page.$eval('#bkSlotGrid .bk-slot.free', el => el.click());

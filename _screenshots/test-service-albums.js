@@ -109,7 +109,14 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
       await page.evaluate((slug) => { location.hash = '/album/' + slug; }, s.slug);
       await wait(250);
       let st = await state(page);
+      // Ảnh bìa concept tải lazy: điện thoại xếp 10 thẻ 1 cột, thẻ cuối chỉ tải khi cuộn gần tới
+      // -> cuộn qua hết danh sách rồi mới kiểm tra (2026-10-13, concept fanpage 10/dịch vụ).
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); }
+      });
+      await page.waitForFunction(() => Array.from(document.querySelectorAll('#galleryConcepts img')).every((i) => i.complete && i.naturalWidth > 0), { timeout: 5000 }).catch(() => {});
       const coversOk = await imgsLoaded(page, '#galleryConcepts img');
+      await page.evaluate(() => window.scrollTo(0, 0));
       log(`[${vp.name}] Bấm "${s.name}" -> danh sách ${s.concepts.length} concept album`,
         st.hash === '#/album/' + s.slug && st.homeHidden && !st.albumHidden && st.title === 'Album ' + s.name &&
         st.conceptsShown && !st.gridShown && !st.upShown && st.conceptCards === s.concepts.length && st.activeChip === s.name && coversOk && !st.overflow,
@@ -139,8 +146,8 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
     }
 
     // 4) Lightbox trong 1 concept: mở ảnh, chuyển ảnh, đóng.
-    await page.goto(BASE + '#/album/newborn/cuon-u', { waitUntil: 'networkidle0' });
-    const n = services.find((x) => x.slug === 'newborn').concepts.find((c) => c.slug === 'cuon-u').count;
+    await page.goto(BASE + '#/album/newborn/baby-butterfly', { waitUntil: 'networkidle0' });
+    const n = services.find((x) => x.slug === 'newborn').concepts.find((c) => c.slug === 'baby-butterfly').count;
     await page.click('#galleryGrid .gallery-item');
     await wait(150);
     let lb = await state(page);

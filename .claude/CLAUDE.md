@@ -93,11 +93,11 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 
 **Ảnh, video, logo:**
 - `images/` — ảnh trang chủ (hero, service-*, concept-*, album-*, news-*, about-studio, services-main, video-poster).
-- `images/albums/<dịch vụ>/<concept>/` — 256 ảnh album (~40MB), nguồn từng ảnh ở `images/albums/sources.json`.
+- `images/albums/<dịch vụ>/<concept>/` — ảnh album, nguồn từng ảnh ở `images/albums/sources.json`. Từ 2026-10-13: Newborn/Sinh nhật/Bé lớn/Gia đình là ảnh THẬT của studio lấy từ fanpage (10 concept x 5 ảnh mỗi dịch vụ, 1280px); Bầu vẫn 56 ảnh Pexels (`stock: true`).
 - `images/videos/` — 3 video minh hoạ 720p + poster `.jpg` cùng tên, nguồn ở `sources.json`.
 - `images/my-photos/` — 16 ảnh demo cho "Ảnh của tôi".
 - `images/logo-mark.svg` (trái tim: favicon + ảnh đại diện chat), `images/logo.svg` (logo chữ dùng ngoài web), `images/favicon-32.png`, `images/apple-touch-icon.png`. Logo trên web là chữ HTML `.wordmark`, không phải file ảnh.
-- Toàn bộ ảnh/video là **stock miễn phí bản quyền (Pexels License)**, là ảnh MINH HOẠ, không phải khách hàng thật.
+- Ảnh/video còn lại (ảnh trang chủ, ảnh bìa 5 ô dịch vụ, video, album Bầu, `images/my-photos/`) là **stock miễn phí bản quyền (Pexels License)**, ảnh MINH HOẠ, không phải khách hàng thật. Ảnh album 4 dịch vụ còn lại là ảnh thật từ fanpage studio (2026-10-13, người dùng là người của studio, tự chịu trách nhiệm).
 
 **Test/tiện ích (`_screenshots/*.js`, chạy tay, Puppeteer điều khiển Chrome cài sẵn):**
 - Test không cần server (ưu tiên chạy): `test-auth` (17 case), `test-interest-gate` (11), `test-photos-chat` (9), `test-photo-notes` (5), `test-ai-chat` (1), `test-suggestion-nav` (9), `test-service-albums` (134), `test-chat-concepts` (28), `test-content-pages` (59), `test-booking-required` (68), `test-google-login` (19, tự bật server cổng 3001 + máy chủ Google giả cổng 3009, nút Google giả; tắt `npm start` trước), `test-sale-chat` (52, tự bật `server/server.js` ở cổng 3001 lưu bộ nhớ - tắt `npm start` của bạn trước; khách/Sale ở các cửa sổ ẩn danh riêng như 2 máy; chạy với cờ mặc định), `test-chatbot-greeting` (18, 2026-09-28, tự bật server như trên với `GEMINI_API_KEY` rỗng: chatbot tự mở, lời chào theo trang, chuyển Sale + tóm tắt, bong bóng mobile). Các test còn lại bật lại đủ cờ qua `launchAllFeatures`.
