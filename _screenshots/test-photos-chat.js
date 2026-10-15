@@ -83,22 +83,34 @@ const BASE = ROOT_URL;
       page.waitForNavigation({ waitUntil: 'networkidle0' }),
       page.click('#loginSubmitBtn')
     ]);
-    const kanbanText = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent);
+    // Kanban 3 cột đã thay bằng 3 hàng ưu tiên #photoRows (2026-10-15): mở hết "Xem thêm"
+    // rồi tìm thẻ yêu cầu thật (id REQ-...), không lẫn với thẻ minh hoạ tĩnh.
+    const kanbanText = await page.evaluate(() => {
+      document.querySelectorAll('.photo-row-more').forEach(b => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });
+      const card = [...document.querySelectorAll('#photoRows .photo-row-card')].find(c => /^REQ-/.test(c.dataset.reqId));
+      return card ? card.textContent : '';
+    });
     const hasRequest = kanbanText.includes('Khách demo') && kanbanText.includes('Mới') && kanbanText.includes('2 ảnh');
-    log('Thợ ảnh thấy yêu cầu chỉnh sửa thật trong cột "Chờ xử lý"', hasRequest, kanbanText.replace(/\s+/g, ' ').trim());
+    log('Thợ ảnh thấy yêu cầu chỉnh sửa thật trong 3 hàng ưu tiên (nhãn "Mới")', hasRequest, kanbanText.replace(/\s+/g, ' ').trim());
 
-    // Bấm "Chuyển sang bước tiếp theo" trên đúng thẻ request thật (có badge "Mới",
-    // không phải thẻ minh hoạ tĩnh cũng nằm trong cùng cột) -> request rời khỏi cột Chờ xử lý
+    // Không còn nút "Chuyển sang bước tiếp theo" (trưởng nhóm chốt 2026-10-15): Thợ ảnh lưu link
+    // ảnh đã chỉnh rồi bấm "Hoàn tất" -> yêu cầu rời 3 hàng, sang bảng "Đã hoàn tất".
     await page.evaluate(() => {
-      const card = Array.from(document.querySelectorAll('#kanbanCol-cho-xu-ly .kanban-card'))
-        .find(c => c.textContent.includes('Mới'));
-      const btn = card && card.querySelector('.kanban-advance-btn');
-      if (btn) btn.click();
+      const card = [...document.querySelectorAll('#photoRows .photo-row-card')].find(c => /^REQ-/.test(c.dataset.reqId));
+      card.querySelector('.photo-row-drive-btn').click();
     });
     await new Promise(r => setTimeout(r, 200));
-    const stillInColumn1 = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent.includes('Mới'));
-    const nowInColumn2 = await page.$eval('#kanbanCol-dang-thuc-hien', el => el.textContent.includes('Mới'));
-    log('bấm chuyển bước -> request sang cột "Đang thực hiện"', !stillInColumn1 && nowInColumn2);
+    await page.type('#driveModalInput', 'https://drive.google.com/drive/folders/test_photos_chat');
+    await page.evaluate(() => document.getElementById('driveModalForm').requestSubmit());
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => document.getElementById('driveModalCompleteBtn').click());
+    await new Promise(r => setTimeout(r, 300));
+    const after = await page.evaluate(() => ({
+      inRows: [...document.querySelectorAll('#photoRows .photo-row-card')].some(c => /^REQ-/.test(c.dataset.reqId)),
+      inDone: [...document.querySelectorAll('#completedTableBody tr')].some(tr => /^REQ-/.test(tr.dataset.reqId)),
+      status: JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0].status
+    }));
+    log('lưu link ảnh đã chỉnh + Hoàn tất -> request sang "Đã hoàn tất", trạng thái Hoàn thành', !after.inRows && after.inDone && after.status === 'Hoàn thành', JSON.stringify(after));
     await page.close();
   }
 

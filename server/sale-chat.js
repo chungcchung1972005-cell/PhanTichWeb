@@ -418,4 +418,5 @@ router.post('/inbox/:phone/read', requireAuth(['sale']), wrap(async (req, res) =
   res.json({ chat: publicChat(chat) });
 }));
 
-module.exports = { router, storeKind: store.kind };
+// requireAuth dùng chung cho server/edit-requests.js (cùng token, cùng AUTH_SECRET).
+module.exports = { router, storeKind: store.kind, requireAuth };

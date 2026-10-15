@@ -66,8 +66,8 @@ const ACCOUNTS = {
   const ROLE_EXPECT = {
     'khach-hang': { urlIncludes: '#/chon-anh' },
     'sale': { urlIncludes: 'crm/sale.html' }, // Không gian Sale riêng, test chi tiết ở test-sale.js
-    'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa'] },
-    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Doanh thu', 'Cài đặt'] }
+    'tho-anh': { urlIncludes: 'crm/admin.html', visibleTabs: ['Ảnh & chỉnh sửa', 'Đã hoàn tất'] },
+    'sep': { urlIncludes: 'crm/admin.html', visibleTabs: ['Dashboard', 'Tin nhắn', 'Khách hàng', 'Lịch hẹn', 'Ảnh & chỉnh sửa', 'Đã hoàn tất', 'Doanh thu', 'Cài đặt'] }
   };
 
   for (const role of Object.keys(ROLE_EXPECT)) {
@@ -108,9 +108,10 @@ const ACCOUNTS = {
     // Bảng CRM/doanh thu của Sale nay nằm ở crm/sale.html, xem test-sale.js.
     if (role === 'tho-anh') {
       await page.screenshot({ path: shot('admin-thoanh-desktop.png'), fullPage: true });
-      const hasKanban = await page.$('.kanban') !== null;
+      // Kanban 3 cột đã thay bằng 3 hàng ưu tiên #photoRows (tích hợp giao diện Thợ ảnh 2026-10-15)
+      const hasKanban = await page.$('#photoRows') !== null;
       const hasCustomerTable = await page.$('#khach-hang') !== null;
-      log('thợ ảnh chỉ thấy kanban ảnh, không thấy CRM khách hàng', hasKanban && !hasCustomerTable);
+      log('thợ ảnh chỉ thấy 3 hàng ảnh ưu tiên, không thấy CRM khách hàng', hasKanban && !hasCustomerTable);
     }
     await page.close();
   }
