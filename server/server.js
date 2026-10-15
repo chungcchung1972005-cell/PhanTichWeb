@@ -18,7 +18,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const saleChat = require('./sale-chat');
-const editRequests = require('./edit-requests'); // yêu cầu chỉnh ảnh, CHỈ lưu RAM (2026-10-15)
 
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
@@ -422,11 +421,6 @@ app.get('/api/payment-status', (req, res) => {
 
 // ===== Chat thật Khách <-> Sale (xem sale-chat.js) =====
 app.use('/api/sale-chat', saleChat.router);
-
-// ===== Yêu cầu chỉnh ảnh dùng chung Khách / Thợ ảnh / Sếp (xem edit-requests.js) =====
-// CHỈ lưu trong RAM, không dùng MongoDB. Frontend (khách, Thợ ảnh, Sếp) chỉ gọi tới khi bật cờ
-// editSync trong js/features.js (mặc định TẮT).
-app.use('/api/edit-requests', editRequests.router);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
 

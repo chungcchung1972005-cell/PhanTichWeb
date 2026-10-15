@@ -196,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dot.hidden = true;
       return;
     }
-    if (window.AlohaEditSync && AlohaEditSync.enabled()) { renderNotificationsSync(markSeen, list, dot); return; }
     const myRequests = (window.AlohaData ? AlohaData.getEditRequests() : [])
       .filter((r) => r.phone === session.phone)
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -231,55 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Đọc lại sau khi có thể vừa đánh dấu đã xem, để chấm đỏ tắt đúng lúc.
     const freshRequests = markSeen ? (window.AlohaData ? AlohaData.getEditRequests() : []).filter((r) => r.phone === session.phone) : myRequests;
     dot.hidden = !freshRequests.some((r) => r.status !== 'Hoàn thành' || (r.status === 'Hoàn thành' && !r.customerSeenDone));
-  }
-
-  // Cờ editSync bật (js/features.js, 2026-10-15): đọc yêu cầu của khách từ server (AlohaEditSync,
-  // server tự lọc theo token), đánh dấu "đã xem" qua server. Lỗi -> báo trong danh sách, không đọc
-  // hay ghi localStorage thay thế, chấm đỏ chỉ tắt khi server đã lưu "đã xem".
-  let notifSyncBusy = false;
-  async function renderNotificationsSync(markSeen, list, dot) {
-    if (notifSyncBusy) return;
-    notifSyncBusy = true;
-    try {
-      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      const res = await AlohaEditSync.mine();
-      if (!res.ok) {
-        list.innerHTML = '<div class="nav-util-empty"></div>';
-        list.firstChild.textContent = 'Chưa tải được thông báo từ máy chủ. ' + (res.message || '');
-        return; // giữ chấm đỏ như lần tải được gần nhất
-      }
-      let mine = (res.data.requests || []).slice().sort((a, b) => b.createdAt - a.createdAt);
-      if (!mine.length) {
-        list.innerHTML = '<div class="nav-util-empty">Chưa có thông báo nào. Yêu cầu chỉnh sửa ảnh sau khi gửi sẽ hiện tiến độ ở đây.</div>';
-        dot.hidden = true;
-        return;
-      }
-      list.innerHTML = mine.map((r) => {
-        const isDoneUnseen = r.status === 'Hoàn thành' && !r.customerSeenDone;
-        if (r.status === 'Hoàn thành') {
-          return `
-          <div class="nav-util-item${isDoneUnseen ? ' notif-highlight' : ''}">
-            <strong>${isDoneUnseen ? 'Ảnh đã sửa xong · ' : ''}${esc(r.orderCode)}</strong>
-            <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh</span>
-            <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
-          </div>`;
-        }
-        return `
-        <div class="nav-util-item">
-          <strong>Yêu cầu chỉnh sửa ${esc(r.orderCode)}</strong>
-          <span class="sub">${esc(r.serviceLabel)} · ${esc(r.photoCount)} ảnh</span>
-          <span class="notif-status">${esc(r.status)}</span>
-        </div>`;
-      }).join('');
-      if (markSeen) {
-        const results = await Promise.all(mine.filter((r) => r.status === 'Hoàn thành' && !r.customerSeenDone)
-          .map((r) => AlohaEditSync.markSeen(r.id, { done: true })));
-        results.forEach((x) => { if (x.ok && x.data) mine = mine.map((r) => (r.id === x.data.request.id ? x.data.request : r)); });
-      }
-      dot.hidden = !mine.some((r) => r.status !== 'Hoàn thành' || !r.customerSeenDone);
-    } finally {
-      notifSyncBusy = false;
-    }
   }
   renderNotifications(false);
   // Mô phỏng "real-time" trong cùng trình duyệt: nếu Thợ ảnh vừa chuyển 1 yêu

@@ -13,11 +13,6 @@
 //   booking    : nút/link Đặt lịch + trang #/dat-lich
 //   aiChat     : chatbot kịch bản + AI Gemini (tắt thì khung chat nổi là chat với Sale)
 //   albumPages : trang album #/album/... (ảnh bìa trên trang chủ vẫn hiện)
-//   editSync   : (2026-10-15, mặc định TẮT) cho phép js/edit-sync.js (AlohaEditSync) gọi API yêu cầu
-//                chỉnh ảnh trên server (server/edit-requests.js, hiện CHỈ lưu RAM, dữ liệu giả, mất khi
-//                server khởi động lại). BẬT: "Ảnh của tôi" + chuông thông báo (khách), khu Ảnh & chỉnh sửa
-//                (Thợ ảnh đọc/ghi, Sếp chỉ đọc) đọc/ghi qua API thay localStorage. TẮT (mặc định): mọi
-//                trang giữ nguyên luồng AlohaData/localStorage cũ. Không gắn class lên <html>.
 //
 // Nạp trong <head> để class trên <html> có trước khi trang vẽ, tránh nút đã
 // ẩn vẫn nháy lên một nhịp. Test có thể đặt sẵn window.ALOHA_FEATURES (qua
@@ -26,8 +21,7 @@
   const FEATURES = Object.assign({
     booking: false,
     aiChat: true,
-    albumPages: true,
-    editSync: false
+    albumPages: true
   }, window.ALOHA_FEATURES || {});
   window.ALOHA_FEATURES = FEATURES;
 

@@ -11,21 +11,6 @@ function check(name, ok, extra) {
 }
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const LINK = 'https://drive.google.com/drive/folders/1AbCdEfGhIjK_test';
-// Link thư mục ảnh GỐC: chỉ nội bộ (Thợ ảnh/Sếp), khách KHÔNG được thấy (chốt 2026-10-15)
-const LINK_ORIG = 'https://drive.google.com/drive/folders/goc_ZyXw_test';
-// Trang Thợ ảnh (3 hàng ưu tiên #photoRows, thay kanban 2026-10-15): mở hết "Xem thêm" rồi bấm
-// thẻ. which = 'real' (yêu cầu thật đầu tiên), 'static' (thẻ minh hoạ đầu tiên) hoặc 1 mã đơn.
-async function openReq(page, which) {
-  await page.evaluate((which) => {
-    document.querySelectorAll('.photo-row-more').forEach(b => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });
-    const cards = [...document.querySelectorAll('#photoRows .photo-row-card')];
-    const c = which === 'real' ? cards.find(x => /^REQ-/.test(x.dataset.reqId))
-      : which === 'static' ? cards.find(x => /^static-/.test(x.dataset.reqId))
-      : cards.find(x => x.textContent.includes(which));
-    c.click();
-  }, which);
-  await new Promise(r => setTimeout(r, 400));
-}
 
 (async () => {
   const browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
@@ -150,45 +135,45 @@ async function openReq(page, which) {
 
   // ---------- Thợ ảnh (cùng trình duyệt)
   const staff = await login('0900000003', 'anh123');
-  await staff.evaluate(() => document.querySelectorAll('.photo-row-more').forEach(b => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); }));
-  const flags = await staff.evaluate(() => [...document.querySelectorAll('#photoRows .photo-row-card')].filter(c => /^REQ-/.test(c.dataset.reqId)).map(c => c.textContent.replace(/\s+/g, ' ')));
-  check('Thẻ yêu cầu thật có nhãn "Mới" + "Khách cần thợ trả lời" + "Chưa phân công"', flags.length === 1 && flags[0].includes('Mới') && flags[0].includes('Khách cần thợ trả lời') && flags[0].includes('Chưa phân công'), flags.join(' || '));
-  await openReq(staff, 'real');
+  const flags = await staff.evaluate(() => [...document.querySelectorAll('.kanban-card')].filter(c => c.textContent.includes('Mới')).map(c => c.textContent.replace(/\s+/g, ' ')));
+  check('Thẻ kanban nhắc "Khách cần thợ trả lời"', flags.length === 1 && flags[0].includes('Khách cần thợ trả lời'), flags.join(' || '));
+  await staff.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => c.textContent.includes('Mới')).click());
+  await wait(400);
   v = await staff.evaluate(() => ({
     section: !!document.querySelector('#kanbanModalBody .kanban-result'),
     msgs: [...document.querySelectorAll('#kanbanChatList .kanban-msg.from-customer p')].map(p => p.textContent),
     ai: document.querySelectorAll('#kanbanChatList .kanban-msg.from-ai').length,
     tags: document.querySelectorAll('#kanbanChatList .kanban-msg-tag').length,
     injected: document.querySelectorAll('#kanbanChatList img').length,
-    form: !!document.getElementById('kanbanLinkForm'), reply: !!document.getElementById('kanbanChatForm')
+    form: !!document.getElementById('kanbanResultForm'), reply: !!document.getElementById('kanbanChatForm')
   }));
   await staff.waitForFunction(() => [...document.querySelectorAll('#kanbanModalBody .kanban-photo-tile img')].every(i => i.complete), { timeout: 15000 }).catch(() => {});
   const imgs = await staff.evaluate(() => [...document.querySelectorAll('#kanbanModalBody .kanban-photo-tile img')].map(i => i.naturalWidth > 0));
   check('Modal thợ: ảnh khách chọn (Google Photos) tải được', imgs.length === 2 && imgs.every(Boolean), JSON.stringify(imgs));
   check('Modal thợ: có ô gửi link + khung chat, thấy đủ tin của khách (dạng chữ)', v.section && v.form && v.reply && v.msgs.length === 2 && v.injected === 0, JSON.stringify(v));
   check('Thợ thấy cả câu trả lời của Trợ lý AI + nhãn "Cần thợ trả lời" đúng tin cần xử lý', v.ai === 2 && v.tags === 1, JSON.stringify(v));
-  // Không còn nút đánh dấu từng ảnh / chuyển bước (chốt 2026-10-15); có giải thích cách tính tiến độ
+  // Chờ xử lý -> Đang thực hiện, đánh dấu xong hết ảnh: chưa gửi link thì vẫn chưa được Hoàn thành
+  await staff.evaluate(() => document.querySelector('#kanbanModalBody .kanban-modal-advance').click()); await wait(300);
+  await staff.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => c.textContent.includes('Mới')).click()); await wait(300);
+  await staff.evaluate(() => document.querySelectorAll('#kanbanModalBody .photo-done-toggle')[0].click()); await wait(200);
+  await staff.evaluate(() => document.querySelectorAll('#kanbanModalBody .photo-done-toggle')[1].click()); await wait(200);
   v = await staff.evaluate(() => ({
-    toggles: document.querySelectorAll('#kanbanModalBody .photo-done-toggle').length,
-    adv: document.querySelectorAll('#kanbanModalBody .kanban-modal-advance').length,
-    complete: !!document.getElementById('kanbanLinkComplete'),
-    note: document.getElementById('kanbanModalBody').textContent.includes('Tiến độ đếm số ảnh')
+    status: document.querySelector('#kanbanModalBody .badge').textContent,
+    disabled: document.querySelector('#kanbanModalBody .kanban-modal-advance').disabled,
+    hint: (document.querySelector('#kanbanModalBody .kanban-advance-hint') || {}).textContent || ''
   }));
-  check('Chưa có link: không có nút đánh dấu/chuyển bước, chưa hiện Hoàn tất, có giải thích tiến độ', v.toggles === 0 && v.adv === 0 && !v.complete && v.note, JSON.stringify(v));
-  await staff.type('#kanbanLinkEdit', 'javascript:alert(1)');
-  await staff.evaluate(() => document.getElementById('kanbanLinkForm').requestSubmit()); await wait(200);
-  v = await staff.evaluate(() => ({ err: !document.getElementById('kanbanLinkError').hidden, saved: (JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0].resultLink) }));
+  check('Xong hết ảnh nhưng chưa gửi link -> chưa được chuyển "Hoàn thành", báo rõ lý do', v.status === 'Đang thực hiện' && v.disabled && v.hint.includes('gửi link'), JSON.stringify(v));
+  await staff.type('#kanbanResultInput', 'javascript:alert(1)');
+  await staff.evaluate(() => document.getElementById('kanbanResultForm').requestSubmit()); await wait(200);
+  v = await staff.evaluate(() => ({ err: !document.getElementById('kanbanResultError').hidden, saved: (JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0].resultLink) }));
   check('Link không phải http(s) (vd javascript:) bị chặn, báo lỗi', v.err && v.saved === '', JSON.stringify(v));
-  // Chỉ link ảnh gốc (nội bộ): lưu được nhưng CHƯA được Hoàn tất
-  await staff.evaluate(() => { document.getElementById('kanbanLinkEdit').value = ''; });
-  await staff.type('#kanbanLinkOrig', LINK_ORIG);
-  await staff.evaluate(() => document.getElementById('kanbanLinkForm').requestSubmit()); await wait(300);
-  v = await staff.evaluate(() => ({ complete: !!document.getElementById('kanbanLinkComplete'), stored: JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0] }));
-  check('Chỉ có link ảnh gốc: lưu nội bộ, chưa hiện nút Hoàn tất', !v.complete && v.stored.resultLinkOriginal === LINK_ORIG && v.stored.resultLink === '', JSON.stringify({ c: v.complete, o: v.stored.resultLinkOriginal, e: v.stored.resultLink }));
-  await staff.type('#kanbanLinkEdit', LINK);
-  await staff.evaluate(() => document.getElementById('kanbanLinkForm').requestSubmit()); await wait(300);
-  v = await staff.evaluate(() => ({ current: document.getElementById('kanbanResultCurrent').textContent, href: (document.getElementById('kanbanResultAnchor') || {}).href, hrefOrig: (document.getElementById('kanbanResultAnchorOrig') || {}).href, complete: !!document.getElementById('kanbanLinkComplete') }));
-  check('Gửi link ảnh đã chỉnh -> modal hiện 2 link (ghi rõ link gốc là nội bộ) + nút Hoàn tất', v.href === LINK && v.hrefOrig === LINK_ORIG && v.current.includes('nội bộ') && v.complete, JSON.stringify(v));
+  await staff.evaluate(() => { document.getElementById('kanbanResultInput').value = ''; });
+  await staff.type('#kanbanResultInput', LINK);
+  await staff.evaluate(() => document.getElementById('kanbanResultForm').requestSubmit()); await wait(300);
+  v = await staff.evaluate(() => ({ current: document.getElementById('kanbanResultCurrent').textContent, href: (document.getElementById('kanbanResultAnchor') || {}).href }));
+  check('Gửi link Drive hợp lệ -> lưu, modal hiện "Khách đang thấy: <link>"', v.current.includes('Khách đang thấy') && v.href === LINK, JSON.stringify(v));
+  v = await staff.evaluate(() => !document.querySelector('#kanbanModalBody .kanban-modal-advance').disabled);
+  check('Gửi link xong -> nút chuyển sang "Hoàn thành" mở khoá', v);
   await staff.type('#kanbanChatInput', 'Dạ em gửi link ảnh đã chỉnh rồi ạ, chị xem giúp em nhé');
   await staff.keyboard.press('Enter'); await wait(300);
   v = await staff.evaluate(() => [...document.querySelectorAll('#kanbanChatList .kanban-msg.from-staff p')].map(p => p.textContent));
@@ -215,8 +200,6 @@ async function openReq(page, which) {
     };
   });
   check('Khách thấy nút mở link ảnh đã chỉnh (mở tab mới, an toàn)', v.href === LINK && v.target === '_blank' && /noopener/.test(v.rel) && v.url === LINK, JSON.stringify(v));
-  const origLeak = await cust.evaluate((o) => document.body.innerHTML.includes(o) || document.body.innerHTML.includes('goc_ZyXw'), LINK_ORIG);
-  check('Khách KHÔNG thấy link ảnh gốc ở bất kỳ đâu trên trang', !origLeak);
   const vLink = await cust.evaluate(() => ({ title: document.getElementById('psResultTitle').textContent, steps: [...document.querySelectorAll('#psResultBody .ps-progress-steps li')].map(li => li.className).join(',') }));
   check('Có link: tiêu đề "Ảnh đã chỉnh của bé đã sẵn sàng", đủ 3 bước tiến độ', vLink.title === 'Ảnh đã chỉnh của bé đã sẵn sàng' && vLink.steps === 'done,done,done', JSON.stringify(vLink));
   // Bấm câu hỏi nhanh -> gửi luôn câu đó, thợ (trợ lý) trả lời
@@ -269,18 +252,17 @@ async function openReq(page, which) {
 
   // ---------- Sếp: chỉ xem
   const boss = await login('0900000004', 'sep123');
-  await openReq(boss, 'real');
+  await boss.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => c.textContent.includes('Mới')).click());
+  await wait(400);
   v = await boss.evaluate(() => ({
-    form: !!document.getElementById('kanbanLinkForm'), reply: !!document.getElementById('kanbanChatForm'),
-    complete: !!document.getElementById('kanbanLinkComplete'),
-    msgs: document.querySelectorAll('#kanbanChatList .kanban-msg').length, href: (document.getElementById('kanbanResultAnchor') || {}).href,
-    hrefOrig: (document.getElementById('kanbanResultAnchorOrig') || {}).href
+    form: !!document.getElementById('kanbanResultForm'), reply: !!document.getElementById('kanbanChatForm'),
+    msgs: document.querySelectorAll('#kanbanChatList .kanban-msg').length, href: (document.getElementById('kanbanResultAnchor') || {}).href
   }));
-  check('Sếp xem được 2 link + toàn bộ tin nhắn, không có ô gửi link/trả lời/Hoàn tất', !v.form && !v.reply && !v.complete && v.msgs === 10 && v.href === LINK && v.hrefOrig === LINK_ORIG, JSON.stringify(v));
-  await boss.evaluate(() => document.getElementById('kanbanModalClose').click());
-  await openReq(boss, 'static');
-  v = await boss.evaluate(() => ({ text: document.querySelector('#kanbanModalBody .kanban-result').textContent, chat: !!document.getElementById('kanbanChatList'), form: !!document.getElementById('kanbanLinkForm') }));
-  check('Thẻ minh hoạ (không phải khách thật) -> ghi chú minh hoạ, không có chat; Sếp không có ô link', v.text.includes('Thẻ minh hoạ') && !v.chat && !v.form, JSON.stringify(v));
+  check('Sếp xem được link + toàn bộ tin nhắn, không có ô gửi link/trả lời', !v.form && !v.reply && v.msgs === 10 && v.href === LINK, JSON.stringify(v));
+  await boss.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => !c.textContent.includes('Mới')).click());
+  await wait(300);
+  v = await boss.evaluate(() => document.querySelector('#kanbanModalBody .kanban-result').textContent);
+  check('Thẻ minh hoạ (không phải khách thật) -> chỉ ghi chú, không có ô link/chat', v.includes('Thẻ minh hoạ'), v);
 
   // ---------- Chống chèn mã: tên/ghi chú khách chứa HTML không được chạy trên trang Thợ ảnh/Sếp
   await boss.evaluate(() => AlohaData.createEditRequest({
@@ -289,7 +271,8 @@ async function openReq(page, which) {
     photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg', note: '<img src=x id=xssPhoto onerror=alert(4)>' }]
   }));
   await boss.reload({ waitUntil: 'networkidle0' }); await wait(500);
-  await openReq(boss, '#XSS01');
+  await boss.evaluate(() => [...document.querySelectorAll('.kanban-card')].find(c => c.textContent.includes('#XSS01')).click());
+  await wait(400);
   v = await boss.evaluate(() => ({
     injected: document.querySelectorAll('#xssName, #xssNote, #xssPhoto').length,
     shown: document.getElementById('kanbanModalBody').textContent.includes('<img src=x id=xssNote')

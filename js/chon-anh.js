@@ -54,19 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const extraPhotos = new Set();   // ảnh chỉnh sửa thêm (vượt gói)
   let extraModeActive = false;     // khách đã đồng ý chỉnh sửa thêm
   let requestSent = false;         // đã gửi yêu cầu chỉnh sửa (lần này hoặc từ trước) -> nút gửi khoá hẳn
-  // Đồng bộ yêu cầu chỉnh ảnh qua server (cờ editSync trong js/features.js, thêm 2026-10-15).
-  // TẮT (mặc định): luồng AlohaData/localStorage cũ, không đổi gì. BẬT: gửi yêu cầu, tải lại trạng
-  // thái đã gửi, tin nhắn, "đã xem" đi qua AlohaEditSync (server/edit-requests.js); server lỗi thì
-  // báo lỗi, KHÔNG ghi localStorage thay thế và KHÔNG báo đã gửi. Dữ liệu server chỉ giữ trong bộ
-  // nhớ trang (không lưu localStorage/sessionStorage). Yêu cầu cũ trong localStorage KHÔNG được
-  // chuyển lên server. Hồ sơ gói chụp (getCustomerRecord) vẫn đọc từ AlohaData vì API chưa có.
-  const SYNC = !!(window.AlohaEditSync && AlohaEditSync.enabled());
-  let syncRequests = [];           // yêu cầu của khách theo server (bản mới nhất đã tải)
-  let syncLoaded = false;          // đã tải được danh sách từ server ít nhất 1 lần
-  let syncError = '';              // lỗi lần tải gần nhất (hiện trong tab Ảnh đã chỉnh)
-  let chatError = '';              // lỗi gửi tin nhắn gần nhất (giữ tới khi gửi lại thành công)
-  let submitting = false;          // đang chờ server xác nhận gửi yêu cầu
-  let paidPending = null;          // đã thanh toán ảnh chọn thêm nhưng gửi lỗi -> cho gửi lại, không bắt trả lại tiền
   const photoNotes = new Map();
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
@@ -485,8 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       extraBox.hidden = true;
     }
 
-    // Chế độ đồng bộ: chưa tải xong dữ liệu server (chưa biết đã gửi chưa) hoặc đang gửi -> khoá nút
-    submitBtn.disabled = n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
+    submitBtn.disabled = n === 0 || requestSent;
     syncLightbox();
     syncBulkButtons();
   }
@@ -966,35 +952,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== Hàm thực thi gửi yêu cầu lên hệ thống =====
   function executeSubmit(extraCount, extraFee, paymentStatus) {
-    if (SYNC) { submitToServer(extraCount, extraFee, paymentStatus); return; }
-    showSubmittedUi(extraCount, extraFee);
-
-    if (window.AlohaData && session) {
-      const perPhotoNotes = Array.from(selected)
-        .map(id => ({ id, note: (photoNotes.get(id) || '').trim() }))
-        .filter(n => n.note);
-      const allSelectedPhotos = Array.from(selected)
-        .map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) }));
-
-      AlohaData.createEditRequest({
-        phone: session.phone,
-        customerName: session.name,
-        orderCode: record.orderCode,
-        serviceLabel: record.serviceLabel,
-        photoCount: selected.size,
-        extraCount: extraCount,
-        extraFee: extraFee,
-        paymentStatus: paymentStatus,
-        note: document.getElementById('psNote').value.trim(),
-        photoNotes: perPhotoNotes,
-        photos: allSelectedPhotos
-      });
-    }
-  }
-
-  // Khoá lưới + nút gửi + hiện banner "đã gửi" (dùng chung 2 chế độ; chế độ đồng bộ chỉ gọi
-  // sau khi server đã xác nhận tạo yêu cầu thành công)
-  function showSubmittedUi(extraCount, extraFee) {
     requestSent = true;
     document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
     hideUndo();
@@ -1019,70 +976,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     banner.classList.add('show');
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
 
-  // Banner lỗi (chế độ đồng bộ): server chưa xác nhận -> nói rõ yêu cầu CHƯA được gửi
-  function showSubmitError(message) {
-    banner.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      <div class="ps-banner-info">
-        <strong>Yêu cầu chỉnh sửa CHƯA được gửi</strong>
-        <p></p>
-      </div>`;
-    banner.querySelector('p').textContent = message;
-    banner.setAttribute('role', 'alert');
-    banner.classList.add('show');
-    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+    if (window.AlohaData && session) {
+      const perPhotoNotes = Array.from(selected)
+        .map(id => ({ id, note: (photoNotes.get(id) || '').trim() }))
+        .filter(n => n.note);
+      const allSelectedPhotos = Array.from(selected)
+        .map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) }));
 
-  // Chế độ đồng bộ: gửi yêu cầu lên server, CHỈ khoá + báo "đã gửi" khi server xác nhận.
-  // Lỗi (mất mạng, 401/403, 409, dữ liệu sai...) -> báo lỗi, giữ nguyên ảnh đã chọn + ghi chú để gửi lại,
-  // không ghi gì vào localStorage. SĐT + tên khách server lấy từ token, không gửi từ trang.
-  async function submitToServer(extraCount, extraFee, paymentStatus) {
-    if (submitting || requestSent) return;
-    submitting = true;
-    // Đã thanh toán ảnh chọn thêm: nhớ lại (chỉ trong bộ nhớ trang) để gửi lại không bắt trả lại tiền
-    paidPending = extraFee > 0 ? { count: extraCount, fee: extraFee, status: paymentStatus } : null;
-    document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = true; });
-    hideUndo();
-    syncBulkButtons();
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Đang gửi yêu cầu...';
-    const res = await AlohaEditSync.create({
-      orderCode: record.orderCode,
-      serviceLabel: record.serviceLabel,
-      note: document.getElementById('psNote').value.trim(),
-      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) })),
-      extraFee: extraFee,
-      paymentStatus: paymentStatus
-    });
-    submitting = false;
-    if (res.ok && res.data && res.data.request) {
-      paidPending = null;
-      banner.removeAttribute('role');
-      syncRequests = syncRequests.filter((r) => r.id !== res.data.request.id).concat([res.data.request]);
-      showSubmittedUi(extraCount, extraFee);
-      renderEdited(true);
-      return;
+      AlohaData.createEditRequest({
+        phone: session.phone,
+        customerName: session.name,
+        orderCode: record.orderCode,
+        serviceLabel: record.serviceLabel,
+        photoCount: selected.size,
+        extraCount: extraCount,
+        extraFee: extraFee,
+        paymentStatus: paymentStatus,
+        note: document.getElementById('psNote').value.trim(),
+        photoNotes: perPhotoNotes,
+        photos: allSelectedPhotos
+      });
     }
-    // Đã trả tiền thì giữ khoá danh sách (đúng bộ ảnh đã thanh toán); chưa trả thì mở khoá để sửa
-    if (!paidPending) document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = false; });
-    syncBulkButtons();
-    submitBtn.textContent = paidPending ? 'Gửi lại yêu cầu (đã thanh toán)' : 'Gửi yêu cầu chỉnh sửa';
-    updateSummary();
-    showSubmitError(res.message + (paidPending
-      ? ' Bạn đã thanh toán phí ảnh chọn thêm: bấm "Gửi lại yêu cầu", không cần thanh toán lại. Cần hỗ trợ gọi hotline 0938.125.222.'
-      : ' Ảnh đã chọn và ghi chú vẫn được giữ nguyên, bạn bấm gửi lại khi kết nối ổn định.'));
   }
 
   // ===== Submit =====
   submitBtn.addEventListener('click', () => {
     if (selected.size === 0) return;
-    if (SYNC) {
-      if (!syncLoaded || submitting || requestSent) return;
-      // Đã thanh toán nhưng lần gửi trước lỗi -> gửi lại đúng bộ ảnh đã trả tiền, không mở lại QR
-      if (paidPending) { submitToServer(paidPending.count, paidPending.fee, paidPending.status); return; }
-    }
 
     const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
     const extraFee = extraCount * EXTRA_PRICE;
@@ -1118,64 +1038,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatQuick = document.getElementById('psChatQuick');
   let editedSig = '';
   let aiPending = null; // id tin của khách đang chờ Trợ lý AI trả lời
-  let chatSending = false; // chế độ đồng bộ: đang chờ server lưu tin nhắn
 
   const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmtTime = (t) => new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 
   function latestRequest() {
-    // Chế độ đồng bộ: chỉ dữ liệu server trả (server đã lọc đúng yêu cầu của khách theo token,
-    // không có link ảnh gốc). Không đọc yêu cầu cũ trong localStorage.
-    if (SYNC) return syncRequests.slice().sort((a, b) => b.createdAt - a.createdAt)[0] || null;
     if (!window.AlohaData || !session) return null;
     return AlohaData.getEditRequests()
       .filter((r) => r.phone === session.phone)
       .sort((a, b) => b.createdAt - a.createdAt)[0] || null;
   }
-  // Thay 1 yêu cầu trong bộ nhớ trang bằng bản server vừa trả
-  function keepServerCopy(req) {
-    if (req && req.id) syncRequests = syncRequests.filter((r) => r.id !== req.id).concat([req]);
-  }
-  // Tải lại yêu cầu của khách từ server (GET /me). Lỗi -> giữ bản đã tải, ghi lỗi để hiện ra.
-  async function refreshFromServer() {
-    const res = await AlohaEditSync.mine();
-    if (res.ok && res.data && Array.isArray(res.data.requests)) {
-      const firstLoad = !syncLoaded;
-      syncRequests = res.data.requests;
-      syncLoaded = true;
-      syncError = '';
-      if (firstLoad) onSyncFirstLoad();
-    } else {
-      syncError = res.message || 'Không tải được dữ liệu từ máy chủ.';
-    }
-    renderSyncStatus();
-    return res;
-  }
-  // Lần đầu tải được dữ liệu server (lúc mở trang, hoặc ở vòng hỏi sau khi lần đầu lỗi):
-  // mở khoá nút gửi nếu chưa gửi, hoặc khôi phục đúng trạng thái đã gửi
-  function onSyncFirstLoad() {
-    if (banner.getAttribute('role') === 'alert') { banner.classList.remove('show'); banner.removeAttribute('role'); }
-    submitBtn.textContent = 'Gửi yêu cầu chỉnh sửa';
-    restoreSentRequest();
-    updateSummary();
-  }
-  // Dòng báo lỗi kết nối trong tab "Ảnh đã chỉnh" (chỉ chế độ đồng bộ)
-  let syncStatusEl = null;
-  function renderSyncStatus() {
-    if (!SYNC || !editedPanel) return;
-    if (!syncStatusEl) {
-      syncStatusEl = document.createElement('p');
-      syncStatusEl.className = 'ps-chat-empty ps-sync-status';
-      syncStatusEl.setAttribute('role', 'status');
-      editedPanel.insertBefore(syncStatusEl, editedPanel.firstChild);
-    }
-    const parts = [];
-    if (chatError) parts.push('Tin nhắn CHƯA được gửi: ' + chatError);
-    if (syncError) parts.push('Chưa cập nhật được từ máy chủ: ' + syncError);
-    syncStatusEl.hidden = !parts.length;
-    syncStatusEl.textContent = parts.join(' ');
-  }
-  let seenPending = false;
   // "Tin mới" = thợ vừa gửi link hoặc nhắn thêm mà khách chưa mở tab xem
   function newsSig(req) {
     const staffMsgs = (Array.isArray(req.messages) ? req.messages : []).filter((m) => m.from === 'staff').length;
@@ -1184,16 +1056,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Dấu "đã xem" nằm trong chính yêu cầu (customerSeenEditedSig), không tạo kho localStorage riêng
   function markEditedSeen(req) {
     const sig = newsSig(req);
-    if (SYNC) {
-      // Chỉ tắt chấm báo khi server đã lưu "đã xem"
-      if ((req.customerSeenEditedSig || '') === sig || seenPending) return;
-      seenPending = true;
-      AlohaEditSync.markSeen(req.id, { editedSig: sig }).then((res) => {
-        seenPending = false;
-        if (res.ok && res.data) { keepServerCopy(res.data.request); updateEditedDot(latestRequest()); }
-      });
-      return;
-    }
     if (req.customerSeenEditedSig !== sig) { AlohaData.markCustomerSeenEdited(req.id, sig); req.customerSeenEditedSig = sig; }
   }
   function updateEditedDot(req) {
@@ -1343,30 +1205,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const req = latestRequest();
       const text = chatInput.value.trim();
       if (!req || !text || aiPending) return;
-      if (SYNC) {
-        // Gửi qua server (người gửi = khách theo token). Lỗi -> giữ nguyên chữ đã gõ, báo lỗi, không
-        // ghi localStorage. Trợ lý tự động KHÔNG chạy ở chế độ này: server chưa có cách lưu an toàn
-        // tin 'ai' (API chặn client tự ghi 'ai') -> tin chờ thợ chỉnh ảnh trả lời, không bịa câu trả lời.
-        if (chatSending) return;
-        chatSending = true;
-        chatSend.disabled = true;
-        const res = await AlohaEditSync.addMessage(req.id, text);
-        chatSending = false;
-        if (!res.ok || !res.data) {
-          chatError = res.message || 'Không gửi được tin nhắn.';
-          renderSyncStatus();
-          chatSend.disabled = false;
-          return;
-        }
-        chatError = '';
-        renderSyncStatus();
-        keepServerCopy(res.data.request);
-        chatInput.value = '';
-        autoSizeChat();
-        renderEdited(true);
-        chatInput.focus();
-        return;
-      }
       const saved = AlohaData.addRequestMessage(req.id, 'customer', (session && session.name) || 'Khách hàng', text);
       if (!saved) return;
       chatInput.value = '';
@@ -1392,20 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   // Thợ gửi link / trả lời ở tab khác cùng trình duyệt -> cập nhật không cần tải lại trang
-  if (SYNC) {
-    // Chế độ đồng bộ: hỏi server 4 giây/lần (dữ liệu chỉ giữ trong bộ nhớ trang)
-    let meLoading = false;
-    setInterval(async () => {
-      if (meLoading) return;
-      meLoading = true;
-      await refreshFromServer();
-      meLoading = false;
-      renderEdited(false);
-    }, 4000);
-  } else {
-    window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') renderEdited(false); });
-    setInterval(() => renderEdited(false), 4000);
-  }
+  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') renderEdited(false); });
+  setInterval(() => renderEdited(false), 4000);
 
   // ===== Ô "Đã chọn" nổi theo khi cuộn xem ảnh =====
   // Ô gốc ở đầu trang cuộn khuất thì chính ô đó chuyển sang position: fixed ngay dưới thanh
@@ -1488,21 +1314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     banner.classList.add('show');
   }
-  if (SYNC) {
-    // Chưa biết khách đã gửi yêu cầu chưa cho tới khi server trả lời -> khoá nút gửi (updateSummary),
-    // tránh gửi trùng. Tải lỗi thì giữ khoá + báo lỗi, không đoán theo localStorage.
-    submitBtn.textContent = 'Đang tải dữ liệu...';
-    refreshFromServer().then((res) => {
-      if (!res.ok && !syncLoaded) {
-        submitBtn.textContent = 'Chưa kết nối được máy chủ';
-        showSubmitError(res.message + ' Chưa kiểm tra được bạn đã gửi yêu cầu hay chưa nên tạm khoá nút gửi. Trang sẽ tự thử lại vài giây một lần.');
-      }
-      updateSummary();
-      renderEdited(true);
-    });
-  } else {
-    restoreSentRequest();
-  }
+  restoreSentRequest();
 
   updateSummary();
   applyFilter('all');
