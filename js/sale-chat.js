@@ -1,9 +1,15 @@
-// ALOHA Baby — màn hình chat trực tiếp Khách <-> Sale (view #/chat-sale, thêm 2026-09-27).
+// ALOHA Baby — khung chat trực tiếp Khách <-> Sale (thêm 2026-09-27).
 //
-// Luồng: khách bấm 1 trong 5 ảnh / dòng dịch vụ đầu trang chủ (#/chat-sale/<dịch vụ>)
-// -> chưa đăng nhập thì sang login.html -> đăng nhập xong quay về đúng #/chat-sale/<dịch vụ>
-// -> js/router.js hiện view-chat và gọi AlohaSaleChat.show(<dịch vụ>).
-// Đã đăng nhập mà bấm ẢNH: ảnh phóng to phủ màn hình rồi mới mở màn chat (zoomToChat).
+// Từ 2026-09-28 là KHUNG NHỎ Ở GÓC phải dưới (#saleChatPanel), mở bằng nút chat nổi, như
+// chatbot ban đầu (người dùng yêu cầu; 27/09 từng là màn chat toàn trang #/chat-sale).
+// Khách chưa đăng nhập bấm nút chat -> #/chat-sale -> router đưa sang login.html -> đăng nhập
+// xong quay lại, router gọi AlohaSaleChat.open() mở khung ngay trên trang.
+// Đang xem album 1 dịch vụ (#/album/<dịch vụ>...) thì khung chat tự ghi dịch vụ đó làm chủ đề.
+//
+// Khi chatbot AI BẬT (js/features.js aiChat: true, mặc định từ 2026-09-28): không dùng khung
+// riêng ở trên mà chat với Sale NGAY TRONG khung chatbot (js/script.js gọi embed() khi khách bấm
+// "Nhắn trực tiếp với Sale"), kèm gửi Sale bản tóm tắt những gì khách đã xem/hỏi (summaryText,
+// dựng từ hành trình trong js/router.js), server lưu thành tin hệ thống chỉ Sale/Sếp thấy.
 //
 // Mở đầu là các tin chào TỰ ĐỘNG của Sale, đến lần lượt như người thật: "đang trả lời..." ->
 // tin 1 -> nghỉ -> "đang trả lời..." -> tin 2 ... thời gian gõ tuỳ độ dài câu; xong thì hiện
@@ -12,25 +18,31 @@
 // CHAT THẬT qua server (server/sale-chat.js, người dùng chọn 2026-09-27): tin khách gửi lên
 // server bằng mã đăng nhập (AlohaAuth.api), mọi tài khoản Sale đọc và trả lời trong
 // crm/admin.html mục "Tin nhắn" - khác máy, khác trình duyệt vẫn thấy nhau. Trang tự hỏi
-// server tin mới mỗi 2.5 giây khi đang mở màn chat (polling).
+// server tin mới mỗi 2.5 giây khi đang mở khung chat (polling).
 //
 // Khi chatbot AI đang tắt (js/features.js, aiChat: false), nút chat nổi và các lối vào
-// khung chat cũ (Tư vấn concept ngay, Báo giá, Khuyến mại, Hỗ trợ...) cũng dẫn tới màn này.
+// khung chat cũ (Tư vấn concept ngay, Báo giá, Khuyến mại, Hỗ trợ...) mở khung này.
 (function (window) {
   const $ = (id) => document.getElementById(id);
-  const view = $('view-chat');
+  const view = $('saleChatPanel');
   const card = view && view.querySelector('.sc-main');
-  const thread = $('scThread');
+  let thread = $('scThread');
   const form = $('scForm');
-  const input = $('scInput');
-  const sendBtn = $('scSend');
+  let input = $('scInput');
+  let sendBtn = $('scSend');
   const topicLine = $('scTopicLine');
-  const statusBox = $('scStatus');
+  let statusBox = $('scStatus');
+  const toggleBtn = $('chatToggle');
+  const closeBtn = $('scClose');
   if (!view || !card || !thread || !form || !input || !window.AlohaAuth) return;
+  // Đích vẽ hiện tại. embed() đổi sang phần tử trong khung chatbot, unembed() trả lại khung riêng.
+  const PANEL = { thread, input, sendBtn, statusBox };
+  let scroller = thread;   // phần tử cuộn (khi nhúng là cả thân khung chatbot)
+  let embedded = false;
+  const wired = new WeakSet();
 
   const FEATURES = window.ALOHA_FEATURES || {};
-  const TITLE = 'Chat với Sale | ALOHA Baby';
-  const POLL_ACTIVE_MS = 2500;   // đang mở màn chat
+  const POLL_ACTIVE_MS = 2500;   // đang mở khung chat
   const POLL_IDLE_MS = 20000;    // ở trang khác: chỉ để bật chấm đỏ khi Sale trả lời
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const AVATAR = '<span class="sc-avatar sc-avatar-sm" aria-hidden="true"><img src="images/logo-mark.svg" alt="" width="18" height="18"></span>';
@@ -56,10 +68,83 @@
     return s && s.role === 'khach-hang' ? s : null;
   }
 
-  // Nhãn dịch vụ lấy đúng chữ trên dòng 5 dịch vụ đầu trang chủ, không viết lại lần nữa.
+  // ---- Khách vãng lai chat Sale được luôn, không cần đăng nhập (người dùng chốt: chỉ bắt đăng
+  // nhập khi khách chủ động bấm nút "Đăng nhập" trên menu, hoặc vào Đặt lịch/Ảnh của tôi). Server
+  // tự cấp 1 danh tính tạm "Khách vãng lai" (KHÔNG phải tài khoản thật, xem server/sale-chat.js
+  // /auth/guest) lưu RIÊNG ở đây (localStorage "aloha_guest_chat"), KHÔNG đụng tới aloha_auth của
+  // AlohaAuth để không ảnh hưởng nav/menu hay gate Đặt lịch/Ảnh của tôi (vẫn cần tài khoản thật).
+  const GUEST_KEY = 'aloha_guest_chat';
+  function guestSession() {
+    try {
+      const raw = window.localStorage.getItem(GUEST_KEY);
+      const g = raw && JSON.parse(raw);
+      return g && g.token && g.phone && g.exp > Date.now() ? g : null;
+    } catch (e) { return null; }
+  }
+  function saveGuest(g) { try { window.localStorage.setItem(GUEST_KEY, JSON.stringify(g)); } catch (e) { /* bị chặn: bỏ qua */ } }
+  function clearGuest() { try { window.localStorage.removeItem(GUEST_KEY); } catch (e) { /* bỏ qua */ } }
+  // Danh tính dùng để chat Sale: tài khoản thật nếu đã đăng nhập, không thì khách vãng lai đã cấp
+  // trước đó trong trình duyệt này (KHÔNG tự xin cấp mới ở đây - chỉ đọc, xem ensureGuest()).
+  function identity() {
+    const real = customer();
+    if (real) return Object.assign({}, real, { real: true });
+    const g = guestSession();
+    return g ? Object.assign({}, g, { real: false }) : null;
+  }
+  let guestPromise = null;
+  async function ensureGuest() {
+    const cur = guestSession();
+    if (cur) return Object.assign({}, cur, { real: false });
+    if (!guestPromise) {
+      guestPromise = (async () => {
+        try {
+          const res = await fetch(AlohaAuth.API_BASE + '/api/sale-chat/auth/guest', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || !data.token || !data.session) return null;
+          const g = { phone: data.session.phone, name: data.session.name, token: data.token, exp: Date.now() + 29 * 24 * 3600 * 1000 };
+          saveGuest(g);
+          return g;
+        } catch (e) { return null; } finally { guestPromise = null; }
+      })();
+    }
+    const g = await guestPromise;
+    return g ? Object.assign({}, g, { real: false }) : null;
+  }
+  // Gọi API sale-chat với đúng danh tính đang có (tài khoản thật / khách vãng lai); chưa có danh
+  // tính nào thì tự xin server cấp 1 khách vãng lai trước (thay AlohaAuth.api, vì hàm đó chỉ biết
+  // đọc token từ aloha_auth). Trả { ok, status, data, me } - "me" là danh tính đã dùng để gọi.
+  async function call(path, opts) {
+    let me = identity();
+    if (!me) me = await ensureGuest();
+    if (!me || !me.token) return { ok: false, status: 401, data: null, me };
+    const o = opts || {};
+    try {
+      const res = await fetch(AlohaAuth.API_BASE + path, {
+        method: o.method || 'GET',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + me.token },
+        body: o.body ? JSON.stringify(o.body) : undefined,
+        signal: AbortSignal.timeout ? AbortSignal.timeout(o.timeout || 15000) : undefined
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { /* không phải JSON */ }
+      return { ok: res.ok, status: res.status, data, me };
+    } catch (e) {
+      return { ok: false, status: 0, data: null, me };
+    }
+  }
+
+  // Nhãn dịch vụ lấy đúng chữ trên 5 ô ảnh dịch vụ đầu trang chủ, không viết lại lần nữa.
   function topicLabel(slug) {
-    const a = slug && document.querySelector('.svc-list a[href="#/chat-sale/' + slug + '"]');
+    const a = slug && document.querySelector('.svc-tile[data-album="' + slug + '"] .svc-tile-name');
     return a ? a.textContent.trim() : '';
+  }
+  // Đang xem album của 1 dịch vụ -> lấy dịch vụ đó làm chủ đề chat.
+  function topicFromPage() {
+    const m = /^#\/album\/([a-z-]+)/.exec(window.location.hash);
+    return m ? m[1] : '';
   }
 
   function esc(s) {
@@ -193,10 +278,11 @@
     </div></div>`;
   }
 
-  const serverMsgs = () => (cache.chat && cache.chat.messages) || [];
+  // Tin hệ thống (from 'he-thong', bản tóm tắt gửi Sale) không hiện cho khách.
+  const serverMsgs = () => ((cache.chat && cache.chat.messages) || []).filter((m) => m.from !== 'he-thong');
 
   function render(force) {
-    const me = customer();
+    const me = identity();
     if (!me) return;
     const msgs = serverMsgs();
     const topic = topicLabel(topicSlug);
@@ -206,7 +292,7 @@
       pending.map((p) => p.id + (p.failed ? '!' : '')).join(',')].join('|');
     if (!force && key === lastKey) return;
     lastKey = key;
-    const nearBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
+    const nearBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 80;
     const hasMine = msgs.some((m) => m.from === 'khach') || pending.length > 0;
 
     // Lời chào luôn đứng trước tin đầu tiên: đã có tin thì lấy giờ tin đầu nếu sớm hơn,
@@ -216,7 +302,13 @@
     thread.innerHTML = (greetDay ? `<div class="sc-day"><span>${greetDay}</span></div>` : '') +
       greetingHtml(me, g, st, !hasMine, greetTime) + messagesHtml(msgs, greetDay) + pendingHtml();
     msgs.forEach((m) => seenIds.add(m.id));
-    if (force || nearBottom) thread.scrollTop = thread.scrollHeight;
+    if (force || nearBottom) scroller.scrollTop = scroller.scrollHeight;
+    if (input.disabled) thread.querySelectorAll('.sc-chip').forEach((b) => { b.disabled = true; });
+  }
+
+  // Đang nhúng trong khung chatbot: chat Sale chưa dùng được thì vẫn có lối quay lại trợ lý AI.
+  function backToAi() {
+    return embedded ? ' Trong lúc chờ, bạn có thể <button type="button" id="scBackAi">quay lại trợ lý AI</button>.' : '';
   }
 
   // Dòng báo trạng thái kết nối ngay dưới đầu khung chat.
@@ -226,15 +318,17 @@
     statusBox.hidden = !(s === 'offline' || s === 'auth');
     statusBox.className = 'sc-status' + (s === 'auth' ? ' sc-status-auth' : '');
     if (s === 'offline') {
-      statusBox.innerHTML = 'Đang kết nối tới máy chủ chat… Máy chủ có thể cần vài chục giây để khởi động, tin nhắn sẽ gửi được ngay khi kết nối xong.';
+      statusBox.innerHTML = 'Đang kết nối tới máy chủ chat… Máy chủ có thể cần vài chục giây để khởi động, tin nhắn sẽ gửi được ngay khi kết nối xong.' + backToAi();
     } else if (s === 'auth') {
-      statusBox.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. <button type="button" id="scRelogin">Đăng nhập lại</button> để nhắn cho Sale.';
+      statusBox.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. <button type="button" id="scRelogin">Đăng nhập lại</button> để nhắn cho Sale.' + backToAi();
     }
     const locked = s === 'auth';
     input.disabled = locked;
     input.placeholder = locked ? 'Đăng nhập lại để nhắn cho Sale' : 'Nhập tin nhắn cho Sale...';
     if (locked) sendBtn.disabled = true;
     else updateSendState();
+    // Chưa gửi được thì nút gợi ý cũng mờ đi, không để khách bấm mà không thấy gì xảy ra.
+    thread.querySelectorAll('.sc-chip').forEach((b) => { b.disabled = locked; });
   }
 
   // ---------------------------------------------------------------- Trao đổi với server
@@ -245,18 +339,19 @@
   }
   function setError(me, status) {
     if (cache.phone !== me.phone) cache = { phone: me.phone, chat: null, status: 'loading' };
+    // Token khách vãng lai hết hạn/bị từ chối: không có tài khoản để "đăng nhập lại" như khách
+    // thật -> xoá đi để lần gọi sau tự xin cấp 1 danh tính mới, báo "đang kết nối" thay vì "auth".
+    if (status === 401 && me.real === false) { clearGuest(); cache.status = 'offline'; return; }
     cache.status = status === 401 ? 'auth' : 'offline';
   }
 
   async function fetchChat() {
-    const me = customer();
-    if (!me) return;
-    if (!me.token) { setError(me, 401); afterData(); return; }
     if (fetching) return;
     fetching = true;
-    const r = await AlohaAuth.api('/api/sale-chat/me');
+    const r = await call('/api/sale-chat/me');
     fetching = false;
-    if (r.ok) setChat(me, r.data.chat); else setError(me, r.status);
+    if (!r.me) { cache.status = 'offline'; afterData(); return; }
+    if (r.ok) setChat(r.me, r.data.chat); else setError(r.me, r.status);
     afterData();
   }
 
@@ -277,138 +372,265 @@
   }
 
   async function markRead() {
-    const me = customer();
+    const me = identity();
     if (!me || !active || document.visibilityState !== 'visible' || !cache.chat || !cache.chat.customerUnread) return;
     cache.chat.customerUnread = 0;
     updateDot();
-    const r = await AlohaAuth.api('/api/sale-chat/me/read', { method: 'POST' });
+    const r = await call('/api/sale-chat/me/read', { method: 'POST' });
     if (r.ok && r.data.chat) cache.chat = r.data.chat;
   }
 
-  // Chấm đỏ trên nút chat nổi: Sale đã trả lời mà khách chưa mở màn chat xem.
+  // Chấm đỏ trên nút chat nổi: Sale đã trả lời mà khách chưa mở chat xem. Chỉ đọc danh tính đã có
+  // sẵn (không tự xin cấp khách vãng lai) - khách chưa từng mở chat thì chưa có gì để báo đỏ.
+  function unread() {
+    const me = identity();
+    return me && cache.phone === me.phone && cache.chat ? (cache.chat.customerUnread || 0) : 0;
+  }
   function updateDot() {
     const dot = document.querySelector('#chatToggle .dot');
-    if (!dot || FEATURES.aiChat !== false) return;
-    const me = customer();
-    dot.hidden = !(me && cache.phone === me.phone && cache.chat && cache.chat.customerUnread > 0);
+    if (dot) dot.hidden = active || !unread();
   }
 
   function updateSendState() {
     sendBtn.disabled = input.disabled || !input.value.trim();
     // Ô nhập tự cao theo nội dung, tối đa ~5 dòng rồi cuộn trong ô.
+    if (input.tagName !== 'TEXTAREA') return;
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 132) + 'px';
   }
 
   async function send(text, retryOf) {
-    const me = customer();
     const clean = String(text || '').trim();
-    if (!me || !clean) return;
+    if (!clean) return;
     // Khách nhắn trước khi lời chào chạy xong -> hiện nốt lời chào ngay, không chen ngang.
     stopSeq();
     if (retryOf) pending = pending.filter((p) => p !== retryOf);
     const item = { id: 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), text: clean, at: Date.now(), failed: false };
     pending.push(item);
     render(true);
-    const r = me.token
-      ? await AlohaAuth.api('/api/sale-chat/me/messages', { method: 'POST', body: { text: clean, topic: topicLabel(topicSlug) } })
-      : { ok: false, status: 401 };
+    // Khách vãng lai gõ trước khi kịp có danh tính (vd embed() chưa xin cấp xong) -> call() tự
+    // xin cấp 1 khách vãng lai ngay tại đây, không mất tin khách vừa gõ.
+    const r = await call('/api/sale-chat/me/messages', { method: 'POST', body: { text: clean, topic: topicLabel(topicSlug) } });
+    if (!r.me) { item.failed = true; render(true); renderStatus(); return; }
     if (r.ok) {
       pending = pending.filter((p) => p !== item);
-      setChat(me, r.data.chat);
+      setChat(r.me, r.data.chat);
       // Tin vừa gửi thành công vẫn "bật lên" 1 lần (đã hiện ở dạng đang gửi, không lặp lại).
       serverMsgs().slice(-1).forEach((m) => seenIds.add(m.id));
     } else {
       item.failed = true;
-      if (r.status === 401 || r.status === 0 || r.status >= 500) setError(me, r.status);
+      if (r.status === 401 || r.status === 0 || r.status >= 500) setError(r.me, r.status);
     }
     render(true);
     renderStatus();
   }
 
-  // Khung chat cao đúng phần khung nhìn còn lại dưới thanh điều hướng.
-  function fitHeight() {
-    const header = document.querySelector('.site-header');
-    const topbar = document.querySelector('.topbar');
-    const top = (header ? header.offsetHeight : 0) + (topbar ? topbar.offsetHeight : 0);
-    view.style.setProperty('--sc-top', top + 'px');
+  // ---------------------------------------------------------------- Mở / đóng khung chat
+  // topic: slug dịch vụ (vd 'bau'); bỏ trống thì lấy dịch vụ của album đang xem (nếu có).
+  function open(topic) {
+    if (FEATURES.aiChat !== false) {
+      // Chatbot AI bật: chat với Sale ngay trong khung chatbot (js/script.js). Lúc tải trang
+      // (vd vừa đăng nhập với next=chat-sale) khung chatbot chưa sẵn sàng -> chờ trang dựng xong.
+      if (window.AlohaChatbot) window.AlohaChatbot.openSale(topic);
+      else document.addEventListener('DOMContentLoaded', () => { if (window.AlohaChatbot) window.AlohaChatbot.openSale(topic); });
+      return;
+    }
+    const openWith = (me) => {
+      const slug = String(topic || '').split('/')[0] || topicFromPage();
+      const newTopic = topicLabel(slug) ? slug : '';
+      if (active) {
+        // Đang mở rồi: chỉ đổi chủ đề nếu khác, không chào lại từ đầu.
+        if (newTopic && newTopic !== topicSlug) { topicSlug = newTopic; topicLine.textContent = topicLabel(topicSlug); render(true); }
+        return;
+      }
+      active = true;
+      topicSlug = newTopic;
+      if (topicLine) topicLine.textContent = topicLabel(topicSlug) || 'Tư vấn chung';
+      view.classList.add('open');
+      view.setAttribute('aria-hidden', 'false');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+
+      if (cache.phone !== me.phone) { cache = { phone: me.phone, chat: null, status: 'loading' }; pending = []; }
+      seenIds = new Set(serverMsgs().map((m) => m.id));
+      freshShow = true;
+      stopSeq();
+      // Khách chưa nhắn gì -> MỖI lần mở khung chat, các tin chào đến lần lượt kèm "đang trả lời…"
+      // (người dùng yêu cầu 2026-09-27). Máy bật giảm hiệu ứng thì vẫn đến lần lượt, chỉ bỏ
+      // chuyển động (css/pages.css). Đã có tin thì hiện lịch sử như ứng dụng nhắn tin thật
+      // (chưa biết thì cứ bắt đầu chào, server báo có tin thì afterData() dừng lại).
+      if (!serverMsgs().length && !pending.length) startSeq(me);
+      else if (!greetAt[me.phone]) greetAt[me.phone] = Date.now();
+      lastKey = '';
+      render(true);
+      renderStatus();
+      updateDot();
+      fetchChat();
+      // Chỉ tự đặt con trỏ trên máy tính: trên điện thoại sẽ bật bàn phím che mất lời chào.
+      if (window.matchMedia('(pointer: fine)').matches) setTimeout(() => input.focus({ preventScroll: true }), 50);
+    };
+    const me = identity();
+    if (me) { openWith(me); return; }
+    // Khách vãng lai lần đầu: mở khung ngay cho khách thấy (view hiện, "đang kết nối") rồi xin
+    // server cấp 1 khách vãng lai; "active" để nguyên false cho tới khi có danh tính, để lúc đó
+    // openWith() chạy đủ luồng "vừa mở" (chào + tải tin) thay vì tưởng "đang mở rồi" mà bỏ qua.
+    view.classList.add('open');
+    view.setAttribute('aria-hidden', 'false');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+    cache = { phone: null, chat: null, status: 'loading' };
+    renderStatus();
+    ensureGuest().then((g) => { if (g) openWith(g); else { cache.status = 'offline'; renderStatus(); } });
   }
 
-  // ---------------------------------------------------------------- Gọi từ router
-  function show(param) {
-    active = true;
-    const slug = String(param || '').split('/')[0];
-    topicSlug = topicLabel(slug) ? slug : '';
-    if (topicLine) topicLine.textContent = topicLabel(topicSlug) || 'Tư vấn chung';
-    fitHeight();
+  function close() {
+    // "active" có thể vẫn false trong lúc đang chờ cấp danh tính khách vãng lai (xem open()) dù
+    // khung đã hiện trên màn hình -> kiểm tra thêm class "open" để nút đóng luôn bấm được.
+    if (!active && !view.classList.contains('open')) return;
+    active = false;
+    stopSeq(); // đóng giữa chừng thì dừng hẹn giờ; mở lại sẽ chào lại từ đầu nếu khách chưa nhắn
+    view.classList.remove('open');
+    view.setAttribute('aria-hidden', 'true');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    if (view.contains(document.activeElement)) document.activeElement.blur();
+    updateDot();
+  }
 
-    const me = customer();
-    if (me && cache.phone !== me.phone) { cache = { phone: me.phone, chat: null, status: 'loading' }; pending = []; }
-    seenIds = new Set(serverMsgs().map((m) => m.id));
-    freshShow = true;
-    stopSeq();
-    // Khách chưa nhắn gì -> MỖI lần mở màn chat, các tin chào đến lần lượt kèm "đang trả lời…"
-    // (người dùng yêu cầu 2026-09-27). Máy bật giảm hiệu ứng thì vẫn đến lần lượt, chỉ bỏ
-    // chuyển động (css/pages.css). Đã có tin thì hiện lịch sử như ứng dụng nhắn tin thật
-    // (chưa biết thì cứ bắt đầu chào, server báo có tin thì afterData() dừng lại).
-    if (me && !serverMsgs().length && !pending.length) startSeq(me);
-    else if (me && !greetAt[me.phone]) greetAt[me.phone] = Date.now();
+  // ---------------------------------------------------------------- Nhúng vào khung chatbot AI
+  // o: { container (nơi vẽ tin Sale), scroller, input, sendBtn, statusBox, topic (slug) }.
+  // Gọi lại khi khung chatbot mở lại ở chế độ Sale (không chào lại từ đầu).
+  function embedWith(me, o, first) {
+    thread = o.container; scroller = o.scroller || o.container;
+    input = o.input; sendBtn = o.sendBtn; statusBox = o.statusBox || null;
+    embedded = true;
+    active = true;
+    wire(thread, statusBox);
+    if (o.topic !== undefined) {
+      const slug = String(o.topic || '').split('/')[0] || topicFromPage();
+      if (topicLabel(slug)) topicSlug = slug; else if (first) topicSlug = '';
+    }
+    if (cache.phone !== me.phone) { cache = { phone: me.phone, chat: null, status: 'loading' }; pending = []; }
+    if (first) {
+      seenIds = new Set(serverMsgs().map((m) => m.id));
+      freshShow = true;
+      stopSeq();
+      if (!serverMsgs().length && !pending.length) startSeq(me);
+      else if (!greetAt[me.phone]) greetAt[me.phone] = Date.now();
+    }
     lastKey = '';
     render(true);
     renderStatus();
+    updateDot();
     fetchChat();
-
-    // Khung chat trượt nhẹ lên mỗi lần mở màn này.
-    if (!reduceMotion) {
-      card.classList.remove('sc-in');
-      void card.offsetWidth;
-      card.classList.add('sc-in');
-    }
-    // Chỉ tự đặt con trỏ trên máy tính: trên điện thoại sẽ bật bàn phím che mất lời chào.
-    if (window.matchMedia('(pointer: fine)').matches) setTimeout(() => input.focus({ preventScroll: true }), 50);
-    return TITLE;
   }
-
-  function hide() {
+  function embed(o) {
+    if (!o || !o.container) return;
+    // Tính "lần đầu nhúng" TRƯỚC khi đổi embedded/thread, vì nhánh khách vãng lai bên dưới phải
+    // đổi 2 biến đó ngay (để vẽ trạng thái "đang kết nối") trước khi có danh tính thật.
+    const first = !embedded || thread !== o.container;
+    const me = identity();
+    if (me) { embedWith(me, o, first); return; }
+    // Chưa có danh tính nào (khách vãng lai lần đầu) -> vẽ khung ở trạng thái "đang kết nối" rồi
+    // xin server cấp 1 khách vãng lai, xong mới chào/tải tin như bình thường (embedWith).
+    thread = o.container; scroller = o.scroller || o.container;
+    input = o.input; sendBtn = o.sendBtn; statusBox = o.statusBox || null;
+    embedded = true; active = true;
+    wire(thread, statusBox);
+    cache = { phone: null, chat: null, status: 'loading' };
+    render(true);
+    renderStatus();
+    ensureGuest().then((g) => { if (g) embedWith(g, o, first); else { cache.status = 'offline'; renderStatus(); } });
+  }
+  // Thu nhỏ khung chatbot khi đang ở chế độ Sale: ngừng đánh dấu đã đọc, vẫn nhớ chế độ.
+  function pause() {
+    if (!active) return;
     active = false;
-    stopSeq(); // rời màn chat giữa chừng thì dừng hẹn giờ; mở lại sẽ chào lại từ đầu nếu khách chưa nhắn
+    if (seq) { stopSeq(); if (embedded) render(true); }
+    updateDot();
+  }
+  // Quay lại trợ lý AI: tin Sale đã hiện giữ nguyên trong khung chatbot, trả đích vẽ về khung riêng.
+  function unembed() {
+    pause();
+    if (!embedded) return;
+    embedded = false;
+    thread = PANEL.thread; scroller = PANEL.thread; input = PANEL.input; sendBtn = PANEL.sendBtn; statusBox = PANEL.statusBox;
   }
 
-  // ---------------------------------------------------------------- Ảnh phóng to sang màn chat
-  // Khách ĐÃ đăng nhập bấm 1 trong 5 ảnh dịch vụ: bản sao của ảnh phóng từ đúng vị trí ô ảnh
-  // ra phủ kín màn hình (phủ dần một lớp hồng nhạt), đổi sang màn chat bên dưới rồi mờ đi.
-  // Chưa đăng nhập thì để link chạy bình thường (router đưa sang trang đăng nhập).
-  function zoomToChat(tile) {
-    const route = tile.getAttribute('href').slice(2);
-    const img = tile.querySelector('img');
-    const r = tile.getBoundingClientRect();
-    const ghost = document.createElement('div');
-    ghost.className = 'sc-zoom';
-    ghost.setAttribute('aria-hidden', 'true');
-    ghost.style.backgroundImage = `url("${(img && (img.currentSrc || img.src)) || ''}")`;
-    document.body.appendChild(ghost);
-    const from = { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '16px' };
-    const to = { left: '0px', top: '0px', width: window.innerWidth + 'px', height: window.innerHeight + 'px', borderRadius: '0px' };
-    Object.assign(ghost.style, from);
-    const tint = document.createElement('span'); // lớp hồng nhạt phủ dần, để lúc lộ màn chat không bị giật màu
-    ghost.appendChild(tint);
-    const grow = ghost.animate([from, to], { duration: 480, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'forwards' });
-    tint.animate([{ opacity: 0 }, { opacity: 0.94 }], { duration: 480, easing: 'ease-in', fill: 'forwards' });
-    grow.onfinish = () => {
-      history.pushState(null, '', '#/' + route);
-      window.AlohaRouter.navigateTo(route);
-      const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' });
-      fade.onfinish = () => ghost.remove();
-    };
+  // Bản tóm tắt gửi Sale: khách quan tâm dịch vụ nào, đã xem concept/ảnh/trang nào, đã hỏi
+  // trợ lý AI những gì (hành trình trong phiên, js/router.js). Chữ thuần, tối đa ~1900 ký tự.
+  function summaryText() {
+    const list = (window.AlohaJourney && window.AlohaJourney.list()) || [];
+    const count = {};
+    const concepts = [];
+    const pages = [];
+    const asks = [];
+    let photos = 0;
+    let lead = null; // thông tin bé khách đã trả lời qua chatbot (askLeadStep trong js/script.js), tối đa 1 mục/phiên
+    list.forEach((it) => {
+      if (it.service) count[it.service] = (count[it.service] || 0) + (it.type === 'service' ? 2 : 1);
+      if (it.type === 'concept') {
+        const name = it.concept + ' (' + (topicLabel(it.service) || it.service) + ')';
+        if (concepts.indexOf(name) === -1) concepts.push(name);
+      }
+      if (it.type === 'photo') photos += 1;
+      if (it.type === 'page' && it.label && pages.indexOf(it.label) === -1) pages.push(it.label);
+      if (it.type === 'ask' && it.label && asks.indexOf(it.label) === -1) asks.push(it.label);
+      if (it.type === 'lead') lead = it;
+    });
+    const services = Object.keys(count).sort((a, b) => count[b] - count[a]).map((sl) => topicLabel(sl) || sl);
+    const lines = [];
+    if (lead) {
+      const bits = [lead.age, lead.gender, lead.weight].filter(Boolean).join(', ');
+      lines.push('Thông tin bé (qua chatbot): ' + [bits, lead.concept ? 'thích concept ' + lead.concept : '', lead.note ? 'lưu ý: ' + lead.note : '']
+        .filter(Boolean).join('. ') + '.');
+    }
+    if (topicSlug) lines.push('Đang hỏi về: ' + topicLabel(topicSlug));
+    if (services.length) lines.push('Quan tâm nhiều nhất: ' + services.slice(0, 3).join(', '));
+    if (concepts.length) lines.push('Concept đã xem: ' + concepts.slice(-6).join('; '));
+    if (photos) lines.push('Đã mở xem lớn ' + photos + ' ảnh mẫu');
+    if (pages.length) lines.push('Trang đã đọc: ' + pages.slice(-4).join('; '));
+    if (asks.length) lines.push('Đã hỏi trợ lý AI: ' + asks.slice(-6).map((q) => '"' + q.slice(0, 120) + '"').join('; '));
+    if (!lines.length) lines.push('Khách chưa xem album hay hỏi trợ lý AI trước khi chuyển sang Sale.');
+    return lines.join('\n').slice(0, 1900);
+  }
+  let lastSummary = '';
+  async function handoff() {
+    const text = summaryText();
+    if (text === lastSummary) return; // chuyển qua lại nhiều lần mà không xem thêm gì -> không gửi lặp
+    lastSummary = text;
+    const r = await call('/api/sale-chat/me/handoff', { method: 'POST', body: { summary: text, topic: topicLabel(topicSlug) } });
+    if (r.ok) { setChat(r.me, r.data.chat); if (active) render(false); } else lastSummary = '';
   }
 
-  document.addEventListener('click', (e) => {
-    const tile = e.target.closest('a.svc-tile[href^="#/chat-sale/"]');
-    if (!tile || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (!customer() || reduceMotion || !window.AlohaRouter || !Element.prototype.animate) return;
-    e.preventDefault();
-    zoomToChat(tile);
-  });
+  // Nút gợi ý / Gửi lại / Đăng nhập lại trong phần tin nhắn (gắn 1 lần cho mỗi phần tử).
+  function wire(threadEl, statusEl) {
+    if (threadEl && !wired.has(threadEl)) {
+      wired.add(threadEl);
+      threadEl.addEventListener('click', (e) => {
+        if (threadEl !== thread) return;
+        const chip = e.target.closest('.sc-chip');
+        if (chip && !input.disabled) { send(chip.dataset.text); return; }
+        const retry = e.target.closest('.sc-retry');
+        if (retry) {
+          const item = pending.find((x) => x.id === retry.dataset.retry);
+          if (item) send(item.text, item);
+        }
+      });
+    }
+    if (statusEl && !wired.has(statusEl)) {
+      wired.add(statusEl);
+      statusEl.addEventListener('click', (e) => {
+        if (e.target.id === 'scRelogin') AlohaAuth.logout('chat-sale' + (topicSlug ? '/' + topicSlug : ''));
+        if (e.target.id === 'scBackAi' && window.AlohaChatbot && window.AlohaChatbot.backToAi) window.AlohaChatbot.backToAi();
+      });
+    }
+  }
+
+  // Chưa đăng nhập (hoặc tài khoản nhân viên) -> đi qua route #/chat-sale để router bắt
+  // đăng nhập, đăng nhập xong router mở lại khung chat.
+  function openOrLogin(topic) {
+    // Tên hàm giữ nguyên (đỡ phải sửa mọi nơi gọi) nhưng không còn bắt đăng nhập nữa: open()
+    // tự lo danh tính khách vãng lai khi cần (xem ensureGuest()).
+    open(topic);
+  }
 
   // ---------------------------------------------------------------- Sự kiện
   form.addEventListener('submit', (e) => {
@@ -429,48 +651,49 @@
     }
   });
 
-  thread.addEventListener('click', (e) => {
-    const chip = e.target.closest('.sc-chip');
-    if (chip && !input.disabled) { send(chip.dataset.text); return; }
-    const retry = e.target.closest('.sc-retry');
-    if (retry) {
-      const item = pending.find((p) => p.id === retry.dataset.retry);
-      if (item) send(item.text, item);
-    }
-  });
+  wire(thread, statusBox);
 
-  if (statusBox) {
-    statusBox.addEventListener('click', (e) => {
-      if (e.target.id === 'scRelogin') AlohaAuth.logout('chat-sale' + (topicSlug ? '/' + topicSlug : ''));
-    });
-  }
-
-  // Chatbot AI đang tắt -> nút chat nổi + các lối vào khung chat cũ dẫn tới màn chat Sale
-  // (router tự bắt đăng nhập nếu cần).
+  // Chatbot AI đang tắt -> nút chat nổi mở/thu nhỏ khung chat Sale; các lối vào khung chat
+  // cũ (Tư vấn concept ngay, Báo giá...) và link #/chat-sale mở khung ngay trên trang đang xem.
   if (FEATURES.aiChat === false) {
-    const goChat = (e) => { if (e) e.preventDefault(); window.location.hash = '/chat-sale'; };
-    ['chatToggle', 'conceptChatBtn', 'topbarPartner', 'topbarSupport', 'navPricing', 'navPromo'].forEach((id) => {
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-controls', 'saleChatPanel');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.addEventListener('click', (e) => { e.preventDefault(); if (active) close(); else openOrLogin(''); });
+    }
+    const goChat = (e) => { if (e) e.preventDefault(); openOrLogin(''); };
+    ['conceptChatBtn', 'topbarPartner', 'topbarSupport', 'navPricing', 'navPromo'].forEach((id) => {
       const el = $(id);
       if (el) el.addEventListener('click', goChat);
     });
   }
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#/chat-sale"]');
+    if (!a || e.defaultPrevented) return;
+    // Không còn bắt đăng nhập (open() tự lo danh tính khách vãng lai khi cần).
+    e.preventDefault();
+    open(a.getAttribute('href').split('/').slice(2).join('/'));
+  });
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && active && !embedded) close(); });
 
-  // Hỏi server tin mới: dày khi đang mở màn chat, thưa khi ở trang khác (chỉ để bật chấm đỏ).
+  // Hỏi server tin mới: dày khi đang mở khung chat, thưa khi đóng (chỉ để bật chấm đỏ).
   let lastIdlePoll = 0;
   setInterval(() => {
-    const me = customer();
+    // Chỉ ĐỌC danh tính đã có sẵn (không tự xin cấp khách vãng lai ở đây) - khách chưa từng mở
+    // chat Sale thì chưa có gì để hỏi/báo đỏ, không cần âm thầm tạo 1 khách vãng lai cho họ.
+    const me = identity();
     if (!me || document.visibilityState !== 'visible') return;
-    if (active) { fetchChat(); return; } // không có mã thì fetchChat() tự báo "Đăng nhập lại"
-    if (me.token && FEATURES.aiChat === false && Date.now() - lastIdlePoll >= POLL_IDLE_MS) { lastIdlePoll = Date.now(); fetchChat(); }
+    if (active) { fetchChat(); return; }
+    if (me.token && Date.now() - lastIdlePoll >= POLL_IDLE_MS) { lastIdlePoll = Date.now(); fetchChat(); }
   }, POLL_ACTIVE_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && active) fetchChat(); });
-  window.addEventListener('resize', () => { if (active) fitHeight(); });
-  if (FEATURES.aiChat === false && customer()) { lastIdlePoll = Date.now(); fetchChat(); }
+  if (identity()) { lastIdlePoll = Date.now(); fetchChat(); }
 
-  window.AlohaSaleChat = { show, hide };
+  window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded };
 
-  // Tải trang thẳng vào #/chat-sale (vd vừa đăng nhập xong): router đã chạy trước khi file
-  // này nạp nên chưa vẽ được -> tự vẽ ở đây.
-  const route = window.AlohaRouter && window.AlohaRouter.parseRoute ? window.AlohaRouter.parseRoute() : null;
-  if (route && route.split('/')[0] === 'chat-sale' && !view.hidden) document.title = show(route.split('/').slice(1).join('/'));
+  // Tải trang thẳng vào #/chat-sale (vd vừa đăng nhập xong): router chạy trước khi file này
+  // nạp nên đã để lại yêu cầu mở khung chat -> mở ở đây.
+  const waiting = window.AlohaRouter && window.AlohaRouter.takePendingSaleChat ? window.AlohaRouter.takePendingSaleChat() : null;
+  if (waiting !== null) open(waiting);
 })(window);

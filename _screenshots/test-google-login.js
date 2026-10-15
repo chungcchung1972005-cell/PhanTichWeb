@@ -157,14 +157,15 @@ const session = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('a
     await page.type('#googlePhone', '0912 345 678');
     await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#googleSubmitBtn')]);
     let s = await session(page);
-    log('Nhập SĐT mới -> đăng nhập khách, vào màn chat Sale (Đặt lịch đang tắt)',
-      s && s.role === 'khach-hang' && s.phone === '0912345678' && s.name === USER.name && s.token && page.url().endsWith('index.html#/chat-sale'), page.url().split('/').pop());
-    await page.waitForSelector('#scThread .sc-chip', { timeout: 12000 }).catch(() => {});
-    const chatOk = await page.evaluate(() => { const st = document.getElementById('scStatus'); return !document.getElementById('view-chat').hidden && !(st && !st.hidden) && !document.getElementById('scInput').disabled; });
-    log('Màn chat kết nối server bình thường với tài khoản Google', chatOk);
-    await page.type('#scInput', 'Chào shop, mình đăng ký bằng Google');
+    // Đặt lịch đang tắt -> khách mới vào #/chat-sale: Trang chủ + khung chatbot mở ở chế độ chat với Sale (2026-09-28).
+    await page.waitForSelector('#chatBody .chat-sale-live .sc-chip', { timeout: 12000 }).catch(() => {});
+    log('Nhập SĐT mới -> đăng nhập khách, mở chat với Sale (Đặt lịch đang tắt)',
+      s && s.role === 'khach-hang' && s.phone === '0912345678' && s.name === USER.name && s.token && page.url().endsWith('index.html#/'), page.url().split('/').pop());
+    const chatOk = await page.evaluate(() => { const p = document.getElementById('chatPanel'); const st = document.getElementById('chatSaleStatus'); return p.classList.contains('open') && p.classList.contains('sale-mode') && !(st && !st.hidden) && !document.getElementById('chatInput').disabled; });
+    log('Khung chat Sale kết nối server bình thường với tài khoản Google', chatOk);
+    await page.type('#chatInput', 'Chào shop, mình đăng ký bằng Google');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => document.querySelectorAll('#scThread .from-me .sc-bubble:not(.sc-sending)').length === 1, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => document.querySelectorAll('#chatBody .chat-sale-live .from-me .sc-bubble:not(.sc-sending)').length === 1, { timeout: 8000 }).catch(() => {});
     const [, saleLogin] = await api('/auth/login', { m: 'POST', b: { phone: '0900000002', password: 'sale123' } });
     const [, inbox] = await api('/inbox', { t: saleLogin.token });
     const item = inbox.chats.find((c) => c.phone === '0912345678');
@@ -176,7 +177,8 @@ const session = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('a
     await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickGoogle(page, USER)]);
     s = await session(page);
     log('Lần sau bấm Google -> vào thẳng (không hỏi SĐT), tôn trọng next',
-      s && s.phone === '0912345678' && s.token && page.url().endsWith('index.html#/chat-sale/bau'), page.url().split('/').pop());
+      s && s.phone === '0912345678' && s.token && page.url().endsWith('index.html#/') &&
+      await page.evaluate(() => document.getElementById('chatPanel').classList.contains('sale-mode')), page.url().split('/').pop());
 
     // Tài khoản Google không có mật khẩu -> đăng nhập bằng SĐT báo dùng Google
     await page.evaluate(() => localStorage.removeItem('aloha_auth'));

@@ -47,7 +47,13 @@ async function launchAllFeatures(puppeteer, opts) {
   const newPage = browser.newPage.bind(browser);
   browser.newPage = async (...args) => {
     const page = await newPage(...args);
-    await page.evaluateOnNewDocument(() => { window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true }; });
+    await page.evaluateOnNewDocument(() => {
+      window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true };
+      // Từ 2026-09-28 chatbot tự mở ở trang chủ (máy tính) / hiện bong bóng lời chào (điện thoại).
+      // Test cũ bấm nút chat như trước -> coi như khách đã đóng lời chào (test-chatbot-greeting.js
+      // kiểm tra riêng phần tự mở). Không ghi đè nếu trang đã có trạng thái (vd vừa đăng nhập).
+      try { if (!sessionStorage.getItem('aloha_chat_ui')) sessionStorage.setItem('aloha_chat_ui', JSON.stringify({ dismissed: true })); } catch (e) { /* bỏ qua */ }
+    });
     return page;
   };
   return browser;

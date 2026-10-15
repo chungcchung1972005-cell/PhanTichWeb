@@ -39,6 +39,7 @@ Website hiện tại của studio (alohababy.vn) đã được đối chiếu đ
 - **Không dùng:** mục "Testimonials/đánh giá khách hàng" dạng card riêng — không có trên bản gốc, đã bỏ để bám sát thực tế hơn là tự thêm chi tiết marketing không có căn cứ.
 - Footer nên có thêm cột Chính sách (Chính sách đổi trả, Bảo mật, Điều khoản dịch vụ) theo đúng bản gốc.
 - Nội dung text (tagline, mô tả) phải được viết lại bằng ngôn từ riêng khi tham khảo trang thật — không copy nguyên văn câu chữ marketing của họ; chỉ tái sử dụng thông tin factual (tên dịch vụ, địa chỉ, hotline, cấu trúc).
+- **Cập nhật 2026-10-13 (người dùng là người của studio, chốt):** album concept của Newborn, Sinh nhật, Bé lớn, Gia đình dùng ẢNH THẬT lấy từ fanpage ALOHA Baby (https://www.facebook.com/alohababy.home/), thay hẳn ảnh stock; Bầu vẫn stock vì fanpage chưa có ảnh bầu. Quy tắc "không tải ảnh thật" bên dưới không còn áp dụng cho ảnh fanpage của chính studio.
 - Ảnh minh họa: **đã đổi từ gradient/icon SVG sang ảnh chụp thật** ở các khu vực ảnh là yếu tố bán hàng chính (Hero, Dịch vụ, Album, Concept, Giới thiệu, Video) — nguồn là ảnh stock miễn phí bản quyền (Unsplash/Pexels license, được phép dùng thương mại), lưu tại `images/`, **không phải ảnh thật của ALOHA Baby**. Đây vẫn là placeholder tạm thời chờ ảnh thật của studio, chỉ khác gradient/icon ở chỗ trông chuyên nghiệp/đúng ngữ cảnh hơn khi demo. Không hotlink hay tải ảnh thật từ alohababy.vn. Caption/album cố tình dùng mô tả phong cách (ví dụ "Newborn nhẹ nhàng") thay vì tên khách hàng cụ thể hay số liệu ảnh, để không tạo cảm giác đây là dữ liệu khách hàng thật.
 - Section "Dịch vụ chụp ảnh tại nhà" đã **tích hợp vào cuối khối Dịch vụ** (`.services-extra`, thanh ngang gọn) thay vì một section riêng cao bằng viewport — giảm lặp CTA và giữ mạch trang liền hơn, nội dung/đường dẫn giữ nguyên.
 
@@ -58,6 +59,8 @@ Sau một lượt rà soát UI/UX theo hướng "anti-slop" (tránh cảm giác 
 - **Không lặp lại cùng một bố cục 3-4 card giống hệt nhau** quá 1 lần trên trang — section "Tin tức" đã đổi sang bố cục bất đối xứng (thẻ đầu nổi bật, 2 thẻ nhỏ xếp cạnh), section "Quy trình" có thêm đường nối giữa 4 bước để thể hiện tính tuần tự thay vì 4 khối rời rạc.
 - **Không để lộ đường dẫn file nội bộ** (`.claude/rules/...`) trong nội dung khách hàng nhìn thấy — mọi tham chiếu tới rule file phải nằm trong HTML comment, không nằm trong text hiển thị.
 - Nút bấm có trạng thái `:active` (nhấn nhẹ scale) để tạo cảm giác phản hồi vật lý, không chỉ có `:hover`.
+- **Không để góc vuông** trên khối có nền/viền/bóng (nhãn, chip, thẻ, nút): luôn bo bằng token `--radius-*` (người dùng yêu cầu 2026-09-28). Ngoại lệ đúng thiết kế: dải full-width (topbar, section, footer), cột menu Admin áp mép màn hình, ô giữa lưới lịch tháng.
+- Nút/ô nhập phải dùng font của trang: `style.css` đã có `button, input, select, textarea { font-family: inherit; }`, đừng ghi đè bằng font khác.
 
 ## Đăng nhập & phân quyền: 2 giao diện (Khách hàng / Ban quản trị) — đã triển khai
 

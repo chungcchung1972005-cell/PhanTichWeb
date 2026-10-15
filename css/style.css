@@ -67,6 +67,9 @@ ul { list-style: none; }
    cần :focus-visible — không hiện viền khi bấm chuột, tránh gây rối mắt) —
    thay cho viền xanh mặc định của trình duyệt vốn lệch tông với bảng màu hồng/navy. */
 a:focus-visible,
+/* Nút, ô nhập dùng đúng font của trang: trình duyệt mặc định dùng Arial cho <button>/<input>
+   (rà soát thiết kế 2026-09-28 thấy nhiều nút lệch font). */
+button, input, select, textarea { font-family: inherit; }
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
@@ -398,32 +401,37 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
     radial-gradient(circle at 0% 100%, var(--pink-50) 0%, transparent 50%);
   overflow: hidden;
 }
+/* Tiêu đề "DỊCH VỤ": chữ lớn giãn rộng, 2 vạch hồng mờ dần ra ngoài, đầu trong có chấm tròn.
+   Dòng 5 dịch vụ bên dưới đã bỏ (29/09, người dùng chê xấu trên điện thoại): tên dịch vụ nằm sẵn trên ảnh. */
 .svc-title {
-  display: flex; align-items: center; justify-content: center; gap: 18px;
-  font-size: clamp(26px, 2.6vw, 34px);
+  display: flex; align-items: center; justify-content: center; gap: 22px;
+  font-size: clamp(32px, 3.8vw, 50px);
   font-weight: 800;
-  letter-spacing: 0.04em;
+  line-height: 1.1;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--navy-900);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
+.svc-title span { margin-right: -0.14em; } /* bù khoảng giãn chữ sau ký tự cuối để chữ nằm đúng giữa */
 .svc-title::before, .svc-title::after {
-  content: ""; width: 52px; height: 2px; border-radius: 2px; background: var(--pink-600);
+  content: ""; flex-shrink: 0; width: clamp(40px, 7vw, 104px); height: 8px;
 }
-.svc-list {
-  list-style: none; margin: 0 auto 32px; padding: 0;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 30px;
+.svc-title::before {
+  background:
+    radial-gradient(circle 4px at calc(100% - 4px) 50%, var(--pink-600) 95%, transparent),
+    linear-gradient(90deg, transparent, var(--pink-500)) left center / calc(100% - 6px) 2px no-repeat;
 }
-.svc-list a {
-  display: inline-flex; align-items: center; gap: 9px;
-  font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
-  text-transform: uppercase; color: var(--navy-700);
-  transition: color 0.2s ease;
+.svc-title::after {
+  background:
+    radial-gradient(circle 4px at 4px 50%, var(--pink-600) 95%, transparent),
+    linear-gradient(270deg, transparent, var(--pink-500)) right center / calc(100% - 6px) 2px no-repeat;
 }
-.svc-list a::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pink-600); flex-shrink: 0;
+.svc-sub {
+  margin: 0 auto 34px; max-width: 44ch;
+  text-align: center; font-size: 15.5px; font-weight: 500; color: var(--navy-500);
+  text-wrap: balance;
 }
-.svc-list a:hover, .svc-list a:focus-visible { color: var(--pink-600); }
 
 .svc-collage {
   display: grid;
@@ -451,6 +459,10 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   width: 100%; height: 100%; object-fit: cover;
   transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+/* Khung cắt từng ảnh (images/services/) để không mất đầu người ở ô ngang. */
+.svc-tile--be-lon img    { object-position: 50% 12%; }
+.svc-tile--sinh-nhat img { object-position: 50% 42%; }
+.svc-tile--gia-dinh img  { object-position: 50% 18%; }
 .svc-tile::after {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background: rgba(20, 15, 25, 0.12);
@@ -460,10 +472,12 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .svc-tile-name {
   position: absolute; left: 50%; top: 72%;
   transform: translate(-50%, -50%);
+  width: max-content; /* left:50% chỉ chừa nửa ô, không có dòng này nhãn bị bóp còn nửa ô rộng */
   max-width: calc(100% - 32px);
   padding: 10px 16px;
   background: rgba(44, 42, 61, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-sm); /* bo góc như mọi khối khác (người dùng yêu cầu bỏ góc vuông, 2026-09-28) */
   font-family: var(--font-heading);
   font-size: 17px; font-weight: 600; line-height: 1.3;
   text-transform: uppercase; text-align: center;
@@ -471,6 +485,7 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 .svc-tile--bau .svc-tile-name { top: 84%; }
+.svc-note { margin-top: 12px; text-align: center; font-size: 12.5px; color: var(--navy-500); }
 .svc-tile:hover img, .svc-tile:focus-visible img { transform: scale(1.06); }
 .svc-tile:hover::after, .svc-tile:focus-visible::after { background: rgba(20, 15, 25, 0.22); }
 .svc-tile:hover .svc-tile-name, .svc-tile:focus-visible .svc-tile-name { background: var(--pink-600); border-color: var(--pink-600); }
@@ -484,22 +499,25 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 /* Điện thoại: 2 cột - trái Bé lớn + Sinh nhật, phải Bầu cao gấp đôi, hàng dưới Gia đình + Newborn. */
 @media (max-width: 640px) {
   .svc-hero { padding: 32px 0 48px; }
-  .svc-title { font-size: 24px; gap: 12px; margin-bottom: 12px; }
-  .svc-title::before, .svc-title::after { width: 32px; }
-  .svc-list { gap: 6px 18px; margin-bottom: 22px; }
-  .svc-list a { font-size: 12.5px; gap: 7px; }
-  .svc-collage { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 170px); gap: 10px; }
-  .svc-tile--be-lon    { grid-column: 1; grid-row: 1; }
-  .svc-tile--sinh-nhat { grid-column: 1; grid-row: 2; }
-  .svc-tile--bau       { grid-column: 2; grid-row: 1 / span 2; }
-  .svc-tile--gia-dinh  { grid-column: 1; grid-row: 3; }
-  .svc-tile--newborn   { grid-column: 2; grid-row: 3; }
+  .svc-title { font-size: 30px; gap: 14px; margin-bottom: 8px; }
+  .svc-title::before, .svc-title::after { width: 44px; }
+  .svc-sub { font-size: 13.5px; margin-bottom: 20px; }
+  /* 4 ô ảnh đứng bằng nhau, đúng tỉ lệ 2:3 của ảnh nên thấy trọn ảnh; Newborn (ảnh ngang) nằm cả hàng cuối. */
+  .svc-collage { grid-template-columns: repeat(2, 1fr); grid-template-rows: none; gap: 10px; }
+  .svc-tile--be-lon, .svc-tile--sinh-nhat, .svc-tile--bau, .svc-tile--gia-dinh { grid-column: auto; grid-row: auto; aspect-ratio: 2 / 3; }
+  .svc-tile--newborn { grid-column: 1 / -1; grid-row: auto; aspect-ratio: 1000 / 685; }
   .svc-tile { border-radius: var(--radius-sm); }
-  .svc-tile-name { font-size: 11.5px; padding: 6px 8px; max-width: calc(100% - 16px); }
+  .svc-tile-name, .svc-tile--bau .svc-tile-name { top: auto; bottom: 10px; transform: translateX(-50%); }
+  .svc-tile-name { font-size: 11.5px; padding: 6px 8px; max-width: calc(100% - 16px); border-radius: 8px; }
+}
+
+/* Điện thoại rất hẹp (320-380px): nhãn nhỏ lại để "Chụp ảnh sinh nhật" chỉ 2 dòng. */
+@media (max-width: 380px) {
+  .svc-tile-name { font-size: 10.5px; padding: 5px 7px; max-width: calc(100% - 12px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .svc-tile img, .svc-tile::after, .svc-tile-name, .svc-list a { transition: none; }
+  .svc-tile img, .svc-tile::after, .svc-tile-name { transition: none; }
 }
 
 /* Dịch vụ chụp ảnh tại nhà — tích hợp gọn vào cuối khối Dịch vụ thay vì section riêng */
@@ -630,6 +648,17 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
 .album-info { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 1; color: var(--white); }
 .album-info h3 { color: var(--white); font-size: 18px; margin-bottom: 4px; text-shadow: var(--caption-shadow); }
 .album-info span { font-size: 12.5px; opacity: 0.9; text-shadow: var(--caption-shadow); }
+/* 4 ô nhỏ (cao 150px) trên máy tính/tablet: chữ nhỏ lại, 1 dòng mô tả, nền tối đậm hơn để chữ
+   không đè lên mặt người và vẫn đọc rõ (rà soát thiết kế 2026-09-28). */
+@media (min-width: 641px) {
+  .album-card:nth-child(2) .album-info, .album-card:nth-child(3) .album-info,
+  .album-card:nth-child(5) .album-info, .album-card:nth-child(6) .album-info { left: 14px; right: 14px; bottom: 12px; }
+  .album-card:nth-child(2) h3, .album-card:nth-child(3) h3, .album-card:nth-child(5) h3, .album-card:nth-child(6) h3 { font-size: 15px; line-height: 1.3; margin-bottom: 2px; }
+  .album-card:nth-child(2) .album-info span, .album-card:nth-child(3) .album-info span,
+  .album-card:nth-child(5) .album-info span, .album-card:nth-child(6) .album-info span { display: block; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .album-card:nth-child(2)::after, .album-card:nth-child(3)::after,
+  .album-card:nth-child(5)::after, .album-card:nth-child(6)::after { background: linear-gradient(0deg, rgba(20,15,25,0.72), rgba(20,15,25,0.2) 55%, transparent 80%); }
+}
 
 /* ---------------------------------- Video giới thiệu ---------------------------------- */
 .video { padding: 0 0 96px; }
@@ -798,6 +827,32 @@ body.hide-floating-book .floating-book { display: none; }
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--pink-600); border: 2px solid var(--white);
 }
+/* Điện thoại: khung chat đang đóng thì nút chat lắc nhẹ + vòng sóng hồng lan ra, 5 giây 1 lần
+   (người dùng yêu cầu 29/09). Mở khung chat là dừng; tắt hẳn khi bật prefers-reduced-motion. */
+@media (max-width: 720px) and (prefers-reduced-motion: no-preference) {
+  .fab-chat { animation: fabShake 5s ease-in-out 2s infinite; }
+  .fab-chat::before {
+    content: ""; position: absolute; inset: -1px; border-radius: 50%; z-index: -1;
+    border: 2px solid var(--pink-400); opacity: 0; pointer-events: none;
+    animation: fabRing 5s ease-out 2s infinite;
+  }
+  body:has(#chatPanel.open) .fab-chat,
+  body:has(#chatPanel.open) .fab-chat::before { animation: none; }
+}
+@keyframes fabShake {
+  0%, 68%, 100% { transform: none; }
+  71% { transform: rotate(-14deg) scale(1.08); }
+  74% { transform: rotate(12deg) scale(1.08); }
+  77% { transform: rotate(-10deg) scale(1.08); }
+  80% { transform: rotate(8deg) scale(1.06); }
+  83% { transform: rotate(-4deg) scale(1.03); }
+  86% { transform: none; }
+}
+@keyframes fabRing {
+  0%, 68% { opacity: 0; transform: scale(1); }
+  71% { opacity: 0.7; transform: scale(1); }
+  92%, 100% { opacity: 0; transform: scale(1.7); }
+}
 
 /* ---------------------------------- Chatbot tư vấn ---------------------------------- */
 .chat-panel {
@@ -821,31 +876,34 @@ body.hide-floating-book .floating-book { display: none; }
 }
 .chat-panel.open { transform: translateY(0) scale(1); opacity: 1; visibility: visible; pointer-events: auto; }
 
+/* Đầu khung gọn 1 hàng (29/09): logo chữ "aloha♥" trắng + dòng trạng thái | Nhắn Sale, gọi, đóng. */
 .chat-header {
   background: linear-gradient(120deg, var(--pink-500), var(--pink-700));
   color: var(--white);
-  padding: 16px 16px 16px 18px;
-  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px 9px 16px;
+  display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
 }
-/* Logo trong vòng tròn trắng: nền header chat cũng hồng nên logo cần viền trắng mới nổi. */
-.chat-avatar {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: var(--white);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-heading); font-weight: 700;
-  flex-shrink: 0;
+.chat-header-text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.chat-wordmark { --wm-size: 21px; }
+.chat-wordmark .wordmark-name { color: var(--white); }
+.chat-wordmark .wordmark-heart { fill: var(--pink-100); }
+#chatSubtitle { font-size: 11px; opacity: 0.88; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chat-head-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.chat-head-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.16); color: var(--white); text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
 }
-.chat-header-text strong { display: block; font-size: 14.5px; }
-.chat-header-text span { font-size: 12px; opacity: 0.85; }
-.chat-close {
-  margin-left: auto; background: none; border: none; color: var(--white);
-  font-size: 22px; line-height: 1; cursor: pointer; padding: 4px;
-}
+.chat-head-btn:hover { background: rgba(255, 255, 255, 0.28); }
+.chat-head-btn:active { transform: scale(0.92); }
+.chat-close { font-size: 20px; line-height: 1; }
 
 .chat-body {
   flex: 1; overflow-y: auto;
-  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
   background: var(--pink-50);
 }
 .chat-msg { max-width: 84%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; white-space: pre-line; }
@@ -864,6 +922,11 @@ body.hide-floating-book .floating-book { display: none; }
   font-size: 12.5px; font-weight: 700; cursor: pointer; transition: background 0.2s;
 }
 .chat-quick button:hover { background: var(--pink-100); }
+/* Đang chờ AI chọn 2 gợi ý (js/script.js offer): 2 ô mờ nhấp nháy, tối đa ~3 giây. */
+.chat-quick-skel { width: 132px; height: 34px; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--pink-50), var(--pink-100), var(--pink-50)); background-size: 200% 100%; animation: quickSkel 1.1s ease-in-out infinite; }
+.chat-quick-skel + .chat-quick-skel { width: 104px; }
+@keyframes quickSkel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .chat-quick-skel { animation: none; } }
 .chat-typing { display: flex; gap: 4px; padding: 12px 14px; }
 .chat-typing span {
   width: 6px; height: 6px; border-radius: 50%; background: var(--pink-400);
@@ -875,17 +938,60 @@ body.hide-floating-book .floating-book { display: none; }
 
 .chat-msg.error { align-self: center; background: #fdeaea; color: #c22d2d; border: none; font-size: 12.5px; text-align: center; }
 
-.chat-sale-bar {
-  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 14px; background: var(--pink-50); border-top: 1px solid var(--pink-100);
-  font-size: 11.5px; color: var(--navy-700);
+/* Nút "Nhắn Sale" ở đầu khung (js/script.js + js/sale-chat.js); ở chế độ Sale đổi thành "Trợ lý AI" (quay lại). */
+.chat-sale-btn {
+  display: inline-flex; align-items: center; gap: 5px; height: 32px;
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--pink-700); white-space: nowrap; cursor: pointer;
+  padding: 0 12px 0 10px; border-radius: var(--radius-pill); border: none;
+  background: var(--white); box-shadow: 0 2px 8px rgba(120, 20, 60, 0.18); transition: transform 0.15s;
 }
-.chat-sale-bar a {
-  font-weight: 700; color: var(--pink-700); text-decoration: none; white-space: nowrap;
-  padding: 5px 10px; border-radius: var(--radius-pill); border: 1.5px solid var(--pink-300);
-  transition: background 0.2s;
+.chat-sale-btn:active { transform: scale(0.95); }
+.chat-sale-btn .ico-ai { display: none; }
+/* Đang chat với Sale: nút "Trợ lý AI" phải thật nổi để khách biết đường quay lại (người dùng 29/09 tưởng
+   "mất AI"): nền hồng đậm, viền trắng, icon lấp lánh, vòng sáng nhấp nháy 3 lần khi vừa chuyển sang Sale. */
+.chat-panel.sale-mode .chat-sale-btn {
+  color: var(--white); background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+  box-shadow: 0 0 0 2px var(--white), 0 4px 14px rgba(224, 65, 122, 0.55);
+  animation: aiBtnGlow 1.6s ease-in-out 0.3s 3;
 }
-.chat-sale-bar a:hover { background: var(--pink-100); }
+.chat-panel.sale-mode .chat-sale-btn .ico-sale { display: none; }
+.chat-panel.sale-mode .chat-sale-btn .ico-ai { display: inline; }
+@keyframes aiBtnGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--white), 0 4px 14px rgba(224, 65, 122, 0.55); }
+  50% { box-shadow: 0 0 0 2px var(--white), 0 0 0 7px rgba(255, 255, 255, 0.35), 0 4px 18px rgba(224, 65, 122, 0.7); }
+}
+@media (prefers-reduced-motion: reduce) { .chat-panel.sale-mode .chat-sale-btn { animation: none; } }
+.chat-panel.sale-mode .chat-header { background: linear-gradient(120deg, var(--navy-700), var(--pink-600)); }
+.chat-panel .sc-status { flex-shrink: 0; }
+/* Tin nhắn Sale vẽ bằng js/sale-chat.js (lớp .sc-*, css/pages.css) ngay trong thân khung chatbot. */
+.chat-sale-live { display: flex; flex-direction: column; gap: 12px; }
+.chat-sale-live .sc-stack { max-width: 88%; }
+.chat-divider {
+  align-self: center; text-align: center; font-size: 11.5px; line-height: 1.45; color: var(--navy-500);
+  background: var(--white); border: 1px dashed var(--pink-200); border-radius: 12px; padding: 6px 12px; max-width: 92%;
+}
+
+/* Bong bóng lời chào cạnh nút chat (điện thoại, js/script.js). */
+.chat-teaser {
+  position: fixed; right: 16px; bottom: 84px; z-index: 205;
+  max-width: min(280px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 4px;
+  background: var(--white); border: 1px solid var(--pink-100); border-radius: 16px 16px 4px 16px;
+  box-shadow: var(--shadow-card); padding: 4px 4px 4px 0;
+  animation: teaserIn 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+.chat-teaser[hidden] { display: none; }
+.chat-teaser-text {
+  flex: 1; text-align: left; border: none; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; line-height: 1.45; color: var(--navy-900); padding: 8px 4px 8px 12px;
+}
+.chat-teaser-close {
+  flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 50%; cursor: pointer;
+  background: none; color: var(--navy-500); font-size: 18px; line-height: 1;
+}
+.chat-teaser-close:hover { background: var(--pink-50); }
+@keyframes teaserIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .chat-teaser { animation: none; } }
 
 .chat-input-row {
   flex-shrink: 0; display: flex; gap: 8px; padding: 12px 14px;

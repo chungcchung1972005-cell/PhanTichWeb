@@ -83,22 +83,34 @@ const BASE = ROOT_URL;
       page.waitForNavigation({ waitUntil: 'networkidle0' }),
       page.click('#loginSubmitBtn')
     ]);
-    const kanbanText = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent);
+    // Kanban 3 cột đã thay bằng 3 hàng ưu tiên #photoRows (2026-10-15): mở hết "Xem thêm"
+    // rồi tìm thẻ yêu cầu thật (id REQ-...), không lẫn với thẻ minh hoạ tĩnh.
+    const kanbanText = await page.evaluate(() => {
+      document.querySelectorAll('.photo-row-more').forEach(b => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });
+      const card = [...document.querySelectorAll('#photoRows .photo-row-card')].find(c => /^REQ-/.test(c.dataset.reqId));
+      return card ? card.textContent : '';
+    });
     const hasRequest = kanbanText.includes('Khách demo') && kanbanText.includes('Mới') && kanbanText.includes('2 ảnh');
-    log('Thợ ảnh thấy yêu cầu chỉnh sửa thật trong cột "Chờ xử lý"', hasRequest, kanbanText.replace(/\s+/g, ' ').trim());
+    log('Thợ ảnh thấy yêu cầu chỉnh sửa thật trong 3 hàng ưu tiên (nhãn "Mới")', hasRequest, kanbanText.replace(/\s+/g, ' ').trim());
 
-    // Bấm "Chuyển sang bước tiếp theo" trên đúng thẻ request thật (có badge "Mới",
-    // không phải thẻ minh hoạ tĩnh cũng nằm trong cùng cột) -> request rời khỏi cột Chờ xử lý
+    // Không còn nút "Chuyển sang bước tiếp theo" (trưởng nhóm chốt 2026-10-15): Thợ ảnh lưu link
+    // ảnh đã chỉnh rồi bấm "Hoàn tất" -> yêu cầu rời 3 hàng, sang bảng "Đã hoàn tất".
     await page.evaluate(() => {
-      const card = Array.from(document.querySelectorAll('#kanbanCol-cho-xu-ly .kanban-card'))
-        .find(c => c.textContent.includes('Mới'));
-      const btn = card && card.querySelector('.kanban-advance-btn');
-      if (btn) btn.click();
+      const card = [...document.querySelectorAll('#photoRows .photo-row-card')].find(c => /^REQ-/.test(c.dataset.reqId));
+      card.querySelector('.photo-row-drive-btn').click();
     });
     await new Promise(r => setTimeout(r, 200));
-    const stillInColumn1 = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent.includes('Mới'));
-    const nowInColumn2 = await page.$eval('#kanbanCol-dang-thuc-hien', el => el.textContent.includes('Mới'));
-    log('bấm chuyển bước -> request sang cột "Đang thực hiện"', !stillInColumn1 && nowInColumn2);
+    await page.type('#driveModalInput', 'https://drive.google.com/drive/folders/test_photos_chat');
+    await page.evaluate(() => document.getElementById('driveModalForm').requestSubmit());
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => document.getElementById('driveModalCompleteBtn').click());
+    await new Promise(r => setTimeout(r, 300));
+    const after = await page.evaluate(() => ({
+      inRows: [...document.querySelectorAll('#photoRows .photo-row-card')].some(c => /^REQ-/.test(c.dataset.reqId)),
+      inDone: [...document.querySelectorAll('#completedTableBody tr')].some(tr => /^REQ-/.test(tr.dataset.reqId)),
+      status: JSON.parse(localStorage.getItem('aloha_demo_db')).editRequests.slice(-1)[0].status
+    }));
+    log('lưu link ảnh đã chỉnh + Hoàn tất -> request sang "Đã hoàn tất", trạng thái Hoàn thành', !after.inRows && after.inDone && after.status === 'Hoàn thành', JSON.stringify(after));
     await page.close();
   }
 
@@ -112,18 +124,16 @@ const BASE = ROOT_URL;
     await page.click('#chatToggle');
     await new Promise(r => setTimeout(r, 1300));
     const quickReplies = await page.$$eval('.chat-quick button', els => els.map(e => e.textContent));
-    const hasMenu = quickReplies.includes('Tư vấn dịch vụ & báo giá') && quickReplies.includes('Quy trình đặt lịch') && quickReplies.includes('Câu hỏi thường gặp');
-    log('chatbot mở ra menu chính nhiều nhánh (không đi thẳng vào chọn dịch vụ)', hasMenu, quickReplies.join(', '));
+    // Từ 2026-09-28 mỗi menu tối đa 2 nút (AI chọn theo hoàn cảnh, lỗi thì 2 nút mặc định).
+    const hasMenu = quickReplies.length === 2 && quickReplies.includes('Tư vấn dịch vụ & báo giá') && quickReplies.includes('Concept & ảnh mẫu');
+    log('chatbot mở ra menu chính (tối đa 2 nút), không đi thẳng vào chọn dịch vụ', hasMenu, quickReplies.join(', '));
 
-    // Chọn "Quy trình đặt lịch" -> có nội dung trả lời + quay lại được menu
-    const menuBtns = await page.$$('.chat-quick button');
-    for (const b of menuBtns) {
-      const t = await page.evaluate(el => el.textContent, b);
-      if (t === 'Quy trình đặt lịch') { await b.click(); break; }
-    }
-    await new Promise(r => setTimeout(r, 1500));
+    // Hỏi "quy trình đặt lịch" (không còn nút riêng khi chỉ 2 gợi ý) -> vẫn trả lời đủ các bước
+    await page.type('#chatInput', 'quy trình đặt lịch thế nào');
+    await page.click('.chat-send');
+    await new Promise(r => setTimeout(r, 2500));
     const bodyText = await page.evaluate(() => document.getElementById('chatBody').textContent);
-    log('nhánh "Quy trình đặt lịch" trả lời đúng nội dung 5 bước', bodyText.includes('Đặt cọc'));
+    log('hỏi "quy trình đặt lịch" -> trả lời đúng nội dung các bước (có đặt cọc)', /đặt cọc/i.test(bodyText) && /5 bước/.test(bodyText));
     await page.close();
   }
 
@@ -136,8 +146,8 @@ const BASE = ROOT_URL;
     await page.reload({ waitUntil: 'networkidle0' });
     await page.click('#chatToggle');
     await new Promise(r => setTimeout(r, 300));
-    const href = await page.$eval('.chat-sale-bar a', el => el.getAttribute('href'));
-    log('thanh liên hệ Sale hiện sẵn trong khung chat, trỏ đúng hotline', href === 'tel:0938125222', href);
+    const href = await page.$eval('#chatPanel .chat-call', el => el.getAttribute('href'));
+    log('nút gọi hotline nằm sẵn ở đầu khung chat, trỏ đúng số', href === 'tel:0938125222', href);
     await page.close();
   }
 

@@ -1,7 +1,7 @@
 const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // Test menu gợi ý dưới câu trả lời AI: gợi ý có action -> bấm là chuyển thẳng trang
 // (KHÔNG gọi AI thêm), gợi ý action "none" -> gửi như khách gõ. Dùng phản hồi giả
-// cho /api/chat nên không cần server và không tốn hạn mức Gemini.
+// cho /api/chat nên không cần server và không tốn hạn mức Gemini. Từ 2026-09-28 mỗi menu tối đa 2 gợi ý.
 const puppeteer = require('puppeteer-core');
 const BASE = ROOT_URL;
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -10,12 +10,11 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 const REPLIES = [
   { reply: 'Mình có thể giúp bạn đặt lịch, xem ảnh hoặc tư vấn thêm nhé.', suggestions: [
     { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
-    { label: 'Xem ảnh của tôi', action: 'chon-anh' },
-    { label: 'Studio có chụp tại nhà không?', action: 'none' }] },
+    { label: 'Studio có chụp tại nhà không?', action: 'none' },
+    { label: 'Gợi ý thừa (server gửi 3 thì chỉ hiện 2)', action: 'none' }] },
   { reply: 'Có nhé, studio nhận chụp tại nhà.', suggestions: [
-    { label: 'Xem các dịch vụ', action: 'dich-vu' },
-    { label: 'Đặt lịch chụp ngay', action: 'dat-lich' },
-    { label: 'Đặt cọc thế nào?', action: 'none' }] }
+    { label: 'Xem ảnh của tôi', action: 'chon-anh' },
+    { label: 'Xem các dịch vụ', action: 'dich-vu' }] }
 ];
 
 (async () => {
@@ -37,6 +36,8 @@ const REPLIES = [
   page.on('request', (r) => {
     if (!r.url().includes(':3001/api/chat')) return r.continue();
     if (r.method() === 'OPTIONS') return r.respond({ status: 204, headers: CORS });
+    // AI chọn gợi ý cho menu kịch bản (2026-09-28): test này chỉ kiểm tra gợi ý sau câu trả lời AI -> trả lỗi để dùng gợi ý mặc định.
+    if (r.url().includes('/api/chat-suggest')) return r.respond({ status: 503, headers: CORS, body: '{}' });
     const msgs = JSON.parse(r.postData()).messages;
     sent.push(msgs[msgs.length - 1].content);
     const body = REPLIES[Math.min(calls++, REPLIES.length - 1)];
@@ -59,7 +60,7 @@ const REPLIES = [
   await page.click('.chat-send');
   await page.waitForFunction(() => document.querySelectorAll('#chatBody .chat-quick').length === 1, { timeout: 5000 });
   let m = await menu();
-  log('sau câu trả lời có đúng 1 menu, 3 gợi ý', m.count === 1 && m.labels.length === 3, JSON.stringify(m.labels));
+  log('sau câu trả lời có đúng 1 menu, tối đa 2 gợi ý', m.count === 1 && m.labels.length === 2, JSON.stringify(m.labels));
 
   await clickLabel('Đặt lịch chụp ngay');
   await page.waitForFunction(() => location.hash === '#/dat-lich', { timeout: 5000 }).then(() => log('bấm "Đặt lịch chụp ngay" -> nhảy sang #/dat-lich', true), () => log('bấm "Đặt lịch chụp ngay" -> nhảy sang #/dat-lich', false));
@@ -67,16 +68,17 @@ const REPLIES = [
   log('view Đặt lịch hiện', await page.evaluate(() => !document.getElementById('view-dat-lich').hidden));
   log('bấm gợi ý dẫn trang KHÔNG gọi AI thêm', sent.length === 1, 'số lần gọi AI = ' + sent.length);
   m = await menu();
-  log('menu gợi ý vẫn còn sau khi chuyển trang (1 menu, 3 gợi ý)', m.count === 1 && m.labels.length === 3);
-
-  await clickLabel('Xem ảnh của tôi');
-  await page.waitForFunction(() => location.hash === '#/chon-anh', { timeout: 5000 }).then(() => log('bấm "Xem ảnh của tôi" -> nhảy sang #/chon-anh', true), () => log('bấm "Xem ảnh của tôi" -> nhảy sang #/chon-anh', false));
+  log('menu gợi ý vẫn còn sau khi chuyển trang (1 menu, 2 gợi ý)', m.count === 1 && m.labels.length === 2);
 
   await clickLabel('Studio có chụp tại nhà không?');
-  await page.waitForFunction(() => document.querySelectorAll('#chatBody .chat-quick button').length === 3 && [...document.querySelectorAll('#chatBody .chat-quick button')].some(b => b.textContent === 'Xem các dịch vụ'), { timeout: 5000 })
+  await page.waitForFunction(() => document.querySelectorAll('#chatBody .chat-quick button').length === 2 && [...document.querySelectorAll('#chatBody .chat-quick button')].some(b => b.textContent === 'Xem các dịch vụ'), { timeout: 5000 })
     .then(() => log('bấm gợi ý câu hỏi (action none) -> gửi cho AI, hiện menu mới', sent.length === 2 && sent[1] === 'Studio có chụp tại nhà không?', JSON.stringify(sent)), () => log('bấm gợi ý câu hỏi (action none) -> gửi cho AI, hiện menu mới', false, JSON.stringify(sent)));
   const userMsgs = await page.evaluate(() => [...document.querySelectorAll('#chatBody .chat-msg.user')].map(e => e.textContent));
   log('câu hỏi bấm chỉ hiện 1 lần trong khung chat (không nhân đôi)', userMsgs.filter(t => t === 'Studio có chụp tại nhà không?').length === 1);
+
+  await clickLabel('Xem ảnh của tôi');
+  await page.waitForFunction(() => location.hash === '#/chon-anh', { timeout: 5000 }).then(() => log('bấm "Xem ảnh của tôi" -> nhảy sang #/chon-anh', true), () => log('bấm "Xem ảnh của tôi" -> nhảy sang #/chon-anh', false));
+  await wait(1200);
 
   await clickLabel('Xem các dịch vụ');
   await wait(2500);

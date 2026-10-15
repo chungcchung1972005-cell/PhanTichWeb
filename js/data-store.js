@@ -90,6 +90,9 @@
       // Link thư mục ảnh đã chỉnh Thợ ảnh gửi khách + tin nhắn 2 bên (tab "Ảnh đã chỉnh").
       // Bản ghi cũ không có 2 trường này: nơi đọc tự coi như '' và [].
       resultLink: '',
+      // Link thư mục ảnh GỐC: chỉ dùng nội bộ (Thợ ảnh/Sếp), KHÔNG hiện cho khách vì ảnh gốc
+      // không được để link công khai (trưởng nhóm chốt 2026-10-15). Bản ghi cũ thiếu = ''.
+      resultLinkOriginal: '',
       resultLinkAt: null,
       messages: [],
       customerSeenEditedSig: ''
@@ -163,13 +166,18 @@
   // "Ảnh của tôi"). Chỉ nhận http(s) để không chèn được link javascript:... vào
   // trang khách, và chỉ https (Google Drive luôn là https). Chuỗi rỗng = gỡ link.
   // Trả null nếu link không hợp lệ.
-  function setResultLink(requestId, url) {
+  // urlOriginal (tuỳ chọn): link thư mục ảnh gốc, chỉ lưu nội bộ. Không truyền (undefined)
+  // thì giữ nguyên link gốc đang có, để nơi gọi cũ chỉ với 2 tham số không xoá mất nó.
+  function setResultLink(requestId, url, urlOriginal) {
     const clean = String(url || '').trim();
     if (clean && !/^https:\/\/[^\s<>"']+$/i.test(clean)) return null;
+    const cleanOrig = urlOriginal === undefined ? undefined : String(urlOriginal || '').trim();
+    if (cleanOrig && !/^https:\/\/[^\s<>"']+$/i.test(cleanOrig)) return null;
     const db = readDb();
     const req = db.editRequests.find(r => r.id === requestId);
     if (!req) return null;
     req.resultLink = clean;
+    if (cleanOrig !== undefined) req.resultLinkOriginal = cleanOrig;
     req.resultLinkAt = clean ? Date.now() : null;
     writeDb(db);
     return req;
