@@ -123,6 +123,18 @@ const waitText = (page, sel, needle, ms = 9000) => page.waitForFunction((s, n) =
     const box = await a.$$('.d-today .sw-card.sw-pad');
     if (box.length) await box[box.length - 1].screenshot({ path: shot('sale-web-sources.png') });
 
+    // ---- 4b. Chuyển giao: gửi quản lý duyệt, không còn nút "Mô phỏng: quản lý duyệt"
+    await go(a, 'chuyen-giao');
+    await a.click('[data-tr-pick="web-0912345678"]'); await wait(200);
+    await a.click('[data-act="tr-next"]'); await wait(200);
+    await a.click('[data-act="tr-to"][data-id="thu-ha"]'); await wait(200);
+    await a.click('[data-act="tr-submit"]'); await wait(300);
+    await a.click('[data-act="tr-tab"][data-id="gui"]'); await wait(300);
+    const sent = await text(a, '#swView');
+    log('Yêu cầu chuyển giao ở trạng thái Chờ quản lý duyệt', sent.includes('Lan Phương') && sent.includes('Chờ quản lý duyệt'));
+    log('Không còn nút Mô phỏng: quản lý duyệt', !sent.includes('Mô phỏng') && !(await a.$('[data-act="tr-approve"]')));
+    log('Vẫn huỷ được yêu cầu', !!(await a.$('[data-act="tr-cancel"]')));
+
     // ---- 5. Minh Thư (máy khác) chỉ xem
     const b = await saleTab(browser, '0900000005', errors);
     await go(b, 'hop-thu');

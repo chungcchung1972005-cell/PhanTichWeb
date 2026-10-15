@@ -1326,8 +1326,8 @@
   // Luồng: Sale tạo yêu cầu -> Quản lý duyệt -> người nhận bấm "Nhận khách" -> hồ sơ,
   // hội thoại, lịch, cọc, đơn chuyển sang người nhận. Trước bước cuối khách vẫn thuộc
   // sale cũ, nên không có lúc nào khách bị bỏ trống không ai phụ trách.
-  // Bản demo chưa có màn duyệt của Quản lý và dữ liệu không dùng chung giữa các tab
-  // đăng nhập, nên yêu cầu tự gửi có nút "Mô phỏng" cho 2 bước phía người khác.
+  // Chưa có màn duyệt của Quản lý: đã bỏ nút "Mô phỏng: quản lý duyệt" (người dùng yêu cầu
+  // 2026-10-15), yêu cầu gửi đi nằm ở "Chờ quản lý duyệt" cho tới khi có màn duyệt thật.
   const TR_REASONS = ['Nghỉ phép', 'Nghỉ việc', 'Khách yêu cầu', 'Quá tải'];
   const TR_OPEN = ['cho-duyet', 'cho-nhan'];
   const trIncoming = () => db.transfers.filter(r => r.to === me.id && r.status !== 'da-huy');
@@ -1387,8 +1387,7 @@
     if (!out && r.status === 'cho-nhan') {
       actions = '<button type="button" class="sw-btn sw-btn-teal" data-act="tr-accept" data-id="' + r.id + '">' + icon('check') + 'Nhận khách</button>';
     } else if (out && r.status === 'cho-duyet') {
-      actions = '<button type="button" class="sw-btn" data-act="tr-cancel" data-id="' + r.id + '">Huỷ</button>' +
-        '<button type="button" class="tr-demo" data-act="tr-approve" data-id="' + r.id + '">Mô phỏng: quản lý duyệt</button>';
+      actions = '<button type="button" class="sw-btn" data-act="tr-cancel" data-id="' + r.id + '">Huỷ</button>';
     } else if (out && r.status === 'cho-nhan') {
       actions = '<button type="button" class="tr-demo" data-act="tr-accept" data-id="' + r.id + '">Mô phỏng: ' + esc(saleName(r.to)) + ' nhận khách</button>';
     }
@@ -1857,11 +1856,6 @@
       case 'tr-cancel': {
         const r = db.transfers.find(x => x.id === id && x.from === me.id && x.status === 'cho-duyet'); if (!r) return;
         r.status = 'da-huy'; render(); return toast('Đã huỷ yêu cầu chuyển ' + r.names.join(', '));
-      }
-      case 'tr-approve': {
-        const r = db.transfers.find(x => x.id === id && x.from === me.id && x.status === 'cho-duyet'); if (!r) return;
-        r.status = 'cho-nhan'; r.approvedAt = fmtDM(TODAY) + ' ' + hm(demoNow());
-        render(); return toast('Quản lý đã duyệt. Chờ ' + saleName(r.to) + ' nhận khách.');
       }
       case 'tr-accept': {
         const r = db.transfers.find(x => x.id === id && x.status === 'cho-nhan' && (x.to === me.id || x.from === me.id)); if (!r) return;
