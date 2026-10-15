@@ -33,7 +33,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('.login-submit')]);
     await page.goto(BASE + 'index.html#/dat-lich', { waitUntil: 'networkidle0' });
     await page.$eval('.bk-service[data-service="Newborn"]', (el) => el.click());
-    await page.$eval('.bk-concept[data-concept="cuon-u"] .bk-concept-pick', (el) => el.click());
+    await page.$eval('.bk-concept[data-concept="baby-butterfly"] .bk-concept-pick', (el) => el.click());
     await page.$eval('#bkNextBtn', (el) => el.click());
     // Chọn khung giờ còn trống (thử các ngày cho tới khi có)
     // (click ngay trong trang: lưới giờ vẽ lại liên tục nên handle Puppeteer dễ bị "detached")
@@ -209,7 +209,8 @@ const BASE = 'file:///D:/PhanTichWeb/';
   await c.setViewport({ width: 1366, height: 900 });
   await c.goto(BASE + 'index.html#/dat-lich', { waitUntil: 'networkidle0' }); // phiên khách còn từ lần đăng nhập trên
   log('Chưa chọn gì: ẩn khu concept, khóa Tiếp tục', await c.evaluate(() => document.getElementById('bkConceptWrap').hidden && document.getElementById('bkNextBtn').disabled));
-  await c.$eval('.bk-service[data-service="Gia đình"]', (el) => el.click());
+  // Dùng Bầu: concept 4 dịch vụ còn lại là concept fanpage (2026-10-13), chưa có giá riêng nên đều theo basePrice.
+  await c.$eval('.bk-service[data-service="Bầu"]', (el) => el.click());
   await new Promise((r) => setTimeout(r, 500));
   const cs = await c.evaluate(() => ({
     shown: !document.getElementById('bkConceptWrap').hidden,
@@ -218,7 +219,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     imgs: [...document.querySelectorAll('.bk-concept img')].every((i) => i.complete && i.naturalWidth > 0),
     custom: !!document.querySelector('.bk-concept-custom'),
     next: document.getElementById('bkNextBtn').disabled,
-    albumNames: window.AlohaAlbums.list.find((s) => s.name === 'Gia đình').concepts.map((x) => x.name),
+    albumNames: window.AlohaAlbums.list.find((s) => s.name === 'Bầu').concepts.map((x) => x.name),
   }));
   log('Chọn dịch vụ -> hiện concept', cs.shown);
   log('Concept khớp đúng danh sách album trang chủ', JSON.stringify(cs.names) === JSON.stringify(cs.albumNames), cs.names.length + ' concept');
@@ -234,7 +235,7 @@ const BASE = 'file:///D:/PhanTichWeb/';
     price: document.getElementById('sumPrice').textContent,
     dep: document.getElementById('sumDeposit').textContent,
   }));
-  log('Chọn concept Biển -> mở Tiếp tục + tóm tắt đúng giá/cọc', !s1.next && s1.concept === 'Biển' && s1.price === '3.500.000đ' && s1.dep === '1.750.000đ', JSON.stringify(s1));
+  log('Chọn concept Biển -> mở Tiếp tục + tóm tắt đúng giá/cọc', !s1.next && s1.concept === 'Biển' && s1.price === '3.200.000đ' && s1.dep === '1.600.000đ', JSON.stringify(s1));
 
   await c.$eval('.bk-concept[data-concept="bien"] .bk-concept-view', (el) => el.click());
   await new Promise((r) => setTimeout(r, 300));

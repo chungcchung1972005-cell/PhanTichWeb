@@ -13,13 +13,14 @@
 // Ảnh bìa: concept dùng ảnh đầu tiên của nó; ô dịch vụ trên Hero dùng ảnh bìa
 // của concept đầu tiên có ảnh.
 //
-// 3 concept đầu mỗi dịch vụ khớp gợi ý concept của chatbot (SERVICE_INFO trong
-// js/script.js); các concept sau thêm cho đa dạng (người dùng yêu cầu 2026-09-25).
-// Ảnh hiện tại là ảnh stock miễn phí bản quyền (Pexels License, xem
-// .claude/rules/design.md), là ảnh MINH HOẠ phong cách, không phải ảnh khách
-// hàng thật; trang album hiển thị ghi chú này cho khách. Ảnh trong images/albums/
-// tải bằng _screenshots/fetch-album-photos.js, nguồn từng ảnh ghi ở
-// images/albums/sources.json; đã xem lại bằng mắt và loại ảnh sai chủ đề.
+// Từ 2026-10-13, concept của Newborn, Sinh nhật, Bé lớn, Gia đình là concept THẬT
+// của studio, ảnh lấy từ fanpage ALOHA Baby (người dùng là người của studio, yêu
+// cầu thay toàn bộ concept cũ), 5 ảnh/concept, cạnh dài 1280px; link bài gốc từng
+// ảnh ở images/albums/sources.json. Fanpage gần như không có ảnh Bầu nên Bầu vẫn là
+// ảnh stock MINH HOẠ (Pexels License, tải bằng _screenshots/fetch-album-photos.js),
+// đánh dấu stock: true để trang album ghi chú "ảnh minh hoạ" cho khách.
+// Chatbot (SERVICE_INFO trong js/script.js, server/server.js) vẫn nêu tên concept
+// cũ: người dùng bảo để nguyên chatbot (2026-10-13).
 (function (window, document) {
   const SERVICES = [
     {
@@ -28,91 +29,92 @@
       cover: 'images/services/newborn.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Những ngày đầu đời của bé, chụp khi bé ngủ sâu trong phòng được giữ ấm, tạo dáng nhẹ nhàng và an toàn.',
       concepts: [
-        { slug: 'cuon-u', name: 'Cuộn ủ (wrap) cổ điển', desc: 'Bé được quấn ủ gọn trong vải mềm, tư thế ngủ an toàn và ấm áp.',
+        { slug: 'baby-butterfly', name: 'Baby Butterfly', desc: 'Bé ngủ giữa đôi cánh bướm bằng vải mềm, tông hồng phấn ngọt ngào.',
           photos: [
-            'images/service-newborn.jpg',
-            'images/services-main.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-01.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-02.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-03.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-04.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-05.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-06.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-07.jpg',
-            'images/albums/newborn/cuon-u/cuon-u-08.jpg'
+            'images/albums/newborn/baby-butterfly/baby-butterfly-01.jpg',
+            'images/albums/newborn/baby-butterfly/baby-butterfly-02.jpg',
+            'images/albums/newborn/baby-butterfly/baby-butterfly-03.jpg',
+            'images/albums/newborn/baby-butterfly/baby-butterfly-04.jpg',
+            'images/albums/newborn/baby-butterfly/baby-butterfly-05.jpg'
           ] },
-        { slug: 'tu-nhien', name: 'Tự nhiên (organic)', desc: 'Chất liệu mộc, tông màu nhẹ, giữ nét tự nhiên của những ngày đầu đời.',
+        { slug: 'little-dimsum', name: 'Little Dimsum', desc: 'Bé hoá chiếc bánh bao nhỏ trong xửng tre, mũ len trắng đính nơ cam.',
           photos: [
-            'images/album-1.jpg',
-            'images/hero-baby.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-01.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-02.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-03.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-04.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-05.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-06.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-07.jpg',
-            'images/albums/newborn/tu-nhien/tu-nhien-08.jpg'
+            'images/albums/newborn/little-dimsum/little-dimsum-01.jpg',
+            'images/albums/newborn/little-dimsum/little-dimsum-02.jpg',
+            'images/albums/newborn/little-dimsum/little-dimsum-03.jpg',
+            'images/albums/newborn/little-dimsum/little-dimsum-04.jpg',
+            'images/albums/newborn/little-dimsum/little-dimsum-05.jpg'
           ] },
-        { slug: 'cung-bo-me', name: 'Cùng bố mẹ, anh chị', desc: 'Khoảnh khắc bé trong vòng tay những người thân yêu nhất.',
+        { slug: 'baby-cowboy', name: 'Baby Cowboy', desc: 'Mũ len bờm ngựa, chú ngựa nhỏ và giỏ mây, tông nâu mộc mạc.',
           photos: [
-            'images/album-3.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-01.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-02.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-03.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-04.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-05.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-06.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-07.jpg',
-            'images/albums/newborn/cung-bo-me/cung-bo-me-08.jpg'
+            'images/albums/newborn/baby-cowboy/baby-cowboy-01.jpg',
+            'images/albums/newborn/baby-cowboy/baby-cowboy-02.jpg',
+            'images/albums/newborn/baby-cowboy/baby-cowboy-03.jpg',
+            'images/albums/newborn/baby-cowboy/baby-cowboy-04.jpg',
+            'images/albums/newborn/baby-cowboy/baby-cowboy-05.jpg'
           ] },
-        { slug: 'hoa-la', name: 'Hoa lá', desc: 'Bé nằm giữa hoa tươi và lá xanh, màu sắc tươi tắn, mềm mại.',
+        { slug: 'starry-dream', name: 'Starry Dream', desc: 'Nôi gỗ nhỏ trên nền trời sao xanh, bé ngủ ngon cùng gấu bông.',
           photos: [
-            'images/albums/newborn/hoa-la/hoa-la-03.jpg',
-            'images/albums/newborn/hoa-la/hoa-la-04.jpg',
-            'images/albums/newborn/hoa-la/hoa-la-05.jpg',
-            'images/albums/newborn/hoa-la/hoa-la-07.jpg',
-            'images/albums/newborn/hoa-la/hoa-la-09.jpg'
+            'images/albums/newborn/starry-dream/starry-dream-01.jpg',
+            'images/albums/newborn/starry-dream/starry-dream-02.jpg',
+            'images/albums/newborn/starry-dream/starry-dream-03.jpg',
+            'images/albums/newborn/starry-dream/starry-dream-04.jpg',
+            'images/albums/newborn/starry-dream/starry-dream-05.jpg'
           ] },
-        { slug: 'thu-ngo-nghinh', name: 'Hoá thân thú ngộ nghĩnh', desc: 'Mũ len tai thỏ, tai gấu, sừng nai đáng yêu cho bé sơ sinh.',
+        { slug: 'tinker-bell', name: 'Tinker Bell', desc: 'Nàng tiên nhỏ váy lá xanh ngủ giữa khu rừng cổ tích.',
           photos: [
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-01.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-02.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-03.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-04.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-05.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-06.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-07.jpg',
-            'images/albums/newborn/thu-ngo-nghinh/thu-ngo-nghinh-08.jpg'
+            'images/albums/newborn/tinker-bell/tinker-bell-01.jpg',
+            'images/albums/newborn/tinker-bell/tinker-bell-02.jpg',
+            'images/albums/newborn/tinker-bell/tinker-bell-03.jpg',
+            'images/albums/newborn/tinker-bell/tinker-bell-04.jpg',
+            'images/albums/newborn/tinker-bell/tinker-bell-05.jpg'
           ] },
-        { slug: 'den-trang', name: 'Đen trắng tinh tế', desc: 'Tông đen trắng tập trung vào bàn tay, bàn chân nhỏ xíu và nét mặt bé.',
+        { slug: 'baby-cookie', name: 'Baby Cookie', desc: 'Mũ gấu nâu, bánh quy và cốc sữa, tông nâu đỏ ấm áp.',
           photos: [
-            'images/albums/newborn/den-trang/den-trang-01.jpg',
-            'images/albums/newborn/den-trang/den-trang-02.jpg',
-            'images/albums/newborn/den-trang/den-trang-03.jpg',
-            'images/albums/newborn/den-trang/den-trang-04.jpg',
-            'images/albums/newborn/den-trang/den-trang-05.jpg',
-            'images/albums/newborn/den-trang/den-trang-06.jpg',
-            'images/albums/newborn/den-trang/den-trang-07.jpg',
-            'images/albums/newborn/den-trang/den-trang-08.jpg',
-            'images/albums/newborn/den-trang/den-trang-09.jpg'
+            'images/albums/newborn/baby-cookie/baby-cookie-01.jpg',
+            'images/albums/newborn/baby-cookie/baby-cookie-02.jpg',
+            'images/albums/newborn/baby-cookie/baby-cookie-03.jpg',
+            'images/albums/newborn/baby-cookie/baby-cookie-04.jpg',
+            'images/albums/newborn/baby-cookie/baby-cookie-05.jpg'
           ] },
-        { slug: 'trang-sao', name: 'Trăng sao cổ tích', desc: 'Bé ngủ trên vầng trăng, giữa những ngôi sao như trong truyện cổ tích.',
+        { slug: 'baby-unicorn', name: 'Baby Unicorn', desc: 'Kỳ lân cầu vồng, mây bông và những ngôi sao hồng.',
           photos: [
-            'images/albums/newborn/trang-sao/trang-sao-01.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-02.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-03.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-04.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-06.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-07.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-08.jpg',
-            'images/albums/newborn/trang-sao/trang-sao-09.jpg'
+            'images/albums/newborn/baby-unicorn/baby-unicorn-01.jpg',
+            'images/albums/newborn/baby-unicorn/baby-unicorn-02.jpg',
+            'images/albums/newborn/baby-unicorn/baby-unicorn-03.jpg',
+            'images/albums/newborn/baby-unicorn/baby-unicorn-04.jpg',
+            'images/albums/newborn/baby-unicorn/baby-unicorn-05.jpg'
+          ] },
+        { slug: 'lucky-horsey', name: 'Lucky Horsey', desc: 'Bé ôm chú ngựa đỏ may mắn, concept đón năm mới.',
+          photos: [
+            'images/albums/newborn/lucky-horsey/lucky-horsey-01.jpg',
+            'images/albums/newborn/lucky-horsey/lucky-horsey-02.jpg',
+            'images/albums/newborn/lucky-horsey/lucky-horsey-03.jpg',
+            'images/albums/newborn/lucky-horsey/lucky-horsey-04.jpg',
+            'images/albums/newborn/lucky-horsey/lucky-horsey-05.jpg'
+          ] },
+        { slug: 'white-blossom', name: 'White Blossom', desc: 'Hoa trắng và vải voan mềm, tinh khôi, nhẹ nhàng.',
+          photos: [
+            'images/albums/newborn/white-blossom/white-blossom-01.jpg',
+            'images/albums/newborn/white-blossom/white-blossom-02.jpg',
+            'images/albums/newborn/white-blossom/white-blossom-03.jpg',
+            'images/albums/newborn/white-blossom/white-blossom-04.jpg',
+            'images/albums/newborn/white-blossom/white-blossom-05.jpg'
+          ] },
+        { slug: 'tet-dong-day', name: 'Tết Đong Đầy', desc: 'Bé nằm trong giỏ hoa đỏ cùng bánh chưng, quạt giấy ngày Tết.',
+          photos: [
+            'images/albums/newborn/tet-dong-day/tet-dong-day-01.jpg',
+            'images/albums/newborn/tet-dong-day/tet-dong-day-02.jpg',
+            'images/albums/newborn/tet-dong-day/tet-dong-day-03.jpg',
+            'images/albums/newborn/tet-dong-day/tet-dong-day-04.jpg',
+            'images/albums/newborn/tet-dong-day/tet-dong-day-05.jpg'
           ] }
       ]
     },
     {
       slug: 'bau',
       name: 'Bầu',
+      stock: true, // ảnh Pexels minh hoạ, chưa có ảnh thật của studio
       cover: 'images/services/bau.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Lưu giữ dáng bụng tròn của mẹ, trong studio hoặc ngoại cảnh, tuỳ sức khoẻ và mong muốn của mỗi mẹ.',
       concepts: [
@@ -202,75 +204,85 @@
       cover: 'images/services/sinh-nhat.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Thôi nôi và sinh nhật của bé, kết hợp bánh kem, bóng bay và backdrop theo yêu cầu.',
       concepts: [
-        { slug: 'bong-bay', name: 'Rực rỡ bóng bay', desc: 'Bóng bay, bánh kem và backdrop nhiều màu cho ngày đặc biệt.',
+        { slug: 'birthday-spotlight', name: 'Birthday Spotlight', desc: 'Xe hơi đỏ, bóng bay đỏ và vest nơ, sinh nhật bảnh bao cho bé trai.',
           photos: [
-            'images/service-sinh-nhat.jpg',
-            'images/concept-sinh-nhat.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-01.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-02.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-03.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-04.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-05.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-06.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-07.jpg',
-            'images/albums/sinh-nhat/bong-bay/bong-bay-08.jpg'
+            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-01.jpg',
+            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-02.jpg',
+            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-03.jpg',
+            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-04.jpg',
+            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-05.jpg'
           ] },
-        { slug: 'le-hoi', name: 'Giáng sinh (Noel)', desc: 'Mũ ông già Noel, cây thông và ánh đèn lấp lánh mùa lễ hội.',
+        { slug: 'nang-bach-tuyet', name: 'Nàng Bạch Tuyết', desc: 'Váy Bạch Tuyết, táo đỏ và khu rừng cổ tích cho bé gái.',
           photos: [
-            'images/albums/sinh-nhat/le-hoi/le-hoi-01.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-02.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-03.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-04.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-05.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-06.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-07.jpg',
-            'images/albums/sinh-nhat/le-hoi/le-hoi-08.jpg'
+            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-01.jpg',
+            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-02.jpg',
+            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-03.jpg',
+            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-04.jpg',
+            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-05.jpg'
           ] },
-        { slug: 'pastel', name: 'Pastel nhẹ nhàng', desc: 'Tông pastel dịu mắt, phù hợp bé nhỏ.',
+        { slug: 'summer-picnic', name: 'Summer Picnic', desc: 'Tiệc sinh nhật picnic trên cỏ, mẹ và bé váy kem cùng tông.',
           photos: [
-            'images/albums/sinh-nhat/pastel/pastel-01.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-02.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-03.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-04.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-05.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-06.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-07.jpg',
-            'images/albums/sinh-nhat/pastel/pastel-08.jpg'
+            'images/albums/sinh-nhat/summer-picnic/summer-picnic-01.jpg',
+            'images/albums/sinh-nhat/summer-picnic/summer-picnic-02.jpg',
+            'images/albums/sinh-nhat/summer-picnic/summer-picnic-03.jpg',
+            'images/albums/sinh-nhat/summer-picnic/summer-picnic-04.jpg',
+            'images/albums/sinh-nhat/summer-picnic/summer-picnic-05.jpg'
           ] },
-        { slug: 'trung-thu', name: 'Trung thu, đèn lồng', desc: 'Áo truyền thống, đèn lồng và đầu lân cho dịp Trung thu.',
+        { slug: 'nha-minh-co-hoa', name: 'Nhà Mình Có Hoa', desc: 'Cả nhà áo trắng quây quần bên bánh kem, nhẹ nhàng ấm cúng.',
           photos: [
-            'images/albums/sinh-nhat/trung-thu/trung-thu-01.jpg',
-            'images/albums/sinh-nhat/trung-thu/trung-thu-02.jpg',
-            'images/albums/sinh-nhat/trung-thu/trung-thu-04.jpg',
-            'images/albums/sinh-nhat/trung-thu/trung-thu-09.jpg'
+            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-01.jpg',
+            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-02.jpg',
+            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-03.jpg',
+            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-04.jpg',
+            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-05.jpg'
           ] },
-        { slug: 'cong-chua', name: 'Công chúa, hoàng tử', desc: 'Váy xoè, vương miện cho bé trong ngày đặc biệt.',
+        { slug: 'sinh-nhat-song-sinh', name: 'Sinh Nhật Song Sinh', desc: 'Thôi nôi cho hai bé song sinh với xe ô tô nhỏ và gấu bông.',
           photos: [
-            'images/albums/sinh-nhat/cong-chua/cong-chua-01.jpg',
-            'images/albums/sinh-nhat/cong-chua/cong-chua-02.jpg',
-            'images/albums/sinh-nhat/cong-chua/cong-chua-04.jpg',
-            'images/albums/sinh-nhat/cong-chua/cong-chua-05.jpg',
-            'images/albums/sinh-nhat/cong-chua/cong-chua-06.jpg',
-            'images/albums/sinh-nhat/cong-chua/cong-chua-09.jpg'
+            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-01.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-02.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-03.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-04.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-05.jpg'
           ] },
-        { slug: 'tiec-gia-dinh', name: 'Tiệc cùng gia đình', desc: 'Thổi nến, cắt bánh cùng bố mẹ và bạn bè.',
+        { slug: 'baby-prince', name: 'Baby Prince', desc: 'Vương miện, nơ đỏ và gấu nâu, hoàng tử nhỏ đón tuổi mới.',
           photos: [
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-01.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-02.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-03.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-05.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-06.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-07.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-08.jpg',
-            'images/albums/sinh-nhat/tiec-gia-dinh/tiec-gia-dinh-09.jpg'
+            'images/albums/sinh-nhat/baby-prince/baby-prince-01.jpg',
+            'images/albums/sinh-nhat/baby-prince/baby-prince-02.jpg',
+            'images/albums/sinh-nhat/baby-prince/baby-prince-03.jpg',
+            'images/albums/sinh-nhat/baby-prince/baby-prince-04.jpg',
+            'images/albums/sinh-nhat/baby-prince/baby-prince-05.jpg'
           ] },
-        { slug: 'picnic', name: 'Picnic ngoài trời', desc: 'Bàn tiệc nhỏ trên bãi cỏ, không khí tự nhiên, thoải mái.',
+        { slug: 'cozy-sky', name: 'Cozy Sky Birthday', desc: 'Mây trắng, chữ Happy Birthday và gối ca rô xanh dịu mắt.',
           photos: [
-            'images/albums/sinh-nhat/picnic/picnic-01.jpg',
-            'images/albums/sinh-nhat/picnic/picnic-04.jpg',
-            'images/albums/sinh-nhat/picnic/picnic-06.jpg',
-            'images/albums/sinh-nhat/picnic/picnic-08.jpg',
-            'images/albums/sinh-nhat/picnic/picnic-09.jpg'
+            'images/albums/sinh-nhat/cozy-sky/cozy-sky-01.jpg',
+            'images/albums/sinh-nhat/cozy-sky/cozy-sky-02.jpg',
+            'images/albums/sinh-nhat/cozy-sky/cozy-sky-03.jpg',
+            'images/albums/sinh-nhat/cozy-sky/cozy-sky-04.jpg',
+            'images/albums/sinh-nhat/cozy-sky/cozy-sky-05.jpg'
+          ] },
+        { slug: 'angel-baby', name: 'Angel Baby', desc: 'Bóng bay trắng, số 1 hồng và bánh dâu, thôi nôi tinh khôi.',
+          photos: [
+            'images/albums/sinh-nhat/angel-baby/angel-baby-01.jpg',
+            'images/albums/sinh-nhat/angel-baby/angel-baby-02.jpg',
+            'images/albums/sinh-nhat/angel-baby/angel-baby-03.jpg',
+            'images/albums/sinh-nhat/angel-baby/angel-baby-04.jpg',
+            'images/albums/sinh-nhat/angel-baby/angel-baby-05.jpg'
+          ] },
+        { slug: 'happy-donut', name: 'Happy Donut', desc: 'Bánh donut khổng lồ, đồng cỏ và bánh kem, sắc màu vui tươi.',
+          photos: [
+            'images/albums/sinh-nhat/happy-donut/happy-donut-01.jpg',
+            'images/albums/sinh-nhat/happy-donut/happy-donut-02.jpg',
+            'images/albums/sinh-nhat/happy-donut/happy-donut-03.jpg',
+            'images/albums/sinh-nhat/happy-donut/happy-donut-04.jpg',
+            'images/albums/sinh-nhat/happy-donut/happy-donut-05.jpg'
+          ] },
+        { slug: 'sweet-birthday', name: 'Sweet Birthday', desc: 'Mũ chóp voan trắng, bóng bay và bánh kem trên nền đỏ.',
+          photos: [
+            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-01.jpg',
+            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-02.jpg',
+            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-03.jpg',
+            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-04.jpg',
+            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-05.jpg'
           ] }
       ]
     },
@@ -280,82 +292,84 @@
       cover: 'images/services/be-lon.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Bé từ khoảng 2 đến 10 tuổi, ngoại cảnh hoặc trong studio, có thể chụp thêm cùng bố mẹ trong buổi.',
       concepts: [
-        { slug: 'ngoai-canh', name: 'Ngoại cảnh công viên, biển', desc: 'Bé vui chơi tự nhiên ngoài trời, ảnh đầy năng lượng.',
+        { slug: 'fruity-summer', name: 'Fruity Summer', desc: 'Nền vàng tươi, xe đẩy siêu thị và trái cây nhồi bông mùa hè.',
           photos: [
-            'images/service-be-lon.jpg',
-            'images/concept-bien.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-01.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-02.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-03.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-04.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-05.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-06.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-07.jpg',
-            'images/albums/be-lon/ngoai-canh/ngoai-canh-08.jpg'
+            'images/albums/be-lon/fruity-summer/fruity-summer-01.jpg',
+            'images/albums/be-lon/fruity-summer/fruity-summer-02.jpg',
+            'images/albums/be-lon/fruity-summer/fruity-summer-03.jpg',
+            'images/albums/be-lon/fruity-summer/fruity-summer-04.jpg',
+            'images/albums/be-lon/fruity-summer/fruity-summer-05.jpg'
           ] },
-        { slug: 'han-quoc', name: 'Phong cách Hàn Quốc', desc: 'Trang phục và bối cảnh Hàn Quốc, tông màu tối giản.',
+        { slug: 'korea-princess', name: 'Korea Princess', desc: 'Hanbok hồng, bóng bay trắng trên nền xanh lá dịu mắt.',
           photos: [
-            'images/concept-han-quoc.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-01.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-02.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-03.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-04.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-06.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-07.jpg',
-            'images/albums/be-lon/han-quoc/han-quoc-08.jpg'
+            'images/albums/be-lon/korea-princess/korea-princess-01.jpg',
+            'images/albums/be-lon/korea-princess/korea-princess-02.jpg',
+            'images/albums/be-lon/korea-princess/korea-princess-03.jpg',
+            'images/albums/be-lon/korea-princess/korea-princess-04.jpg',
+            'images/albums/be-lon/korea-princess/korea-princess-05.jpg'
           ] },
-        { slug: 'vintage', name: 'Vintage cổ điển', desc: 'Tông ảnh cổ điển, đen trắng hoặc sepia trong studio.',
+        { slug: 'honey-bee', name: 'Honey Bee', desc: 'Bé hoá chú ong nhỏ bên tổ mật vàng óng.',
           photos: [
-            'images/concept-vintage.jpg',
-            'images/album-2.jpg',
-            'images/albums/be-lon/vintage/vintage-01.jpg',
-            'images/albums/be-lon/vintage/vintage-02.jpg',
-            'images/albums/be-lon/vintage/vintage-03.jpg',
-            'images/albums/be-lon/vintage/vintage-04.jpg',
-            'images/albums/be-lon/vintage/vintage-05.jpg',
-            'images/albums/be-lon/vintage/vintage-06.jpg',
-            'images/albums/be-lon/vintage/vintage-07.jpg',
-            'images/albums/be-lon/vintage/vintage-08.jpg'
+            'images/albums/be-lon/honey-bee/honey-bee-01.jpg',
+            'images/albums/be-lon/honey-bee/honey-bee-02.jpg',
+            'images/albums/be-lon/honey-bee/honey-bee-03.jpg',
+            'images/albums/be-lon/honey-bee/honey-bee-04.jpg',
+            'images/albums/be-lon/honey-bee/honey-bee-05.jpg'
           ] },
-        { slug: 'ao-dai', name: 'Áo dài truyền thống', desc: 'Áo dài, không gian mang nét Việt cho bé và gia đình.',
+        { slug: 'swan-ballet', name: 'Swan Ballet', desc: 'Váy múa trắng, cài lông vũ, nhẹ nhàng như thiên nga.',
           photos: [
-            'images/albums/be-lon/ao-dai/ao-dai-01.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-02.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-03.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-04.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-05.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-06.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-07.jpg',
-            'images/albums/be-lon/ao-dai/ao-dai-08.jpg'
+            'images/albums/be-lon/swan-ballet/swan-ballet-01.jpg',
+            'images/albums/be-lon/swan-ballet/swan-ballet-02.jpg',
+            'images/albums/be-lon/swan-ballet/swan-ballet-03.jpg',
+            'images/albums/be-lon/swan-ballet/swan-ballet-04.jpg',
+            'images/albums/be-lon/swan-ballet/swan-ballet-05.jpg'
           ] },
-        { slug: 'nghe-nghiep', name: 'Hoá thân nghề nghiệp', desc: 'Bé làm chú cảnh sát, lính cứu hoả, chiến sĩ nhỏ tuổi.',
+        { slug: 'happy-farm', name: 'Happy Farm', desc: 'Nông trại vui vẻ với rơm vàng, rau củ và bí ngô.',
           photos: [
-            'images/albums/be-lon/nghe-nghiep/nghe-nghiep-01.jpg',
-            'images/albums/be-lon/nghe-nghiep/nghe-nghiep-02.jpg',
-            'images/albums/be-lon/nghe-nghiep/nghe-nghiep-05.jpg',
-            'images/albums/be-lon/nghe-nghiep/nghe-nghiep-08.jpg',
-            'images/albums/be-lon/nghe-nghiep/nghe-nghiep-09.jpg'
+            'images/albums/be-lon/happy-farm/happy-farm-01.jpg',
+            'images/albums/be-lon/happy-farm/happy-farm-02.jpg',
+            'images/albums/be-lon/happy-farm/happy-farm-03.jpg',
+            'images/albums/be-lon/happy-farm/happy-farm-04.jpg'
           ] },
-        { slug: 'mua-thu', name: 'Mùa thu lá vàng', desc: 'Tông vàng cam ấm áp giữa lá thu.',
+        { slug: 'thong-nhat-non-song', name: 'Thống Nhất Non Sông', desc: 'Áo trắng khăn quàng đỏ, cờ đỏ sao vàng, mừng ngày thống nhất.',
           photos: [
-            'images/albums/be-lon/mua-thu/mua-thu-01.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-02.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-03.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-04.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-05.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-07.jpg',
-            'images/albums/be-lon/mua-thu/mua-thu-09.jpg'
+            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-01.jpg',
+            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-02.jpg',
+            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-03.jpg',
+            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-04.jpg',
+            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-05.jpg'
           ] },
-        { slug: 'the-thao', name: 'Năng động, thể thao', desc: 'Bóng rổ, bóng đá, tennis, bắt trọn năng lượng của bé.',
+        { slug: 'little-muse', name: 'Little Muse', desc: 'Váy trắng bồng, giỏ mây và hoa nhỏ, tông trắng kem.',
           photos: [
-            'images/albums/be-lon/the-thao/the-thao-01.jpg',
-            'images/albums/be-lon/the-thao/the-thao-02.jpg',
-            'images/albums/be-lon/the-thao/the-thao-03.jpg',
-            'images/albums/be-lon/the-thao/the-thao-04.jpg',
-            'images/albums/be-lon/the-thao/the-thao-05.jpg',
-            'images/albums/be-lon/the-thao/the-thao-06.jpg',
-            'images/albums/be-lon/the-thao/the-thao-07.jpg',
-            'images/albums/be-lon/the-thao/the-thao-08.jpg'
+            'images/albums/be-lon/little-muse/little-muse-01.jpg',
+            'images/albums/be-lon/little-muse/little-muse-02.jpg',
+            'images/albums/be-lon/little-muse/little-muse-03.jpg',
+            'images/albums/be-lon/little-muse/little-muse-04.jpg',
+            'images/albums/be-lon/little-muse/little-muse-05.jpg'
+          ] },
+        { slug: 'than-tai', name: 'Em Bé Thần Tài', desc: 'Áo đỏ mũ quan, thỏi vàng lấp lánh, cầu chúc năm mới phát tài.',
+          photos: [
+            'images/albums/be-lon/than-tai/than-tai-01.jpg',
+            'images/albums/be-lon/than-tai/than-tai-02.jpg',
+            'images/albums/be-lon/than-tai/than-tai-03.jpg',
+            'images/albums/be-lon/than-tai/than-tai-04.jpg',
+            'images/albums/be-lon/than-tai/than-tai-05.jpg'
+          ] },
+        { slug: 'em-be-to-he', name: 'Em Bé Tò He', desc: 'Gánh tò he, mái ngói đỏ và áo dài cách tân, đậm chất Tết xưa.',
+          photos: [
+            'images/albums/be-lon/em-be-to-he/em-be-to-he-01.jpg',
+            'images/albums/be-lon/em-be-to-he/em-be-to-he-02.jpg',
+            'images/albums/be-lon/em-be-to-he/em-be-to-he-03.jpg',
+            'images/albums/be-lon/em-be-to-he/em-be-to-he-04.jpg',
+            'images/albums/be-lon/em-be-to-he/em-be-to-he-05.jpg'
+          ] },
+        { slug: 'du-xuan', name: 'Du Xuân', desc: 'Áo dài đỏ, gánh hoa cúc và bao lì xì, rộn ràng đầu xuân.',
+          photos: [
+            'images/albums/be-lon/du-xuan/du-xuan-01.jpg',
+            'images/albums/be-lon/du-xuan/du-xuan-02.jpg',
+            'images/albums/be-lon/du-xuan/du-xuan-03.jpg',
+            'images/albums/be-lon/du-xuan/du-xuan-04.jpg',
+            'images/albums/be-lon/du-xuan/du-xuan-05.jpg'
           ] }
       ]
     },
@@ -365,78 +379,85 @@
       cover: 'images/services/gia-dinh.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
       desc: 'Không giới hạn số thành viên, chụp được nhiều thế hệ trong cùng một buổi.',
       concepts: [
-        { slug: 'dong-phuc', name: 'Đồng phục tông màu', desc: 'Cả nhà phối trang phục cùng tông trên phông studio.',
+        { slug: 'strawberry-garden', name: 'Strawberry Garden', desc: 'Mẹ và bé váy trắng giữa khu vườn dâu tây.',
           photos: [
-            'images/service-gia-dinh.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-01.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-02.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-03.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-04.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-05.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-06.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-07.jpg',
-            'images/albums/gia-dinh/dong-phuc/dong-phuc-08.jpg'
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-01.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-02.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-03.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-04.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-05.jpg'
           ] },
-        { slug: 'ngoai-canh', name: 'Ngoại cảnh công viên', desc: 'Không gian ngoài trời, khoảnh khắc gia đình tự nhiên.',
+        { slug: 'simple-love', name: 'Simple Love', desc: 'Cả nhà tông trắng kem, bóng bay và hoa nhẹ nhàng.',
           photos: [
-            'images/news-2.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-01.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-03.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-04.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-06.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-07.jpg',
-            'images/albums/gia-dinh/ngoai-canh/ngoai-canh-08.jpg'
+            'images/albums/gia-dinh/simple-love/simple-love-01.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-02.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-03.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-04.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-05.jpg'
           ] },
-        { slug: 'vintage', name: 'Vintage ấm áp', desc: 'Không gian trong nhà ấm cúng, ánh sáng dịu.',
+        { slug: 'blue-family', name: 'Blue Family', desc: 'Bố mẹ và bé đồng phục xanh pastel, vui nhộn và trẻ trung.',
           photos: [
-            'images/news-1.jpg',
-            'images/albums/gia-dinh/vintage/vintage-01.jpg',
-            'images/albums/gia-dinh/vintage/vintage-03.jpg',
-            'images/albums/gia-dinh/vintage/vintage-05.jpg',
-            'images/albums/gia-dinh/vintage/vintage-06.jpg',
-            'images/albums/gia-dinh/vintage/vintage-07.jpg',
-            'images/albums/gia-dinh/vintage/vintage-08.jpg'
+            'images/albums/gia-dinh/blue-family/blue-family-01.jpg',
+            'images/albums/gia-dinh/blue-family/blue-family-02.jpg',
+            'images/albums/gia-dinh/blue-family/blue-family-03.jpg',
+            'images/albums/gia-dinh/blue-family/blue-family-04.jpg',
+            'images/albums/gia-dinh/blue-family/blue-family-05.jpg'
           ] },
-        { slug: 'bien', name: 'Biển', desc: 'Cả nhà vui đùa trên bãi cát, sóng và nắng.',
+        { slug: 'fruity-family', name: 'Fruity Family', desc: 'Nền vàng tươi, dưa hấu và trái cây, không khí mùa hè.',
           photos: [
-            'images/albums/gia-dinh/bien/bien-01.jpg',
-            'images/albums/gia-dinh/bien/bien-02.jpg',
-            'images/albums/gia-dinh/bien/bien-03.jpg',
-            'images/albums/gia-dinh/bien/bien-04.jpg',
-            'images/albums/gia-dinh/bien/bien-06.jpg',
-            'images/albums/gia-dinh/bien/bien-07.jpg',
-            'images/albums/gia-dinh/bien/bien-08.jpg',
-            'images/albums/gia-dinh/bien/bien-09.jpg'
+            'images/albums/gia-dinh/fruity-family/fruity-family-01.jpg',
+            'images/albums/gia-dinh/fruity-family/fruity-family-02.jpg',
+            'images/albums/gia-dinh/fruity-family/fruity-family-03.jpg',
+            'images/albums/gia-dinh/fruity-family/fruity-family-04.jpg',
+            'images/albums/gia-dinh/fruity-family/fruity-family-05.jpg'
           ] },
-        { slug: 'nhieu-the-he', name: 'Nhiều thế hệ', desc: 'Ông bà, bố mẹ và các cháu trong cùng một khung hình.',
+        { slug: 'home-sweet-home', name: 'Home Sweet Home', desc: 'Cả nhà đồng phục yếm jean trên nền đỏ gạch, bóng bay trắng.',
           photos: [
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-01.jpg',
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-02.jpg',
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-05.jpg',
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-07.jpg',
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-08.jpg',
-            'images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-09.jpg'
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-01.jpg',
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-02.jpg',
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-03.jpg',
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-04.jpg',
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-05.jpg'
           ] },
-        { slug: 'anh-chi-em', name: 'Anh chị em', desc: 'Tình cảm anh chị em trong những bức ảnh riêng.',
+        { slug: 'xuan-kim-phuc', name: 'Xuân Kim Phúc', desc: 'Áo dài kem, ô giấy và bình phong hoạ tiết, sang trọng ngày xuân.',
           photos: [
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-01.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-02.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-03.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-04.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-05.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-06.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-07.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-08.jpg',
-            'images/albums/gia-dinh/anh-chi-em/anh-chi-em-09.jpg'
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-01.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-02.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-03.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-04.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-05.jpg'
           ] },
-        { slug: 'da-ngoai', name: 'Dã ngoại picnic', desc: 'Giỏ picnic, bãi cỏ và những bữa ăn ngoài trời.',
+        { slug: 'phu-quy', name: 'Phú Quý', desc: 'Ông bà, bố mẹ và các cháu áo dài, bức ảnh nhiều thế hệ.',
           photos: [
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-01.jpg',
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-02.jpg',
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-03.jpg',
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-04.jpg',
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-06.jpg',
-            'images/albums/gia-dinh/da-ngoai/da-ngoai-08.jpg'
+            'images/albums/gia-dinh/phu-quy/phu-quy-01.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-02.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-03.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-04.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-05.jpg'
+          ] },
+        { slug: 'tet-doan-vien', name: 'Tết Đoàn Viên', desc: 'Áo dài đỏ, phông chữ Tết, cả nhà sum vầy ngày đầu năm.',
+          photos: [
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-01.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-02.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-03.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-04.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-05.jpg'
+          ] },
+        { slug: 'xuan-hong-phuc', name: 'Xuân Hồng Phúc', desc: 'Áo dài đỏ trên nền xanh, trống đỏ và cành đào ngày Tết.',
+          photos: [
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-01.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-02.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-03.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-04.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-05.jpg'
+          ] },
+        { slug: 'merry-christmas', name: 'Merry Christmas', desc: 'Pyjama kẻ đỏ cả nhà, cây thông và lò sưởi ấm áp.',
+          photos: [
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-01.jpg',
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-02.jpg',
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-03.jpg',
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-04.jpg',
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-05.jpg'
           ] }
       ]
     }
@@ -447,8 +468,8 @@
   const serviceBySlug = (slug) => SERVICES.find((s) => s.slug === slug) || null;
   const photoCount = (service) => conceptsOf(service).reduce((n, c) => n + c.photos.length, 0);
   const photoOf = (label, p, i) => (typeof p === 'string'
-    ? { src: p, alt: `Ảnh minh hoạ ${label} ${i + 1}` }
-    : { src: p.src, alt: p.alt || `Ảnh minh hoạ ${label} ${i + 1}` });
+    ? { src: p, alt: `Ảnh concept ${label} ${i + 1}` }
+    : { src: p.src, alt: p.alt || `Ảnh concept ${label} ${i + 1}` });
   // Ảnh bìa: service.cover nếu có, không thì ảnh đầu của concept đầu tiên.
   const coverOf = (service) => {
     if (service.cover) return service.cover;
@@ -514,6 +535,9 @@
 
     $('galleryFound').hidden = false;
     $('galleryMissing').hidden = true;
+    $('galleryNote').textContent = service.stock
+      ? 'Ảnh minh hoạ phong cách chụp, không phải ảnh khách hàng thật.'
+      : 'Ảnh do ALOHA Baby Studio thực hiện.';
     const serviceHref = '#/album/' + service.slug;
     const isPhotos = !!concept;
     $('galleryConcepts').hidden = isPhotos;

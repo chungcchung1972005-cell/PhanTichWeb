@@ -106,11 +106,11 @@ Site tĩnh HTML/CSS/JS thuần, không framework, không build step. Mọi trạ
 
 **Ảnh, video, logo:**
 - `images/` — ảnh trang chủ (hero, service-*, concept-*, album-*, news-*, about-studio, services-main, video-poster).
-- `images/albums/<dịch vụ>/<concept>/` — 256 ảnh album (~40MB), nguồn từng ảnh ở `images/albums/sources.json`.
+- `images/albums/<dịch vụ>/<concept>/` — ảnh album, nguồn từng ảnh ở `images/albums/sources.json`. Từ 2026-10-13: Newborn/Sinh nhật/Bé lớn/Gia đình là ảnh THẬT của studio lấy từ fanpage (10 concept x 5 ảnh mỗi dịch vụ, 1280px); Bầu vẫn 56 ảnh Pexels (`stock: true`).
 - `images/videos/` — 3 video minh hoạ 720p + poster `.jpg` cùng tên, nguồn ở `sources.json`.
 - `images/my-photos/` — 16 ảnh demo cho "Ảnh của tôi".
 - `images/logo-mark.svg` (trái tim: favicon + ảnh đại diện chat), `images/logo.svg` (logo chữ dùng ngoài web), `images/favicon-32.png`, `images/apple-touch-icon.png`. Logo trên web là chữ HTML `.wordmark`, không phải file ảnh.
-- Toàn bộ ảnh/video là **stock miễn phí bản quyền (Pexels License)**, là ảnh MINH HOẠ, không phải khách hàng thật.
+- Ảnh/video còn lại (ảnh trang chủ, ảnh bìa 5 ô dịch vụ, video, album Bầu, `images/my-photos/`) là **stock miễn phí bản quyền (Pexels License)**, ảnh MINH HOẠ, không phải khách hàng thật. Ảnh album 4 dịch vụ còn lại là ảnh thật từ fanpage studio (2026-10-13, người dùng là người của studio, tự chịu trách nhiệm).
 
 **Test/tiện ích (`_screenshots/*.js`, chạy tay, Puppeteer điều khiển Chrome cài sẵn):**
 - Test đồng bộ chỉnh ảnh (2026-10-15, KHÔNG chụp ảnh, tự bật server RAM cổng 3001 với `MONGODB_URI=''` rồi tự tắt - tắt `npm start` trước, cần `npm ci` trong `server/`): `test-edit-requests-api` (114), `test-edit-sync` (60), `test-customer-edit-sync` (39), `test-tho-anh-edit-sync` (34), `test-sep-edit-sync` (29), `test-e2e-edit-sync` (35, 3 vai trò bằng giao diện thật, mỗi vai trò 1 ngữ cảnh trình duyệt riêng trên CÙNG 1 máy - không phải bằng chứng đồng bộ giữa các máy thật). Lỗi CÓ SẴN trên `HEAD` `2fa5447`: `test-photos-chat` (menu chatbot), `test-sale-chat` (Waiting failed sau `#/dat-lich`).
