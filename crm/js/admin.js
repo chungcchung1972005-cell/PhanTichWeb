@@ -574,6 +574,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const all = SALE_DB ? SALE_DB.customers : [];
     const SOURCES = Array.from(new Set(all.map(c => c.source)));
     const ui = { mode: 'bang', owner: '', source: '', service: '', q: '', group: 'all', bday: false, selected: null };
+    // Rút gọn (người dùng yêu cầu 2026-10-15): mỗi cột Bảng giai đoạn hiện 5 khách đầu,
+    // Danh sách hiện 10 khách đầu; "Xem thêm" mở tiếp từng đợt cùng cỡ. Đổi bộ lọc/kiểu xem thì thu gọn lại.
+    const BOARD_STEP = 5, LIST_STEP = 10;
+    let boardLimit = {}, listLimit = LIST_STEP;
+    const resetLimits = () => { boardLimit = {}; listLimit = LIST_STEP; };
+    const moreBtn = (act, id, rest, step, canLess) => '<div class="ck-more">' +
+      (rest > 0 ? `<button type="button" class="ck-btn ck-btn-sm" data-ck="${act}" data-id="${id}">Xem thêm ${Math.min(rest, step)} khách <span class="ck-muted">(còn ${rest})</span></button>` : '') +
+      (canLess ? `<button type="button" class="ck-btn ck-btn-sm" data-ck="${act}-less" data-id="${id}">Thu gọn</button>` : '') + '</div>';
 
     const parseIso = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
     const fmtDM = k => { const d = parseIso(k); return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1); };
@@ -685,8 +693,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const leads = list.filter(c => c.stage);
       return '<div class="ck-board">' + STAGES.map(s => {
         const cards = leads.filter(c => c.stage === s.id);
+        const limit = boardLimit[s.id] || BOARD_STEP;
+        const more = cards.length > BOARD_STEP ? moreBtn('more-col', s.id, cards.length - limit, BOARD_STEP, limit > BOARD_STEP) : '';
         return `<section class="ck-col" aria-label="${s.label}"><header><h3>${s.label}</h3><span>${cards.length}</span></header>` +
-          (cards.length ? cards.map(leadCard).join('') : '<p class="ck-empty">Chưa có khách</p>') + '</section>';
+          (cards.length ? cards.slice(0, limit).map(leadCard).join('') + more : '<p class="ck-empty">Chưa có khách</p>') + '</section>';
       }).join('') + '</div>';
     }
 
@@ -721,7 +731,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const shown = ui.group === 'all' ? pool : pool.filter(c => saleGroupOf(c) === ui.group);
       if (!shown.some(c => c.id === ui.selected)) ui.selected = (shown[0] || {}).id || null;
       const sel = shown.find(c => c.id === ui.selected);
-      const chip = (id, label) => `<button type="button" class="ck-chip${ui.group === id ? ' on' : ''}" data-ck="group" data-id="${id}">${label} ${id === 'all' ? pool.length : pool.filter(c => saleGroupOf(c) === id).length}</button>`;
+      // Khách đang chọn (vd bấm "Hồ sơ" từ Bảng giai đoạn) nằm ngoài phần đang hiện thì mở rộng tới đợt chứa khách đó.
+      const selIdx = shown.indexOf(sel);
+      if (selIdx >= listLimit) listLimit = Math.ceil((selIdx + 1) / LIST_STEP) * LIST_STEP;
+      const rows = shown.slice(0, listLimit);
+      const chip =(id, label) => `<button type="button" class="ck-chip${ui.group === id ? ' on' : ''}" data-ck="group" data-id="${id}">${label} ${id === 'all' ? pool.length : pool.filter(c => saleGroupOf(c) === id).length}</button>`;
       const sub = c => {
         const g = saleGroupOf(c);
         if (g === 'tiem-nang') return stageLabel(c.stage);
@@ -733,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '<div class="ck-chips">' + chip('all', 'Tất cả') + Object.keys(SALE_GROUPS).map(id => chip(id, SALE_GROUPS[id].label)).join('') + '</div>' +
         '<p class="ck-rule">Giai đoạn tự đổi: cọc xong thành Đã chốt, sau buổi chụp thành Đã chụp, từ đơn thứ hai thành Khách quen.</p>' +
         '<div class="ck-table-wrap"><table class="ck-table"><thead><tr><th>Khách</th><th>Giai đoạn</th><th>Bé</th><th>Việc tiếp theo</th><th>Sale phụ trách</th></tr></thead><tbody>' +
-        (shown.length ? shown.map(c => {
+        (rows.length ? rows.map(c => {
           const g = SALE_GROUPS[saleGroupOf(c)]; const n = nextStep(c); const s = sub(c);
           return `<tr class="ck-row${c.id === ui.selected ? ' on' : ''}" data-ck="select" data-id="${c.id}">
             <td><button type="button" class="ck-link" data-ck="select" data-id="${c.id}"><strong>${escHtml(c.name)}</strong></button>
@@ -743,7 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><strong class="ck-next${n.tone ? ' c-' + n.tone : ''}">${escHtml(n.text)}</strong></td>
             <td>${escHtml(saleName(c.owner))}</td></tr>`;
         }).join('') : '<tr><td colspan="5"><p class="ck-empty">Không có khách nào khớp bộ lọc.</p></td></tr>') +
-        '</tbody></table></div></section>' +
+        '</tbody></table></div>' +
+        (shown.length > LIST_STEP ? moreBtn('more-list', 'list', shown.length - listLimit, LIST_STEP, listLimit > LIST_STEP) : '') + '</section>' +
         `<aside class="ck-panel ck-aside" id="ckAside" aria-label="Hồ sơ khách">${sel ? detail(sel) : '<p class="ck-empty">Chọn một khách để xem hồ sơ.</p>'}</aside></div>`;
     }
 
@@ -761,12 +776,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = e.target.closest('[data-ck]');
       if (!t) return;
       const act = t.dataset.ck;
-      if (act === 'mode') ui.mode = t.dataset.id;
-      else if (act === 'group') ui.group = t.dataset.id;
-      else if (act === 'bday') ui.bday = !ui.bday;
+      if (act === 'mode') { ui.mode = t.dataset.id; resetLimits(); }
+      else if (act === 'group') { ui.group = t.dataset.id; resetLimits(); }
+      else if (act === 'bday') { ui.bday = !ui.bday; resetLimits(); }
       else if (act === 'select') ui.selected = t.dataset.id;
-      else if (act === 'profile') { ui.mode = 'danh-sach'; ui.group = 'all'; ui.bday = false; ui.selected = t.dataset.id; }
+      else if (act === 'profile') { ui.mode = 'danh-sach'; ui.group = 'all'; ui.bday = false; ui.selected = t.dataset.id; resetLimits(); }
+      else if (act === 'more-col') boardLimit[t.dataset.id] = (boardLimit[t.dataset.id] || BOARD_STEP) + BOARD_STEP;
+      else if (act === 'more-col-less') boardLimit[t.dataset.id] = BOARD_STEP;
+      else if (act === 'more-list') listLimit += LIST_STEP;
+      else if (act === 'more-list-less') listLimit = LIST_STEP;
       render();
+      if (act === 'more-col-less' || act === 'more-list-less') {
+        // Thu gọn làm khối ngắn lại -> đưa người xem về đầu cột/bảng thay vì để lạc giữa trang.
+        const box = act === 'more-col-less' ? custView.querySelector(`.ck-col[aria-label="${STAGES.find(s => s.id === t.dataset.id).label}"]`) : custView.querySelector('.ck-panel');
+        if (box && box.getBoundingClientRect().top < 0) box.scrollIntoView({ block: 'start' });
+      }
       // Màn hẹp: hồ sơ nằm dưới bảng -> cuộn tới cho người xem thấy ngay.
       if ((act === 'select' || act === 'profile') && window.matchMedia('(max-width: 1180px)').matches) {
         const aside = document.getElementById('ckAside');
@@ -778,10 +802,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     custView.addEventListener('change', e => {
       const f = e.target.dataset.ckFilter;
-      if (f) { ui[f] = e.target.value; render(); }
+      if (f) { ui[f] = e.target.value; resetLimits(); render(); }
     });
     custView.addEventListener('input', e => {
-      if (e.target.matches('[data-ck-search]')) { ui.q = e.target.value; render(); }
+      if (e.target.matches('[data-ck-search]')) { ui.q = e.target.value; resetLimits(); render(); }
     });
 
     if (role === 'sep') {

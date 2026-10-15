@@ -1157,6 +1157,12 @@
 .ck-btn:hover { background: var(--pink-50); border-color: var(--pink-200); color: var(--pink-700); }
 .ck-btn-sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
 .ck-btn-sm svg { width: 14px; height: 14px; }
+/* Nút Xem thêm / Thu gọn dưới mỗi cột Bảng giai đoạn và dưới bảng Danh sách */
+.ck-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ck-more:empty { display: none; }
+.ck-panel .ck-more { margin-top: 14px; }
+.ck-col .ck-more .ck-btn { flex: 1 1 auto; }
+.ck-more .ck-muted { font-weight: 500; }
 
 /* Danh sách + hồ sơ */
 .ck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
