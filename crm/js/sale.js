@@ -14,6 +14,13 @@
 // - Lịch chụp: lịch chung của studio, mọi sale thấy cả tuần; thông tin liên hệ
 //   của khách chỉ hiện với sale phụ trách.
 // Mọi thao tác chỉ thay đổi bản sao dữ liệu trong bộ nhớ trang (không lưu lại).
+//
+// Khách từ web (thêm 2026-10-15, người dùng: "chưa có data khách, nào có từ web đẩy về mới
+// được"): sale-data.js không còn khách mẫu. Mỗi khách nhắn ở màn chat trên website
+// (server/sale-chat.js) tự thành 1 hồ sơ "Mới" + 1 hội thoại trong Hộp thư. Tin nhắn đọc/gửi
+// THẬT qua server (cùng hộp thư với mục Tin nhắn ở crm/admin.html). Sale phụ trách = sale
+// trả lời khách đầu tiên (suy từ tên người gửi trên server); chưa ai trả lời thì "Chưa có sale
+// nhận", sale nào cũng trả lời được và người trả lời trước nhận khách.
 (function () {
   'use strict';
 
@@ -109,7 +116,9 @@
     'da-chot': { text: 'Đã chốt', tone: 'green' }
   };
   const SERVICES = ['Newborn', 'Bé lớn', 'Sinh nhật', 'Bầu', 'Gia đình'];
-  const SOURCES = ['Trợ lý web', 'Chat trực tiếp', 'Form đặt lịch', 'Hotline', 'Khách giới thiệu'];
+  // Nguồn khách (người dùng chốt 2026-10-15): 3 kênh mạng xã hội + Website. Khách nhắn từ màn chat
+  // trên web tạm tính là Website cho tới khi biết khách đến từ kênh nào.
+  const SOURCES = ['TikTok', 'Facebook', 'Instagram', 'Website'];
   const SVC_TONE = { 'Newborn': 'teal', 'Gia đình': 'blue', 'Bầu': 'peach', 'Sinh nhật': 'amber', 'Bé lớn': 'purple', 'Tại nhà': 'beige' };
   const CHANNELS = ['Chat web', 'Messenger', 'Zalo', 'SMS', 'Email'];
   const WEEKDAY = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -170,7 +179,7 @@
     const pick = parts.length > 1 ? parts[parts.length - 2][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2);
     return pick.toUpperCase();
   }
-  function saleName(id) { const s = db.sales.find(x => x.id === id); return s ? s.name : '—'; }
+  function saleName(id) { if (!id) return 'Chưa có sale nhận'; const s = db.sales.find(x => x.id === id); return s ? s.name : '—'; }
   function svcTag(s) { return '<span class="sw-tag svc-tag tone-' + (SVC_TONE[s] || 'beige') + '">' + esc(s) + '</span>'; }
   // Số đếm trong nút lọc: huy hiệu tròn nhỏ, số 0 làm mờ.
   function chipNum(n) { return ' <span class="sw-chip-n' + (n ? '' : ' zero') + '">' + n + '</span>'; }
@@ -183,9 +192,11 @@
       '</select></label>';
   }
   function readOnlyNote(ownerId) {
+    if (!ownerId) return '<p class="sw-note sw-readonly">' + icon('lock') + '<span>Khách nhắn từ web, <strong>chưa có sale nhận</strong>. Trả lời khách trong Hộp thư để nhận khách về mình.</span></p>';
     return '<p class="sw-note sw-readonly">' + icon('lock') + '<span>Khách do <strong>' + esc(saleName(ownerId)) + '</strong> phụ trách · bạn chỉ xem được, mọi thao tác do sale phụ trách thực hiện.</span></p>';
   }
   function ownerTag(ownerId) {
+    if (!ownerId) return '<span class="sw-tag tone-red sw-owner-tag">Chưa có sale nhận</span>';
     return ownerId === me.id ? '' : '<span class="sw-tag tone-beige sw-owner-tag">' + esc(saleName(ownerId)) + '</span>';
   }
 
@@ -228,6 +239,16 @@
   // ---------- Việc cần làm (suy ra từ dữ liệu, không nhập tay) ----------
   function buildTasks() {
     const tasks = [];
+    // Khách nhắn từ web chưa sale nào trả lời: mọi sale đều thấy để nhận khách.
+    db.conversations.filter(v => v.live && !v.owner).forEach(v => {
+      const c = customer(v.customerId); if (!c) return;
+      tasks.push({
+        key: 'web:' + v.id, kind: 'goi-lai', prio: 0, badge: 'Chưa có sale nhận', tone: 'amber',
+        title: c.name + ' · nhắn từ web ' + v.time.toLowerCase() + (/^\d/.test(v.time) && !v.time.includes('/') ? ' trước' : ''),
+        desc: (v.messages[v.messages.length - 1] || { text: '' }).text.slice(0, 90), customerId: c.id,
+        actions: [{ act: 'view-conv', label: 'Trả lời', icon: 'chat', style: 'accent' }]
+      });
+    });
     myCustomers().forEach(c => {
       if (!c.task || ui.done['cus:' + c.id]) return;
       const t = c.task;
@@ -304,7 +325,7 @@
 
   function depositNeedsAction() { return myDeposits().filter(d => d.state === 'paid' || d.state === 'short').length; }
   function ordersNeedAction() { return myOrders().filter(o => o.status === 'qua-han' || (o.status === 'cho-chon' && (o.idleDays || 0) >= 3 && !ui.done['ord:' + o.code])).length; }
-  function unreadCount() { return myConversations().filter(v => v.unread && !v.done).length; }
+  function unreadCount() { return db.conversations.filter(v => (v.owner === me.id || !v.owner) && v.unread && !v.done).length; }
   function openLeadCount() { return myLeads().filter(c => c.stage !== 'da-chot').length; }
 
   // ---------- Khung chung: sidebar, mục tiêu, badge ----------
@@ -469,12 +490,12 @@
         '<span class="ib-item-body"><span class="ib-item-top"><strong>' + esc(c.name) + '</strong><small>' + esc(v.time) + '</small></span>' +
         '<span class="ib-preview">' + esc(last.text) + '</span>' +
         ((v.bot || v.owner !== me.id) ? '<span class="ib-item-tags">' + (v.bot ? '<span class="sw-tag tone-peach">' + esc(v.channel) + '</span>' : '') + ownerTag(v.owner) + '</span>' : '') + '</span></button>';
-    }).join('') : emptyState('Không có hội thoại nào.');
+    }).join('') : emptyState(db.conversations.length ? 'Không có hội thoại nào trong nhóm này.' : 'Chưa có khách nào nhắn. Khi khách bấm ảnh dịch vụ hoặc nút chat trên website và gửi tin, hội thoại sẽ tự hiện ở đây.');
 
     return '<div class="ib' + (ui.inbox.mobileChat ? ' show-chat' : '') + (active && ui.inbox.info ? ' show-info' : '') + '">' +
       '<section class="ib-list">' +
         '<div class="ib-list-head"><h1>Hộp thư</h1>' +
-        '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Đang trao đổi') + chip('bot', 'Bot đã chuyển') + '</div>' + ownerSelect() + '</div>' +
+        liveNote() + '<div class="sw-chips">' + chip('chua-tra-loi', 'Chưa trả lời') + chip('cua-toi', 'Đang trao đổi') + chip('bot', 'Bot đã chuyển') + '</div>' + ownerSelect() + '</div>' +
         '<div class="ib-items">' + listHtml + '</div>' +
       '</section>' +
       (active ? chatPane(active) + (ui.inbox.info ? '<aside class="ib-info">' + customerPanel(customer(active.customerId)) + '</aside>' : '')
@@ -484,15 +505,15 @@
 
   function chatPane(v) {
     const c = customer(v.customerId);
-    const own = isMine(v);
-    const quick = ['Bảng giá ' + c.service, 'Concept đang được chọn nhiều', 'Khung giờ còn trống', 'Hướng dẫn đặt cọc', 'Lưu ý chuẩn bị cho bé'];
+    const own = isMine(v) || (v.live && !v.owner);
+    const quick = [SERVICES.includes(c.service) ? 'Bảng giá ' + c.service : 'Bảng giá', 'Concept đang được chọn nhiều', 'Khung giờ còn trống', 'Hướng dẫn đặt cọc', 'Lưu ý chuẩn bị cho bé'];
     return '<section class="ib-chat">' +
       '<header class="ib-chat-head">' +
         '<button type="button" class="sw-icon-btn ib-back" data-act="inbox-back" aria-label="Quay lại danh sách">' + icon('back') + '</button>' +
-        '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + '</small></div>' +
+        '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + (v.live && !v.owner ? ' · chưa có sale nhận' : '') + '</small></div>' +
         '<div class="ib-chat-actions">' +
           (own ? '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' : '') +
-          (own ? '<button type="button" class="sw-btn" data-act="transfer" data-id="' + c.id + '">Chuyển người khác</button>' : '') +
+          (isMine(v) ? '<button type="button" class="sw-btn" data-act="transfer" data-id="' + c.id + '">Chuyển người khác</button>' : '') +
           '<button type="button" class="sw-icon-btn sw-card-btn ib-info-btn' + (ui.inbox.info ? ' on' : '') + '" data-act="ib-info" data-id="' + c.id + '" title="Hồ sơ khách" aria-label="Hồ sơ khách" aria-pressed="' + ui.inbox.info + '">' + icon('menu') + '</button>' +
         '</div>' +
       '</header>' +
@@ -512,6 +533,7 @@
 
   function quickReplyText(label, c) {
     const who = c.title + ' ' + c.short;
+    if (label.startsWith('Bảng giá') && !SERVICES.includes(c.service)) return 'Dạ ' + who + ' đang quan tâm dịch vụ nào ạ (Newborn, Bé lớn, Sinh nhật, Bầu, Gia đình)? Em gửi bảng giá đúng gói cho mình nhé.';
     if (label.startsWith('Bảng giá')) return 'Dạ em gửi ' + who + ' bảng giá gói ' + c.service + ': [Bảng giá gói ' + c.service + ' theo cấu hình studio]. ' + capital(c.title) + ' cần em tư vấn thêm gói nào không ạ?';
     if (label.startsWith('Concept')) return 'Dạ các concept ' + c.service + ' đang được nhiều bố mẹ chọn gần đây là tông kem trắng nhẹ nhàng, vintage và Hàn Quốc ạ. Em gửi ' + who + ' ảnh mẫu tham khảo nhé.';
     if (label.startsWith('Khung giờ')) return 'Dạ hiện studio còn trống các khung ' + freeSlotsText() + '. ' + capital(c.title) + ' chọn khung nào em giữ lịch luôn cho mình ạ.';
@@ -1531,7 +1553,7 @@
 
   // ---------- Trang: Báo cáo của tôi ----------
   function viewReport() {
-    setHead('Báo cáo của tôi', 'Số liệu minh hoạ tính từ khách do ' + me.name + ' phụ trách');
+    setHead('Báo cáo của tôi', 'Tính từ khách do ' + me.name + ' phụ trách · doanh số và thời gian phản hồi chưa có nguồn số liệu');
     const leads = myLeads();
     const reach = STAGES.map((s, i) => [s.label, leads.filter(c => STAGES.findIndex(x => x.id === boardStage(c.stage)) >= i).length]);
     const max = Math.max(1, reach[0][1]);
@@ -1541,7 +1563,7 @@
     return '<div class="sw-kpis sw-kpis-4">' +
         '<div class="sw-card sw-kpi"><small>Doanh số tháng</small><strong>' + me.achieved + ' triệu</strong><span class="c-teal">' + pct + '% mục tiêu ' + me.target + ' triệu</span></div>' +
         '<div class="sw-card sw-kpi"><small>Tỉ lệ chốt</small><strong>' + (leads.length ? Math.round(closed / leads.length * 100) : 0) + '%</strong><span class="c-teal">' + closed + '/' + leads.length + ' lead đã chốt</span></div>' +
-        '<div class="sw-card sw-kpi"><small>Phản hồi trung bình</small><strong>' + me.responseMin + ' phút</strong><span class="c-amber">Mục tiêu dưới 10 phút</span></div>' +
+        '<div class="sw-card sw-kpi"><small>Phản hồi trung bình</small><strong>' + (me.responseMin == null ? '—' : me.responseMin + ' phút') + '</strong><span class="c-amber">Mục tiêu dưới 10 phút</span></div>' +
         '<div class="sw-card sw-kpi"><small>Công nợ cần thu</small><strong>' + million(dueTotal) + '</strong><span class="c-red">' + myOrders().filter(o => o.due > 0).length + ' đơn còn nợ</span></div>' +
       '</div>' +
       '<div class="sw-grid-2 sw-grid-even">' +
@@ -1657,7 +1679,11 @@
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
     if (route === 'hop-thu' && ui.inbox.active) {
       const v = db.conversations.find(x => x.id === ui.inbox.active);
-      if (v && v.unread && v.owner === me.id && ui.inbox.mobileChat !== false) { v.unread = false; renderChrome(route); }
+      if (v && v.unread && (v.owner === me.id || (v.live && !v.owner)) && ui.inbox.mobileChat !== false) {
+        v.unread = false; renderChrome(route);
+        if (v.live) liveMarkRead(v);
+      }
+      if (v && v.live && !v.loaded) liveLoadThread(v);
     }
   }
   window.addEventListener('hashchange', render);
@@ -1777,7 +1803,8 @@
       }
       case 'send-quote': {
         const c = myCustomer(id); const v = convOf(id); if (!c) return;
-        if (v) { v.messages.push({ from: 'sale', text: quickReplyText('Bảng giá', c), time: hm(demoNow()) }); v.unread = false; }
+        if (v && v.live) liveSend(v, quickReplyText('Bảng giá', c));
+        else if (v) { v.messages.push({ from: 'sale', text: quickReplyText('Bảng giá', c), time: hm(demoNow()) }); v.unread = false; }
         if (c.stage === 'moi' || c.stage === 'tu-van') { c.stage = 'bao-gia'; c.status = { text: 'Đã gửi báo giá', tone: 'muted' }; }
         closeModal(); render(); return toast('Đã gửi báo giá gói ' + c.service + ' cho ' + c.name);
       }
@@ -1942,6 +1969,7 @@
     if (f.dataset.form === 'send-msg') {
       const input = f.querySelector('input'); const text = input.value.trim();
       const v = db.conversations.find(x => x.id === f.dataset.id);
+      if (v && v.live && text && (v.owner === me.id || !v.owner)) { input.value = ''; liveSend(v, text); return; }
       if (!text || !v || v.owner !== me.id) return;
       v.messages.push({ from: 'sale', text, time: hm(demoNow()) });
       v.unread = false; v.time = 'Vừa xong';
@@ -2026,5 +2054,170 @@
   document.addEventListener('focusout', () => { if (pendingRender) { pendingRender = false; setTimeout(render, 0); } });
   setInterval(tick, 30000);
 
+  // ---------- Khách từ web: đồng bộ với chat thật trên server ----------
+  // Hỏi /api/sale-chat/inbox mỗi 3 giây (trang đang mở) hoặc 20 giây (tab ẩn). Cuộc trò
+  // chuyện nào có tin mới (updatedAt đổi) thì tải đủ tin để cập nhật hội thoại + suy ra sale
+  // phụ trách. Hồ sơ khách tạo 1 lần khi khách nhắn lần đầu; giai đoạn, ghi chú Sale đổi trên
+  // trang chỉ sống trong bộ nhớ (chưa có backend CRM), tin nhắn thì luôn lấy từ server.
+  const liveState = { status: 'loading', busy: false, seen: {} }; // seen: phone -> updatedAt đã tải đủ tin
+  const LIVE_ID = (phone) => 'web-' + phone;
+
+  function liveNote() {
+    if (liveState.status === 'auth') return '<p class="sw-note sw-readonly">' + icon('lock') + '<span>Chưa kết nối được máy chủ chat. <button type="button" class="sw-link" data-act="live-relogin">Đăng nhập lại</button> để thấy tin nhắn của khách.</span></p>';
+    if (liveState.status === 'offline') return '<p class="sw-note">Đang kết nối tới máy chủ chat… máy chủ có thể cần vài chục giây để khởi động.</p>';
+    if (liveState.status === 'loading' && !db.conversations.length) return '<p class="sw-note">Đang tải tin nhắn của khách…</p>';
+    return '';
+  }
+
+  function serviceFromTopic(topic) {
+    const f = fold(topic);
+    if (f.includes('be lon')) return 'Bé lớn';
+    if (f.includes('sinh nhat')) return 'Sinh nhật';
+    if (f.includes('newborn') || f.includes('so sinh')) return 'Newborn';
+    if (f.includes('gia dinh')) return 'Gia đình';
+    if (/\bbau\b/.test(f)) return 'Bầu';
+    return 'Chưa chọn';
+  }
+  function relTime(ts) {
+    const min = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (min < 1) return 'Vừa xong';
+    if (min < 60) return min + ' phút';
+    if (min < 24 * 60) return Math.floor(min / 60) + ' giờ';
+    const d = new Date(ts); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1);
+  }
+  function msgTime(ts) {
+    const d = new Date(ts);
+    return dateKey(d) === TODAY ? hm(d) : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + hm(d);
+  }
+  const saleIdByName = (name) => (db.sales.find(s => s.name === name) || {}).id || null;
+  const liveMsg = (m) => ({ from: m.from === 'sale' ? 'sale' : 'kh', text: m.text, time: msgTime(m.at), by: m.senderName, at: m.at });
+
+  // Gộp 1 bản tóm tắt (và đủ tin nếu có) từ server vào hồ sơ + hội thoại trên trang.
+  function liveMerge(sum, full) {
+    const id = LIVE_ID(sum.phone);
+    let c = customer(id);
+    let v = db.conversations.find(x => x.id === id);
+    const name = sum.customerName || 'Khách hàng';
+    if (!c) {
+      c = { id, owner: null, name, short: name.trim().split(/\s+/).pop(), title: 'anh/chị', phone: sum.phone, area: '',
+        service: serviceFromTopic(sum.topic), source: 'Website', stage: 'moi', since: '', status: { text: 'Chưa trả lời', tone: 'red' },
+        tags: ['Khách web'], note: '', web: true };
+      db.customers.unshift(c);
+    }
+    if (!v) {
+      v = { id, live: true, phone: sum.phone, owner: null, customerId: id, channel: 'Chat web', time: '', unread: false, messages: [], loaded: false };
+      db.conversations.unshift(v);
+    }
+    c.name = name;
+    if (sum.topic && c.service === 'Chưa chọn') c.service = serviceFromTopic(sum.topic);
+    c.since = relTime(sum.updatedAt);
+    v.time = relTime(sum.updatedAt);
+    v.updatedAt = sum.updatedAt;
+    v.unread = (sum.staffUnread || 0) > 0;
+    if (full) {
+      v.messages = full.messages.map(liveMsg);
+      v.loaded = true;
+      const firstSale = full.messages.find(m => m.from === 'sale' && saleIdByName(m.senderName));
+      if (!v.owner && firstSale) {
+        v.owner = c.owner = saleIdByName(firstSale.senderName);
+        if (c.stage === 'moi') { c.stage = 'tu-van'; c.status = Object.assign({}, STAGE_DEFAULT_STATUS['tu-van']); }
+      }
+      const last = full.messages[full.messages.length - 1];
+      if (last && last.from === 'khach' && c.stage !== 'moi') c.status = { text: 'Khách vừa nhắn', tone: 'amber' };
+    } else if (!v.loaded && sum.last) {
+      v.messages = [liveMsg(sum.last)];
+    }
+  }
+
+  async function liveRefresh() {
+    const sess = window.AlohaAuth.getSession();
+    if (!sess || !sess.token) {
+      if (liveState.status !== 'auth') { liveState.status = 'auth'; liveRerender(); }
+      return;
+    }
+    if (liveState.busy) return;
+    liveState.busy = true;
+    let changed = false;
+    try {
+      const r = await window.AlohaAuth.api('/api/sale-chat/inbox');
+      if (!r.ok) {
+        const st = r.status === 401 ? 'auth' : 'offline';
+        changed = st !== liveState.status; liveState.status = st;
+        return;
+      }
+      if (liveState.status !== 'ok') changed = true;
+      liveState.status = 'ok';
+      for (const sum of (r.data.chats || [])) {
+        const old = db.conversations.find(x => x.id === LIVE_ID(sum.phone));
+        const before = old ? old.time + ':' + old.unread : '';
+        let full = null;
+        if (liveState.seen[sum.phone] !== sum.updatedAt) {
+          const t = await window.AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(sum.phone));
+          if (t.ok && t.data.chat) { full = t.data.chat; liveState.seen[sum.phone] = sum.updatedAt; }
+        }
+        liveMerge(sum, full);
+        const v = db.conversations.find(x => x.id === LIVE_ID(sum.phone));
+        if (full || before !== v.time + ':' + v.unread) changed = true;
+      }
+    } finally {
+      liveState.busy = false;
+      if (changed) liveRerender();
+    }
+  }
+
+  async function liveLoadThread(v) {
+    if (v.loading) return;
+    v.loading = true;
+    const t = await window.AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(v.phone));
+    v.loading = false;
+    if (!t.ok || !t.data.chat) return;
+    liveState.seen[v.phone] = t.data.chat.updatedAt;
+    liveMerge(Object.assign({}, t.data.chat, { staffUnread: v.unread ? 1 : 0 }), t.data.chat);
+    liveRerender();
+  }
+
+  function liveMarkRead(v) {
+    window.AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(v.phone) + '/read', { method: 'POST' });
+  }
+
+  async function liveSend(v, text) {
+    const r = await window.AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(v.phone) + '/messages', { method: 'POST', body: { text } });
+    if (!r.ok) {
+      if (r.status === 401) liveState.status = 'auth';
+      render();
+      const inp = document.getElementById('ibInput'); if (inp && !inp.value) inp.value = text;
+      return toast(r.status === 401 ? 'Phiên đăng nhập hết hạn, hãy đăng nhập lại rồi gửi.' : 'Chưa gửi được tin, kiểm tra kết nối rồi thử lại.');
+    }
+    const chat = r.data.chat;
+    liveState.seen[v.phone] = chat.updatedAt;
+    const claimed = !v.owner;
+    liveMerge({ phone: chat.phone, customerName: chat.customerName, topic: chat.topic, updatedAt: chat.updatedAt, staffUnread: 0 }, chat);
+    render();
+    const inp = document.getElementById('ibInput'); if (inp) inp.focus();
+    if (claimed && v.owner === me.id) toast('Bạn đã nhận khách ' + customer(v.customerId).name + '.');
+  }
+
+  // Vẽ lại sau khi có dữ liệu mới mà không làm mất chữ Sale đang gõ dở trong ô tin nhắn.
+  function liveRerender() {
+    const a = document.activeElement;
+    const view = document.getElementById('swView');
+    if (a && a.id === 'ibInput') {
+      const val = a.value; const s0 = a.selectionStart; const s1 = a.selectionEnd;
+      render();
+      const inp = document.getElementById('ibInput');
+      if (inp) { inp.value = val; inp.focus(); try { inp.setSelectionRange(s0, s1); } catch (e) { /* bỏ qua */ } }
+      return;
+    }
+    if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && view.contains(a)) { renderChrome(parseHash().route); pendingRender = true; return; }
+    if (!document.getElementById('swModal').hidden) { renderChrome(parseHash().route); return; } // đang mở popup: chỉ cập nhật menu
+    render();
+  }
+
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-act="live-relogin"]')) window.AlohaAuth.logout(); });
+  setInterval(() => { if (document.visibilityState === 'visible') liveRefresh(); }, 3000);
+  setInterval(() => { if (document.visibilityState !== 'visible') liveRefresh(); }, 20000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') liveRefresh(); });
+
   render();
+  liveRefresh();
 })();
