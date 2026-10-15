@@ -1147,17 +1147,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function getAllRequests() {
-    // js/data-store.js lưu photo.src tương đối với index.html ở thư mục gốc
-    // (vd "images/my-photos/photo-1.jpg") - trang này (crm/admin.html) nằm
-    // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
-    const real = (window.AlohaData ? AlohaData.getEditRequests() : []).map(r => Object.assign({ isStatic: false }, r, {
+  // Đồng bộ yêu cầu chỉnh ảnh qua server (cờ editSync trong js/features.js, thêm 2026-10-15).
+  // Áp dụng cho Thợ ảnh (đọc + ghi) và Sếp (chỉ đọc); cờ TẮT (mặc định) giữ nguyên luồng
+  // AlohaData/localStorage cũ. Bật: danh sách/chi tiết đọc từ API (server/edit-requests.js), lưu link,
+  // Hoàn tất, nhắn khách, "đã xem" gửi qua AlohaEditSync; server lỗi thì báo lỗi, KHÔNG ghi
+  // localStorage thay thế, KHÔNG báo thành công khi server chưa xác nhận. 409 (dữ liệu đã đổi) ->
+  // tải bản mới nhất, báo cho thợ kiểm tra rồi tự thao tác lại (không tự gửi lại). Thẻ minh hoạ
+  // (STATIC_REQUESTS) vẫn chỉ sống trong bộ nhớ trang. Dữ liệu cũ trong localStorage không được chuyển lên.
+  // Sếp (thêm cùng ngày): CHỈ ĐỌC qua API (GET / và GET /:id), đúng quyền server cho phép; giao
+  // diện Sếp không có nút ghi nào (canEditProgress chỉ cho Thợ ảnh) và không gửi "đã xem" (server cấm Sếp).
+  const EDIT_SYNC = (role === 'tho-anh' || role === 'sep') && !!(window.AlohaEditSync && AlohaEditSync.enabled());
+  let syncReqs = [];          // yêu cầu thật theo server (bản nhân viên, có link ảnh gốc)
+  let syncError = '';         // lỗi lần tải gần nhất
+
+  // Bản ghi để hiển thị ở trang này: thêm cờ isStatic=false và sửa đường dẫn ảnh.
+  // js/data-store.js / server lưu photo.src tương đối với index.html ở thư mục gốc
+  // (vd "images/my-photos/photo-1.jpg") - trang này (crm/admin.html) nằm
+  // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
+  function toViewReq(r) {
+    return Object.assign({ isStatic: false }, r, {
       // Chỉ thêm '../' cho ảnh nằm trong thư mục dự án (trang này ở crm/); ảnh Google Photos là
       // URL đầy đủ https://... thì giữ nguyên, thêm '../' sẽ thành link hỏng.
       photos: (r.photos || []).map(p => Object.assign({}, p, { src: /^(https?:|data:|\/)/i.test(p.src || '') ? p.src : '../' + p.src }))
-    }));
+    });
+  }
+
+  function getAllRequests() {
+    const real = (EDIT_SYNC ? syncReqs : (window.AlohaData ? AlohaData.getEditRequests() : [])).map(toViewReq);
     return STATIC_REQUESTS.concat(real);
   }
+
+  // Thay 1 yêu cầu trong bộ nhớ trang bằng bản server vừa trả (chế độ đồng bộ)
+  function keepServerCopy(r) {
+    if (r && r.id) syncReqs = syncReqs.filter(x => x.id !== r.id).concat([r]);
+  }
+  // Tải lại toàn bộ yêu cầu từ server (GET /). Lỗi -> giữ bản đã tải, hiện lỗi.
+  async function refreshSync() {
+    const res = await AlohaEditSync.list();
+    if (res.ok && res.data && Array.isArray(res.data.requests)) {
+      syncReqs = res.data.requests;
+      syncError = '';
+    } else {
+      syncError = res.message || 'Không tải được dữ liệu từ máy chủ.';
+    }
+    renderSyncStatus();
+    return res;
+  }
+  // Dòng trạng thái kết nối trên mục Ảnh & chỉnh sửa (chỉ chế độ đồng bộ)
+  let syncStatusEl = null;
+  // Hiện ở cả mục "Ảnh & chỉnh sửa" (trên 3 hàng) và "Đã hoàn tất" (trên bảng): Sếp có thể chỉ mở
+  // 1 trong 2 mục, phải thấy ngay khi dữ liệu đang hiện là bản cũ (lần tải gần nhất lỗi).
+  let syncStatusDone = null;
+  function renderSyncStatus() {
+    if (!EDIT_SYNC) return;
+    const text = syncError ? 'Chưa cập nhật được yêu cầu từ máy chủ: ' + syncError + ' Dữ liệu đang hiện là lần tải được gần nhất.' : '';
+    const make = (anchor) => {
+      const el = document.createElement('p');
+      el.className = 'photo-progress-note photo-sync-status';
+      el.setAttribute('role', 'status');
+      anchor.parentNode.insertBefore(el, anchor);
+      return el;
+    };
+    const rows = document.getElementById('photoRows');
+    if (rows && !syncStatusEl) syncStatusEl = make(rows);
+    const doneWrap = document.querySelector('#hoan-tat .completed-table-wrap');
+    if (doneWrap && !syncStatusDone) syncStatusDone = make(doneWrap);
+    [syncStatusEl, syncStatusDone].forEach((el) => { if (el) { el.hidden = !syncError; el.textContent = text; } });
+  }
+  // 409: lấy bản mới nhất (409 thường kèm sẵn; không có thì tải lại) rồi cập nhật bộ nhớ trang.
+  // Trả bản mới nhất (đã toViewReq) hoặc null.
+  async function latestAfterConflict(res, id) {
+    if (res.latest) { keepServerCopy(res.latest); return toViewReq(res.latest); }
+    await refreshSync();
+    const r = syncReqs.find(x => x.id === id);
+    return r ? toViewReq(r) : null;
+  }
+  const CONFLICT_HINT = ' Trang đã tải bản mới nhất, bạn kiểm tra lại rồi thao tác lại nhé.';
 
   const canEditProgress = role === 'tho-anh';
 
@@ -1402,11 +1467,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Lưu 2 link cho 1 yêu cầu. Trả '' nếu lưu được, ngược lại trả câu báo lỗi. Dùng chung cho
   // cửa sổ Drive và form ngay dưới ảnh trong modal chi tiết.
-  function saveDriveLinks(req, url, urlOrig) {
+  function linkInputError(url, urlOrig) {
     if ((url && !/^https:\/\/[^\s<>"']+$/i.test(url)) || (urlOrig && !/^https:\/\/[^\s<>"']+$/i.test(urlOrig))) {
       return 'Link phải bắt đầu bằng https:// (vd https://drive.google.com/...)';
     }
     if (!url && !urlOrig) return 'Nhập ít nhất 1 link Drive (link ảnh đã chỉnh là bắt buộc để Hoàn tất).';
+    return '';
+  }
+
+  // Chế độ đồng bộ: lưu 2 link qua server với rev của bản đang xem. Trả { ok, req, message, conflict }.
+  // 409 -> không gửi lại, trả bản mới nhất để thợ kiểm tra (link hiện có trên server) rồi tự lưu lại.
+  async function saveDriveLinksSync(req, url, urlOrig) {
+    const err = linkInputError(url, urlOrig);
+    if (err) return { ok: false, message: err };
+    const res = await AlohaEditSync.setLinks(req.id, { resultLink: url, resultLinkOriginal: urlOrig }, req.rev);
+    if (res.ok && res.data && res.data.request) {
+      keepServerCopy(res.data.request);
+      return { ok: true, req: toViewReq(res.data.request) };
+    }
+    if (res.error === 'conflict') {
+      const latest = await latestAfterConflict(res, req.id);
+      const cur = latest ? ' Trên máy chủ hiện có: link ảnh đã chỉnh "' + (latest.resultLink || 'chưa có') + '", link ảnh gốc "' + (latest.resultLinkOriginal || 'chưa có') + '".' : '';
+      return { ok: false, conflict: true, req: latest, message: res.message + CONFLICT_HINT + cur };
+    }
+    return { ok: false, message: res.message || 'Chưa lưu được link.' };
+  }
+
+  // Chế độ đồng bộ: Hoàn tất 1 bước ở server (server bắt buộc có link ảnh đã chỉnh, tự đánh dấu xong
+  // mọi ảnh). Trả { ok, req, message, conflict }. Chỉ báo xong khi server đã xác nhận.
+  async function completeRequestSync(req) {
+    const res = await AlohaEditSync.complete(req.id, req.rev);
+    if (res.ok && res.data && res.data.request) {
+      keepServerCopy(res.data.request);
+      return { ok: true, req: toViewReq(res.data.request) };
+    }
+    if (res.error === 'conflict') {
+      const latest = await latestAfterConflict(res, req.id);
+      return { ok: false, conflict: true, req: latest, message: res.message + (res.code === 'already_completed' ? '' : CONFLICT_HINT) };
+    }
+    return { ok: false, message: res.message || 'Chưa Hoàn tất được.' };
+  }
+
+  function saveDriveLinks(req, url, urlOrig) {
+    const inputErr = linkInputError(url, urlOrig);
+    if (inputErr) return inputErr;
     if (req.isStatic) {
       req.resultLink = url;
       req.resultLinkOriginal = urlOrig;
@@ -1446,10 +1550,30 @@ document.addEventListener('DOMContentLoaded', () => {
     return req.status === 'Hoàn thành';
   }
 
+  const showDriveError = (msg) => { if (driveErrorEl) { driveErrorEl.textContent = msg; driveErrorEl.hidden = !msg; } };
+  let driveBusy = false; // chế độ đồng bộ: đang chờ server (chặn bấm 2 lần)
+
   if (driveForm) {
-    driveForm.addEventListener('submit', (e) => {
+    driveForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!driveReq) return;
+      if (EDIT_SYNC && !driveReq.isStatic) {
+        if (driveBusy) return;
+        driveBusy = true;
+        const submitBtn = document.getElementById('driveModalSubmit');
+        if (submitBtn) submitBtn.disabled = true;
+        const r = await saveDriveLinksSync(driveReq, driveInput.value.trim(), driveInputOrig ? driveInputOrig.value.trim() : '');
+        driveBusy = false;
+        if (submitBtn) submitBtn.disabled = false;
+        if (!driveReq) return; // cửa sổ đã đóng trong lúc chờ
+        if (r.req) driveReq = r.req;        // thành công hoặc 409: dùng bản mới nhất (rev mới)
+        showDriveError(r.ok ? '' : r.message); // 409: giữ nguyên chữ thợ đã gõ để kiểm tra rồi lưu lại
+        if (r.ok && driveSubmitText) driveSubmitText.textContent = 'Cập nhật link';
+        if (driveCompleteWrap) driveCompleteWrap.hidden = !canComplete(driveReq);
+        renderEditRequests();
+        if (!r.ok) driveInput.focus();
+        return;
+      }
       const err = saveDriveLinks(driveReq, driveInput.value.trim(), driveInputOrig ? driveInputOrig.value.trim() : '');
       if (driveErrorEl) { driveErrorEl.textContent = err; driveErrorEl.hidden = !err; }
       if (err) { driveInput.focus(); return; }
@@ -1459,9 +1583,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   if (driveCompleteBtn) {
-    driveCompleteBtn.addEventListener('click', () => {
+    driveCompleteBtn.addEventListener('click', async () => {
       if (!driveReq) return;
       const req = driveReq;
+      if (EDIT_SYNC && !req.isStatic) {
+        // Chỉ đóng cửa sổ khi server đã xác nhận Hoàn tất; lỗi thì báo ngay trong cửa sổ
+        if (driveBusy) return;
+        driveBusy = true;
+        driveCompleteBtn.disabled = true;
+        const r = await completeRequestSync(req);
+        driveBusy = false;
+        driveCompleteBtn.disabled = false;
+        if (r.ok) { closeDriveModal(); renderEditRequests(); return; }
+        if (!driveReq) return;
+        if (r.req) driveReq = r.req;
+        showDriveError(r.message);
+        if (driveCompleteWrap) driveCompleteWrap.hidden = !canComplete(driveReq);
+        renderEditRequests();
+        return;
+      }
       closeDriveModal();
       completeRequest(req);
     });
@@ -1475,7 +1615,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function openRequestModal(req) {
     if (!modalOverlay || !modalBody) return;
     // Thợ ảnh mở xem yêu cầu thật (chưa xem) -> tắt badge "chưa xem" trên tab.
-    if (role === 'tho-anh' && !req.isStatic && !req.staffSeen && window.AlohaData) {
+    if (EDIT_SYNC && role === 'tho-anh' && !req.isStatic && !req.staffSeen) {
+      // Chế độ đồng bộ: chỉ tắt nhãn "Mới" khi server đã lưu (không chặn việc mở chi tiết)
+      AlohaEditSync.markSeen(req.id).then((res) => {
+        if (res.ok && res.data) { keepServerCopy(res.data.request); req.staffSeen = true; renderEditRequests(); }
+      });
+    } else if (role === 'tho-anh' && !req.isStatic && !req.staffSeen && window.AlohaData) {
       AlohaData.markStaffSeen(req.id);
       req.staffSeen = true;
       updateTabBadge();
@@ -1513,6 +1658,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const staffName = () => (session && session.name) || 'Thợ ảnh';
 
   function freshRequest(id) {
+    if (EDIT_SYNC) { const r = syncReqs.find(x => x.id === id); return r ? toViewReq(r) : null; }
     return window.AlohaData ? AlohaData.getEditRequests().find(r => r.id === id) || null : null;
   }
   // Có tin của khách cần thợ trả lời (Trợ lý AI đã chuyển, hoặc AI lỗi) mà thợ chưa trả lời
@@ -1598,8 +1744,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const inOrig = document.getElementById('kanbanLinkOrig');
       inEdit.value = req.resultLink || '';
       inOrig.value = req.resultLinkOriginal || '';
-      linkForm.addEventListener('submit', (e) => {
+      linkForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (EDIT_SYNC && !req.isStatic) {
+          const btn = linkForm.querySelector('button[type="submit"]');
+          if (btn.disabled) return;
+          btn.disabled = true;
+          const typed = [inEdit.value.trim(), inOrig.value.trim()];
+          const r = await saveDriveLinksSync(req, typed[0], typed[1]);
+          btn.disabled = false;
+          if (r.ok) { renderModalBody(r.req); renderEditRequests(); return; }
+          // Lỗi / 409: vẽ lại theo bản mới nhất (nếu có) nhưng GIỮ chữ thợ đã gõ, báo lỗi; không tự gửi lại
+          if (r.req) {
+            renderModalBody(r.req);
+            renderEditRequests();
+            document.getElementById('kanbanLinkEdit').value = typed[0];
+            document.getElementById('kanbanLinkOrig').value = typed[1];
+          }
+          const errEl = document.getElementById('kanbanLinkError');
+          if (errEl) { errEl.textContent = r.message; errEl.hidden = false; }
+          return;
+        }
         const err = saveDriveLinks(req, inEdit.value.trim(), inOrig.value.trim());
         const errEl = document.getElementById('kanbanLinkError');
         errEl.textContent = err;
@@ -1610,7 +1775,29 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     const completeBtn = document.getElementById('kanbanLinkComplete');
-    if (completeBtn) completeBtn.addEventListener('click', () => {
+    if (completeBtn) completeBtn.addEventListener('click', async () => {
+      if (EDIT_SYNC && !req.isStatic) {
+        // Chỉ đóng chi tiết khi server đã xác nhận Hoàn tất
+        if (completeBtn.disabled) return;
+        completeBtn.disabled = true;
+        const r = await completeRequestSync(req);
+        completeBtn.disabled = false;
+        if (r.ok) { closeModal(); renderEditRequests(); return; }
+        if (r.req) { renderModalBody(r.req); renderEditRequests(); }
+        let errEl = document.getElementById('kanbanLinkError');
+        if (!errEl) {
+          // Đã Hoàn thành ở phiên khác -> không còn form link: chèn dòng báo vào khung link
+          const box = document.getElementById('kanbanResultCurrent');
+          errEl = document.createElement('p');
+          errEl.id = 'kanbanLinkError';
+          errEl.className = 'kanban-result-error';
+          errEl.setAttribute('role', 'alert');
+          if (box) box.insertAdjacentElement('afterend', errEl);
+        }
+        errEl.textContent = r.message;
+        errEl.hidden = false;
+        return;
+      }
       closeModal();
       completeRequest(req);
     });
@@ -1619,8 +1806,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('kanbanChatForm');
     const chatInput = document.getElementById('kanbanChatInput');
     if (chatForm) {
-      chatForm.addEventListener('submit', (e) => {
+      chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (EDIT_SYNC) {
+          // Gửi qua server (người gửi = Thợ ảnh theo token). Lỗi -> giữ chữ đã gõ, báo lỗi.
+          const sendBtn = chatForm.querySelector('button[type="submit"]');
+          const text = chatInput.value.trim();
+          if (!text || sendBtn.disabled) return;
+          sendBtn.disabled = true;
+          const res = await AlohaEditSync.addMessage(req.id, text);
+          sendBtn.disabled = false;
+          let errEl = document.getElementById('kanbanChatError');
+          if (!res.ok || !res.data) {
+            if (!errEl) {
+              errEl = document.createElement('p');
+              errEl.id = 'kanbanChatError';
+              errEl.className = 'kanban-result-error';
+              errEl.setAttribute('role', 'alert');
+              chatForm.insertAdjacentElement('afterend', errEl);
+            }
+            errEl.textContent = 'Tin nhắn CHƯA được gửi: ' + (res.message || 'lỗi không xác định.');
+            errEl.hidden = false;
+            return;
+          }
+          if (errEl) errEl.hidden = true;
+          keepServerCopy(res.data.request);
+          chatInput.value = '';
+          req.messages = res.data.request.messages;
+          renderModalChat(req);
+          renderEditRequests();
+          return;
+        }
         const saved = AlohaData.addRequestMessage(req.id, 'staff', staffName(), chatInput.value);
         if (!saved) return;
         chatInput.value = '';
@@ -1780,9 +1996,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // để không ngắt thao tác Thợ ảnh đang làm dở. KHÔNG đồng bộ được giữa các
   // thiết bị/trình duyệt khác nhau vì site tĩnh chưa có backend thật (xem
   // rules/tech-defaults.md mục "Giới hạn của bản hiện tại").
-  setInterval(() => { renderEditRequests(); refreshModalChat(); }, 5000);
-  // Khách nhắn / dữ liệu đổi ở tab khác cùng trình duyệt -> cập nhật ngay
-  window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
+  if (EDIT_SYNC) {
+    // Chế độ đồng bộ (Thợ ảnh): tải từ server ngay, rồi hỏi lại 5 giây/lần. Không đụng modal đang mở
+    // (chỉ làm mới khung chat). Dữ liệu chỉ giữ trong bộ nhớ trang, không ghi localStorage.
+    let syncLoading = false;
+    const syncTick = async () => {
+      if (syncLoading) return;
+      syncLoading = true;
+      await refreshSync();
+      syncLoading = false;
+      renderEditRequests();
+      refreshModalChat();
+    };
+    syncTick();
+    setInterval(syncTick, 5000);
+  } else {
+    setInterval(() => { renderEditRequests(); refreshModalChat(); }, 5000);
+    // Khách nhắn / dữ liệu đổi ở tab khác cùng trình duyệt -> cập nhật ngay
+    window.addEventListener('storage', (e) => { if (e.key === 'aloha_demo_db') { renderEditRequests(); refreshModalChat(); } });
+  }
 
   // ------------------------------- Tin nhắn khách hàng (Sale trả lời, Sếp chỉ xem) -------------------------------
   // Thêm 2026-09-27: chat THẬT qua server (server/sale-chat.js) - khách nhắn từ màn chat
