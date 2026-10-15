@@ -33,6 +33,14 @@ const DEMO_ACCOUNTS = {
   '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
   '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
 };
+// Tài khoản THỬ NGHIỆM đồng bộ chỉnh ảnh (thêm 2026-10-15, nhánh feat/edit-sync-demo): khai báo
+// CHỈ bằng biến môi trường EDIT_DEMO_ACCOUNTS (không có mật khẩu trong mã nguồn), dạng JSON:
+//   [{"phone":"0...","role":"tho-anh"|"sep"|"khach-hang","name":"...","salt":"<hex>","hash":"<hex scrypt 64 byte>"}]
+// (salt/hash tạo giống hashPassword bên dưới). Token của các tài khoản này mang scope "edit-demo":
+// requireAuth TỪ CHỐI mọi token có scope trừ khi route cho phép rõ (chỉ API chỉnh ảnh), nên chúng
+// KHÔNG đọc/ghi được chat Sale. Không đặt biến = không có tài khoản nào, mọi thứ như trước.
+const EDIT_DEMO_SCOPE = 'edit-demo';
+const EDIT_DEMO_ROLES = ['tho-anh', 'sep', 'khach-hang'];
 const TOKEN_TTL_MS = 30 * 24 * 3600 * 1000;
 const MAX_TEXT = 2000;
 const MAX_MESSAGES = 500;          // mỗi cuộc trò chuyện giữ tối đa bấy nhiêu tin gần nhất
@@ -92,6 +100,35 @@ function samePassword(a, b) {
   const y = Buffer.from(String(b));
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
+
+// Đọc EDIT_DEMO_ACCOUNTS. Mục sai bị bỏ qua, log chỉ ghi số thứ tự + lý do (không ghi SĐT/salt/hash).
+function parseEditDemoAccounts(raw) {
+  const out = new Map();
+  const text = String(raw || '').trim();
+  if (!text) return out;
+  let list;
+  try { list = JSON.parse(text); } catch (e) {
+    console.error('EDIT_DEMO_ACCOUNTS không phải JSON hợp lệ -> không bật tài khoản thử nghiệm nào.');
+    return out;
+  }
+  if (!Array.isArray(list)) { console.error('EDIT_DEMO_ACCOUNTS phải là mảng JSON -> bỏ qua.'); return out; }
+  list.forEach((a, i) => {
+    const phone = normPhone(a && a.phone);
+    const name = String((a && a.name) || '').trim().slice(0, 80);
+    let why = '';
+    if (!isPhone(phone)) why = 'SĐT không hợp lệ';
+    else if (DEMO_ACCOUNTS[phone]) why = 'trùng tài khoản demo công khai';
+    else if (out.has(phone)) why = 'trùng SĐT';
+    else if (!EDIT_DEMO_ROLES.includes(a.role)) why = 'vai trò không được phép (chỉ ' + EDIT_DEMO_ROLES.join(', ') + ')';
+    else if (!name) why = 'thiếu tên';
+    else if (!/^[0-9a-f]{32}$/i.test(String(a.salt || '')) || !/^[0-9a-f]{128}$/i.test(String(a.hash || ''))) why = 'salt/hash sai định dạng';
+    if (why) return console.error('EDIT_DEMO_ACCOUNTS mục #' + (i + 1) + ' bị bỏ qua: ' + why + '.');
+    out.set(phone, { phone, role: a.role, name, salt: String(a.salt).toLowerCase(), hash: String(a.hash).toLowerCase() });
+  });
+  if (out.size) console.log('Tài khoản thử nghiệm chỉnh ảnh: ' + out.size + ' (chỉ dùng được API chỉnh ảnh, không vào được chat Sale).');
+  return out;
+}
+const EDIT_DEMO_ACCOUNTS = parseEditDemoAccounts(process.env.EDIT_DEMO_ACCOUNTS);
 
 // from: 'khach' | 'sale' | 'he-thong' (tin hệ thống, vd bản tóm tắt hành trình khách gửi kèm
 // khi khách chuyển từ trợ lý AI sang Sale - chỉ Sale/Sếp đọc, trang khách không hiện).
@@ -230,11 +267,22 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
   res.status(503).json({ error: 'store_unavailable' });
 });
 
-function requireAuth(roles) {
+// opts.allowScopes: các scope token được phép dùng route này. Mặc định KHÔNG scope nào -> token
+// tài khoản thử nghiệm (scope "edit-demo") bị chặn ở MỌI route chat Sale. Token không có scope
+// (mọi tài khoản hiện có) đi qua như trước.
+function requireAuth(roles, opts) {
+  const allowScopes = (opts && opts.allowScopes) || [];
   return (req, res, next) => {
     const m = /^Bearer (.+)$/.exec(req.get('authorization') || '');
     const user = m && verifyToken(m[1]);
     if (!user) return res.status(401).json({ error: 'unauthorized' });
+    if (user.scope && !allowScopes.includes(user.scope)) return res.status(403).json({ error: 'forbidden' });
+    // Token tài khoản thử nghiệm: kiểm lại với EDIT_DEMO_ACCOUNTS HIỆN TẠI ở mỗi yêu cầu. Tài khoản đã bị
+    // xoá khỏi biến, hoặc đổi vai trò, thì token cũ (còn hạn 30 ngày) không dùng được nữa -> 401, đăng nhập lại.
+    if (user.scope === EDIT_DEMO_SCOPE) {
+      const acc = EDIT_DEMO_ACCOUNTS.get(user.phone);
+      if (!acc || acc.role !== user.role) return res.status(401).json({ error: 'unauthorized' });
+    }
     if (roles && !roles.includes(user.role)) return res.status(403).json({ error: 'forbidden' });
     req.user = user;
     next();
@@ -269,6 +317,13 @@ router.post('/auth/login', wrap(async (req, res) => {
     return issue(res, { phone, role: demo.role, name: demo.name });
   }
   const user = isPhone(phone) ? await store.getUser(phone) : null;
+  // Tài khoản thử nghiệm chỉnh ảnh: chỉ khi SĐT CHƯA có tài khoản thật (có thì bỏ qua, khách thật
+  // đăng nhập như cũ). Sai mật khẩu -> đi tiếp luồng thường (không có user -> wrong_credentials).
+  const editDemo = EDIT_DEMO_ACCOUNTS.get(phone);
+  if (editDemo && user) console.error('EDIT_DEMO_ACCOUNTS: 1 SĐT trùng tài khoản khách thật -> bỏ qua tài khoản thử nghiệm đó.');
+  if (editDemo && !user && checkPassword(password, editDemo)) {
+    return issue(res, { phone, role: editDemo.role, name: editDemo.name, scope: EDIT_DEMO_SCOPE });
+  }
   if (user && !user.hash && user.googleSub) return res.status(401).json({ error: 'use_google' });
   if (!user || !checkPassword(password, user)) return res.status(401).json({ error: 'wrong_credentials' });
   return issue(res, { phone, role: 'khach-hang', name: user.name });
@@ -318,7 +373,7 @@ router.post('/auth/google/complete', wrap(async (req, res) => {
   if (!isPhone(phone)) return res.status(400).json({ error: 'bad_phone', message: 'Số điện thoại chưa đúng (10-11 số, bắt đầu bằng 0).' });
   const linked = await store.getUserByGoogle(t.sub); // bấm Hoàn tất 2 lần
   if (linked) return issue(res, { phone: linked.phone, role: 'khach-hang', name: linked.name });
-  if (DEMO_ACCOUNTS[phone]) return res.status(409).json({ error: 'phone_taken' });
+  if (DEMO_ACCOUNTS[phone] || EDIT_DEMO_ACCOUNTS.has(phone)) return res.status(409).json({ error: 'phone_taken' });
   const created = await store.createUser({
     phone, name, role: 'khach-hang', provider: 'google', googleSub: t.sub, email: t.email || '', createdAt: Date.now()
   });
@@ -353,7 +408,7 @@ router.post('/auth/register', wrap(async (req, res) => {
   if (!name) return res.status(400).json({ error: 'bad_name', message: 'Vui lòng nhập họ tên.' });
   if (!isPhone(phone)) return res.status(400).json({ error: 'bad_phone', message: 'Số điện thoại chưa đúng (10-11 số, bắt đầu bằng 0).' });
   if (password.length < 6) return res.status(400).json({ error: 'weak_password', message: 'Mật khẩu cần ít nhất 6 ký tự.' });
-  if (DEMO_ACCOUNTS[phone]) return res.status(409).json({ error: 'phone_taken' });
+  if (DEMO_ACCOUNTS[phone] || EDIT_DEMO_ACCOUNTS.has(phone)) return res.status(409).json({ error: 'phone_taken' });
   const created = await store.createUser({ phone, name, ...hashPassword(password), role: 'khach-hang', createdAt: Date.now() });
   if (!created) return res.status(409).json({ error: 'phone_taken' });
   return issue(res, { phone, role: 'khach-hang', name });
@@ -419,4 +474,7 @@ router.post('/inbox/:phone/read', requireAuth(['sale']), wrap(async (req, res) =
 }));
 
 // requireAuth dùng chung cho server/edit-requests.js (cùng token, cùng AUTH_SECRET).
-module.exports = { router, storeKind: store.kind, requireAuth };
+// isPublicDemoPhone: SĐT thuộc tài khoản demo CÔNG KHAI (mật khẩu in trên login.html) - edit-requests.js
+// dùng để chặn Thợ ảnh/Sếp demo công khai khỏi API chỉnh ảnh. Không đổi quyền gì trong chat Sale.
+const isPublicDemoPhone = (phone) => Object.prototype.hasOwnProperty.call(DEMO_ACCOUNTS, String(phone || ''));
+module.exports = { router, storeKind: store.kind, requireAuth, EDIT_DEMO_SCOPE, isPublicDemoPhone };

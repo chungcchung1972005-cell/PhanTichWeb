@@ -202,3 +202,57 @@ Chưa đặt `GOOGLE_CLIENT_ID` thì trang đăng nhập không hiện nút Goog
   nút Google không chạy được, vì Google chỉ cho các domain đã khai báo ở bước 3.
 - Mất tài khoản Google thì chưa có cách tự lấy lại (chưa có "quên mật khẩu"), Sale phải hỗ trợ tay.
 - Facebook: chưa làm (người dùng chọn làm Google trước).
+
+## Demo đồng bộ chỉnh ảnh Thợ ảnh – Sếp trên nhiều máy — thêm 2026-10-15
+
+Yêu cầu chỉnh ảnh của khách / Thợ ảnh / Sếp đi qua server (`server/edit-requests.js`) **chỉ ở
+trình duyệt đã bật**; mọi khách khác vẫn chạy dữ liệu cục bộ như cũ. Dữ liệu demo nằm ở database
+RIÊNG, tài khoản demo RIÊNG, không đụng tới chat Sale.
+
+> Các bước Atlas/Render dưới đây **chưa kiểm chứng trên giao diện thật** và code chỉ chạy trên
+> Render sau khi đã lên nhánh mà Render deploy (thường là `main`).
+
+**1. Atlas (người có quyền quản trị cluster làm):** Database Access → Add New Database User →
+mật khẩu tự sinh (chỉ chữ và số) → *Specific Privileges* → `readWrite` trên database
+`aloha_edit_demo` (KHÔNG chọn "any database", KHÔNG dùng user của chat). Lấy chuỗi kết nối như
+mục chat ở trên nhưng với user mới này. Không cần tạo collection trước.
+
+**2. Tạo tài khoản thử nghiệm** trên máy của người cấu hình: mở terminal trong thư mục `server`,
+gõ `node` (vào chế độ gõ lệnh), dán đoạn dưới (sửa danh sách nếu cần) rồi Enter:
+
+```js
+const c = require('crypto'), out = [];
+for (const [phone, role, name] of [
+  ['09000000101', 'tho-anh', 'Thợ thử nghiệm'],
+  ['09000000102', 'sep', 'Sếp thử nghiệm'],
+  ['09000000103', 'khach-hang', 'Khách thử nghiệm'],
+]) {
+  const pw = c.randomBytes(12).toString('base64url'), salt = c.randomBytes(16).toString('hex');
+  out.push({ phone, role, name, salt, hash: c.scryptSync(pw, salt, 64).toString('hex') });
+  console.log('MAT KHAU ' + phone + ': ' + pw);
+}
+console.log(JSON.stringify(out));
+```
+
+- Chép từng dòng `MAT KHAU` vào trình quản lý mật khẩu, đưa người demo qua kênh riêng.
+- Dòng JSON cuối dán vào biến `EDIT_DEMO_ACCOUNTS` trên Render. Xong gõ `.exit`, đóng terminal.
+- SĐT nên là số 11 chữ số (vd `0900000010x`) để không trùng khách thật; không được trùng tài
+  khoản demo công khai. SĐT đã khai ở đây thì không ai đăng ký thường được nữa.
+- Mật khẩu/hash KHÔNG commit, KHÔNG gửi vào chat. Đổi mật khẩu = tạo lại dòng JSON + Save.
+
+**3. Render → Environment** thêm `EDIT_REQUESTS_MONGODB_URI` (chuỗi ở bước 1) và
+`EDIT_DEMO_ACCOUNTS` (JSON ở bước 2). `EDIT_REQUESTS_DB` / `EDIT_REQUESTS_COLLECTION` để trống.
+**KHÔNG** đặt `EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF`. Giữ nguyên `MONGODB_URI`, `MONGODB_DB`,
+`AUTH_SECRET`, `ALLOWED_ORIGINS`. Save → Render tự khởi động lại.
+
+**4. Kiểm tra:** `https://phantichweb.onrender.com/api/edit-requests/health` phải có
+`"store":"mongodb"`. Log Render có `edit-requests: lưu MongoDB riêng` và `Tài khoản thử nghiệm
+chỉnh ảnh: 3`; không có dòng `KHÔNG hợp lệ` / `bị bỏ qua` / `lỗi kết nối MongoDB`.
+
+**5. Bật trên từng máy demo:** mở `https://ahola-baby.vercel.app/login.html?editSync=1` một lần
+(trình duyệt đó nhớ, đổi trang/đăng nhập vẫn giữ), đăng nhập tài khoản thử nghiệm. Tắt lại:
+mở bất kỳ trang nào với `?editSync=0`. Máy khác không bị ảnh hưởng.
+
+**Quyền:** tài khoản thử nghiệm Thợ ảnh ghi được, Sếp chỉ đọc, khách chỉ thấy yêu cầu của chính
+mình (có 1 buổi chụp GIẢ để chọn ảnh). Thợ ảnh/Sếp demo công khai (`0900000003`/`0900000004`)
+bị server chặn ở API này (báo "không có quyền"). Tài khoản thử nghiệm KHÔNG vào được chat Sale.

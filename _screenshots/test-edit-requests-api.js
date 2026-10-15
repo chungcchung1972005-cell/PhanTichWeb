@@ -25,7 +25,9 @@ async function portBusy() {
 async function startServer() {
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
-    env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '' },
+    env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
+      // Test này dùng Thợ ảnh/Sếp demo công khai -> bật ngoại lệ CHỈ DÀNH CHO TEST (mặc định server chặn họ)
+      EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF: '1' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   server.stdout.on('data', (d) => { serverLog += d; });
@@ -64,9 +66,11 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
 (async () => {
   try {
     if (await portBusy()) throw new Error('Cổng 3001 đang có server khác chạy (có thể là npm start nối MongoDB thật) - tắt nó rồi chạy lại test.');
-    // Router mới không được dùng MongoDB
+    // Từ bước tách kho (nhánh feat/edit-sync-demo): MongoDB chỉ là tuỳ chọn qua biến RIÊNG
+    // EDIT_REQUESTS_MONGODB_URI (kiểm chi tiết ở test-edit-requests-store.js). Router không tự nạp driver,
+    // không đọc MONGODB_URI của chat; server test dưới đây không đặt biến riêng -> phải là kho RAM.
     const src = fs.readFileSync(path.join(ROOT, 'server/edit-requests.js'), 'utf8');
-    check('server/edit-requests.js không nạp thư viện mongodb', !/require\(['"]mongodb['"]\)/.test(src) && !/MongoClient/.test(src));
+    check('server/edit-requests.js không tự nạp mongodb, không đọc MONGODB_URI của chat', !/require\(['"]mongodb['"]\)/.test(src) && !/MongoClient/.test(src) && !/(^|[^_A-Z])MONGODB_URI/.test(src.replace(/\/\/.*$/gm, '')));
     await startServer();
 
     const [hs, health] = await call('/health');
