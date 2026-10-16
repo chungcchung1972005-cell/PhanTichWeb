@@ -439,13 +439,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // phải khai báo lại danh sách số ở 2 nơi rồi lệch nhau.
   const kpiGrid = document.querySelector('#kpi .kpi-grid');
   if (kpiGrid) {
-    if (saleDb && Array.isArray(saleDb.customers)) {
+    if (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length) {
       const qCards = [
-        { sel: '.kpi-quan-tam', val: countMoi },
-        { sel: '.kpi-tu-van', val: countTuVan },
-        { sel: '.kpi-dat-lich', val: countDatLich },
-        { sel: '.kpi-da-chup', val: countDaChup },
-        { sel: '.kpi-hoan-thanh', val: countHoanThanh }
+        { sel: '.kpi-quan-tam', val: funnelCounts[0] },
+        { sel: '.kpi-tu-van', val: funnelCounts[1] },
+        { sel: '.kpi-dat-lich', val: funnelCounts[2] },
+        { sel: '.kpi-da-chup', val: funnelCounts[3] },
+        { sel: '.kpi-hoan-thanh', val: funnelCounts[4] }
       ];
       qCards.forEach(c => {
         const num = kpiGrid.querySelector(c.sel + ' .num');
@@ -940,6 +940,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'Đã hủy': 'badge-huy'
     };
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const dayKey = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
 
     // Quy đổi độ lệch ngày thành ngày thật rồi gom theo ngày, mỗi ngày sắp xếp
@@ -2197,16 +2199,466 @@ document.addEventListener('DOMContentLoaded', () => {
     let filterChannel = '';
     let searchQuery = '';
 
-    // Khởi tạo danh sách cuộc hội thoại ban đầu từ saleDb.conversations (tất cả các Sale)
+  const DEMO_INBOX_CUSTOMERS = [
+  {
+    "id": "na-trang",
+    "name": "Chị Thu Trang",
+    "phone": "0912456456",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "na-duc",
+    "name": "Anh Minh Đức",
+    "phone": "0983222731",
+    "service": "Sinh nhật",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "na-linh",
+    "name": "Chị Hà Linh",
+    "phone": "0987654321",
+    "service": "Newborn",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "na-nhung",
+    "name": "Chị Hồng Nhung",
+    "phone": "0978111222",
+    "service": "Tại nhà",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "na-quang",
+    "name": "Anh Quang",
+    "phone": "0904333444",
+    "service": "Gia đình",
+    "area": "Hà Đông, Hà Nội"
+  },
+  {
+    "id": "na-ngan",
+    "name": "Chị Ngân",
+    "phone": "0971234555",
+    "service": "Bầu",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "na-phuong",
+    "name": "Chị Phương",
+    "phone": "0918765432",
+    "service": "Newborn",
+    "area": "Hai Bà Trưng, Hà Nội"
+  },
+  {
+    "id": "mt-dieulinh",
+    "name": "Chị Diệu Linh",
+    "phone": "0913555666",
+    "service": "Newborn",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "mt-nam",
+    "name": "Anh Hoàng Nam",
+    "phone": "0902111333",
+    "service": "Gia đình",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "mt-dung",
+    "name": "Chị Thùy Dung",
+    "phone": "0976444888",
+    "service": "Sinh nhật",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "th-phuongthao",
+    "name": "Chị Phương Thảo",
+    "phone": "0917333222",
+    "service": "Bé lớn",
+    "area": "Tây Hồ, Hà Nội"
+  },
+  {
+    "id": "th-hang",
+    "name": "Chị Minh Hằng",
+    "phone": "0935666111",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "th-khanhvy",
+    "name": "Chị Khánh Vy",
+    "phone": "0977888123",
+    "service": "Bé lớn",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "qb-baongoc",
+    "name": "Chị Bảo Ngọc",
+    "phone": "0938777666",
+    "service": "Tại nhà",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "qb-quyen",
+    "name": "Chị Lệ Quyên",
+    "phone": "0968555222",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "hy-quynh",
+    "name": "Chị Như Quỳnh",
+    "phone": "0919444111",
+    "service": "Sinh nhật",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "hy-huong",
+    "name": "Chị Thanh Hương",
+    "phone": "0932888555",
+    "service": "Newborn",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "hy-hongvan",
+    "name": "Chị Hồng Vân",
+    "phone": "0988222444",
+    "service": "Sinh nhật",
+    "area": "Thanh Xuân, Hà Nội"
+  }
+];
+
+  const DEMO_INBOX_CONVERSATIONS = [
+  {
+    "id": "cv-na1",
+    "owner": "ngoc-anh",
+    "customerId": "na-trang",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 phút",
+    "unread": true,
+    "online": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 15/10/2026 · SĐT: 0912 *** 456 · Quan tâm: concept nhẹ nhàng, chụp tại studio",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cho em hỏi gói newborn bao nhiêu ạ, bé nhà em dự sinh 15/10",
+        "time": "09:41"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ ALOHA Baby chào chị Trang ạ! Bé dự sinh 15/10 thì thời điểm đẹp nhất để chụp newborn là khi bé được 7–14 ngày tuổi. Em gửi chị bảng giá và vài concept nhẹ nhàng nhé.",
+        "time": "09:43"
+      },
+      {
+        "from": "kh",
+        "text": "Studio có khung nào cuối tháng 10 không em, chị muốn đặt trước",
+        "time": "09:44"
+      }
+    ]
+  },
+  {
+    "id": "cv-na2",
+    "owner": "ngoc-anh",
+    "customerId": "na-duc",
+    "channel": "Chat trực tiếp",
+    "time": "12 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "sale",
+        "text": "Dạ em đã gửi link cọc qua Zalo cho anh rồi ạ, lịch giữ tới 14:30 hôm nay.",
+        "time": "10:05"
+      },
+      {
+        "from": "kh",
+        "text": "Ok em, tối anh chuyển cọc nhé",
+        "time": "10:18"
+      }
+    ]
+  },
+  {
+    "id": "cv-na3",
+    "owner": "ngoc-anh",
+    "customerId": "na-linh",
+    "channel": "Chat trực tiếp",
+    "time": "25 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "[Ảnh] Em gửi bill chuyển khoản",
+        "time": "09:13"
+      }
+    ]
+  },
+  {
+    "id": "cv-na4",
+    "owner": "ngoc-anh",
+    "customerId": "na-ngan",
+    "channel": "Chat trực tiếp",
+    "time": "1 giờ",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Mai chị mang thêm váy được không em?",
+        "time": "09:30"
+      }
+    ]
+  },
+  {
+    "id": "cv-na5",
+    "owner": "ngoc-anh",
+    "customerId": "na-nhung",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Chụp tại nhà · Khu vực: Long Biên · Chưa để lại ngày mong muốn",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Studio có chụp tại nhà ở Long Biên không em?",
+        "time": "08:31"
+      }
+    ]
+  },
+  {
+    "id": "cv-na6",
+    "owner": "ngoc-anh",
+    "customerId": "na-quang",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "3 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Gia đình · 4 người · Chưa chọn concept",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Gói gia đình 4 người giá thế nào",
+        "time": "07:40"
+      }
+    ]
+  },
+  {
+    "id": "cv-na7",
+    "owner": "ngoc-anh",
+    "customerId": "na-phuong",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "unread": true,
+    "messages": [
+      {
+        "from": "sale",
+        "text": "Chị ơi bộ ảnh của bé đã lên \"Ảnh của tôi\", chị chọn giúp em 15 ảnh nhé.",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "kh",
+        "text": "Chị bận quá, cuối tuần chị chọn ảnh",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt1",
+    "owner": "minh-thu",
+    "customerId": "mt-dieulinh",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "40 phút",
+    "unread": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 20/10/2026 · Quan tâm: concept tông trắng",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em muốn đặt trước lịch chụp newborn cho bé ạ",
+        "time": "09:50"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt2",
+    "owner": "minh-thu",
+    "customerId": "mt-nam",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Nhà anh có ông bà nữa, tổng 5 người được không em?",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ được ạ, chiều nay em gọi lại tư vấn anh nhé.",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt3",
+    "owner": "minh-thu",
+    "customerId": "mt-dung",
+    "channel": "Chat trực tiếp",
+    "time": "55 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em ơi chị mở link rồi, chiều chị chuyển nhé",
+        "time": "09:36"
+      }
+    ]
+  },
+  {
+    "id": "cv-th1",
+    "owner": "thu-ha",
+    "customerId": "th-phuongthao",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "1 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Bé lớn · Bé 3 tuổi · Quan tâm: concept Hàn Quốc",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Bé 3 tuổi chụp concept Hàn Quốc được không ạ",
+        "time": "09:25"
+      }
+    ]
+  },
+  {
+    "id": "cv-th2",
+    "owner": "thu-ha",
+    "customerId": "th-hang",
+    "channel": "Chat trực tiếp",
+    "time": "30 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em gửi chị xem thêm concept newborn nhé",
+        "time": "10:00"
+      }
+    ]
+  },
+  {
+    "id": "cv-th3",
+    "owner": "thu-ha",
+    "customerId": "th-khanhvy",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "done": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cảm ơn em, hôm nay bé chụp vui lắm",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ em cảm ơn chị, ảnh sẽ lên \"Ảnh của tôi\" trong vài ngày tới ạ.",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-qb1",
+    "owner": "quoc-bao",
+    "customerId": "qb-baongoc",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "20 phút",
+    "unread": true,
+    "botSummary": "Dịch vụ: Chụp tại nhà · Khu vực: Long Biên · Muốn chụp cuối tuần",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cuối tuần sau studio còn lịch chụp tại nhà không ạ?",
+        "time": "10:10"
+      }
+    ]
+  },
+  {
+    "id": "cv-qb2",
+    "owner": "quoc-bao",
+    "customerId": "qb-quyen",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Để chị cân nhắc thêm với chồng nhé em",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy1",
+    "owner": "hai-yen",
+    "customerId": "hy-quynh",
+    "channel": "Chat trực tiếp",
+    "time": "1 giờ",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Sinh nhật bé 2 tuổi có concept nào xinh không em?",
+        "time": "09:28"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy2",
+    "owner": "hai-yen",
+    "customerId": "hy-huong",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 08/10/2026 · Hẹn gọi lại 11:00",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "11h em gọi lại chị nhé, giờ chị đang bận",
+        "time": "08:40"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy3",
+    "owner": "hai-yen",
+    "customerId": "hy-hongvan",
+    "channel": "Chat trực tiếp",
+    "time": "3 giờ",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Chiều nay chị qua chụp cho bé Gạo nhé em",
+        "time": "07:30"
+      }
+    ]
+  }
+];
+
+    // Khởi tạo danh sách cuộc hội thoại ban đầu từ saleDb.conversations (hoặc fallback demo khi dữ liệu nền trống)
     function buildLocalChats() {
-      if (!saleDb || !Array.isArray(saleDb.conversations)) return [];
+      const convSource = (saleDb && Array.isArray(saleDb.conversations) && saleDb.conversations.length)
+        ? saleDb.conversations
+        : DEMO_INBOX_CONVERSATIONS;
+      const custSource = (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length)
+        ? saleDb.customers
+        : DEMO_INBOX_CUSTOMERS;
+
       const custMap = new Map();
-      (saleDb.customers || []).forEach(c => {
+      (custSource || []).forEach(c => {
         if (c.id) custMap.set(c.id, c);
         if (c.phone) custMap.set(c.phone, c);
       });
 
-      return saleDb.conversations.map((cv, idx) => {
+      return convSource.map((cv, idx) => {
         const cust = custMap.get(cv.customerId) || {};
         const phone = cust.phone || ('0900' + String(idx).padStart(6, '0'));
         const saleName = SALE_NAMES[cv.owner] || cv.owner || 'Sale';
@@ -2384,7 +2836,8 @@ document.addEventListener('DOMContentLoaded', () => {
       lastThreadKey = key;
 
       const saleLabel = chat.saleName || SALE_NAMES[chat.owner] || 'Sale';
-      const cObj = (saleDb && saleDb.customers) ? saleDb.customers.find(x => x.phone === chat.phone || x.id === chat.customerId) : null;
+      const custPool = (saleDb && saleDb.customers && saleDb.customers.length) ? saleDb.customers : DEMO_INBOX_CUSTOMERS;
+      const cObj = custPool.find(x => x.phone === chat.phone || x.id === chat.customerId) || null;
       const area = cObj ? cObj.area : (chat.customerArea || '');
       const service = (cObj && cObj.service) || chat.service || '';
 
