@@ -59,11 +59,11 @@
               <path d="M6 9l6 6 6-6" />
             </svg></a>
           <ul class="dropdown">
-            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-            <li><a href="#dich-vu">Chụp ảnh Newborn</a></li>
+            <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
+            <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
+            <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
+            <li><a href="#/album/newborn">Chụp ảnh Newborn</a></li>
           </ul>
         </li>
         <li><a href="#" id="navPricing" title="Mở khung chat tư vấn giá">Báo giá</a></li>
@@ -1130,11 +1130,11 @@
         <div class="footer-col">
           <h5>Dịch vụ</h5>
           <ul>
-            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-            <li><a href="#dich-vu">Chụp ảnh newborn</a></li>
+            <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
+            <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
+            <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
+            <li><a href="#/album/newborn">Chụp ảnh newborn</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -1210,7 +1210,7 @@
      Gemini API thật — xem .claude/rules/workflow.md và server/server.js.
      2026-09-28: tự mở ở trang chủ (máy tính), lời chào đổi theo dịch vụ đang xem; bấm
      "Nhắn Sale" thì chat tiếp với Sale ngay trong khung này (js/sale-chat.js embed). -->
-  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
+  <div class="chat-panel open" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
     <!-- Đầu khung gọn 1 hàng (29/09): logo chữ + dòng trạng thái | Nhắn Sale, gọi, đóng. Thanh "Nhắn Sale /
        Gọi" dưới thân khung đã bỏ để phần tin nhắn rộng hơn. -->
     <div class="chat-header">
@@ -1248,6 +1248,7 @@
     </div>
     <div class="chat-body" id="chatBody"></div>
     <div class="sc-status" id="chatSaleStatus" role="status" hidden></div>
+    <!-- Ô nhập tin nhắn: ẩn ở chatbot tự động (theo kịch bản nút bấm), chỉ hiện khi chat trực tiếp với Sale -->
     <form class="chat-input-row" id="chatInputForm">
       <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
       <button type="submit" class="chat-send" aria-label="Gửi">
