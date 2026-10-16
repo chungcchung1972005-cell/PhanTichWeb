@@ -28,7 +28,10 @@
   const db = JSON.parse(JSON.stringify(SRC));
   const CFG = db.config;
   const session = window.AlohaAuth.getSession() || {};
-  const me = db.sales.find(s => s.phone === session.phone) || db.sales[0];
+  const isSep = session.role === 'sep';
+  const me = isSep
+    ? { id: 'sep', name: session.name || 'Sếp demo', phone: session.phone || '0900000004', target: 870, achieved: 581 }
+    : (db.sales.find(s => s.phone === session.phone) || db.sales[0]);
 
   // Đồng hồ: dùng ngày giờ thật của máy. "Hôm nay" tự đổi khi qua nửa đêm (xem tick()).
   const demoNow = () => new Date();
@@ -201,17 +204,17 @@
   }
 
   // ---------- Truy vấn theo quyền ----------
-  const mine = (arr) => arr.filter(x => x.owner === me.id);
+  const mine = (arr) => isSep ? arr : arr.filter(x => x.owner === me.id);
   const myCustomers = () => mine(db.customers);
   const myLeads = () => myCustomers().filter(c => c.stage);
   const myConversations = () => mine(db.conversations);
   const myDeposits = () => mine(db.deposits);
   const myOrders = () => mine(db.orders);
   const customer = (id) => db.customers.find(c => c.id === id);
-  const myCustomer = (id) => { const c = customer(id); return c && c.owner === me.id ? c : null; };
+  const myCustomer = (id) => { const c = customer(id); return c && (isSep || c.owner === me.id) ? c : null; };
   // Bộ lọc "Sale phụ trách" (ui.owner: 'all' hoặc id sale) cho 5 trang xem chung.
   const scoped = (arr) => ui.owner === 'all' ? arr : arr.filter(x => x.owner === ui.owner);
-  const isMine = (x) => !!x && x.owner === me.id;
+  const isMine = (x) => !!x && (isSep || x.owner === me.id);
   const stageLabel = (id) => (STAGES.find(s => s.id === boardStage(id)) || { label: 'Khách cũ' }).label;
   const convOf = (customerId) => myConversations().find(v => v.customerId === customerId);
   const appointmentOf = (dep) => db.appointments.find(a => a.id === dep.appointmentId);
@@ -352,8 +355,17 @@
       '<strong>' + me.achieved + ' / ' + me.target + ' triệu</strong>' +
       '<span class="sw-goal-bar"><i style="width:' + pct + '%"></i></span>' +
       '<small>Còn ' + Math.round((parseKey(endOfMonth(TODAY)) - parseKey(TODAY)) / 864e5) + ' ngày · cần thêm ' + Math.max(0, me.target - me.achieved) + ' triệu</small>';
-    document.getElementById('swMeName').textContent = me.name;
-    document.getElementById('swMeAvatar').textContent = initials(me.name);
+    if (isSep) {
+      document.getElementById('swMeName').textContent = me.name;
+      document.getElementById('swMeAvatar').textContent = 'S';
+      const roleSub = document.querySelector('.sw-me-text small');
+      if (roleSub) roleSub.textContent = 'Ban Quản lý · Toàn studio';
+      const backBtn = document.getElementById('swBackAdmin');
+      if (backBtn) backBtn.style.display = 'inline-flex';
+    } else {
+      document.getElementById('swMeName').textContent = me.name;
+      document.getElementById('swMeAvatar').textContent = initials(me.name);
+    }
     document.querySelectorAll('#swBottom a').forEach(a => a.classList.toggle('active', a.dataset.route === route));
     document.getElementById('swBellDot').hidden = buildTasks().length === 0;
   }

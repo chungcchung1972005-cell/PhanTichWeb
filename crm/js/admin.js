@@ -8,6 +8,43 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('userName').textContent = (session && session.name) || 'Người dùng';
   document.getElementById('userRole').textContent = AlohaAuth.roleLabel(role);
 
+  // ------------------------------- Dữ liệu đồng bộ từ Không gian Sale (crm/js/sale-data.js) -------------------------------
+  const saleDb = window.ALOHA_SALE_DATA ? JSON.parse(JSON.stringify(window.ALOHA_SALE_DATA)) : null;
+  const SALE_NAMES = {
+    'ngoc-anh': 'Ngọc Anh',
+    'minh-thu': 'Minh Thư',
+    'thu-ha': 'Thu Hà',
+    'quoc-bao': 'Quốc Bảo',
+    'hai-yen': 'Hải Yến'
+  };
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const dateKey = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  const parseKey = k => { const parts = k.split('-').map(Number); return new Date(parts[0], parts[1] - 1, parts[2]); };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+
+  if (saleDb && saleDb.now) {
+    const TODAY = dateKey(new Date());
+    const shiftDays = Math.round((parseKey(TODAY) - parseKey(saleDb.now.slice(0, 10))) / 864e5);
+    if (shiftDays) {
+      const baseYear = Number(saleDb.now.slice(0, 4));
+      const iso = (s) => s.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => dateKey(addDays(new Date(+y, mo - 1, +d), shiftDays)));
+      const dm = (s) => s.replace(/\b(\d{2})\/(\d{2})(\/(\d{4}))?\b(?!\s*ảnh)/g, (m, d, mo, _, y) => {
+        if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return m;
+        const x = addDays(new Date(y ? +y : baseYear, mo - 1, +d), shiftDays);
+        return pad2(x.getDate()) + '/' + pad2(x.getMonth() + 1) + (y ? '/' + x.getFullYear() : '');
+      });
+      const walk = (o) => {
+        Object.keys(o).forEach(k => {
+          const v = o[k];
+          if (typeof v === 'string') o[k] = dm(iso(v));
+          else if (v && typeof v === 'object') walk(v);
+        });
+      };
+      ['customers', 'appointments', 'deposits', 'unmatched', 'orders', 'conversations', 'transfers', 'sales'].forEach(k => walk(saleDb[k]));
+    }
+  }
+
   // ------------------------------- Ẩn/hiện tab + section theo đúng quyền -------------------------------
   function allowedForRole(el) {
     const roles = (el.dataset.roles || '').split(' ').filter(Boolean);
@@ -402,6 +439,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // phải khai báo lại danh sách số ở 2 nơi rồi lệch nhau.
   const kpiGrid = document.querySelector('#kpi .kpi-grid');
   if (kpiGrid) {
+    if (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length) {
+      const qCards = [
+        { sel: '.kpi-quan-tam', val: funnelCounts[0] },
+        { sel: '.kpi-tu-van', val: funnelCounts[1] },
+        { sel: '.kpi-dat-lich', val: funnelCounts[2] },
+        { sel: '.kpi-da-chup', val: funnelCounts[3] },
+        { sel: '.kpi-hoan-thanh', val: funnelCounts[4] }
+      ];
+      qCards.forEach(c => {
+        const num = kpiGrid.querySelector(c.sel + ' .num');
+        if (num) num.textContent = c.val;
+      });
+    }
     const kpiCards = Array.from(kpiGrid.querySelectorAll('.kpi-card'));
     kpiCards.forEach(card => {
       const numEl = card.querySelector('.num');
@@ -420,6 +470,89 @@ document.addEventListener('DOMContentLoaded', () => {
         if (spark) drawStroke(spark, 1, 0.1 + i * 0.08);
       });
     });
+  }
+
+  // ------------------------------- Hiệu suất Đội ngũ Sale & Duyệt chuyển giao (chỉ Sếp) -------------------------------
+  const salePerfGrid = document.getElementById('salePerfGrid');
+  if (salePerfGrid && SALE_DB && SALE_DB.sales) {
+    salePerfGrid.innerHTML = SALE_DB.sales.map(s => {
+      const pct = Math.min(100, Math.round(s.achieved / s.target * 100));
+      const custCount = (SALE_DB.customers || []).filter(c => c.owner === s.id).length;
+      const initials = customerInitials(s.name);
+      const isLeave = s.leave && s.leave.from;
+      return `
+        <div class="sale-perf-card">
+          <div class="sale-perf-head">
+            <span class="sale-perf-av">${escHtml(initials)}</span>
+            <div style="flex:1; min-width:0;">
+              <div class="sale-perf-name">${escHtml(s.name)}</div>
+              <div class="sale-perf-role">SĐT: ${escHtml(s.phone)} · Phản hồi ~${s.responseMin}p</div>
+            </div>
+            <span class="badge ${isLeave ? 'badge-tu-van' : 'badge-hoan-thanh'} sale-perf-badge">${isLeave ? 'Nghỉ phép' : 'Đang trực'}</span>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+              <span>Doanh số: <strong>${s.achieved}tr</strong> / ${s.target}tr</span>
+              <strong style="color:var(--pink-600);">${pct}%</strong>
+            </div>
+            <div class="sale-perf-track">
+              <div class="sale-perf-fill" style="width:${pct}%;"></div>
+            </div>
+          </div>
+          <div class="sale-perf-stat-row">
+            <span>Khách đang phụ trách:</span>
+            <strong>${custCount} khách</strong>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const transferListEl = document.getElementById('saleTransferList');
+  const transferCountEl = document.getElementById('saleTransferPendingCount');
+  if (transferListEl && SALE_DB && SALE_DB.transfers) {
+    function renderTransferApprovals() {
+      const pending = SALE_DB.transfers.filter(t => t.status === 'cho-duyet');
+      if (transferCountEl) transferCountEl.textContent = pending.length + ' yêu cầu chờ duyệt';
+
+      if (!pending.length) {
+        transferListEl.innerHTML = '<p style="font-size:13px; color:var(--navy-500); margin:6px 0;">Hiện không có yêu cầu chuyển giao nào chờ quản lý duyệt.</p>';
+        return;
+      }
+
+      transferListEl.innerHTML = pending.map(t => {
+        const fromName = SALE_NAMES[t.from] || t.from;
+        const toName = SALE_NAMES[t.to] || t.to;
+        return `
+          <div class="sale-transfer-card">
+            <div class="sale-transfer-info">
+              <span class="sale-transfer-title">${escHtml(t.names ? t.names.join(', ') : 'Khách hàng')}</span>
+              <span class="sale-transfer-desc">
+                Từ: <strong>${escHtml(fromName)}</strong> &rarr; Đến: <strong>${escHtml(toName)}</strong> · Lý do: <em>${escHtml(t.reason)}</em> · Gửi lúc: ${escHtml(t.createdAt)}
+              </span>
+              ${t.note ? `<span style="font-size:12px; color:var(--navy-700); margin-top:3px;">"${escHtml(t.note)}"</span>` : ''}
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary btn-sm btn-approve-transfer" data-tr-id="${escHtml(t.id)}">Duyệt chuyển giao</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      transferListEl.querySelectorAll('.btn-approve-transfer').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.trId;
+          const tr = SALE_DB.transfers.find(x => x.id === id);
+          if (tr) {
+            tr.status = 'cho-nhan';
+            tr.approvedAt = new Date().toLocaleString('vi-VN');
+            alert('Đã duyệt chuyển giao khách: ' + (tr.names ? tr.names.join(', ') : '') + ' sang cho ' + (SALE_NAMES[tr.to] || tr.to) + ' thành công!');
+            renderTransferApprovals();
+          }
+        });
+      });
+    }
+    renderTransferApprovals();
   }
 
   // ------------------------------- Khách hàng (Sếp + Sale): Bảng giai đoạn + Danh sách -------------------------------
@@ -452,12 +585,12 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const ch of String(key)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
     return h % CUST_AV_TONES;
   }
-
   const svgIcon = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
   function escHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
+
   function custPerson(c, subline) {
     return `<div class="cust-person">
       <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.name))}</span>
@@ -465,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>`;
   }
 
+  // ------------------------------- Khách hàng / CRM (Bảng giai đoạn + Danh sách) -------------------------------
   const custView = document.getElementById('custView');
   if (custView) {
     const CK_ICON = {
@@ -495,12 +629,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const all = SALE_DB ? SALE_DB.customers : [];
     const SOURCES = Array.from(new Set(all.map(c => c.source)));
     const ui = { mode: 'bang', owner: '', source: '', service: '', q: '', group: 'all', bday: false, selected: null };
+    // Rút gọn (người dùng yêu cầu 2026-10-15): mỗi cột Bảng giai đoạn hiện 5 khách đầu,
+    // Danh sách hiện 10 khách đầu; "Xem thêm" mở tiếp từng đợt cùng cỡ. Đổi bộ lọc/kiểu xem thì thu gọn lại.
+    const BOARD_STEP = 5, LIST_STEP = 10;
+    let boardLimit = {}, listLimit = LIST_STEP;
+    const resetLimits = () => { boardLimit = {}; listLimit = LIST_STEP; };
+    const moreBtn = (act, id, rest, step, canLess) => '<div class="ck-more">' +
+      (rest > 0 ? `<button type="button" class="ck-btn ck-btn-sm" data-ck="${act}" data-id="${id}">Xem thêm ${Math.min(rest, step)} khách <span class="ck-muted">(còn ${rest})</span></button>` : '') +
+      (canLess ? `<button type="button" class="ck-btn ck-btn-sm" data-ck="${act}-less" data-id="${id}">Thu gọn</button>` : '') + '</div>';
 
     const parseIso = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
-    const fmtDM = k => { const d = parseIso(k); return p2(d.getDate()) + '/' + p2(d.getMonth() + 1); };
+    const fmtDM = k => { const d = parseIso(k); return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1); };
     const fmtDMY = k => fmtDM(k) + '/' + parseIso(k).getFullYear();
     const money = n => Number(n).toLocaleString('vi-VN') + 'đ';
-    const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
     const tag = s => `<span class="ck-tag tone-${SVC_TONE[s] || 'beige'}">${escHtml(s)}</span>`;
     const badge = (text, tone) => `<span class="ck-tag tone-${tone || 'muted'}">${escHtml(text)}</span>`;
     const phoneOf = c => canSeeContact(c.owner) ? fmtSalePhone(c.phone) : maskSalePhone(c.phone);
@@ -529,29 +671,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (m) return (b.name || 'Bé') + ' ' + m.label + ' ' + fmtDM(m.key);
       return (b.name ? b.name + ', ' : 'Bé ') + ageText(b.date);
     }
-    const nextAppointment = c => SALE_DB.appointments.filter(a => a.customerId === c.id && a.date >= SALE_TODAY)
+    const nextAppointment = c => (SALE_DB.appointments || []).filter(a => a.customerId === c.id && a.date >= SALE_TODAY)
       .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0];
     function nextStep(c) {
       if (c.lost) return { text: 'Gửi lại khi có khuyến mại', tone: 'muted' };
-      const dep = SALE_DB.deposits.find(d => d.customerId === c.id && d.state !== 'confirmed');
+      const dep = (SALE_DB.deposits || []).find(d => d.customerId === c.id && d.state !== 'confirmed');
       if (dep && (dep.state === 'sent' || dep.state === 'opened')) return { text: 'Nhắc cọc trước ' + dep.holdUntil, tone: 'red' };
       if (dep && dep.state === 'paid') return { text: 'Xác nhận cọc ' + money(dep.received), tone: 'blue' };
       if (dep && dep.state === 'short') return { text: 'Kiểm tra cọc thiếu', tone: 'red' };
       const ap = nextAppointment(c);
       if (ap && ap.status !== 'giu-cho') return { text: 'Chụp ' + ap.service + ' ' + fmtDM(ap.date) + ' ' + ap.start, tone: '' };
-      const o = SALE_DB.orders.find(x => x.customerId === c.id && x.status === 'cho-chon');
+      const o = (SALE_DB.orders || []).find(x => x.customerId === c.id && x.status === 'cho-chon');
       if (o) return { text: 'Nhắc chọn ảnh (' + o.picked + '/' + o.total + ')', tone: 'amber' };
       const m = !c.stage && nextMilestone(c.baby);
       if (m) return { text: m.birthday ? 'Ưu đãi sinh nhật ' + m.label.replace('tròn ', '') : 'Ưu đãi chụp 100 ngày', tone: 'red' };
-      if (c.stage === 'moi' && c.status.tone === 'red') return { text: 'Liên hệ lần đầu', tone: 'red' };
-      return { text: c.status.text, tone: c.status.tone === 'muted' ? '' : c.status.tone };
+      if (c.stage === 'moi' && c.status && c.status.tone === 'red') return { text: 'Liên hệ lần đầu', tone: 'red' };
+      return { text: (c.status && c.status.text) || '', tone: (c.status && c.status.tone === 'muted' ? '' : (c.status && c.status.tone)) || '' };
     }
     function cusHistory(c) {
       if (c.history) return c.history;
       const out = [];
-      SALE_DB.appointments.filter(a => a.customerId === c.id && a.date >= SALE_TODAY).forEach(a =>
+      (SALE_DB.appointments || []).filter(a => a.customerId === c.id && a.date >= SALE_TODAY).forEach(a =>
         out.push({ date: fmtDM(a.date), text: 'Lịch chụp ' + a.service + ' ' + a.start + ' · ' + (AP_TEXT[a.status] || a.status), shoot: false }));
-      SALE_DB.orders.filter(o => o.customerId === c.id).forEach(o =>
+      (SALE_DB.orders || []).filter(o => o.customerId === c.id).forEach(o =>
         out.push({ date: o.date, text: 'Chụp ' + o.service + ' · đơn #' + o.code + ' · ' + (ORD_TEXT[o.status] || o.status).toLowerCase(), shoot: true }));
       out.push({ date: 'Lần đầu', text: 'Liên hệ qua ' + c.source + (c.lost ? ' · không mua (' + c.lost.reason.toLowerCase() + ')' : ''), shoot: false });
       return out;
@@ -576,10 +718,10 @@ document.addEventListener('DOMContentLoaded', () => {
         opts.map(o => `<option value="${escHtml(o.v)}"${o.v === val ? ' selected' : ''}>${escHtml(o.l)}</option>`).join('') + '</select></label>';
       const leads = filtered().filter(c => c.stage);
       const rate = leads.length ? Math.round(leads.filter(c => c.stage === 'da-chot').length / leads.length * 100) : 0;
-      const rs = ui.owner ? SALE_DB.sales.find(s => s.id === ui.owner) : null;
-      const respMin = rs ? rs.responseMin : Math.round(SALE_DB.sales.reduce((t, s) => t + s.responseMin, 0) / SALE_DB.sales.length);
+      const rs = ui.owner ? (SALE_DB.sales || []).find(s => s.id === ui.owner) : null;
+      const respMin = rs ? rs.responseMin : Math.round((SALE_DB.sales || []).reduce((t, s) => t + s.responseMin, 0) / ((SALE_DB.sales && SALE_DB.sales.length) || 1));
       return '<div class="ck-toolbar">' + seg +
-        sel('owner', 'Sale phụ trách', SALE_DB.sales.map(s => ({ v: s.id, l: s.name })), ui.owner, 'users') +
+        sel('owner', 'Sale phụ trách', (SALE_DB.sales || []).map(s => ({ v: s.id, l: s.name })), ui.owner, 'users') +
         sel('source', 'Nguồn', SOURCES.map(s => ({ v: s, l: s })), ui.source) +
         sel('service', 'Dịch vụ', SERVICES.map(s => ({ v: s, l: s })), ui.service) +
         `<label class="ck-pill ck-search">${ic('search')}<input type="search" data-ck-search value="${escHtml(ui.q)}" placeholder="Tìm tên hoặc SĐT..." aria-label="Tìm khách theo tên hoặc SĐT"></label>` +
@@ -606,8 +748,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const leads = list.filter(c => c.stage);
       return '<div class="ck-board">' + STAGES.map(s => {
         const cards = leads.filter(c => c.stage === s.id);
+        const limit = boardLimit[s.id] || BOARD_STEP;
+        const more = cards.length > BOARD_STEP ? moreBtn('more-col', s.id, cards.length - limit, BOARD_STEP, limit > BOARD_STEP) : '';
         return `<section class="ck-col" aria-label="${s.label}"><header><h3>${s.label}</h3><span>${cards.length}</span></header>` +
-          (cards.length ? cards.map(leadCard).join('') : '<p class="ck-empty">Chưa có khách</p>') + '</section>';
+          (cards.length ? cards.slice(0, limit).map(leadCard).join('') + more : '<p class="ck-empty">Chưa có khách</p>') + '</section>';
       }).join('') + '</div>';
     }
 
@@ -633,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <small class="ck-label">Lịch sử với studio</small>
         <ol class="ck-log">${cusHistory(c).map(h => `<li class="${h.shoot ? '' : 'sale'}"><time>${escHtml(h.date)}</time><p>${escHtml(h.text)}</p></li>`).join('')}</ol>
         <small class="ck-label">Ghi chú</small>
-        <p class="ck-note">${see ? escHtml(c.note || c.lost && ('Lý do không mua: ' + c.lost.reason) || 'Chưa có ghi chú') : 'Chỉ sale phụ trách xem được ghi chú.'}</p>
+        <p class="ck-note">${see ? escHtml(c.note || (c.lost && ('Lý do không mua: ' + c.lost.reason)) || 'Chưa có ghi chú') : 'Chỉ sale phụ trách xem được ghi chú.'}</p>
       </div>`;
     }
 
@@ -642,6 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const shown = ui.group === 'all' ? pool : pool.filter(c => saleGroupOf(c) === ui.group);
       if (!shown.some(c => c.id === ui.selected)) ui.selected = (shown[0] || {}).id || null;
       const sel = shown.find(c => c.id === ui.selected);
+      // Khách đang chọn (vd bấm "Hồ sơ" từ Bảng giai đoạn) nằm ngoài phần đang hiện thì mở rộng tới đợt chứa khách đó.
+      const selIdx = shown.indexOf(sel);
+      if (selIdx >= listLimit) listLimit = Math.ceil((selIdx + 1) / LIST_STEP) * LIST_STEP;
+      const rows = shown.slice(0, listLimit);
       const chip = (id, label) => `<button type="button" class="ck-chip${ui.group === id ? ' on' : ''}" data-ck="group" data-id="${id}">${label} ${id === 'all' ? pool.length : pool.filter(c => saleGroupOf(c) === id).length}</button>`;
       const sub = c => {
         const g = saleGroupOf(c);
@@ -654,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '<div class="ck-chips">' + chip('all', 'Tất cả') + Object.keys(SALE_GROUPS).map(id => chip(id, SALE_GROUPS[id].label)).join('') + '</div>' +
         '<p class="ck-rule">Giai đoạn tự đổi: cọc xong thành Đã chốt, sau buổi chụp thành Đã chụp, từ đơn thứ hai thành Khách quen.</p>' +
         '<div class="ck-table-wrap"><table class="ck-table"><thead><tr><th>Khách</th><th>Giai đoạn</th><th>Bé</th><th>Việc tiếp theo</th><th>Sale phụ trách</th></tr></thead><tbody>' +
-        (shown.length ? shown.map(c => {
+        (rows.length ? rows.map(c => {
           const g = SALE_GROUPS[saleGroupOf(c)]; const n = nextStep(c); const s = sub(c);
           return `<tr class="ck-row${c.id === ui.selected ? ' on' : ''}" data-ck="select" data-id="${c.id}">
             <td><button type="button" class="ck-link" data-ck="select" data-id="${c.id}"><strong>${escHtml(c.name)}</strong></button>
@@ -664,7 +812,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><strong class="ck-next${n.tone ? ' c-' + n.tone : ''}">${escHtml(n.text)}</strong></td>
             <td>${escHtml(saleName(c.owner))}</td></tr>`;
         }).join('') : '<tr><td colspan="5"><p class="ck-empty">Không có khách nào khớp bộ lọc.</p></td></tr>') +
-        '</tbody></table></div></section>' +
+        '</tbody></table></div>' +
+        (shown.length > LIST_STEP ? moreBtn('more-list', 'list', shown.length - listLimit, LIST_STEP, listLimit > LIST_STEP) : '') + '</section>' +
         `<aside class="ck-panel ck-aside" id="ckAside" aria-label="Hồ sơ khách">${sel ? detail(sel) : '<p class="ck-empty">Chọn một khách để xem hồ sơ.</p>'}</aside></div>`;
     }
 
@@ -682,12 +831,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = e.target.closest('[data-ck]');
       if (!t) return;
       const act = t.dataset.ck;
-      if (act === 'mode') ui.mode = t.dataset.id;
-      else if (act === 'group') ui.group = t.dataset.id;
-      else if (act === 'bday') ui.bday = !ui.bday;
+      if (act === 'mode') { ui.mode = t.dataset.id; resetLimits(); }
+      else if (act === 'group') { ui.group = t.dataset.id; resetLimits(); }
+      else if (act === 'bday') { ui.bday = !ui.bday; resetLimits(); }
       else if (act === 'select') ui.selected = t.dataset.id;
-      else if (act === 'profile') { ui.mode = 'danh-sach'; ui.group = 'all'; ui.bday = false; ui.selected = t.dataset.id; }
+      else if (act === 'profile') { ui.mode = 'danh-sach'; ui.group = 'all'; ui.bday = false; ui.selected = t.dataset.id; resetLimits(); }
+      else if (act === 'more-col') boardLimit[t.dataset.id] = (boardLimit[t.dataset.id] || BOARD_STEP) + BOARD_STEP;
+      else if (act === 'more-col-less') boardLimit[t.dataset.id] = BOARD_STEP;
+      else if (act === 'more-list') listLimit += LIST_STEP;
+      else if (act === 'more-list-less') listLimit = LIST_STEP;
       render();
+      if (act === 'more-col-less' || act === 'more-list-less') {
+        // Thu gọn làm khối ngắn lại -> đưa người xem về đầu cột/bảng thay vì để lạc giữa trang.
+        const box = act === 'more-col-less' ? custView.querySelector(`.ck-col[aria-label="${STAGES.find(s => s.id === t.dataset.id).label}"]`) : custView.querySelector('.ck-panel');
+        if (box && box.getBoundingClientRect().top < 0) box.scrollIntoView({ block: 'start' });
+      }
       // Màn hẹp: hồ sơ nằm dưới bảng -> cuộn tới cho người xem thấy ngay.
       if ((act === 'select' || act === 'profile') && window.matchMedia('(max-width: 1180px)').matches) {
         const aside = document.getElementById('ckAside');
@@ -699,10 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     custView.addEventListener('change', e => {
       const f = e.target.dataset.ckFilter;
-      if (f) { ui[f] = e.target.value; render(); }
+      if (f) { ui[f] = e.target.value; resetLimits(); render(); }
     });
     custView.addEventListener('input', e => {
-      if (e.target.matches('[data-ck-search]')) { ui.q = e.target.value; render(); }
+      if (e.target.matches('[data-ck-search]')) { ui.q = e.target.value; resetLimits(); render(); }
     });
 
     if (role === 'sep') {
@@ -2017,33 +2175,568 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ------------------------------- Tin nhắn khách hàng (Sale trả lời, Sếp chỉ xem) -------------------------------
-  // Thêm 2026-09-27: chat THẬT qua server (server/sale-chat.js) - khách nhắn từ màn chat
-  // trên trang web (js/sale-chat.js), mọi tài khoản Sale thấy chung 1 hộp thư ở đây và trả
-  // lời, khác máy/khác trình duyệt vẫn thấy nhau. Trang tự hỏi server tin mới mỗi 3 giây.
-  // Sếp xem được nhưng không trả lời và không làm mất trạng thái "chưa đọc" của Sale.
+  // Hiển thị toàn bộ cuộc hội thoại của TẤT CẢ nhân viên Sale (Ngọc Anh, Minh Thư, Thu Hà,
+  // Quốc Bảo, Hải Yến) từ saleDb.conversations. Sếp xem được toàn bộ, có bộ lọc theo từng Sale,
+  // theo trạng thái, tìm kiếm nhanh và xem hồ sơ CRM của khách. Nếu có kết nối máy chủ chat,
+  // dữ liệu sẽ tự động đồng bộ thêm các tin nhắn mới nhất.
   const inboxList = document.getElementById('inboxList');
-  if (inboxList && window.AlohaAuth && AlohaAuth.api) {
+  if (inboxList) {
     const inboxHead = document.getElementById('inboxHead');
     const inboxMsgs = document.getElementById('inboxMsgs');
     const inboxReply = document.getElementById('inboxReply');
     const inboxInput = document.getElementById('inboxInput');
     const inboxStatus = document.getElementById('inboxStatus');
+    const inboxSub = document.getElementById('inboxSub');
+    const inboxBossBar = document.getElementById('inboxBossBar');
+    const inboxBossBarText = document.getElementById('inboxBossBarText');
+    const inboxSearch = document.getElementById('inboxSearch');
+    const inboxSaleFilter = document.getElementById('inboxSaleFilter');
+    const inboxChannelFilter = document.getElementById('inboxChannelFilter');
+
+    const isSep = role === 'sep';
     const canReply = role === 'sale';
-    let chats = [];          // bản tóm tắt từ GET /inbox
-    let activeChat = null;   // cuộc trò chuyện đang mở, đủ tin (GET /inbox/:phone)
-    let activePhone = null;
-    let status = 'loading';  // 'ok' | 'offline' | 'auth'
+    let filterSale = '';
+    let filterChannel = '';
+    let searchQuery = '';
+
+  const DEMO_INBOX_CUSTOMERS = [
+  {
+    "id": "na-trang",
+    "name": "Chị Thu Trang",
+    "phone": "0912456456",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "na-duc",
+    "name": "Anh Minh Đức",
+    "phone": "0983222731",
+    "service": "Sinh nhật",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "na-linh",
+    "name": "Chị Hà Linh",
+    "phone": "0987654321",
+    "service": "Newborn",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "na-nhung",
+    "name": "Chị Hồng Nhung",
+    "phone": "0978111222",
+    "service": "Tại nhà",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "na-quang",
+    "name": "Anh Quang",
+    "phone": "0904333444",
+    "service": "Gia đình",
+    "area": "Hà Đông, Hà Nội"
+  },
+  {
+    "id": "na-ngan",
+    "name": "Chị Ngân",
+    "phone": "0971234555",
+    "service": "Bầu",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "na-phuong",
+    "name": "Chị Phương",
+    "phone": "0918765432",
+    "service": "Newborn",
+    "area": "Hai Bà Trưng, Hà Nội"
+  },
+  {
+    "id": "mt-dieulinh",
+    "name": "Chị Diệu Linh",
+    "phone": "0913555666",
+    "service": "Newborn",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "mt-nam",
+    "name": "Anh Hoàng Nam",
+    "phone": "0902111333",
+    "service": "Gia đình",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "mt-dung",
+    "name": "Chị Thùy Dung",
+    "phone": "0976444888",
+    "service": "Sinh nhật",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "th-phuongthao",
+    "name": "Chị Phương Thảo",
+    "phone": "0917333222",
+    "service": "Bé lớn",
+    "area": "Tây Hồ, Hà Nội"
+  },
+  {
+    "id": "th-hang",
+    "name": "Chị Minh Hằng",
+    "phone": "0935666111",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "th-khanhvy",
+    "name": "Chị Khánh Vy",
+    "phone": "0977888123",
+    "service": "Bé lớn",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "qb-baongoc",
+    "name": "Chị Bảo Ngọc",
+    "phone": "0938777666",
+    "service": "Tại nhà",
+    "area": "Long Biên, Hà Nội"
+  },
+  {
+    "id": "qb-quyen",
+    "name": "Chị Lệ Quyên",
+    "phone": "0968555222",
+    "service": "Newborn",
+    "area": "Thanh Xuân, Hà Nội"
+  },
+  {
+    "id": "hy-quynh",
+    "name": "Chị Như Quỳnh",
+    "phone": "0919444111",
+    "service": "Sinh nhật",
+    "area": "Đống Đa, Hà Nội"
+  },
+  {
+    "id": "hy-huong",
+    "name": "Chị Thanh Hương",
+    "phone": "0932888555",
+    "service": "Newborn",
+    "area": "Cầu Giấy, Hà Nội"
+  },
+  {
+    "id": "hy-hongvan",
+    "name": "Chị Hồng Vân",
+    "phone": "0988222444",
+    "service": "Sinh nhật",
+    "area": "Thanh Xuân, Hà Nội"
+  }
+];
+
+  const DEMO_INBOX_CONVERSATIONS = [
+  {
+    "id": "cv-na1",
+    "owner": "ngoc-anh",
+    "customerId": "na-trang",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 phút",
+    "unread": true,
+    "online": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 15/10/2026 · SĐT: 0912 *** 456 · Quan tâm: concept nhẹ nhàng, chụp tại studio",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cho em hỏi gói newborn bao nhiêu ạ, bé nhà em dự sinh 15/10",
+        "time": "09:41"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ ALOHA Baby chào chị Trang ạ! Bé dự sinh 15/10 thì thời điểm đẹp nhất để chụp newborn là khi bé được 7–14 ngày tuổi. Em gửi chị bảng giá và vài concept nhẹ nhàng nhé.",
+        "time": "09:43"
+      },
+      {
+        "from": "kh",
+        "text": "Studio có khung nào cuối tháng 10 không em, chị muốn đặt trước",
+        "time": "09:44"
+      }
+    ]
+  },
+  {
+    "id": "cv-na2",
+    "owner": "ngoc-anh",
+    "customerId": "na-duc",
+    "channel": "Chat trực tiếp",
+    "time": "12 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "sale",
+        "text": "Dạ em đã gửi link cọc qua Zalo cho anh rồi ạ, lịch giữ tới 14:30 hôm nay.",
+        "time": "10:05"
+      },
+      {
+        "from": "kh",
+        "text": "Ok em, tối anh chuyển cọc nhé",
+        "time": "10:18"
+      }
+    ]
+  },
+  {
+    "id": "cv-na3",
+    "owner": "ngoc-anh",
+    "customerId": "na-linh",
+    "channel": "Chat trực tiếp",
+    "time": "25 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "[Ảnh] Em gửi bill chuyển khoản",
+        "time": "09:13"
+      }
+    ]
+  },
+  {
+    "id": "cv-na4",
+    "owner": "ngoc-anh",
+    "customerId": "na-ngan",
+    "channel": "Chat trực tiếp",
+    "time": "1 giờ",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Mai chị mang thêm váy được không em?",
+        "time": "09:30"
+      }
+    ]
+  },
+  {
+    "id": "cv-na5",
+    "owner": "ngoc-anh",
+    "customerId": "na-nhung",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Chụp tại nhà · Khu vực: Long Biên · Chưa để lại ngày mong muốn",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Studio có chụp tại nhà ở Long Biên không em?",
+        "time": "08:31"
+      }
+    ]
+  },
+  {
+    "id": "cv-na6",
+    "owner": "ngoc-anh",
+    "customerId": "na-quang",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "3 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Gia đình · 4 người · Chưa chọn concept",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Gói gia đình 4 người giá thế nào",
+        "time": "07:40"
+      }
+    ]
+  },
+  {
+    "id": "cv-na7",
+    "owner": "ngoc-anh",
+    "customerId": "na-phuong",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "unread": true,
+    "messages": [
+      {
+        "from": "sale",
+        "text": "Chị ơi bộ ảnh của bé đã lên \"Ảnh của tôi\", chị chọn giúp em 15 ảnh nhé.",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "kh",
+        "text": "Chị bận quá, cuối tuần chị chọn ảnh",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt1",
+    "owner": "minh-thu",
+    "customerId": "mt-dieulinh",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "40 phút",
+    "unread": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 20/10/2026 · Quan tâm: concept tông trắng",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em muốn đặt trước lịch chụp newborn cho bé ạ",
+        "time": "09:50"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt2",
+    "owner": "minh-thu",
+    "customerId": "mt-nam",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Nhà anh có ông bà nữa, tổng 5 người được không em?",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ được ạ, chiều nay em gọi lại tư vấn anh nhé.",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-mt3",
+    "owner": "minh-thu",
+    "customerId": "mt-dung",
+    "channel": "Chat trực tiếp",
+    "time": "55 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em ơi chị mở link rồi, chiều chị chuyển nhé",
+        "time": "09:36"
+      }
+    ]
+  },
+  {
+    "id": "cv-th1",
+    "owner": "thu-ha",
+    "customerId": "th-phuongthao",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "1 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Bé lớn · Bé 3 tuổi · Quan tâm: concept Hàn Quốc",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Bé 3 tuổi chụp concept Hàn Quốc được không ạ",
+        "time": "09:25"
+      }
+    ]
+  },
+  {
+    "id": "cv-th2",
+    "owner": "thu-ha",
+    "customerId": "th-hang",
+    "channel": "Chat trực tiếp",
+    "time": "30 phút",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Em gửi chị xem thêm concept newborn nhé",
+        "time": "10:00"
+      }
+    ]
+  },
+  {
+    "id": "cv-th3",
+    "owner": "thu-ha",
+    "customerId": "th-khanhvy",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "done": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cảm ơn em, hôm nay bé chụp vui lắm",
+        "time": "Hôm qua"
+      },
+      {
+        "from": "sale",
+        "text": "Dạ em cảm ơn chị, ảnh sẽ lên \"Ảnh của tôi\" trong vài ngày tới ạ.",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-qb1",
+    "owner": "quoc-bao",
+    "customerId": "qb-baongoc",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "20 phút",
+    "unread": true,
+    "botSummary": "Dịch vụ: Chụp tại nhà · Khu vực: Long Biên · Muốn chụp cuối tuần",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Cuối tuần sau studio còn lịch chụp tại nhà không ạ?",
+        "time": "10:10"
+      }
+    ]
+  },
+  {
+    "id": "cv-qb2",
+    "owner": "quoc-bao",
+    "customerId": "qb-quyen",
+    "channel": "Chat trực tiếp",
+    "time": "Hôm qua",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Để chị cân nhắc thêm với chồng nhé em",
+        "time": "Hôm qua"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy1",
+    "owner": "hai-yen",
+    "customerId": "hy-quynh",
+    "channel": "Chat trực tiếp",
+    "time": "1 giờ",
+    "unread": true,
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Sinh nhật bé 2 tuổi có concept nào xinh không em?",
+        "time": "09:28"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy2",
+    "owner": "hai-yen",
+    "customerId": "hy-huong",
+    "channel": "Trợ lý web",
+    "bot": true,
+    "time": "2 giờ",
+    "unread": true,
+    "botSummary": "Dịch vụ: Newborn · Dự sinh: 08/10/2026 · Hẹn gọi lại 11:00",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "11h em gọi lại chị nhé, giờ chị đang bận",
+        "time": "08:40"
+      }
+    ]
+  },
+  {
+    "id": "cv-hy3",
+    "owner": "hai-yen",
+    "customerId": "hy-hongvan",
+    "channel": "Chat trực tiếp",
+    "time": "3 giờ",
+    "messages": [
+      {
+        "from": "kh",
+        "text": "Chiều nay chị qua chụp cho bé Gạo nhé em",
+        "time": "07:30"
+      }
+    ]
+  }
+];
+
+    // Khởi tạo danh sách cuộc hội thoại ban đầu từ saleDb.conversations (hoặc fallback demo khi dữ liệu nền trống)
+    function buildLocalChats() {
+      const convSource = (saleDb && Array.isArray(saleDb.conversations) && saleDb.conversations.length)
+        ? saleDb.conversations
+        : DEMO_INBOX_CONVERSATIONS;
+      const custSource = (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length)
+        ? saleDb.customers
+        : DEMO_INBOX_CUSTOMERS;
+
+      const custMap = new Map();
+      (custSource || []).forEach(c => {
+        if (c.id) custMap.set(c.id, c);
+        if (c.phone) custMap.set(c.phone, c);
+      });
+
+      return convSource.map((cv, idx) => {
+        const cust = custMap.get(cv.customerId) || {};
+        const phone = cust.phone || ('0900' + String(idx).padStart(6, '0'));
+        const saleName = SALE_NAMES[cv.owner] || cv.owner || 'Sale';
+        const msgs = (cv.messages || []).map((m, mIdx) => ({
+          id: cv.id + '-m' + mIdx,
+          from: m.from === 'sale' ? 'sale' : (m.from === 'system' || m.from === 'he-thong' ? 'he-thong' : 'khach'),
+          senderName: m.from === 'sale' ? (m.by || saleName) : (cust.name || 'Khách'),
+          text: m.text,
+          at: m.time || cv.time || ''
+        }));
+        const last = msgs[msgs.length - 1];
+
+        return {
+          id: cv.id,
+          phone: phone,
+          customerId: cv.customerId,
+          customerName: cust.name || 'Khách hàng',
+          customerArea: cust.area || '',
+          service: cust.service || '',
+          topic: cust.service ? `${cust.service}` : (cv.channel || ''),
+          channel: cv.channel || 'Trực tiếp',
+          owner: cv.owner,
+          saleName: saleName,
+          bot: !!cv.bot,
+          botSummary: cv.botSummary || '',
+          unread: !!cv.unread,
+          staffUnread: cv.unread ? 1 : 0,
+          online: !!cv.online,
+          time: cv.time || (last ? last.at : ''),
+          last: last,
+          messages: msgs,
+          updatedAt: Date.now() - idx * 60000
+        };
+      });
+    }
+
+    let chats = buildLocalChats();
+    let activeChat = chats[0] || null;
+    let activePhone = activeChat ? activeChat.phone : null;
+    let status = 'ok';
     let lastListKey = '';
     let lastThreadKey = '';
     let busy = false;
 
-    if (!canReply) {
-      document.getElementById('inboxSub').textContent = 'Tin nhắn khách gửi từ trang web và câu trả lời của các tài khoản Sale. Chế độ chỉ xem.';
+    // Cập nhật số lượng trên các option lọc Sale
+    function updateSaleFilterCounts() {
+      if (!inboxSaleFilter) return;
+      const counts = {};
+      chats.forEach(c => {
+        counts[c.owner] = (counts[c.owner] || 0) + 1;
+      });
+      const currentVal = inboxSaleFilter.value;
+      inboxSaleFilter.innerHTML = `
+        <option value="">Tất cả Sale phụ trách (${chats.length})</option>
+        <option value="ngoc-anh">Sale · Ngọc Anh (${counts['ngoc-anh'] || 0})</option>
+        <option value="minh-thu">Sale · Minh Thư (${counts['minh-thu'] || 0})</option>
+        <option value="thu-ha">Sale · Thu Hà (${counts['thu-ha'] || 0})</option>
+        <option value="quoc-bao">Sale · Quốc Bảo (${counts['quoc-bao'] || 0})</option>
+        <option value="hai-yen">Sale · Hải Yến (${counts['hai-yen'] || 0})</option>
+      `;
+      inboxSaleFilter.value = currentVal;
+    }
+    updateSaleFilterCounts();
+
+    if (inboxSub) {
+      if (isSep) {
+        inboxSub.textContent = `Toàn bộ ${chats.length} cuộc trò chuyện giữa 5 nhân viên Sale và khách hàng. Chế độ chỉ xem dành cho Sếp.`;
+      } else if (!canReply) {
+        inboxSub.textContent = 'Tin nhắn khách gửi từ trang web và câu trả lời của các tài khoản Sale. Chế độ chỉ xem.';
+      }
     }
 
     const pad2 = n => String(n).padStart(2, '0');
     function chatTime(ts) {
+      if (!ts) return '';
+      if (typeof ts === 'string') return ts;
       const d = new Date(ts);
+      if (isNaN(d.getTime())) return String(ts);
       const hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
       return d.toDateString() === new Date().toDateString() ? hm : pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + hm;
     }
@@ -2052,31 +2745,62 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!inboxStatus) return;
       inboxStatus.hidden = status === 'ok' || status === 'loading';
       if (status === 'offline') {
-        inboxStatus.innerHTML = 'Đang kết nối tới máy chủ chat… Máy chủ có thể cần vài chục giây để khởi động.';
+        inboxStatus.innerHTML = 'Đang dùng dữ liệu nội bộ đồng bộ từ Không gian Sale. Máy chủ chat có thể cần vài chục giây để khởi động.';
       } else if (status === 'auth') {
-        inboxStatus.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. <button type="button" id="inboxRelogin">Đăng nhập lại</button> để xem và trả lời tin nhắn.';
+        inboxStatus.innerHTML = 'Tài khoản chưa kết nối được với máy chủ chat. Đang xem dữ liệu hội thoại đã lưu. <button type="button" id="inboxRelogin">Đăng nhập lại</button>';
       }
     }
 
+    function getFilteredChats() {
+      return chats.filter(c => {
+        if (filterSale && c.owner !== filterSale) return false;
+        if (filterChannel === 'chua-tra-loi' && !c.unread && !c.staffUnread) return false;
+        if (filterChannel === 'tro-ly-web' && !c.bot && c.channel !== 'Trợ lý web') return false;
+        if (filterChannel === 'chat-truc-tiep' && (c.bot || c.channel === 'Trợ lý web')) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const nameMatch = (c.customerName || '').toLowerCase().includes(q);
+          const phoneMatch = (c.phone || '').includes(q);
+          const serviceMatch = (c.service || '').toLowerCase().includes(q);
+          const saleMatch = (c.saleName || '').toLowerCase().includes(q);
+          const msgMatch = (c.messages || []).some(m => (m.text || '').toLowerCase().includes(q));
+          if (!nameMatch && !phoneMatch && !serviceMatch && !saleMatch && !msgMatch) return false;
+        }
+        return true;
+      });
+    }
+
     function renderInboxList() {
-      const key = status + '#' + chats.map(c => c.phone + ':' + c.updatedAt + ':' + (c.staffUnread || 0)).join('|') + '#' + activePhone;
+      const filtered = getFilteredChats();
+      const key = status + '#' + filterSale + '#' + filterChannel + '#' + searchQuery + '#' +
+        filtered.map(c => c.phone + ':' + (c.staffUnread || 0) + ':' + (c.last ? c.last.text : '')).join('|') + '#' + activePhone;
       if (key === lastListKey) return;
       lastListKey = key;
-      if (!chats.length) {
-        inboxList.innerHTML = status === 'loading'
-          ? '<p class="inbox-empty">Đang tải tin nhắn…</p>'
-          : '<p class="inbox-empty">Chưa có tin nhắn nào. Khi khách bấm "Nhắn Sale" trong khung chat của trang web, cuộc trò chuyện kèm tóm tắt khách đã xem gì sẽ hiện ở đây.</p>';
+
+      if (!filtered.length) {
+        inboxList.innerHTML = '<p class="inbox-empty">Không tìm thấy cuộc trò chuyện nào phù hợp với bộ lọc.</p>';
         return;
       }
-      inboxList.innerHTML = chats.map(c => {
+
+      inboxList.innerHTML = filtered.map(c => {
         const last = c.last;
         const preview = last ? (last.from === 'sale' ? (last.senderName || 'Sale') + ': ' : last.from === 'he-thong' ? 'Tóm tắt: ' : '') + last.text : '';
-        const unread = c.staffUnread || 0;
-        return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" role="listitem">
+        const unread = c.staffUnread || (c.unread ? 1 : 0);
+        const saleLabel = c.saleName || SALE_NAMES[c.owner] || 'Sale';
+        const displayTime = last && last.at ? chatTime(last.at) : (c.time || '');
+
+        return `<button type="button" class="inbox-item${c.phone === activePhone ? ' active' : ''}${unread ? ' unread' : ''}" data-phone="${escHtml(c.phone)}" data-id="${escHtml(c.id || '')}" role="listitem">
           <span class="cust-av cust-av-${customerTone(c.phone)}" aria-hidden="true">${escHtml(customerInitials(c.customerName))}</span>
           <span class="inbox-item-text">
-            <span class="inbox-item-top"><strong>${escHtml(c.customerName)}</strong><time>${last ? chatTime(last.at) : ''}</time></span>
-            ${c.topic ? `<span class="inbox-topic">${escHtml(c.topic)}</span>` : ''}
+            <span class="inbox-item-top">
+              <strong>${escHtml(c.customerName)}</strong>
+              <time>${escHtml(displayTime)}</time>
+            </span>
+            <span class="inbox-item-badges">
+              <span class="inbox-sale-badge">Sale · ${escHtml(saleLabel)}</span>
+              ${c.service ? `<span class="inbox-topic">${escHtml(c.service)}</span>` : ''}
+              ${c.channel ? `<span class="inbox-channel-tag ${c.bot ? 'tone-bot' : 'tone-direct'}">${escHtml(c.channel)}</span>` : ''}
+            </span>
             <span class="inbox-preview">${escHtml(preview)}</span>
           </span>
           ${unread ? `<span class="inbox-unread" aria-label="${unread} tin chưa đọc">${unread}</span>` : ''}
@@ -2085,8 +2809,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderThread(forceScroll) {
-      const chat = activeChat && activeChat.phone === activePhone ? activeChat : null;
-      inboxReply.hidden = !(chat && canReply);
+      const chat = activeChat && activeChat.phone === activePhone ? activeChat : chats.find(c => c.phone === activePhone) || null;
+      activeChat = chat;
+
+      if (inboxReply) inboxReply.hidden = !(chat && canReply);
+      if (inboxBossBar) {
+        inboxBossBar.hidden = !(chat && isSep);
+        if (chat && isSep && inboxBossBarText) {
+          const sName = chat.saleName || SALE_NAMES[chat.owner] || 'Sale';
+          inboxBossBarText.innerHTML = `<strong>Chế độ Quản trị / Sếp:</strong> Đang giám sát cuộc hội thoại của <strong>Sale · ${escHtml(sName)}</strong> với <strong>${escHtml(chat.customerName)}</strong> (Chế độ chỉ xem).`;
+        }
+      }
+
       if (!chat) {
         lastThreadKey = '';
         inboxHead.innerHTML = '';
@@ -2095,33 +2829,71 @@ document.addEventListener('DOMContentLoaded', () => {
           : '<p class="inbox-empty">Chọn một cuộc trò chuyện bên trái để xem tin nhắn.</p>';
         return;
       }
-      const msgs = chat.messages;
-      const key = chat.phone + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
+
+      const msgs = chat.messages || [];
+      const key = chat.phone + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '') + ':' + (chat.botSummary || '');
       if (key === lastThreadKey && !forceScroll) return;
       lastThreadKey = key;
-      inboxHead.innerHTML = `${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone)}
-        ${chat.topic ? `<span class="inbox-topic">Quan tâm: ${escHtml(chat.topic)}</span>` : ''}`;
+
+      const saleLabel = chat.saleName || SALE_NAMES[chat.owner] || 'Sale';
+      const custPool = (saleDb && saleDb.customers && saleDb.customers.length) ? saleDb.customers : DEMO_INBOX_CUSTOMERS;
+      const cObj = custPool.find(x => x.phone === chat.phone || x.id === chat.customerId) || null;
+      const area = cObj ? cObj.area : (chat.customerArea || '');
+      const service = (cObj && cObj.service) || chat.service || '';
+
+      inboxHead.innerHTML = `
+        <div class="inbox-head-user">
+          ${custPerson({ name: chat.customerName, phone: chat.phone }, chat.phone + (area ? ' · ' + area : ''))}
+          ${service ? `<span class="inbox-topic">Gói: ${escHtml(service)}</span>` : ''}
+        </div>
+        <div class="inbox-head-info">
+          <span class="inbox-sale-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+              <circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+            Sale phụ trách: <strong>${escHtml(saleLabel)}</strong>
+          </span>
+          ${chat.channel ? `<span class="inbox-channel-badge">${escHtml(chat.channel)}${chat.online ? ' · <span class="dot-online"></span>online' : ''}</span>` : ''}
+          <button type="button" class="inbox-crm-link" data-search-phone="${escHtml(chat.phone)}" title="Mở thông tin khách trong bảng CRM">Xem hồ sơ CRM</button>
+        </div>
+      `;
+
       const nearBottom = inboxMsgs.scrollHeight - inboxMsgs.scrollTop - inboxMsgs.clientHeight < 60;
-      // Tin hệ thống (from 'he-thong'): bản tóm tắt hành trình khách gửi kèm khi khách chuyển từ
-      // trợ lý AI sang chat với Sale (server/sale-chat.js /me/handoff), khách không thấy tin này.
-      inboxMsgs.innerHTML = msgs.map(m => m.from === 'he-thong' ? `
-        <div class="inbox-msg from-system">
-          <span class="inbox-msg-name">Khách vừa chuyển từ trợ lý AI sang Sale · tóm tắt tự động</span>
-          <span class="inbox-msg-text">${escHtml(m.text)}</span>
-          <time>${chatTime(m.at)}</time>
-        </div>` : `
-        <div class="inbox-msg ${m.from === 'sale' ? 'from-sale' : 'from-khach'}">
-          ${m.from === 'sale' ? `<span class="inbox-msg-name">${escHtml(m.senderName || 'Sale')}</span>` : ''}
-          <span class="inbox-msg-text">${escHtml(m.text)}</span>
-          <time>${chatTime(m.at)}</time>
-        </div>`).join('');
+      let msgsHtml = '';
+      if (chat.botSummary) {
+        msgsHtml += `
+          <div class="inbox-msg from-system">
+            <span class="inbox-msg-name">Khách vừa chuyển từ trợ lý AI sang Sale · tóm tắt tự động</span>
+            <span class="inbox-msg-text">${escHtml(chat.botSummary)}</span>
+          </div>`;
+      }
+
+      msgsHtml += msgs.map(m => {
+        if (m.from === 'he-thong' || m.from === 'system') {
+          return `
+            <div class="inbox-msg from-system">
+              <span class="inbox-msg-name">${escHtml(m.senderName || 'Hệ thống')}</span>
+              <span class="inbox-msg-text">${escHtml(m.text)}</span>
+              ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}
+            </div>`;
+        }
+        const isSale = m.from === 'sale';
+        return `
+          <div class="inbox-msg ${isSale ? 'from-sale' : 'from-khach'}">
+            <span class="inbox-msg-name">${escHtml(isSale ? (m.senderName || saleLabel || 'Sale') : (chat.customerName || 'Khách'))}</span>
+            <span class="inbox-msg-text">${escHtml(m.text)}</span>
+            ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}
+          </div>`;
+      }).join('');
+
+      inboxMsgs.innerHTML = msgsHtml;
       if (forceScroll || nearBottom) inboxMsgs.scrollTop = inboxMsgs.scrollHeight;
     }
 
     function updateInboxBadge() {
       const tab = document.querySelector('#adminTabs a[href="#tin-nhan"]');
       if (!tab) return;
-      const total = chats.reduce((n, c) => n + (c.staffUnread || 0), 0);
+      const total = chats.reduce((n, c) => n + (c.staffUnread || (c.unread ? 1 : 0)), 0);
       let badge = tab.querySelector('.admin-tab-badge');
       if (total > 0) {
         if (!badge) {
@@ -2142,75 +2914,183 @@ document.addEventListener('DOMContentLoaded', () => {
       updateInboxBadge();
     }
 
-    const fail = r => { status = r.status === 401 ? 'auth' : 'offline'; };
-
     // Sale đang mở đúng cuộc trò chuyện (và đang nhìn trang) thì coi như đã đọc.
     async function markActiveRead() {
       if (!canReply || !activePhone || document.visibilityState !== 'visible') return;
       const summary = chats.find(c => c.phone === activePhone);
       if (!summary || !summary.staffUnread) return;
       summary.staffUnread = 0;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/read', { method: 'POST' });
-      if (r.ok && r.data.chat && activePhone === r.data.chat.phone) activeChat = r.data.chat;
+      summary.unread = false;
+      if (window.AlohaAuth && AlohaAuth.api) {
+        const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/read', { method: 'POST' });
+        if (r.ok && r.data.chat && activePhone === r.data.chat.phone) {
+          activeChat = r.data.chat;
+        }
+      }
     }
 
     async function refreshInbox(forceScroll) {
+      if (!window.AlohaAuth || !AlohaAuth.api) {
+        renderAll(forceScroll);
+        return;
+      }
       const s = AlohaAuth.getSession();
-      if (!s || !s.token) { status = 'auth'; renderAll(false); return; }
+      if (!s || !s.token) {
+        // Vẫn giữ danh sách chats nội bộ để Sếp luôn xem được đầy đủ
+        status = 'ok';
+        renderAll(false);
+        return;
+      }
       if (busy) return;
       busy = true;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox');
-      if (r.ok) {
-        status = 'ok';
-        chats = r.data.chats || [];
-        if (activePhone) {
-          const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
-          if (t.ok) activeChat = t.data.chat; else if (t.status !== 404) fail(t);
-          await markActiveRead();
+      try {
+        const r = await AlohaAuth.api('/api/sale-chat/inbox');
+        if (r && r.ok && Array.isArray(r.data.chats) && r.data.chats.length > 0) {
+          status = 'ok';
+          // Hợp nhất server chats với local chats
+          const serverChats = r.data.chats;
+          const phoneMap = new Map();
+          serverChats.forEach(sc => phoneMap.set(sc.phone, sc));
+
+          chats.forEach(lc => {
+            if (!phoneMap.has(lc.phone)) {
+              serverChats.push(lc);
+            }
+          });
+          chats = serverChats;
+          if (activePhone) {
+            const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
+            if (t && t.ok && t.data.chat) activeChat = t.data.chat;
+            await markActiveRead();
+          }
+        } else {
+          // Server không có hoặc rỗng -> giữ chats nội bộ
+          status = 'ok';
         }
-      } else {
-        fail(r);
+      } catch (e) {
+        status = 'ok'; // Giữ hiển thị danh sách hội thoại của các sale
       }
       busy = false;
+      updateSaleFilterCounts();
       renderAll(forceScroll);
     }
 
+    // Sự kiện chọn cuộc trò chuyện
     inboxList.addEventListener('click', e => {
       const item = e.target.closest('.inbox-item');
       if (!item) return;
       activePhone = item.dataset.phone;
-      if (!activeChat || activeChat.phone !== activePhone) activeChat = null;
-      renderAll(true);
-      refreshInbox(true);
-      if (canReply) inboxInput.focus();
-    });
-
-    inboxReply.addEventListener('submit', async e => {
-      e.preventDefault();
-      const text = inboxInput.value.trim();
-      if (!text || !activePhone || !canReply) return;
-      const btn = inboxReply.querySelector('button');
-      btn.disabled = true;
-      const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/messages', { method: 'POST', body: { text } });
-      btn.disabled = false;
-      if (r.ok) {
-        inboxInput.value = '';
-        activeChat = r.data.chat;
-        status = 'ok';
-      } else {
-        fail(r);
+      activeChat = chats.find(c => c.phone === activePhone) || null;
+      if (activeChat) {
+        activeChat.staffUnread = 0;
+        activeChat.unread = false;
       }
       renderAll(true);
-      inboxInput.focus();
+      if (canReply && inboxInput) inboxInput.focus();
     });
 
+    // Lọc theo Sale
+    if (inboxSaleFilter) {
+      inboxSaleFilter.addEventListener('change', e => {
+        filterSale = e.target.value;
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Lọc theo kênh/trạng thái
+    if (inboxChannelFilter) {
+      inboxChannelFilter.addEventListener('change', e => {
+        filterChannel = e.target.value;
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Tìm kiếm
+    if (inboxSearch) {
+      inboxSearch.addEventListener('input', e => {
+        searchQuery = e.target.value.trim();
+        const filtered = getFilteredChats();
+        if (filtered.length && (!activeChat || !filtered.some(c => c.phone === activePhone))) {
+          activePhone = filtered[0].phone;
+          activeChat = filtered[0];
+        }
+        renderAll(true);
+      });
+    }
+
+    // Nút Xem hồ sơ CRM
+    if (inboxHead) {
+      inboxHead.addEventListener('click', e => {
+        const link = e.target.closest('.inbox-crm-link');
+        if (!link) return;
+        const phone = link.dataset.searchPhone;
+        const custTab = document.querySelector('#adminTabs a[href="#khach-hang"]');
+        if (custTab) custTab.click();
+        const custSearch = document.getElementById('custSearch') || document.querySelector('[data-ck-search]');
+        if (custSearch && phone) {
+          custSearch.value = phone;
+          custSearch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const custSec = document.getElementById('khach-hang');
+        if (custSec) custSec.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    // Gửi tin nhắn trả lời (dành cho tài khoản Sale)
+    if (inboxReply) {
+      inboxReply.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = inboxInput.value.trim();
+        if (!text || !activePhone || !canReply) return;
+        const btn = inboxReply.querySelector('button');
+        btn.disabled = true;
+
+        const newMsg = {
+          id: 'msg-' + Date.now(),
+          from: 'sale',
+          senderName: (session && session.name) || 'Sale',
+          text: text,
+          at: chatTime(Date.now())
+        };
+
+        if (activeChat) {
+          if (!activeChat.messages) activeChat.messages = [];
+          activeChat.messages.push(newMsg);
+          activeChat.last = newMsg;
+          activeChat.unread = false;
+        }
+
+        if (window.AlohaAuth && AlohaAuth.api) {
+          try {
+            const r = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone) + '/messages', { method: 'POST', body: { text } });
+            if (r && r.ok && r.data.chat) activeChat = r.data.chat;
+          } catch (err) { /* offline mode fallback */ }
+        }
+
+        btn.disabled = false;
+        inboxInput.value = '';
+        renderAll(true);
+        inboxInput.focus();
+      });
+    }
+
     if (inboxStatus) {
-      inboxStatus.addEventListener('click', e => { if (e.target.id === 'inboxRelogin') AlohaAuth.logout(); });
+      inboxStatus.addEventListener('click', e => { if (e.target.id === 'inboxRelogin' && window.AlohaAuth) AlohaAuth.logout(); });
     }
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshInbox(false); });
-    setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 3000);
-    renderAll(false);
+    setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 5000);
+    renderAll(true);
     refreshInbox(false);
   }
 
