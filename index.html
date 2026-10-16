@@ -16,13 +16,14 @@
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20260929f">
   <link rel="stylesheet" href="css/pages.css?v=20260929b">
-  <script src="js/features.js?v=20260928b"></script>
+  <script src="js/features.js?v=20261015b"></script>
 </head>
 
 <body>
 
   <script src="js/auth.js?v=20260927n"></script>
   <script src="js/data-store.js?v=20260927m"></script>
+  <script src="js/edit-sync.js?v=20261015a"></script>
 
   <!-- Topbar -->
   <div class="topbar">
@@ -233,23 +234,23 @@
             <h2>Những bộ ảnh nổi bật tại ALOHA Baby</h2>
             <p>Một vài album được ba mẹ yêu thích nhất, xem trọn bộ trong thư viện ảnh của studio.</p>
           </div>
-          <!-- Ảnh minh họa (stock, miễn phí bản quyền) - chờ thay bằng ảnh thật của studio; caption cố tình dùng mô tả phong cách, không gắn tên khách hàng cụ thể.
+          <!-- 5 thẻ dùng ảnh concept thật của studio (fanpage, 2026-10-13); thẻ Bầu vẫn là ảnh stock minh hoạ. Caption là tên concept, không gắn tên khách hàng.
              Mỗi thẻ mở album concept tương ứng (#/album/<dịch vụ>/<concept>, js/albums.js), xem công khai.
              Ảnh từng thẻ đã khớp lại với tên thẻ (trước đây 4/6 thẻ bị lệch ảnh, vd "Gia đình sum vầy" hiện ảnh 1 bé). -->
           <div class="album-grid reveal-stagger reveal">
-            <a href="#/album/newborn/tu-nhien" class="album-card stagger-item"
+            <a href="#/album/newborn/baby-unicorn" class="album-card stagger-item"
               style="background:linear-gradient(135deg,#ffb199,#ff8fb3);">
-              <img src="images/album-1.jpg" alt="Album ảnh Newborn nhẹ nhàng" loading="lazy">
+              <img src="images/albums/newborn/baby-unicorn/baby-unicorn-01.jpg" alt="Album ảnh Newborn Baby Unicorn" loading="lazy">
               <div class="album-info">
-                <h3>Newborn nhẹ nhàng</h3><span>Phong cách tự nhiên, ấm áp</span>
+                <h3>Baby Unicorn</h3><span>Newborn kỳ lân cầu vồng</span>
               </div>
             </a>
-            <a href="#/album/gia-dinh/nhieu-the-he" class="album-card stagger-item"
+            <a href="#/album/gia-dinh/phu-quy" class="album-card stagger-item"
               style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/albums/gia-dinh/nhieu-the-he/nhieu-the-he-01.jpg" alt="Album ảnh gia đình sum vầy"
+              <img src="images/albums/gia-dinh/phu-quy/phu-quy-01.jpg" alt="Album ảnh gia đình Phú Quý"
                 loading="lazy">
               <div class="album-info">
-                <h3>Gia đình sum vầy</h3><span>Khoảnh khắc bên nhau</span>
+                <h3>Phú Quý</h3><span>Ba thế hệ sum vầy ngày xuân</span>
               </div>
             </a>
             <a href="#/album/bau/vintage" class="album-card stagger-item"
@@ -259,25 +260,25 @@
                 <h3>Bầu ngọt ngào</h3><span>Vintage nhẹ nhàng</span>
               </div>
             </a>
-            <a href="#/album/sinh-nhat/bong-bay" class="album-card stagger-item"
+            <a href="#/album/sinh-nhat/happy-donut" class="album-card stagger-item"
               style="background:linear-gradient(135deg,#f6d365,#fda085);">
-              <img src="images/album-6.jpg" alt="Album ảnh sinh nhật rực rỡ" loading="lazy">
+              <img src="images/albums/sinh-nhat/happy-donut/happy-donut-01.jpg" alt="Album ảnh sinh nhật Happy Donut" loading="lazy">
               <div class="album-info">
-                <h3>Sinh nhật rực rỡ</h3><span>Đầy sắc màu, tràn niềm vui</span>
+                <h3>Happy Donut</h3><span>Sinh nhật bánh kem sắc màu</span>
               </div>
             </a>
-            <a href="#/album/be-lon/ngoai-canh" class="album-card stagger-item"
+            <a href="#/album/be-lon/honey-bee" class="album-card stagger-item"
               style="background:linear-gradient(135deg,#84fab0,#8fd3f4);">
-              <img src="images/album-5.jpg" alt="Album ảnh bé lớn tinh nghịch" loading="lazy">
+              <img src="images/albums/be-lon/honey-bee/honey-bee-01.jpg" alt="Album ảnh bé lớn Honey Bee" loading="lazy">
               <div class="album-info">
-                <h3>Bé lớn tinh nghịch</h3><span>Ngoại cảnh & studio</span>
+                <h3>Honey Bee</h3><span>Chú ong nhỏ tinh nghịch</span>
               </div>
             </a>
-            <a href="#/album/newborn/den-trang" class="album-card stagger-item"
+            <a href="#/album/newborn/baby-butterfly" class="album-card stagger-item"
               style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb);">
-              <img src="images/album-3.jpg" alt="Album ảnh Newborn đáng yêu" loading="lazy">
+              <img src="images/albums/newborn/baby-butterfly/baby-butterfly-01.jpg" alt="Album ảnh Newborn Baby Butterfly" loading="lazy">
               <div class="album-info">
-                <h3>Newborn đáng yêu</h3><span>Từng chi tiết nhỏ xinh</span>
+                <h3>Baby Butterfly</h3><span>Newborn cánh bướm hồng</span>
               </div>
             </a>
           </div>
@@ -979,7 +980,7 @@
             <!-- Tầng dịch vụ: lưới thẻ concept album. Tầng concept: lưới ảnh. js/albums.js bật/tắt. -->
             <div class="concept-albums" id="galleryConcepts"></div>
             <div class="gallery-grid" id="galleryGrid" hidden></div>
-            <p class="gallery-note">Ảnh minh hoạ phong cách chụp, không phải ảnh khách hàng thật.</p>
+            <p class="gallery-note" id="galleryNote">Ảnh minh hoạ phong cách chụp, không phải ảnh khách hàng thật.</p>
             <div class="gallery-footer">
               <a href="#/" class="btn btn-outline" id="galleryUpBottom" hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1297,11 +1298,11 @@
     </div>
   </div>
 
-  <script src="js/script.js?v=20260929b"></script>
+  <script src="js/script.js?v=20261015a"></script>
   <script src="js/sale-chat.js?v=20260929a"></script>
   <script src="js/dat-lich.js"></script>
   <script src="js/google-photos-data.js?v=20260925"></script>
-  <script src="js/chon-anh.js?v=20260927f"></script>
+  <script src="js/chon-anh.js?v=20261015a"></script>
 </body>
 
 </html>

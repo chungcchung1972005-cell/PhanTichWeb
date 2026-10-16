@@ -70,13 +70,18 @@ const BASE = ROOT_URL;
     req.photoNotes.some(n => n.id === 'ph-5' && n.note === 'Lam sang vung mat');
   log('request lưu đúng cả ghi chú chung lẫn ghi chú riêng từng ảnh', hasGeneralNote && hasPerPhotoNotes, JSON.stringify(req));
 
-  // 5) Thợ ảnh thấy gợi ý "+2 ảnh có ghi chú riêng" trên thẻ kanban
+  // 5) Thợ ảnh thấy gợi ý "+2 ảnh có ghi chú riêng" trên thẻ yêu cầu thật (3 hàng ưu tiên
+  //    #photoRows thay kanban từ 2026-10-15; mở hết "Xem thêm" vì thẻ mới nhất nằm cuối hàng)
   await page.goto(BASE + 'login.html', { waitUntil: 'networkidle0' });
   await page.type('#loginPhone', '0900000003');
   await page.type('#loginPassword', 'anh123');
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#loginSubmitBtn')]);
-  const kanbanText = await page.$eval('#kanbanCol-cho-xu-ly', el => el.textContent);
-  log('Thợ ảnh thấy gợi ý số ảnh có ghi chú riêng trên thẻ kanban', kanbanText.includes('2 ảnh có ghi chú riêng'), kanbanText.replace(/\s+/g, ' ').trim());
+  const kanbanText = await page.evaluate(() => {
+    document.querySelectorAll('.photo-row-more').forEach(b => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });
+    const card = [...document.querySelectorAll('#photoRows .photo-row-card')].find(c => /^REQ-/.test(c.dataset.reqId));
+    return card ? card.textContent : '';
+  });
+  log('Thợ ảnh thấy gợi ý số ảnh có ghi chú riêng trên thẻ yêu cầu', kanbanText.includes('2 ảnh có ghi chú riêng'), kanbanText.replace(/\s+/g, ' ').trim());
 
   await browser.close();
   const failed = results.filter(r => !r.ok);

@@ -28,8 +28,6 @@ const DEMO_ACCOUNTS = {
   '0900000002': { password: 'sale123', role: 'sale', name: 'Ngọc Anh' },
   '0900000005': { password: 'sale123', role: 'sale', name: 'Minh Thư' },
   '0900000006': { password: 'sale123', role: 'sale', name: 'Thu Hà' },
-  '0900000007': { password: 'sale123', role: 'sale', name: 'Quốc Bảo' },
-  '0900000008': { password: 'sale123', role: 'sale', name: 'Hải Yến' },
   '0900000003': { password: 'anh123', role: 'tho-anh', name: 'Thợ ảnh demo' },
   '0900000004': { password: 'sep123', role: 'sep', name: 'Sếp demo' }
 };
@@ -418,4 +416,5 @@ router.post('/inbox/:phone/read', requireAuth(['sale']), wrap(async (req, res) =
   res.json({ chat: publicChat(chat) });
 }));
 
-module.exports = { router, storeKind: store.kind };
+// requireAuth dùng chung cho server/edit-requests.js (cùng token, cùng AUTH_SECRET).
+module.exports = { router, storeKind: store.kind, requireAuth };

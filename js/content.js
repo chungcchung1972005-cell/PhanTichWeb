@@ -34,7 +34,9 @@
   const VIDEO_NOEL = { video: V + 'hau-truong-noel.mp4', poster: V + 'hau-truong-noel.jpg', alt: 'Video hậu trường chụp concept Noel cho bé' };
   const VIDEO_NEWBORN = { video: V + 'newborn-trong-gio.mp4', poster: V + 'newborn-trong-gio.jpg', alt: 'Video bé newborn ngủ trong giỏ' };
   const VIDEO_BIRTHDAY = { video: V + 'sinh-nhat-gia-dinh.mp4', poster: V + 'sinh-nhat-gia-dinh.jpg', alt: 'Video gia đình mừng sinh nhật bé' };
-  const NOTE_STOCK = 'Ảnh và video trên trang là tư liệu minh hoạ phong cách chụp, không phải ảnh khách hàng thật của studio.';
+  // Từ 2026-10-13 ảnh album Newborn/Sinh nhật/Bé lớn/Gia đình là ảnh thật của studio (fanpage); video,
+  // ảnh bìa bài viết và album Bầu vẫn là tư liệu stock minh hoạ.
+  const NOTE_STOCK = 'Video, ảnh bìa bài viết và ảnh album Bầu là tư liệu minh hoạ, không phải khách hàng thật; ảnh concept các dịch vụ khác do ALOHA Baby Studio thực hiện.';
   const ALL_SERVICES = ['newborn', 'bau', 'sinh-nhat', 'be-lon', 'gia-dinh'];
 
   const CRUMB_CONCEPT = { label: 'Concept', href: '#concept' };
@@ -60,7 +62,7 @@
           { title: 'Nhận ảnh hoàn thiện', text: 'Theo dõi tiến độ chỉnh sửa (Chờ xử lý, Đang thực hiện, Hoàn thành) và nhận thông báo khi ảnh đã sửa xong.' }
         ] },
         { type: 'heading', text: 'Thêm vài khoảnh khắc' },
-        { type: 'gallery', items: [VIDEO_NEWBORN, VIDEO_BIRTHDAY], from: ['newborn/cuon-u', 'sinh-nhat/le-hoi', 'gia-dinh/dong-phuc'], limit: 11 },
+        { type: 'gallery', items: [VIDEO_NEWBORN, VIDEO_BIRTHDAY], from: ['newborn/white-blossom', 'sinh-nhat/birthday-spotlight', 'gia-dinh/blue-family'], limit: 11 },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['gioi-thieu-studio', 'chup-tai-nha', 'huong-dan-dat-lich']
@@ -94,7 +96,7 @@
       eyebrow: 'Dịch vụ tại nhà',
       title: 'Chụp ảnh tại nhà cùng ALOHA Baby',
       lead: 'Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen thuộc.',
-      coverFrom: 'gia-dinh/vintage',
+      coverFrom: 'gia-dinh/simple-love',
       blocks: [
         { type: 'heading', text: 'Khi nào nên chọn chụp tại nhà?' },
         { type: 'list', items: [
@@ -112,7 +114,7 @@
         ] },
         { type: 'text', text: 'Trang phục và đạo cụ theo concept: ba mẹ trao đổi trước với Sale để ekip chuẩn bị mang theo.' },
         { type: 'heading', text: 'Khung hình trong không gian nhà' },
-        { type: 'gallery', from: ['gia-dinh/vintage', 'newborn/cung-bo-me', 'gia-dinh/nhieu-the-he'], limit: 12 },
+        { type: 'gallery', from: ['gia-dinh/simple-love', 'gia-dinh/strawberry-garden', 'gia-dinh/phu-quy'], limit: 12 },
         { type: 'note', text: 'Khu vực phục vụ, chi phí di chuyển và lịch trống cho buổi chụp tại nhà: Sale tư vấn riêng cho từng gia đình. Khi đặt lịch, ba mẹ ghi "chụp tại nhà" ở mục Ghi chú thêm. ' + NOTE_STOCK }
       ],
       related: ['newborn-thoi-diem', 'mot-ngay-tai-aloha', 'huong-dan-dat-lich']
@@ -141,9 +143,9 @@
           'Mang kem chống nắng, mũ, nước uống và quần áo thay cho bé.'
         ] },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['bau/bien', 'gia-dinh/bien', 'be-lon/ngoai-canh'], limit: 12 },
+        { type: 'gallery', from: ['bau/bien', 'bau/ngoai-canh'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['bau/bien', 'gia-dinh/bien', 'be-lon/ngoai-canh'] },
+        { type: 'albums', refs: ['bau/bien', 'bau/ngoai-canh'] },
         { type: 'note', text: 'Buổi chụp ngoại cảnh biển cần sắp xếp lịch trình và di chuyển riêng. Địa điểm, thời gian và chi phí phát sinh: Sale tư vấn theo từng gia đình. ' + NOTE_STOCK }
       ],
       related: ['concept-vintage', 'concept-han-quoc', 'concept-sinh-nhat']
@@ -154,7 +156,7 @@
       eyebrow: 'Concept',
       title: 'Concept Giáng sinh (Noel)',
       lead: 'Mũ ông già Noel, cây thông và ánh đèn lấp lánh cho mùa lễ hội ấm áp.',
-      coverFrom: 'sinh-nhat/le-hoi',
+      coverFrom: 'gia-dinh/merry-christmas',
       blocks: [
         { type: 'video', src: VIDEO_NOEL.video, poster: VIDEO_NOEL.poster, caption: 'Hậu trường chụp concept Noel cho bé.' },
         { type: 'heading', text: 'Hợp với ai?' },
@@ -169,9 +171,9 @@
           'Mùa lễ cuối năm thường đông lịch, ba mẹ nên đặt lịch sớm để chọn được khung giờ đẹp.'
         ] },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['sinh-nhat/le-hoi'], limit: 12 },
+        { type: 'gallery', from: ['gia-dinh/merry-christmas'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['sinh-nhat/le-hoi', 'sinh-nhat/tiec-gia-dinh', 'gia-dinh/dong-phuc'] },
+        { type: 'albums', refs: ['gia-dinh/merry-christmas'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-sinh-nhat', 'mot-ngay-tai-aloha', 'concept-vintage']
@@ -182,12 +184,12 @@
       eyebrow: 'Concept',
       title: 'Concept Sinh nhật',
       lead: 'Bóng bay, bánh kem và nụ cười của bé trong ngày đặc biệt.',
-      coverFrom: 'sinh-nhat/bong-bay',
+      coverFrom: 'sinh-nhat/happy-donut',
       blocks: [
         { type: 'text', text: 'Mỗi mốc tuổi của bé, từ thôi nôi, 1 tuổi, 2 tuổi trở đi, đều đáng được lưu lại. Studio có nhiều concept sinh nhật để ba mẹ chọn theo tính cách của bé: rực rỡ, nhẹ nhàng, cổ tích hay ngoài trời.' },
         { type: 'video', src: VIDEO_BIRTHDAY.video, poster: VIDEO_BIRTHDAY.poster, caption: 'Cả nhà mừng sinh nhật bé.' },
         { type: 'heading', text: 'Chọn concept nào?' },
-        { type: 'albums', refs: ['sinh-nhat/bong-bay', 'sinh-nhat/pastel', 'sinh-nhat/cong-chua', 'sinh-nhat/tiec-gia-dinh', 'sinh-nhat/picnic', 'sinh-nhat/trung-thu', 'sinh-nhat/le-hoi'] },
+        { type: 'albums', refs: ['sinh-nhat/birthday-spotlight', 'sinh-nhat/nang-bach-tuyet', 'sinh-nhat/summer-picnic', 'sinh-nhat/nha-minh-co-hoa', 'sinh-nhat/sinh-nhat-song-sinh', 'sinh-nhat/baby-prince', 'sinh-nhat/cozy-sky', 'sinh-nhat/angel-baby', 'sinh-nhat/happy-donut', 'sinh-nhat/sweet-birthday'] },
         { type: 'heading', text: 'Gợi ý chuẩn bị' },
         { type: 'list', items: [
           'Cho bé ăn và ngủ trưa đủ trước buổi chụp, bé vui thì ảnh mới tươi.',
@@ -195,7 +197,7 @@
           'Mang theo món đồ chơi bé thích để dỗ bé cười.'
         ] },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['sinh-nhat/bong-bay', 'sinh-nhat/pastel', 'sinh-nhat/cong-chua', 'sinh-nhat/picnic'], limit: 12 },
+        { type: 'gallery', from: ['sinh-nhat/happy-donut', 'sinh-nhat/angel-baby', 'sinh-nhat/nang-bach-tuyet', 'sinh-nhat/summer-picnic'], limit: 12 },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-noel', 'concept-han-quoc', 'huong-dan-dat-lich']
@@ -221,9 +223,9 @@
           'Phụ kiện đơn giản: mũ cói, nơ, dây đeo quần cho bé trai.'
         ] },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['bau/vintage', 'be-lon/vintage', 'gia-dinh/vintage', 'newborn/den-trang'], limit: 12 },
+        { type: 'gallery', from: ['bau/vintage', 'gia-dinh/xuan-kim-phuc', 'newborn/baby-cowboy'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['bau/vintage', 'be-lon/vintage', 'gia-dinh/vintage', 'newborn/den-trang'] },
+        { type: 'albums', refs: ['bau/vintage', 'gia-dinh/xuan-kim-phuc', 'newborn/baby-cowboy'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-han-quoc', 'concept-bien', 'gioi-thieu-studio']
@@ -234,7 +236,7 @@
       eyebrow: 'Concept',
       title: 'Concept Hàn Quốc',
       lead: 'Trang phục và bối cảnh phong cách Hàn, tông màu nhẹ, bố cục tối giản.',
-      coverFrom: 'be-lon/han-quoc',
+      coverFrom: 'be-lon/korea-princess',
       blocks: [
         { type: 'text', text: 'Phong cách Hàn Quốc chuộng ảnh sáng, trong trẻo, ít đạo cụ, để nụ cười và nét mặt của bé là điểm nhấn. Bé có thể mặc hanbok truyền thống hoặc trang phục hiện đại phong cách Hàn.' },
         { type: 'heading', text: 'Hợp với ai?' },
@@ -244,9 +246,9 @@
           'Gia đình thích ảnh sáng màu, phối đồ đồng điệu.'
         ] },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['be-lon/han-quoc', 'bau/toi-gian', 'gia-dinh/dong-phuc'], limit: 12 },
+        { type: 'gallery', from: ['be-lon/korea-princess', 'bau/toi-gian', 'gia-dinh/blue-family'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['be-lon/han-quoc', 'bau/toi-gian', 'gia-dinh/dong-phuc'] },
+        { type: 'albums', refs: ['be-lon/korea-princess', 'bau/toi-gian', 'gia-dinh/blue-family'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-vintage', 'concept-sinh-nhat', 'concept-bien']
@@ -277,7 +279,7 @@
         { type: 'heading', text: 'An toàn của bé là trên hết' },
         { type: 'text', text: 'Phòng chụp newborn tại ALOHA Baby được giữ ấm để bé không bị lạnh khi cởi đồ. Ekip không ép bé vào tư thế khó; những tư thế trông "mạo hiểm" như chống cằm luôn cần người đỡ tay và được ghép ảnh ở khâu hậu kỳ, không để bé tự giữ tư thế.' },
         { type: 'heading', text: 'Concept newborn tham khảo' },
-        { type: 'albums', refs: ['newborn/cuon-u', 'newborn/tu-nhien', 'newborn/cung-bo-me', 'newborn/hoa-la', 'newborn/den-trang', 'newborn/trang-sao'] },
+        { type: 'albums', refs: ['newborn/white-blossom', 'newborn/baby-butterfly', 'newborn/starry-dream', 'newborn/little-dimsum', 'newborn/tinker-bell', 'newborn/baby-unicorn'] },
         { type: 'note', text: 'Thông tin trong bài là kinh nghiệm tham khảo chung. Bé sinh non, nhẹ cân hoặc có vấn đề sức khỏe, ba mẹ nên hỏi ý kiến bác sĩ trước khi chụp và ghi rõ ở mục "Lưu ý sức khỏe" khi đặt lịch. ' + NOTE_STOCK }
       ],
       related: ['huong-dan-dat-lich', 'chup-tai-nha', 'vi-sao-chon-aloha']

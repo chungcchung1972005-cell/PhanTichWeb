@@ -90,7 +90,7 @@ const missingFiles = (files) => files.filter((f) => !fs.existsSync(path.join(ROO
       title: document.getElementById('galleryTitle').textContent,
       items: document.querySelectorAll('#galleryGrid .gallery-item').length
     }));
-    log(P('Bấm "Gia đình sum vầy" (chưa đăng nhập) mở album Nhiều thế hệ'), albumSt.albumShown && !albumSt.url.includes('login.html') && albumSt.items > 0 && albumSt.title === 'Nhiều thế hệ', albumSt.title + ' / ' + albumSt.items + ' ảnh');
+    log(P('Bấm thẻ "Phú Quý" (chưa đăng nhập) mở album Phú Quý'), albumSt.albumShown && !albumSt.url.includes('login.html') && albumSt.items > 0 && albumSt.title === 'Phú Quý', albumSt.title + ' / ' + albumSt.items + ' ảnh');
     // Lightbox dùng chung (đã chuyển ra ngoài view album) vẫn chạy ở album.
     await page.click('#galleryGrid .gallery-item');
     await wait(200);
