@@ -1179,7 +1179,8 @@
 
   <!-- Nút nổi: chat tư vấn + đặt lịch -->
   <div class="floating-actions">
-    <button class="fab-chat" id="chatToggle" aria-label="Chat tư vấn với ALOHA Baby">
+    <button class="fab-chat" id="chatToggle" aria-label="Chat tư vấn với ALOHA Baby"
+      aria-controls="chatPanel" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
         stroke-linejoin="round">
         <path
@@ -1207,9 +1208,10 @@
   <!-- Chatbot tư vấn: bước chọn dịch vụ/concept ban đầu vẫn là kịch bản dựng sẵn
      (quick-reply); khung nhập bên dưới nối sang server proxy (server/) gọi
      Gemini API thật — xem .claude/rules/workflow.md và server/server.js.
-     2026-09-28: tự mở ở trang chủ (máy tính), lời chào đổi theo dịch vụ đang xem; bấm
+     Lời chào đổi theo dịch vụ đang xem; khung chỉ mở khi khách chủ động bấm; bấm
      "Nhắn Sale" thì chat tiếp với Sale ngay trong khung này (js/sale-chat.js embed). -->
-  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby">
+  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat tư vấn ALOHA Baby"
+    aria-hidden="true">
     <!-- Đầu khung gọn 1 hàng (29/09): logo chữ + dòng trạng thái | Nhắn Sale, gọi, đóng. Thanh "Nhắn Sale /
        Gọi" dưới thân khung đã bỏ để phần tin nhắn rộng hơn. -->
     <div class="chat-header">

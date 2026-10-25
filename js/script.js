@@ -777,6 +777,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const openChat = () => {
       chatPanel.classList.add('open');
+      chatPanel.setAttribute('aria-hidden', 'false');
+      chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
       startChat();
       if (!isCustomerLoggedIn() || !window.AlohaSaleChat) return;
@@ -790,8 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const closeChat = () => {
       chatPanel.classList.remove('open');
+      chatPanel.setAttribute('aria-hidden', 'true');
+      chatToggle.setAttribute('aria-expanded', 'false');
       writeUi({ dismissed: true });
       hideTeaser();
+      if (chatPanel.contains(document.activeElement)) chatToggle.focus({ preventScroll: true });
       if (saleMode && window.AlohaSaleChat) window.AlohaSaleChat.pause();
     };
 
@@ -805,15 +810,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (chatPanel.classList.contains('open')) closeChat(); else openChat();
     });
     chatClose.addEventListener('click', closeChat);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && chatPanel.classList.contains('open')) closeChat();
+    });
     if (teaserText) teaserText.addEventListener('click', openChat);
     const teaserClose = document.getElementById('chatTeaserClose');
     if (teaserClose) teaserClose.addEventListener('click', () => { writeUi({ dismissed: true }); hideTeaser(); });
 
-    // Trang chủ trên máy tính: tự mở khung chat sau 1.5 giây. Điện thoại: chỉ hiện bong bóng lời
-    // chào cạnh nút chat (khung chat che gần hết màn hình). Khách đã đóng thì thôi trong lần truy
-    // cập này. Sang trang album dịch vụ: đổi lời chào, KHÔNG tự mở lại (giữ trạng thái mở/đóng).
-    let autoOpenTimer = null;
-    let autoOpened = false;
+    // Không tự mở khung chat trên máy tính. Điện thoại chỉ hiện bong bóng lời chào gọn cạnh nút chat.
+    // Khách đã đóng thì không hiện lại trong tab hiện tại; chuyển trang vẫn giữ trạng thái đóng.
     const refreshChatForPage = () => {
       applyContext();
       if (chatPanel.classList.contains('open')) { hideTeaser(); return; }
@@ -822,14 +827,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ui.dismissed) { hideTeaser(); return; }
       if (isDesktop()) {
         hideTeaser();
-        if (onHomeView() && ctx.key === 'home' && !autoOpened && !autoOpenTimer) {
-          autoOpenTimer = setTimeout(() => {
-            autoOpenTimer = null;
-            if (readUi().dismissed || chatPanel.classList.contains('open') || !onHomeView()) return;
-            autoOpened = true;
-            openChat();
-          }, 1500);
-        }
       } else if (teaser && teaserText && ((onHomeView() && ctx.key === 'home') || ctx.service)) {
         teaserText.textContent = greetingFor(ctx).teaser;
         teaser.hidden = false;
@@ -925,6 +922,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // lai" khi cần (js/sale-chat.js ensureGuest), không đụng tới aloha_auth/tài khoản thật.
       if (!window.AlohaSaleChat) { window.location.href = 'tel:0938125222'; return; }
       chatPanel.classList.add('open');
+      chatPanel.setAttribute('aria-hidden', 'false');
+      chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
       if (!chatStarted) { chatStarted = true; interacted = true; greetedKey = pageContext().key; }
       const slug = topic || (pageContext().service ? pageContext().service.slug : '');
