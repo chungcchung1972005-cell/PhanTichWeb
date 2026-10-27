@@ -439,7 +439,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // phải khai báo lại danh sách số ở 2 nơi rồi lệch nhau.
   const kpiGrid = document.querySelector('#kpi .kpi-grid');
   if (kpiGrid) {
-    if (saleDb && Array.isArray(saleDb.customers) && saleDb.customers.length) {
+    // Luôn lấy số từ cùng nguồn với Phễu bên dưới (kể cả khi chưa có khách) để 2 khối không
+    // lệch nhau; chưa có khách thì thay dòng "so với kỳ trước" mẫu bằng lời báo chưa có dữ liệu.
+    if (SALE_DB && Array.isArray(SALE_DB.customers)) {
+      const noData = !SALE_DB.customers.length;
       const qCards = [
         { sel: '.kpi-quan-tam', val: funnelCounts[0] },
         { sel: '.kpi-tu-van', val: funnelCounts[1] },
@@ -450,6 +453,8 @@ document.addEventListener('DOMContentLoaded', () => {
       qCards.forEach(c => {
         const num = kpiGrid.querySelector(c.sel + ' .num');
         if (num) num.textContent = c.val;
+        const trend = kpiGrid.querySelector(c.sel + ' .trend');
+        if (trend && noData) { trend.textContent = 'Chưa có dữ liệu'; trend.className = 'trend'; }
       });
     }
     const kpiCards = Array.from(kpiGrid.querySelectorAll('.kpi-card'));
@@ -486,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="sale-perf-av">${escHtml(initials)}</span>
             <div style="flex:1; min-width:0;">
               <div class="sale-perf-name">${escHtml(s.name)}</div>
-              <div class="sale-perf-role">SĐT: ${escHtml(s.phone)} · Phản hồi ~${s.responseMin}p</div>
+              <div class="sale-perf-role">SĐT: ${escHtml(s.phone)} · Phản hồi ${s.responseMin == null ? 'chưa có số liệu' : '~' + s.responseMin + 'p'}</div>
             </div>
             <span class="badge ${isLeave ? 'badge-tu-van' : 'badge-hoan-thanh'} sale-perf-badge">${isLeave ? 'Nghỉ phép' : 'Đang trực'}</span>
           </div>
@@ -719,14 +724,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const leads = filtered().filter(c => c.stage);
       const rate = leads.length ? Math.round(leads.filter(c => c.stage === 'da-chot').length / leads.length * 100) : 0;
       const rs = ui.owner ? (SALE_DB.sales || []).find(s => s.id === ui.owner) : null;
-      const respMin = rs ? rs.responseMin : Math.round((SALE_DB.sales || []).reduce((t, s) => t + s.responseMin, 0) / ((SALE_DB.sales && SALE_DB.sales.length) || 1));
+      const known = (rs ? [rs] : (SALE_DB.sales || [])).filter(s => s.responseMin != null);
+      const respMin = known.length ? Math.round(known.reduce((t, s) => t + s.responseMin, 0) / known.length) + ' phút' : '—';
       return '<div class="ck-toolbar">' + seg +
         sel('owner', 'Sale phụ trách', (SALE_DB.sales || []).map(s => ({ v: s.id, l: s.name })), ui.owner, 'users') +
         sel('source', 'Nguồn', SOURCES.map(s => ({ v: s, l: s })), ui.source) +
         sel('service', 'Dịch vụ', SERVICES.map(s => ({ v: s, l: s })), ui.service) +
         `<label class="ck-pill ck-search">${ic('search')}<input type="search" data-ck-search value="${escHtml(ui.q)}" placeholder="Tìm tên hoặc SĐT..." aria-label="Tìm khách theo tên hoặc SĐT"></label>` +
         (ui.mode === 'bang'
-          ? `<p class="ck-stats">Tỉ lệ chốt: <strong>${rate}%</strong> · Thời gian phản hồi TB: <strong>${respMin} phút</strong></p>`
+          ? `<p class="ck-stats">Tỉ lệ chốt: <strong>${rate}%</strong> · Thời gian phản hồi TB: <strong>${respMin}</strong></p>`
           : `<button type="button" class="ck-pill${ui.bday ? ' on' : ''}" data-ck="bday" aria-pressed="${ui.bday}">${ic('gift')}<span>Có bé sắp sinh nhật</span></button>`) +
       '</div>';
     }

@@ -40,10 +40,12 @@
   }
   .login-field input:focus { outline: none; border-color: var(--pink-500); }
   .login-toggle-pw {
-    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    /* Cao bằng cả ô nhập (dễ bấm trên điện thoại); ô mật khẩu chừa chỗ bên phải để chữ không chui dưới nút */
+    position: absolute; right: 2px; top: 2px; bottom: 2px; min-width: 52px;
     border: none; background: none; color: var(--pink-600); font-weight: 700; font-size: 12.5px;
-    cursor: pointer; padding: 6px 8px;
+    cursor: pointer; padding: 0 10px;
   }
+  .login-field input#loginPassword { padding-right: 64px; }
   .login-error {
     display: none; background: #fdeaea; color: #c22d2d; border-radius: var(--radius-sm);
     padding: 10px 12px; font-size: 13px; margin-bottom: 16px;

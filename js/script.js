@@ -211,15 +211,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
         <div class="nav-util-item${isDoneUnseen ? ' notif-highlight' : ''}">
           <strong>${isDoneUnseen ? 'Ảnh đã sửa xong · ' : ''}${r.orderCode || ''}</strong>
-          <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
+          <span class="sub">${r.serviceLabel || 'Buổi chụp'} · ${r.photoCount || 0} ảnh</span>
           <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
         </div>`;
       }
       return `
       <div class="nav-util-item">
         <strong>Yêu cầu chỉnh sửa ${r.orderCode || ''}</strong>
-        <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
-        <span class="notif-status">${r.status}</span>
+        <span class="sub">${r.serviceLabel || 'Buổi chụp'} · ${r.photoCount || 0} ảnh</span>
+        <span class="notif-status">${r.status || 'Chờ xử lý'}</span>
       </div>`;
     }).join('');
 
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'Newborn': {
         img: 'images/services/newborn.jpg',
         concepts: ['Newborn tự nhiên (organic) tại studio', 'Cuộn ủ (wrap) cổ điển', 'Có bố mẹ/anh chị cùng khung hình'],
-        note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn — studio giữ ấm phòng chụp phù hợp cho bé.',
+        note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn. Studio giữ ấm phòng chụp phù hợp cho bé.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.200.000đ'
       }
@@ -850,6 +850,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const openChat = () => {
       chatPanel.classList.add('open');
+      chatPanel.setAttribute('aria-hidden', 'false');
+      chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
       startChat();
       if (!isCustomerLoggedIn() || !window.AlohaSaleChat) return;
@@ -862,23 +864,43 @@ document.addEventListener('DOMContentLoaded', () => {
       if (session && session.token && (ui.mode === 'sale' || window.AlohaSaleChat.unread() > 0)) enterSale(ui.saleTopic || '');
     };
     const closeChat = () => {
-      // Ô chat luôn mở to, không tự thu nhỏ lại
-      openChat();
+      chatPanel.classList.remove('open');
+      chatPanel.setAttribute('aria-hidden', 'true');
+      chatToggle.setAttribute('aria-expanded', 'false');
+      writeUi({ dismissed: true });
+      hideTeaser();
+      if (chatPanel.contains(document.activeElement)) chatToggle.focus({ preventScroll: true });
+      if (saleMode && window.AlohaSaleChat) window.AlohaSaleChat.pause();
     };
 
     // Khách vãng lai (chưa đăng nhập) được chat tự do ngay, kể cả chat THẬT với Sale.
     chatToggle.addEventListener('click', () => {
-      openChat();
+      if (chatPanel.classList.contains('open')) closeChat(); else openChat();
     });
-    if (chatClose) chatClose.addEventListener('click', (e) => { e.preventDefault(); openChat(); });
+    chatClose.addEventListener('click', closeChat);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && chatPanel.classList.contains('open')) closeChat();
+    });
     if (teaserText) teaserText.addEventListener('click', openChat);
     const teaserClose = document.getElementById('chatTeaserClose');
-    if (teaserClose) teaserClose.addEventListener('click', () => { hideTeaser(); });
+    if (teaserClose) teaserClose.addEventListener('click', () => { writeUi({ dismissed: true }); hideTeaser(); });
 
-    // Luôn mở hộp thoại chat, không thu nhỏ ô chat
+    // Không tự mở khung chat trên máy tính. Điện thoại chỉ hiện bong bóng lời chào gọn cạnh nút chat.
+    // Khách đã đóng thì không hiện lại trong tab hiện tại; chuyển trang vẫn giữ trạng thái đóng.
     const refreshChatForPage = () => {
       applyContext();
-      openChat();
+      if (chatPanel.classList.contains('open')) { hideTeaser(); return; }
+      const ui = readUi();
+      const ctx = pageContext();
+      if (ui.dismissed) { hideTeaser(); return; }
+      if (isDesktop()) {
+        hideTeaser();
+      } else if (teaser && teaserText && ((onHomeView() && ctx.key === 'home') || ctx.service)) {
+        teaserText.textContent = greetingFor(ctx).teaser;
+        teaser.hidden = false;
+      } else {
+        hideTeaser();
+      }
     };
     window.addEventListener('hashchange', () => setTimeout(refreshChatForPage, 0));
 
@@ -985,6 +1007,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // lai" khi cần (js/sale-chat.js ensureGuest), không đụng tới aloha_auth/tài khoản thật.
       if (!window.AlohaSaleChat) { window.location.href = 'tel:0938125222'; return; }
       chatPanel.classList.add('open');
+      chatPanel.setAttribute('aria-hidden', 'false');
+      chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
       if (!chatStarted) { chatStarted = true; interacted = true; greetedKey = pageContext().key; }
       const slug = topic || (pageContext().service ? pageContext().service.slug : '');

@@ -53,7 +53,16 @@ const TARGETS = [
   { service: 'gia-dinh', concept: 'bien', query: 'family beach photoshoot with kids' },
   { service: 'gia-dinh', concept: 'nhieu-the-he', query: 'grandparents with grandchildren family portrait' },
   { service: 'gia-dinh', concept: 'anh-chi-em', query: 'siblings portrait photoshoot' },
-  { service: 'gia-dinh', concept: 'da-ngoai', query: 'family picnic with children' }
+  { service: 'gia-dinh', concept: 'da-ngoai', query: 'family picnic with children' },
+  // Đợt 3 (2026-10-16): làm dày concept Bầu theo yêu cầu người dùng.
+  { service: 'bau', concept: 'den-trang', query: 'maternity black and white photography' },
+  { service: 'bau', concept: 'hoang-hon', query: 'pregnant woman sunset silhouette' },
+  { service: 'bau', concept: 'voan-bay', query: 'maternity dress flowing fabric photoshoot' },
+  { service: 'bau', concept: 'canh-dong-hoa', query: 'pregnant woman flower field' },
+  { service: 'bau', concept: 'am-ap-tai-nha', query: 'pregnant woman cozy home' },
+  { service: 'bau', concept: 'cho-don-be', query: 'pregnant belly baby shoes' },
+  { service: 'bau', concept: 'ao-trang', query: 'pregnant woman white shirt portrait' },
+  { service: 'bau', concept: 'mua-thu', query: 'pregnant woman autumn leaves' }
 ];
 
 function download(url, dest) {
@@ -80,7 +89,10 @@ function download(url, dest) {
     headless: 'new', args: ['--no-sandbox']
   });
 
-  for (const t of TARGETS) {
+  // ONLY=bau: chỉ tải cho 1 dịch vụ (4 dịch vụ khác đã thay bằng ảnh thật fanpage 2026-10-13,
+  // thư mục concept cũ không còn nên chạy không lọc sẽ tải lại stock vào đó).
+  const only = process.env.ONLY || 'bau';
+  for (const t of TARGETS.filter((x) => x.service === only)) {
     const dir = path.join(ROOT, t.service, t.concept);
     // Concept đã có ảnh thì bỏ qua (không ghi đè ảnh đã duyệt). Muốn tải lại: xoá thư mục đó trước.
     if (fs.existsSync(dir) && fs.readdirSync(dir).some((f) => f.endsWith('.jpg'))) { console.log('SKIP - ' + t.service + '/' + t.concept + ' (đã có ảnh)'); continue; }
