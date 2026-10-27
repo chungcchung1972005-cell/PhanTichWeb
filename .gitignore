@@ -1,0 +1,2 @@
+# Cấu hình Claude Code của từng máy, không đẩy lên repo chung
+.claude/settings.local.json
