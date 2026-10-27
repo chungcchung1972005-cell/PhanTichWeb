@@ -1256,3 +1256,21 @@ body.hide-floating-book .floating-book { display: none; }
 .feat-no-booking a[href="#/dat-lich"],
 .feat-no-booking .cta-final { display: none !important; }
 .feat-no-album a[href^="#/album"] { pointer-events: none; cursor: default; }
+
+/* Điện thoại (2026-10-27): ô nhập >= 16px để iPhone không tự phóng to khi bấm vào; nút đóng bong bóng
+   lời chào to hơn cho dễ bấm. Dùng chung cho index.html, login.html, crm/admin.html (đều nạp file này). */
+@media (max-width: 760px) {
+  .chat-teaser-close { width: 36px; height: 36px; }
+}
+/* Màn cảm ứng (điện thoại, iPad): ô nhập 16px. !important vì nhiều ô lọc ở trang quản trị có
+   selector riêng cỡ chữ nhỏ hơn; chỉ áp dụng cho màn cảm ứng nên máy tính giữ nguyên. */
+@media (pointer: coarse) and (max-width: 1100px) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 16px !important; }
+}
+/* Vùng bấm tối thiểu trên điện thoại (2026-10-27, Codex soát chéo): nút đầu khung chat, nút tiện ích đầu trang */
+@media (max-width: 760px) {
+  .chat-head-btn { width: 40px; height: 40px; }
+  .chat-close { min-width: 40px; }
+  .chat-sale-btn { height: 40px; }
+  .icon-btn, .nav-toggle { width: 40px; height: 40px; }
+}

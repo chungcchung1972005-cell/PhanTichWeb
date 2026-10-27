@@ -211,15 +211,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
         <div class="nav-util-item${isDoneUnseen ? ' notif-highlight' : ''}">
           <strong>${isDoneUnseen ? 'Ảnh đã sửa xong · ' : ''}${r.orderCode || ''}</strong>
-          <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
+          <span class="sub">${r.serviceLabel || 'Buổi chụp'} · ${r.photoCount || 0} ảnh</span>
           <span class="notif-status">Hoàn thành, xem trong "Ảnh của tôi"</span>
         </div>`;
       }
       return `
       <div class="nav-util-item">
         <strong>Yêu cầu chỉnh sửa ${r.orderCode || ''}</strong>
-        <span class="sub">${r.serviceLabel} · ${r.photoCount} ảnh</span>
-        <span class="notif-status">${r.status}</span>
+        <span class="sub">${r.serviceLabel || 'Buổi chụp'} · ${r.photoCount || 0} ảnh</span>
+        <span class="notif-status">${r.status || 'Chờ xử lý'}</span>
       </div>`;
     }).join('');
 
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'Newborn': {
         img: 'images/services/newborn.jpg',
         concepts: ['Newborn tự nhiên (organic) tại studio', 'Cuộn ủ (wrap) cổ điển', 'Có bố mẹ/anh chị cùng khung hình'],
-        note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn — studio giữ ấm phòng chụp phù hợp cho bé.',
+        note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn. Studio giữ ấm phòng chụp phù hợp cho bé.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.200.000đ'
       }

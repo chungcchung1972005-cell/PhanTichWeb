@@ -1732,3 +1732,14 @@ body.lightbox-open { overflow: hidden; }
   .ps-chat-avatar { width: 42px; height: 42px; }
   .ps-chat-list { min-height: 200px; }
 }
+/* Nút "Sao chép" số tiền / nội dung chuyển khoản: đủ cao để bấm bằng ngón tay trên điện thoại */
+@media (max-width: 760px) {
+  .ps-copy-btn { min-height: 36px; padding: 6px 12px; font-size: .8rem; }
+}
+/* Vùng bấm tối thiểu trên điện thoại (2026-10-27): lightbox, chat Sale, thanh chọn ảnh nổi */
+@media (max-width: 768px) {
+  .ps-lb-actions button { width: 40px; height: 40px; }
+  .sc-call, .sc-close { width: 40px; height: 40px; }
+  .sc-retry { min-height: 36px; padding: 0 8px; }
+  .ps-summary.is-floating .ps-bulk-btn { min-height: 36px; }
+}
