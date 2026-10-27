@@ -1,264 +1,427 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Khu vực quản trị | ALOHA Baby</title>
-<link rel="icon" type="image/svg+xml" href="../images/logo-mark.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32.png">
-<link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=20260928c">
-<link rel="stylesheet" href="../css/admin.css?v=20261015a">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khu vực quản trị | ALOHA Baby</title>
+  <link rel="icon" type="image/svg+xml" href="../images/logo-mark.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32.png">
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=20260928c">
+  <link rel="stylesheet" href="../css/admin.css?v=20261015a">
 </head>
+
 <body>
 
-<!-- 1 file dùng chung cho 3 vai trò nội bộ (Sale/Thợ ảnh/Sếp); nội dung hiển thị
+  <!-- 1 file dùng chung cho 3 vai trò nội bộ (Sale/Thợ ảnh/Sếp); nội dung hiển thị
      theo đúng quyền của từng vai trò, xem crm/js/admin.js và js/auth.js -->
-<!-- Cờ tính năng dùng chung với trang khách (editSync: đồng bộ yêu cầu chỉnh ảnh qua server, mặc định
-     TẮT). Class feat-no-* nó gắn lên <html> chỉ ẩn link #/dat-lich, #/album, .cta-final - trang này không có. -->
-<script src="../js/features.js?v=20261015b"></script>
-<script src="../js/auth.js?v=20260927n"></script>
-<script src="../js/data-store.js?v=20261015a"></script>
-<script src="../js/edit-sync.js?v=20261015a"></script>
-<!-- Sale có giao diện riêng crm/sale.html (trang mặc định sau đăng nhập), nhưng vẫn được
+  <!-- Cờ tính năng dùng chung với trang khách (editSync: đồng bộ yêu cầu chỉnh ảnh qua server, mặc định
+       TẮT). Class feat-no-* nó gắn lên <html> chỉ ẩn link #/dat-lich, #/album, .cta-final - trang này không có. -->
+  <script src="../js/features.js?v=20261015c"></script>
+  <script src="../js/auth.js?v=20260927n"></script>
+  <script src="../js/data-store.js?v=20261015a"></script>
+  <script src="../js/edit-sync.js?v=20261015a"></script>
+  <!-- Sale có giao diện riêng crm/sale.html (trang mặc định sau đăng nhập), nhưng vẫn được
      vào đây để dùng mục Tin nhắn (chat thật với khách, chỉ Sale trả lời được). -->
-<script>AlohaAuth.requireRole(['sale', 'tho-anh', 'sep']);</script>
-<script>
-  // Khôi phục trạng thái thu gọn của cột menu NGAY tại đây, trước khi trình duyệt
-  // vẽ nội dung - nếu để tới lúc crm/js/admin.js chạy (DOMContentLoaded, cuối
-  // body) thì menu sẽ hiện đủ rộng rồi mới co lại, thành một cú giật khó chịu.
-  // Key riêng cho tuỳ chọn hiển thị, KHÔNG liên quan 2 kho dữ liệu mô phỏng
-  // aloha_auth / aloha_demo_db.
-  try {
-    if (localStorage.getItem('aloha_admin_ui') === 'collapsed') {
-      document.documentElement.classList.add('sidebar-collapsed');
-    }
-  } catch (e) { /* trình duyệt chặn localStorage thì cứ hiện menu đầy đủ */ }
-</script>
+  <script>AlohaAuth.requireRole(['sale', 'tho-anh', 'sep']);</script>
+  <script>
+    // Khôi phục trạng thái thu gọn của cột menu NGAY tại đây, trước khi trình duyệt
+    // vẽ nội dung - nếu để tới lúc crm/js/admin.js chạy (DOMContentLoaded, cuối
+    // body) thì menu sẽ hiện đủ rộng rồi mới co lại, thành một cú giật khó chịu.
+    // Key riêng cho tuỳ chọn hiển thị, KHÔNG liên quan 2 kho dữ liệu mô phỏng
+    // aloha_auth / aloha_demo_db.
+    try {
+      if (localStorage.getItem('aloha_admin_ui') === 'collapsed') {
+        document.documentElement.classList.add('sidebar-collapsed');
+      }
+    } catch (e) { /* trình duyệt chặn localStorage thì cứ hiện menu đầy đủ */ }
+  </script>
 
-<!-- Menu dọc bên trái (người dùng yêu cầu đổi từ thanh ngang, 2026-09-25 - xem
+  <!-- Menu dọc bên trái (người dùng yêu cầu đổi từ thanh ngang, 2026-09-25 - xem
      rules/design.md). Trên điện thoại/tablet hẹp, thanh này trượt ra từ mép
      trái khi bấm nút menu ở thanh trên cùng, kèm lớp phủ để bấm ra ngoài là
      đóng. Giữ nguyên id="adminTabs" và các thẻ <a data-roles="..."> vì phần
      phân quyền trong crm/js/admin.js lọc theo đúng cấu trúc này. -->
-<header class="admin-mobilebar">
-  <button type="button" class="admin-menu-btn" id="adminMenuBtn" aria-label="Mở menu" aria-expanded="false" aria-controls="adminSidebar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-  </button>
-  <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
-    <span class="wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
-  </a>
-</header>
-
-<div class="admin-scrim" id="adminScrim" hidden></div>
-
-<aside class="admin-sidebar" id="adminSidebar">
-  <div class="admin-sidebar-head">
-    <!-- Logo chữ mới (wordmark) khi menu mở rộng; khi thu gọn còn 72px thì chỉ
-         hiện biểu tượng trái tim images/logo-mark.svg (css/admin.css đổi qua lại). -->
-    <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
-      <img class="mark" src="../images/logo-mark.svg" alt="" aria-hidden="true">
-      <span class="word wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z"/></svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
-    </a>
-    <!-- Thu gọn/mở rộng cột menu ở màn rộng; trạng thái được nhớ lại cho lần sau.
-         Ở màn hẹp nút này bị ẩn vì đã có nút menu ở thanh trên cùng. -->
-    <button type="button" class="admin-collapse-btn" id="adminCollapseBtn"
-            aria-label="Thu gọn menu" aria-expanded="true" aria-controls="adminSidebar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l-7 7 7 7"/><path d="M19 5l-7 7 7 7"/></svg>
+  <header class="admin-mobilebar">
+    <button type="button" class="admin-menu-btn" id="adminMenuBtn" aria-label="Mở menu" aria-expanded="false"
+      aria-controls="adminSidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
     </button>
-  </div>
+    <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
+      <span class="wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart"
+            viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z" />
+          </svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
+    </a>
+  </header>
 
-  <nav class="admin-tabs" id="adminTabs" aria-label="Khu vực quản trị">
-    <a href="#kpi" data-roles="sep" class="active">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="8" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.6"/><rect x="3" y="14" width="7.5" height="7" rx="1.6"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.6"/></svg>
-      <span>Dashboard</span>
-    </a>
-    <a href="#tin-nhan" data-roles="sale sep">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12.5h5"/></svg>
-      <span>Tin nhắn</span>
-    </a>
-    <a href="#khach-hang" data-roles="sep sale">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6"/><path d="M16.5 5.2a3.4 3.4 0 0 1 0 6.4"/><path d="M18 14.8c2.3.6 3.5 2.4 3.5 5.2"/></svg>
-      <span>Khách hàng</span>
-    </a>
-    <a href="#lich-hen" data-roles="sep sale">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-      <span>Lịch hẹn</span>
-    </a>
-    <a href="#anh" data-roles="sep tho-anh">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
-      <span>Ảnh &amp; chỉnh sửa</span>
-    </a>
-    <a href="#hoan-tat" data-roles="sep tho-anh">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>
-      <span>Đã hoàn tất</span>
-    </a>
-    <a href="#doanh-thu" data-roles="sep">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18V9"/><path d="M4 14.5l4.5-4 3.5 3 7.5-7"/><path d="M17 5.5h3v3"/></svg>
-      <span>Doanh thu</span>
-    </a>
-    <a href="#cai-dat" data-roles="sep">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.8 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.3a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z"/></svg>
-      <span>Cài đặt</span>
-    </a>
-  </nav>
+  <div class="admin-scrim" id="adminScrim" hidden></div>
 
-  <div class="admin-user">
-    <span class="admin-user-info">Xin chào, <strong id="userName">—</strong><br><span id="userRole"></span></span>
-    <button class="admin-logout" onclick="AlohaAuth.logout()">Đăng xuất</button>
-  </div>
-</aside>
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="admin-sidebar-head">
+      <!-- Logo chữ mới (wordmark) khi menu mở rộng; khi thu gọn còn 72px thì chỉ
+         hiện biểu tượng trái tim images/logo-mark.svg (css/admin.css đổi qua lại). -->
+      <a href="admin.html" class="logo" aria-label="ALOHA Baby, trang quản trị">
+        <img class="mark" src="../images/logo-mark.svg" alt="" aria-hidden="true">
+        <span class="word wordmark" aria-hidden="true"><span class="wordmark-name">aloha<svg class="wordmark-heart"
+              viewBox="0 0 12 12" aria-hidden="true">
+              <path
+                d="M6 11C1.4 8 .4 5.6 1.6 3.9 2.7 2.2 5.1 2.4 6 4.1 6.9 2.4 9.3 2.2 10.4 3.9 11.6 5.6 10.6 8 6 11z" />
+            </svg></span><span class="wordmark-sub">BABY STUDIO</span></span>
+      </a>
+      <!-- Thu gọn/mở rộng cột menu ở màn rộng; trạng thái được nhớ lại cho lần sau.
+         Ở màn hẹp nút này bị ẩn vì đã có nút menu ở thanh trên cùng. -->
+      <button type="button" class="admin-collapse-btn" id="adminCollapseBtn" aria-label="Thu gọn menu"
+        aria-expanded="true" aria-controls="adminSidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M13 5l-7 7 7 7" />
+          <path d="M19 5l-7 7 7 7" />
+        </svg>
+      </button>
+    </div>
 
-<main class="admin-body">
-  <div class="container">
-    <div class="admin-banner">Dữ liệu minh hoạ, không phải số liệu thật của studio. Nội dung hiển thị theo đúng quyền của tài khoản đang đăng nhập.</div>
+    <nav class="admin-tabs" id="adminTabs" aria-label="Khu vực quản trị">
+      <a href="#kpi" data-roles="sep" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="3" y="3" width="7.5" height="8" rx="1.6" />
+          <rect x="13.5" y="3" width="7.5" height="5" rx="1.6" />
+          <rect x="3" y="14" width="7.5" height="7" rx="1.6" />
+          <rect x="13.5" y="11" width="7.5" height="10" rx="1.6" />
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#tin-nhan" data-roles="sale sep">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
+          <path d="M8 9h8M8 12.5h5" />
+        </svg>
+        <span>Tin nhắn</span>
+      </a>
+      <a href="#khach-hang" data-roles="sep sale">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3.4" />
+          <path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6" />
+          <path d="M16.5 5.2a3.4 3.4 0 0 1 0 6.4" />
+          <path d="M18 14.8c2.3.6 3.5 2.4 3.5 5.2" />
+        </svg>
+        <span>Khách hàng</span>
+      </a>
+      <a href="#lich-hen" data-roles="sep sale">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M16 3v4M8 3v4M3 10h18" />
+        </svg>
+        <span>Lịch hẹn</span>
+      </a>
+      <a href="#anh" data-roles="sep tho-anh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+          <circle cx="12" cy="13" r="3.2" />
+        </svg>
+        <span>Ảnh &amp; chỉnh sửa</span>
+      </a>
+      <a href="#hoan-tat" data-roles="sep tho-anh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M8 12.5l2.5 2.5L16 9" />
+        </svg>
+        <span>Đã hoàn tất</span>
+      </a>
+      <a href="#doanh-thu" data-roles="sep">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M4 18h16" />
+          <path d="M4 18V9" />
+          <path d="M4 14.5l4.5-4 3.5 3 7.5-7" />
+          <path d="M17 5.5h3v3" />
+        </svg>
+        <span>Doanh thu</span>
+      </a>
+      <a href="#cai-dat" data-roles="sep">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2" />
+          <path
+            d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.8 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.3a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" />
+        </svg>
+        <span>Cài đặt</span>
+      </a>
+    </nav>
 
-    <!-- Block Sếp: KPI + biểu đồ + phễu -->
-    <section class="admin-section" id="kpi" data-roles="sep">
-      <h2>Tổng quan hôm nay</h2>
-      <p class="sub">Số lượng khách theo từng trạng thái trong phễu, giảm dần đúng thứ tự.</p>
-      <!-- Mỗi thẻ 1 icon + màu riêng theo đúng bậc phễu (khớp màu badge trạng
+    <div class="admin-user">
+      <span class="admin-user-info">Xin chào, <strong id="userName">—</strong><br><span id="userRole"></span></span>
+      <button class="admin-logout" onclick="AlohaAuth.logout()">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <main class="admin-body">
+    <div class="container">
+      <div class="admin-banner">Dữ liệu minh hoạ, không phải số liệu thật của studio. Nội dung hiển thị theo đúng quyền
+        của tài khoản đang đăng nhập.</div>
+
+      <!-- Block Sếp: KPI + biểu đồ + phễu -->
+      <section class="admin-section" id="kpi" data-roles="sep">
+        <h2>Tổng quan hôm nay</h2>
+        <p class="sub">Số lượng khách theo từng trạng thái trong phễu, giảm dần đúng thứ tự.</p>
+        <!-- Mỗi thẻ 1 icon + màu riêng theo đúng bậc phễu (khớp màu badge trạng
            thái đã dùng ở bảng Khách hàng/CRM bên dưới) + sparkline minh hoạ xu
            hướng - để 5 thẻ không còn nhìn giống hệt nhau. -->
-      <div class="kpi-grid">
-        <div class="kpi-card kpi-quan-tam">
-          <div class="kpi-top">
-            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg></span>
-            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,20 10,17 20,18 30,13 40,10 50,7 60,4"/></svg>
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-quan-tam">
+            <div class="kpi-top">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5 20c0-4 3-6 7-6s7 2 7 6" />
+                </svg></span>
+              <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none">
+                <polyline points="0,20 10,17 20,18 30,13 40,10 50,7 60,4" />
+              </svg>
+            </div>
+            <div class="num">320</div>
+            <div class="label">Khách quan tâm</div>
+            <span class="trend up">+12% so với kỳ trước</span>
           </div>
-          <div class="num">320</div>
-          <div class="label">Khách quan tâm</div>
-          <span class="trend up">+12% so với kỳ trước</span>
-        </div>
-        <div class="kpi-card kpi-tu-van">
-          <div class="kpi-top">
-            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></span>
-            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,18 10,16 20,17 30,14 40,12 50,10 60,8"/></svg>
+          <div class="kpi-card kpi-tu-van">
+            <div class="kpi-top">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
+                </svg></span>
+              <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none">
+                <polyline points="0,18 10,16 20,17 30,14 40,12 50,10 60,8" />
+              </svg>
+            </div>
+            <div class="num">210</div>
+            <div class="label">Đã tư vấn</div>
+            <span class="trend up">+8% so với kỳ trước</span>
           </div>
-          <div class="num">210</div>
-          <div class="label">Đã tư vấn</div>
-          <span class="trend up">+8% so với kỳ trước</span>
-        </div>
-        <div class="kpi-card kpi-dat-lich">
-          <div class="kpi-top">
-            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
-            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,15 10,14 20,16 30,13 40,12 50,11 60,10"/></svg>
+          <div class="kpi-card kpi-dat-lich">
+            <div class="kpi-top">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M16 3v4M8 3v4M3 10h18" />
+                </svg></span>
+              <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none">
+                <polyline points="0,15 10,14 20,16 30,13 40,12 50,11 60,10" />
+              </svg>
+            </div>
+            <div class="num">150</div>
+            <div class="label">Đã đặt lịch</div>
+            <span class="trend up">+5% so với kỳ trước</span>
           </div>
-          <div class="num">150</div>
-          <div class="label">Đã đặt lịch</div>
-          <span class="trend up">+5% so với kỳ trước</span>
-        </div>
-        <div class="kpi-card kpi-da-chup">
-          <div class="kpi-top">
-            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg></span>
-            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,10 10,9 20,11 30,10 40,12 50,13 60,14"/></svg>
+          <div class="kpi-card kpi-da-chup">
+            <div class="kpi-top">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+                  <circle cx="12" cy="13" r="3.2" />
+                </svg></span>
+              <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none">
+                <polyline points="0,10 10,9 20,11 30,10 40,12 50,13 60,14" />
+              </svg>
+            </div>
+            <div class="num">96</div>
+            <div class="label">Đã chụp</div>
+            <span class="trend down">-2% so với kỳ trước</span>
           </div>
-          <div class="num">96</div>
-          <div class="label">Đã chụp</div>
-          <span class="trend down">-2% so với kỳ trước</span>
-        </div>
-        <div class="kpi-card kpi-hoan-thanh">
-          <div class="kpi-top">
-            <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span>
-            <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none"><polyline points="0,14 10,13 20,15 30,12 40,13 50,11 60,10"/></svg>
+          <div class="kpi-card kpi-hoan-thanh">
+            <div class="kpi-top">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8 12.5l2.5 2.5L16 9" />
+                </svg></span>
+              <svg class="kpi-spark" viewBox="0 0 60 24" preserveAspectRatio="none">
+                <polyline points="0,14 10,13 20,15 30,12 40,13 50,11 60,10" />
+              </svg>
+            </div>
+            <div class="num">88</div>
+            <div class="label">Hoàn thành</div>
+            <span class="trend up">+3% so với kỳ trước</span>
           </div>
-          <div class="num">88</div>
-          <div class="label">Hoàn thành</div>
-          <span class="trend up">+3% so với kỳ trước</span>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="admin-section" data-roles="sep">
-      <div class="dash-two-col" style="display:grid; grid-template-columns: 1.1fr 1fr; gap:20px;">
-        <div>
-          <h2 style="font-size:16px; margin-bottom:12px;">Khách hàng mới theo tuần</h2>
-          <div class="chart-bar-wrap" id="newCustomerChart"></div>
+      <section class="admin-section" data-roles="sep">
+        <div class="dash-two-col" style="display:grid; grid-template-columns: 1.1fr 1fr; gap:20px;">
+          <div>
+            <h2 style="font-size:16px; margin-bottom:12px;">Khách hàng mới theo tuần</h2>
+            <div class="chart-bar-wrap" id="newCustomerChart"></div>
+          </div>
+          <div>
+            <h2 style="font-size:16px; margin-bottom:12px;">Phễu khách hàng</h2>
+            <div class="funnel" id="funnelChart"></div>
+          </div>
         </div>
-        <div>
-          <h2 style="font-size:16px; margin-bottom:12px;">Phễu khách hàng</h2>
-          <div class="funnel" id="funnelChart"></div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Block Sale + Sếp: Tin nhắn khách hàng (thêm 2026-09-27). Khách chat từ trang
+      <!-- Block Sếp: Hiệu suất Đội ngũ Sale & Duyệt chuyển giao khách (Đồng bộ dữ liệu Sale) -->
+      <section class="admin-section" id="sale-team-section" data-roles="sep">
+        <h2>Hiệu suất Đội ngũ Sale</h2>
+        <p class="sub">Theo dõi chỉ tiêu doanh số, tốc độ phản hồi và khối lượng khách của
+          5 nhân viên Sale.</p>
+        <div class="sale-perf-grid" id="salePerfGrid"></div>
+
+        <!-- Yêu cầu chuyển giao khách chờ Sếp duyệt -->
+        <div class="sale-transfer-approval-wrap" id="saleTransferApprovalWrap" style="margin-top:22px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <h3 style="font-size:15px; margin:0; display:flex; align-items:center; gap:8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" style="width:18px;height:18px;color:var(--pink-600);">
+                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+              </svg>
+              Yêu cầu Chuyển giao khách chờ Sếp duyệt
+            </h3>
+            <span class="badge badge-tu-van" id="saleTransferPendingCount">0 yêu cầu</span>
+          </div>
+          <div id="saleTransferList"></div>
+        </div>
+      </section>
+
+      <!-- Block Sale + Sếp: Tin nhắn khách hàng (thêm 2026-09-27). Khách chat từ trang
          web (bấm ảnh dịch vụ đầu trang chủ / nút chat nổi, js/sale-chat.js) -> hiện
          ở đây cho MỌI tài khoản Sale, Sale nào trả lời thì tin ghi tên Sale đó. Sếp
          chỉ xem. Dữ liệu: server/sale-chat.js (chat thật qua máy chủ, MongoDB), crm/js/admin.js vẽ. -->
-    <section class="admin-section" id="tin-nhan" data-roles="sale sep">
-      <h2>Tin nhắn khách hàng</h2>
-      <p class="sub" id="inboxSub">Khách nhắn từ trang web hiện ở đây, mọi tài khoản Sale dùng chung hộp thư này. Bấm vào một cuộc trò chuyện để đọc và trả lời.</p>
-      <div class="inbox-status" id="inboxStatus" role="status" hidden></div>
-      <div class="inbox">
-        <div class="inbox-list" id="inboxList" role="list"></div>
-        <div class="inbox-thread">
-          <div class="inbox-thread-head" id="inboxHead"></div>
-          <div class="inbox-msgs" id="inboxMsgs" aria-live="polite"></div>
-          <form class="inbox-reply" id="inboxReply" hidden>
-            <input type="text" id="inboxInput" placeholder="Nhập câu trả lời cho khách..." autocomplete="off" aria-label="Câu trả lời cho khách">
-            <button type="submit" class="btn btn-primary btn-sm">Gửi</button>
-          </form>
+      <section class="admin-section" id="tin-nhan" data-roles="sale sep">
+        <h2>Tin nhắn khách hàng</h2>
+        <p class="sub" id="inboxSub">Khách nhắn từ trang web hiện ở đây, mọi tài khoản Sale dùng chung hộp thư này. Bấm
+          vào một cuộc trò chuyện để đọc và trả lời.</p>
+        <div class="inbox-status" id="inboxStatus" role="status" hidden></div>
+        <div class="data-table-toolbar inbox-toolbar cust-toolbar">
+          <label class="cust-field cust-field-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M20 20l-4.2-4.2" />
+            </svg>
+            <input type="text" id="inboxSearch" placeholder="Tìm theo tên khách, SĐT hoặc nội dung tin..."
+              aria-label="Tìm cuộc hội thoại">
+          </label>
+          <label class="cust-field" id="inboxSaleFilterWrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="7" r="4" />
+              <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            </svg>
+            <select id="inboxSaleFilter" aria-label="Lọc theo Sale phụ trách">
+              <option value="">Tất cả Sale phụ trách (18)</option>
+              <option value="ngoc-anh">Sale · Ngọc Anh</option>
+              <option value="minh-thu">Sale · Minh Thư</option>
+              <option value="thu-ha">Sale · Thu Hà</option>
+              <option value="quoc-bao">Sale · Quốc Bảo</option>
+              <option value="hai-yen">Sale · Hải Yến</option>
+            </select>
+          </label>
+          <label class="cust-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 5h16l-6.2 7.4V18l-3.6 1.8v-7.4z" />
+            </svg>
+            <select id="inboxChannelFilter" aria-label="Lọc theo trạng thái">
+              <option value="">Tất cả trạng thái</option>
+              <option value="chua-tra-loi">Chưa trả lời</option>
+              <option value="tro-ly-web">Từ Trợ lý AI (Web)</option>
+              <option value="chat-truc-tiep">Chat trực tiếp</option>
+            </select>
+          </label>
         </div>
-      </div>
-      <p class="inbox-note">Tin nhắn lưu trên máy chủ chat của studio: khách nhắn từ điện thoại hay máy tính nào cũng hiện ở đây, trang tự cập nhật vài giây một lần.</p>
-    </section>
+        <div class="inbox">
+          <div class="inbox-list" id="inboxList" role="list"></div>
+          <div class="inbox-thread">
+            <div class="inbox-thread-head" id="inboxHead"></div>
+            <div class="inbox-msgs" id="inboxMsgs" aria-live="polite"></div>
+            <div class="inbox-boss-bar" id="inboxBossBar" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span id="inboxBossBarText">Chế độ Quản trị / Sếp: Chế độ chỉ xem toàn bộ cuộc trò chuyện của các tài khoản Sale với khách hàng.</span>
+            </div>
+            <form class="inbox-reply" id="inboxReply" hidden>
+              <input type="text" id="inboxInput" placeholder="Nhập câu trả lời cho khách..." autocomplete="off"
+                aria-label="Câu trả lời cho khách">
+              <button type="submit" class="btn btn-primary btn-sm">Gửi</button>
+            </form>
+          </div>
+        </div>
+        <p class="inbox-note">Tin nhắn lưu trên máy chủ chat của studio: khách nhắn từ điện thoại hay máy tính nào cũng
+          hiện ở đây, trang tự cập nhật vài giây một lần.</p>
+      </section>
 
-    <!-- Block Sếp + Sale: Khách hàng. Thiết kế giống trang Khách hàng của Không gian Sale
-         (2 kiểu xem Bảng giai đoạn / Danh sách, người dùng yêu cầu 2026-10-12). Thanh lọc,
-         bảng và hồ sơ do crm/js/admin.js dựng vào #custView từ crm/js/sale-data.js. -->
-    <section class="admin-section" id="khach-hang" data-roles="sep sale">
-      <h2>Khách hàng / CRM</h2>
-      <p class="sub" id="custSectionSub">Khách của các sale, xem theo giai đoạn phễu hoặc danh sách.</p>
-      <div class="ck" id="custView"></div>
-    </section>
+      <!-- Block Sếp + Sale: Khách hàng. Thiết kế giống trang Khách hàng của Không gian Sale
+           (2 kiểu xem Bảng giai đoạn / Danh sách, người dùng yêu cầu 2026-10-12). Thanh lọc,
+           bảng và hồ sơ do crm/js/admin.js dựng vào #custView từ crm/js/sale-data.js. -->
+      <section class="admin-section" id="khach-hang" data-roles="sep sale">
+        <h2>Khách hàng / CRM</h2>
+        <p class="sub" id="custSectionSub">Toàn bộ khách của các sale (lấy từ Không gian Sale). Sếp chỉ xem; đổi giai đoạn, gọi, nhắn do sale phụ trách làm bên Không gian Sale.</p>
+        <div class="ck" id="custView"></div>
+      </section>
 
-    <!-- Block Sếp + Sale: Lịch hẹn -->
-    <!-- Lịch tháng thay cho bảng danh sách + 3 tab Sắp tới/Hôm nay/Đã qua (người
+      <!-- Block Sếp + Sale: Lịch hẹn -->
+      <!-- Lịch tháng thay cho bảng danh sách + 3 tab Sắp tới/Hôm nay/Đã qua (người
          dùng yêu cầu 2026-09-25): mỗi ô là 1 ngày, trong ô là các lịch hẹn của
          ngày đó xếp theo giờ từ sớm tới muộn, bấm vào 1 lịch hẹn mở popup chi
          tiết. Lưới ngày + danh sách do crm/js/admin.js dựng động từ APPOINTMENTS (= lịch chụp chung trong crm/js/sale-data.js).
          Màn hẹp (<=760px) đổi sang danh sách theo ngày vì lưới 7 cột không đọc
          nổi trên điện thoại - xem css/admin.css. -->
-    <section class="admin-section" id="lich-hen" data-roles="sep sale">
-      <h2>Lịch hẹn</h2>
-      <p class="sub">Lịch chụp chung của studio (lấy từ Không gian Sale). Bấm vào một lịch hẹn để xem khách hàng, phòng, thợ ảnh, thanh toán và sale phụ trách.</p>
+      <section class="admin-section" id="lich-hen" data-roles="sep sale">
+        <h2>Lịch hẹn</h2>
+        <p class="sub">Lịch chụp chung của studio (lấy từ Không gian Sale). Bấm vào một lịch hẹn để xem khách hàng, phòng, thợ ảnh, thanh toán và sale phụ trách.</p>
 
-      <div class="cal-toolbar">
-        <button type="button" class="cal-today-btn" id="calToday">Hôm nay</button>
-        <div class="cal-nav">
-          <button type="button" id="calPrev" aria-label="Tháng trước">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
-          </button>
-          <button type="button" id="calNext" aria-label="Tháng sau">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-          </button>
+        <div class="cal-toolbar">
+          <button type="button" class="cal-today-btn" id="calToday">Hôm nay</button>
+          <div class="cal-nav">
+            <button type="button" id="calPrev" aria-label="Tháng trước">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+            <button type="button" id="calNext" aria-label="Tháng sau">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          <h3 class="cal-title" id="calTitle" aria-live="polite">—</h3>
+          <span class="cal-count" id="calCount"></span>
         </div>
-        <h3 class="cal-title" id="calTitle" aria-live="polite">—</h3>
-        <span class="cal-count" id="calCount"></span>
-      </div>
 
-      <div class="cal-wrap">
-        <div class="cal-weekdays" aria-hidden="true">
-          <span>CN</span><span>Thứ 2</span><span>Thứ 3</span><span>Thứ 4</span><span>Thứ 5</span><span>Thứ 6</span><span>Thứ 7</span>
+        <div class="cal-wrap">
+          <div class="cal-weekdays" aria-hidden="true">
+            <span>CN</span><span>Thứ 2</span><span>Thứ 3</span><span>Thứ 4</span><span>Thứ 5</span><span>Thứ
+              6</span><span>Thứ 7</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
         </div>
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
 
-      <!-- Bản danh sách cho màn hẹp, cùng dữ liệu với lưới bên trên -->
-      <div class="cal-agenda" id="calAgenda"></div>
-    </section>
+        <!-- Bản danh sách cho màn hẹp, cùng dữ liệu với lưới bên trên -->
+        <div class="cal-agenda" id="calAgenda"></div>
+      </section>
 
-    <!-- Popup chi tiết 1 lịch hẹn (nội dung do admin.js render động) -->
-    <div class="kanban-modal-overlay" id="apptModalOverlay" aria-hidden="true">
-      <div class="kanban-modal appt-modal" role="dialog" aria-modal="true" aria-labelledby="apptModalTitle">
-        <button type="button" class="kanban-modal-close" id="apptModalClose" aria-label="Đóng chi tiết">&times;</button>
-        <div id="apptModalBody"></div>
+      <!-- Popup chi tiết 1 lịch hẹn (nội dung do admin.js render động) -->
+      <div class="kanban-modal-overlay" id="apptModalOverlay" aria-hidden="true">
+        <div class="kanban-modal appt-modal" role="dialog" aria-modal="true" aria-labelledby="apptModalTitle">
+          <button type="button" class="kanban-modal-close" id="apptModalClose"
+            aria-label="Đóng chi tiết">&times;</button>
+          <div id="apptModalBody"></div>
+        </div>
       </div>
-    </div>
 
     <!-- Block Sếp + Thợ ảnh: Quản lý chụp & chỉnh ảnh -->
     <!-- Bố cục 3 hàng theo mức ưu tiên (lấy từ nhánh Thợ ảnh 7ee735d, tích hợp 2026-10-15),
@@ -431,77 +594,81 @@
          theme của ảnh gốc) để không lệch với 5 mục còn lại - xem rules/design.md.
          Toàn bộ số liệu + SVG do crm/js/admin.js render động (REVENUE_DATA),
          giá trị TB/đơn tự tính từ doanh thu/số đơn nên không bao giờ lệch nhau. -->
-    <section class="admin-section" id="doanh-thu" data-roles="sep">
-      <h2>Doanh thu</h2>
-      <p class="sub">Số liệu minh hoạ theo tháng của năm 2026, tính tới tháng 9.</p>
+      <section class="admin-section" id="doanh-thu" data-roles="sep">
+        <h2>Doanh thu</h2>
+        <p class="sub">Số liệu minh hoạ theo tháng của năm 2026, tính tới tháng 9.</p>
 
-      <div class="rev-kpi-grid" id="revKpiGrid"></div>
+        <div class="rev-kpi-grid" id="revKpiGrid"></div>
 
-      <div class="rev-main">
-        <div class="rev-card rev-chart-card">
-          <div class="rev-card-head">
-            <div>
-              <h3>Diễn biến theo tháng</h3>
-              <p class="rev-card-sub" id="revChartSub">Doanh thu từng tháng trong năm 2026</p>
+        <div class="rev-main">
+          <div class="rev-card rev-chart-card">
+            <div class="rev-card-head">
+              <div>
+                <h3>Diễn biến theo tháng</h3>
+                <p class="rev-card-sub" id="revChartSub">Doanh thu từng tháng trong năm 2026</p>
+              </div>
+              <div class="rev-tabs" id="revTabs" role="tablist" aria-label="Chọn chỉ số hiển thị">
+                <button type="button" class="rev-tab active" data-metric="revenue" role="tab" aria-selected="true">Doanh
+                  thu</button>
+                <button type="button" class="rev-tab" data-metric="orders" role="tab" aria-selected="false">Số
+                  đơn</button>
+                <button type="button" class="rev-tab" data-metric="avg" role="tab" aria-selected="false">Giá trị
+                  TB</button>
+              </div>
             </div>
-            <div class="rev-tabs" id="revTabs" role="tablist" aria-label="Chọn chỉ số hiển thị">
-              <button type="button" class="rev-tab active" data-metric="revenue" role="tab" aria-selected="true">Doanh thu</button>
-              <button type="button" class="rev-tab" data-metric="orders" role="tab" aria-selected="false">Số đơn</button>
-              <button type="button" class="rev-tab" data-metric="avg" role="tab" aria-selected="false">Giá trị TB</button>
-            </div>
+            <div class="rev-chart-wrap" id="revChartWrap"></div>
           </div>
-          <div class="rev-chart-wrap" id="revChartWrap"></div>
-        </div>
 
-        <div class="rev-card rev-goal-card">
-          <div class="rev-card-head">
-            <div>
-              <h3>Mục tiêu tháng 9</h3>
-              <p class="rev-card-sub">Tiến độ so với chỉ tiêu đã đặt</p>
+          <div class="rev-card rev-goal-card">
+            <div class="rev-card-head">
+              <div>
+                <h3>Mục tiêu tháng 9</h3>
+                <p class="rev-card-sub">Tiến độ so với chỉ tiêu đã đặt</p>
+              </div>
             </div>
+            <div class="rev-goals" id="revGoals"></div>
+            <p class="rev-goal-note">Chỉ tiêu là giá trị minh hoạ, chờ studio xác nhận chính thức.</p>
           </div>
-          <div class="rev-goals" id="revGoals"></div>
-          <p class="rev-goal-note">Chỉ tiêu là giá trị minh hoạ, chờ studio xác nhận chính thức.</p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Block Sếp: Cài đặt -->
-    <section class="admin-section" id="cai-dat" data-roles="sep">
-      <h2>Cài đặt</h2>
-      <p class="sub">Các thông số nghiệp vụ, hiện là giá trị minh hoạ chờ studio xác nhận chính thức.</p>
-      <div class="settings-grid">
-        <div class="settings-item">
-          <div class="k">Mức cọc</div>
-          <div class="v">50% giá chụp</div>
-          <div class="note">Đã chốt 25/09/2026, sửa được trong cấu hình đặt lịch</div>
+      <!-- Block Sếp: Cài đặt -->
+      <section class="admin-section" id="cai-dat" data-roles="sep">
+        <h2>Cài đặt</h2>
+        <p class="sub">Các thông số nghiệp vụ, hiện là giá trị minh hoạ chờ studio xác nhận chính thức.</p>
+        <div class="settings-grid">
+          <div class="settings-item">
+            <div class="k">Mức cọc</div>
+            <div class="v">50% giá chụp</div>
+            <div class="note">Đã chốt 25/09/2026, sửa được trong cấu hình đặt lịch</div>
+          </div>
+          <div class="settings-item">
+            <div class="k">Thời gian giữ khung giờ trước khi cọc</div>
+            <div class="v">5 phút (minh hoạ)</div>
+            <div class="note">Placeholder, chờ studio xác nhận</div>
+          </div>
+          <div class="settings-item">
+            <div class="k">Chính sách dời lịch</div>
+            <div class="v">Miễn phí 1 lần, trong hạn 48 giờ (minh hoạ)</div>
+            <div class="note">Placeholder, chờ studio xác nhận</div>
+          </div>
+          <div class="settings-item">
+            <div class="k">Tài khoản nhân viên</div>
+            <div class="v">12 tài khoản đang hoạt động</div>
+            <div class="note">Placeholder, chờ studio xác nhận</div>
+          </div>
         </div>
-        <div class="settings-item">
-          <div class="k">Thời gian giữ khung giờ trước khi cọc</div>
-          <div class="v">5 phút (minh hoạ)</div>
-          <div class="note">Placeholder, chờ studio xác nhận</div>
-        </div>
-        <div class="settings-item">
-          <div class="k">Chính sách dời lịch</div>
-          <div class="v">Miễn phí 1 lần, trong hạn 48 giờ (minh hoạ)</div>
-          <div class="note">Placeholder, chờ studio xác nhận</div>
-        </div>
-        <div class="settings-item">
-          <div class="k">Tài khoản nhân viên</div>
-          <div class="v">12 tài khoản đang hoạt động</div>
-          <div class="note">Placeholder, chờ studio xác nhận</div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Empty-state khi vai trò không có section nào phù hợp (an toàn dự phòng) -->
-    <div class="empty-card" id="emptyState" style="display:none;">
-      <p>Chưa có nội dung cho vai trò này.</p>
+      <!-- Empty-state khi vai trò không có section nào phù hợp (an toàn dự phòng) -->
+      <div class="empty-card" id="emptyState" style="display:none;">
+        <p>Chưa có nội dung cho vai trò này.</p>
+      </div>
     </div>
-  </div>
-</main>
+  </main>
 
-<script src="js/sale-data.js?v=20261012a"></script>
-<script src="js/admin.js?v=20261015c"></script>
+  <script src="js/sale-data.js?v=20261012a"></script>
+  <script src="js/admin.js?v=20261016b"></script>
 </body>
+
 </html>

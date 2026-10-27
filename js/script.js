@@ -512,9 +512,10 @@ document.addEventListener('DOMContentLoaded', () => {
       .map((m) => (m.classList.contains('user') ? 'Khách: ' : 'Trợ lý: ') + m.textContent.trim().slice(0, 300))
       .filter((s) => s.length > 8);
 
-    const offer = (candidates) => {
+    const offer = (candidates, maxCount) => {
       const list = candidates.filter(Boolean);
       if (!list.length) return;
+      const limit = maxCount || MAX_SUGGEST;
       const wrap = document.createElement('div');
       wrap.className = 'chat-quick';
       chatBody.appendChild(wrap);
@@ -523,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wrap.classList.remove('is-loading');
         wrap.removeAttribute('aria-busy');
         wrap.innerHTML = '';
-        items.slice(0, MAX_SUGGEST).forEach((it) => {
+        items.slice(0, limit).forEach((it) => {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.textContent = it.label;
@@ -537,9 +538,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         chatBody.scrollTop = chatBody.scrollHeight;
       };
-      const fallback = list.slice(0, MAX_SUGGEST);
-      // Chưa đăng nhập: bấm là sang đăng nhập nên không cần AI chọn; ít lựa chọn thì khỏi hỏi.
-      if (!isCustomerLoggedIn() || list.length <= MAX_SUGGEST) { show(fallback); return; }
+      const fallback = list.slice(0, limit);
+      // Nếu có maxCount chỉ định hoặc chưa đăng nhập hoặc danh sách <= limit thì hiện luôn không qua AI suggest
+      if (maxCount || !isCustomerLoggedIn() || list.length <= limit) { show(fallback); return; }
       const history = recentChat();
       const key = [pageContext().key, list.map((c) => c.id).join(','), history.slice(-2).join('|')].join('#');
       if (suggestCache.has(key)) { show(suggestCache.get(key)); return; }
@@ -561,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const c = list.find((x) => x.id === s.id);
           return c ? Object.assign({}, c, { label: s.label && String(s.label).length <= 40 ? String(s.label) : c.label }) : null;
         }).filter(Boolean).filter((it, i, arr) => arr.findIndex((o) => o.id === it.id) === i);
-        const picked = got.concat(fallback.filter((f) => !got.some((g) => g.id === f.id))).slice(0, MAX_SUGGEST);
+        const picked = got.concat(fallback.filter((f) => !got.some((g) => g.id === f.id))).slice(0, limit);
         if (got.length) suggestCache.set(key, picked);
         if (!done) { done = true; clearTimeout(timer); show(picked); }
       }).catch(() => { if (!done) { done = true; clearTimeout(timer); show(fallback); } });
@@ -578,26 +579,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Menu sau mỗi câu trả lời để cuộc trò chuyện có nhiều nhánh thay vì 1 đường thẳng.
     const askWhatNext = () => {
       const s = pageService();
-      offer([
-        saleCand(),
-        C('menu', 'Về menu chính', askMainMenu, 'xem lại các chủ đề tư vấn'),
+      const items = [
+        C('menu', 'Chọn dịch vụ khác', askMainMenu, 'xem các dịch vụ khác'),
+        s && C('concept', `Các concept ${s.name}`, () => askConcept(s.name), `các concept của dịch vụ ${s.name}`),
         s && C('bao-gia', `Báo giá ${s.name}`, () => showServiceAdvice(s.name), `giá tham khảo, gói chụp dịch vụ ${s.name} đang xem`),
-        s && C('concept', `Concept ${s.name}`, () => askConcept(s.name), `các concept của dịch vụ ${s.name}`),
-        C('faq', 'Câu hỏi thường gặp', askFaq, 'địa chỉ, đặt cọc, chụp tại nhà, đổi lịch...')
-      ]);
-    };
-
-    const askMainMenu = () => {
-      const s = pageService();
-      offer([
-        startLeadIntake && C('tu-van-be', 'Tư vấn theo bé nhà mình', () => startLeadIntake(), 'trả lời vài câu hỏi về bé để được gợi ý concept và giá phù hợp nhất'),
-        C('tu-van', 'Tư vấn dịch vụ & báo giá', askService, 'chọn 1 trong 5 dịch vụ để nghe concept và giá tham khảo'),
-        C('concept', 'Concept & ảnh mẫu', askConceptService, 'xem concept và album ảnh mẫu theo dịch vụ'),
-        s && C('bao-gia', `Báo giá ${s.name}`, () => showServiceAdvice(s.name), `giá tham khảo dịch vụ ${s.name} khách đang xem`),
-        C('quy-trinh', 'Quy trình đặt lịch', explainProcess, 'các bước từ đặt lịch tới nhận ảnh'),
         C('faq', 'Câu hỏi thường gặp', askFaq, 'địa chỉ, đặt cọc, chụp tại nhà, đổi lịch...'),
         saleCand()
-      ]);
+      ].filter(Boolean);
+      offer(items, items.length);
+    };
+
+    const MAIN_SERVICES = [
+      { label: 'Chụp ảnh bé lớn', service: 'Bé lớn', slug: 'be-lon', href: '#/album/be-lon' },
+      { label: 'Chụp ảnh gia đình', service: 'Gia đình', slug: 'gia-dinh', href: '#/album/gia-dinh' },
+      { label: 'Chụp ảnh sinh nhật', service: 'Sinh nhật', slug: 'sinh-nhat', href: '#/album/sinh-nhat' },
+      { label: 'Chụp ảnh bầu', service: 'Bầu', slug: 'bau', href: '#/album/bau' },
+      { label: 'Chụp ảnh newborn', service: 'Newborn', slug: 'newborn', href: '#/album/newborn' }
+    ];
+
+    const askMainMenu = () => {
+      chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      const candidates = MAIN_SERVICES.map((item) =>
+        C('svc-' + item.slug, item.label, () => {
+          openAlbum(item.href);
+          askConcept(item.service);
+        }, `concept và album ảnh chụp ${item.service}`)
+      );
+      offer(candidates, candidates.length);
     };
 
     const explainProcess = async () => {
@@ -618,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const askFaq = async () => {
-      await botSay('Mình gợi ý 2 câu hay được hỏi nhất, bạn cũng có thể gõ câu hỏi khác ở khung dưới nhé.', 400);
+      await botSay('Dưới đây là các câu hỏi thường gặp nhất, bạn chọn câu hỏi bên dưới nhé:', 400);
       offer(Object.keys(FAQ).map((q, i) => C('faq-' + i, q, async () => { await botSay(FAQ[q]); askWhatNext(); }, 'câu hỏi thường gặp')));
     };
 
@@ -655,47 +663,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const albumOf = (service) => ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((s) => s.name === service) || null;
     const albumConcepts = (service) => { const a = albumOf(service); return a ? a.concepts : []; };
     const slugOf = (service) => { const a = albumOf(service); return a ? a.slug : ''; };
-    // Mở trang album: trên điện thoại đóng khung chat để khách thấy ngay album.
+    // Mở trang album: luôn giữ mở khung chat, không thu nhỏ ô chat
     const openAlbum = (href) => {
       setTimeout(() => {
         botNav = true; setTimeout(() => { botNav = false; }, 800); // trang không đổi thì thôi
         window.location.hash = href.slice(1);
-        if (window.innerWidth <= 720) chatPanel.classList.remove('open');
-      }, 700);
+      }, 400);
     };
 
     const askConceptService = async () => {
-      // Chưa hỏi thông tin bé trong phiên chat này -> hỏi trước để gợi ý đúng concept hơn.
-      if (!leadInfo && startLeadIntake) { startLeadIntake(); return; }
-      await botSay('Bạn muốn xem concept của dịch vụ nào? Mỗi dịch vụ có nhiều concept, mỗi concept có album ảnh mẫu riêng.', 450);
-      offer(servicesFirst(Object.keys(SERVICE_INFO).filter((s) => albumConcepts(s).length)).map((service) =>
-        C('svc-' + slugOf(service), service, () => askConcept(service), `các concept dịch vụ ${service}`)));
+      askMainMenu();
+    };
+
+    const showServiceConceptButtons = (service) => {
+      const concepts = albumConcepts(service);
+      const album = albumOf(service);
+      const items = [
+        ...concepts.map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
+        album && C('tat-ca', `Xem toàn bộ album ${service}`, async () => {
+          await botSay(`Mình mở album ${service} cho bạn nhé.`, 350);
+          openAlbum(album.href);
+        }, 'mở trang album có đủ mọi concept của dịch vụ'),
+        C('dv-khac', 'Chọn dịch vụ khác', () => {
+          botSay('Bạn đang quan tâm concept dịch vụ nào khác ạ?', 350).then(askMainMenu);
+        }, 'xem concept dịch vụ khác')
+      ].filter(Boolean);
+      offer(items, items.length);
     };
 
     const askConcept = async (service) => {
+      chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       const concepts = albumConcepts(service);
-      const album = albumOf(service);
-      await botSay(`Dịch vụ "${service}" có ${concepts.length} concept. Mình gợi ý bên dưới, bạn cũng có thể gõ tên concept muốn xem nhé.`, 450);
-      offer([
-        ...concepts.slice(0, 1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
-        album && C('tat-ca', `Xem cả ${concepts.length} concept`, async () => { await botSay(`Mình mở album ${service} cho bạn nhé.`, 350); openAlbum(album.href); }, 'mở trang album có đủ mọi concept của dịch vụ'),
-        ...concepts.slice(1).map((c) => C('c-' + c.slug, c.name, () => showConcept(service, c), c.desc)),
-        C('dv-khac', 'Dịch vụ khác', askConceptService, 'xem concept dịch vụ khác')
-      ]);
+      await botSay(`Dạ ALOHA Baby gửi mình các concept chụp ảnh ${service} bên dưới.\nDịch vụ "${service}" có ${concepts.length} concept. Mình chọn concept muốn xem bên dưới nhé!`, 450);
+      showServiceConceptButtons(service);
     };
 
     const showConcept = async (service, concept) => {
-      addImageMsg(concept.cover, `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
-      await botSay(concept.desc, 500);
-      await botSay(`Album "${concept.name}" có ${concept.count} ảnh mẫu. Khi đặt lịch, bạn chọn concept này ở bước chọn concept, hoặc để studio tư vấn thêm nhé.`, 450);
-      offer([
-        C('xem-album', 'Xem album concept này', () => {
-          botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => { openAlbum(concept.href); askConcept(service); });
+      addImageMsg(concept.cover || (concept.photos && concept.photos[0]), `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
+      if (concept.desc) await botSay(concept.desc, 500);
+      const count = concept.photos ? concept.photos.length : (concept.count || '');
+      await botSay(`Album "${concept.name}" có ${count} ảnh mẫu. Bạn có thể mở xem trọn bộ ảnh trên trang hoặc chọn concept khác bên dưới nhé.`, 450);
+      const items = [
+        C('xem-album', 'Xem trọn bộ ảnh concept này', () => {
+          botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => {
+            openAlbum(concept.href);
+            showServiceConceptButtons(service);
+          });
         }, 'mở album ảnh mẫu của concept'),
         C('dat-lich', FEAT.booking === false ? 'Giữ lịch concept này' : 'Đặt lịch concept này', () => confirmBooking(`${service} · ${concept.name}`), 'khách muốn chụp concept này'),
-        C('concept-khac', 'Concept khác', () => askConcept(service), 'xem concept khác cùng dịch vụ'),
-        C('menu', 'Về menu chính', askMainMenu, 'các chủ đề tư vấn khác')
-      ]);
+        C('concept-khac', 'Xem concept khác', () => askConcept(service), 'xem concept khác cùng dịch vụ'),
+        C('menu', 'Chọn dịch vụ khác', () => {
+          botSay('Bạn đang quan tâm concept dịch vụ nào khác ạ?', 350).then(askMainMenu);
+        }, 'các chủ đề tư vấn khác')
+      ];
+      offer(items, items.length);
     };
 
     const confirmBooking = async (service) => {
@@ -734,41 +755,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const greetingFor = (ctx) => {
       if (ctx.concept) {
         return {
-          lines: [`Bạn đang xem concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name} 📸`,
-            'Bạn muốn mình tư vấn thêm về concept này, báo giá tham khảo hay nhắn Sale để giữ lịch chụp ạ?'],
-          teaser: `Bạn thích concept "${ctx.concept.name}"? Mình tư vấn ngay nhé!`
+          lines: [`Bạn đang xem concept "${ctx.concept.name}" của dịch vụ ${ctx.service.name} 📸`],
+          teaser: `Bạn thích concept "${ctx.concept.name}"?`
         };
       }
       if (ctx.service) {
+        const count = albumConcepts(ctx.service.name).length;
         return {
-          lines: [`Chào bạn! Bạn đang xem album ${ctx.service.name} 📸`, SERVICE_GREET[ctx.service.slug] || 'Bạn cần mình tư vấn concept hay báo giá tham khảo ạ?'],
-          teaser: `Bạn đang xem album ${ctx.service.name} 📸 Mình tư vấn concept, báo giá cho bạn nhé?`
+          lines: [`Bạn đang quan tâm concept ${ctx.service.name}, ALOHA Baby gửi mình các concept chụp ảnh ${ctx.service.name} bên dưới.\nDịch vụ "${ctx.service.name}" có ${count} concept. Mình chọn concept muốn xem bên dưới nhé!`],
+          teaser: `Bạn đang quan tâm concept ${ctx.service.name}`
         };
       }
       return {
-        lines: ['Chào bạn! Mình là trợ lý ALOHA Baby 👋', 'Bạn đang cần tư vấn gì ạ? Chọn nhanh bên dưới hoặc gõ câu hỏi bất kỳ ở khung dưới cùng nhé.'],
-        teaser: 'Chào bạn 👋 Bạn cần ALOHA Baby tư vấn gì ạ?'
+        lines: ['Chào bạn! Không biết mình đang quan tâm concept gì ạ?'],
+        teaser: 'Chào bạn 👋 Không biết mình đang quan tâm concept gì ạ?'
       };
     };
     const repliesFor = (ctx) => {
       if (!ctx.service) { askMainMenu(); return; }
       const name = ctx.service.name;
-      const info = SERVICE_INFO[name];
       if (ctx.concept) {
-        offer([
+        const items = [
           C('tu-van-concept', 'Tư vấn concept này', () => showConcept(name, ctx.concept), `mô tả, ảnh mẫu concept ${ctx.concept.name}`),
-          C('bao-gia', 'Báo giá & gói chụp', () => showServiceAdvice(name), `giá tham khảo dịch vụ ${name}`),
-          C('concept-khac', 'Concept khác', () => askConcept(name), `concept khác của dịch vụ ${name}`),
+          C('concept-khac', 'Xem concept khác', () => askConcept(name), `concept khác của dịch vụ ${name}`),
+          C('dv-khac', 'Chọn dịch vụ khác', () => {
+            botSay('Bạn đang quan tâm concept dịch vụ nào khác ạ?', 350).then(askMainMenu);
+          }, 'chọn dịch vụ khác'),
           saleCand()
-        ]);
+        ];
+        offer(items, items.length);
         return;
       }
-      offer([
-        C('bao-gia', 'Báo giá & gói chụp', () => showServiceAdvice(name), `giá tham khảo, gói chụp dịch vụ ${name}`),
-        C('concept', 'Gợi ý concept', () => askConcept(name), `các concept của dịch vụ ${name}`),
-        C('luu-y', 'Lưu ý khi chụp', async () => { await botSay(info ? info.note : 'Sale sẽ tư vấn chi tiết cho gia đình mình nhé.'); askWhatNext(); }, info ? info.note : ''),
-        saleCand()
-      ]);
+      showServiceConceptButtons(name);
     };
 
     let greetToken = 0;
@@ -784,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const greet = async (ctx, replace) => {
       const token = ++greetToken;
       greetedKey = ctx.key;
-      if (replace) chatBody.innerHTML = '';
+      // Để nguyên những gì đã chat trước đó, chỉ xoá các nút quick replies cũ
       chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       const g = greetingFor(ctx);
       for (let i = 0; i < g.lines.length; i++) {
@@ -793,22 +811,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (token === greetToken) repliesFor(ctx);
     };
     const serviceOfKey = (key) => key.split('/')[0];
-    // Gọi mỗi khi đổi trang (và lúc mở khung chat): đổi lời chào cho hợp trang đang xem.
-    const applyContext = () => {
+    // Đồng bộ điều hướng 2 chiều giữa Menu web và Chatbot, giữ nguyên lịch sử chat
+    const applyContext = async () => {
       if (!chatStarted || saleMode) return;
       const ctx = pageContext();
-      if (botNav) { botNav = false; greetedKey = ctx.key; return; } // khách đang theo gợi ý của chatbot
+      if (botNav) { botNav = false; greetedKey = ctx.key; return; }
       if (ctx.key === greetedKey) return;
-      if (!interacted) { greet(ctx, true); return; }
-      // Đã trò chuyện: chỉ nói thêm khi sang dịch vụ khác (vào sâu concept của cùng dịch vụ thì thôi).
-      if (ctx.service && serviceOfKey(ctx.key) !== serviceOfKey(greetedKey)) greet(ctx, false);
-      else greetedKey = ctx.key;
+      const prevService = serviceOfKey(greetedKey);
+      const newService = serviceOfKey(ctx.key);
+      greetedKey = ctx.key;
+      if (ctx.service && newService !== prevService) {
+        chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+        const count = albumConcepts(ctx.service.name).length;
+        await botSay(`Bạn đang quan tâm concept ${ctx.service.name}, ALOHA Baby gửi mình các concept chụp ảnh ${ctx.service.name} bên dưới.\nDịch vụ "${ctx.service.name}" có ${count} concept. Mình chọn concept muốn xem bên dưới nhé!`, 450);
+        showServiceConceptButtons(ctx.service.name);
+      }
     };
 
     const startChat = () => {
-      if (chatStarted) { applyContext(); return; }
+      if (chatStarted) return;
       chatStarted = true;
-      greet(pageContext(), true);
+      greet(pageContext(), false);
     };
 
     // ------------------------------------------------ Mở / đóng, tự mở, bong bóng lời chào
@@ -850,12 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (saleMode && window.AlohaSaleChat) window.AlohaSaleChat.pause();
     };
 
-    // Khách vãng lai (chưa đăng nhập) được chat tự do ngay, kể cả chat THẬT với Sale (người dùng
-    // đổi quyết định 2 lần: 2026-09-28 "mọi nút đều bắt đăng nhập" -> chỉ mở trợ lý AI -> giờ mở
-    // luôn cả Sale). Nhắn Sale khi chưa đăng nhập: server tự cấp 1 danh tính tạm "Khách vãng lai"
-    // (xem enterSale/js/sale-chat.js ensureGuest, KHÔNG đụng tới tài khoản/aloha_auth thật). Đăng
-    // nhập chỉ còn bắt buộc khi khách chủ động bấm nút "Đăng nhập" trên menu, hoặc vào 2 route
-    // Đặt lịch/Ảnh của tôi (gate ở js/router.js, không đổi — cần đúng tài khoản để xem lịch/ảnh riêng).
+    // Khách vãng lai (chưa đăng nhập) được chat tự do ngay, kể cả chat THẬT với Sale.
     chatToggle.addEventListener('click', () => {
       if (chatPanel.classList.contains('open')) closeChat(); else openChat();
     });
@@ -901,6 +919,23 @@ document.addEventListener('DOMContentLoaded', () => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         openChat();
+      });
+    });
+
+    // Khi khách bấm vào link album (menu, collage, footer...) kể cả khi đang ở đúng trang đó
+    document.querySelectorAll('a[href^="#/album/"]').forEach((a) => {
+      a.addEventListener('click', () => {
+        if (window.location.hash === a.getAttribute('href')) {
+          const slug = a.getAttribute('href').replace('#/album/', '').split('/')[0];
+          const s = ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === slug);
+          if (s && !saleMode) {
+            chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+            const count = albumConcepts(s.name).length;
+            botSay(`Bạn đang quan tâm concept ${s.name}, ALOHA Baby gửi mình các concept chụp ảnh ${s.name} bên dưới.\nDịch vụ "${s.name}" có ${count} concept. Mình chọn concept muốn xem bên dưới nhé!`, 450).then(() => {
+              showServiceConceptButtons(s.name);
+            });
+          }
+        }
       });
     });
 
@@ -1097,7 +1132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           botNav = !action.stay; setTimeout(() => { botNav = false; }, 800);
           action.go();
-          if (window.innerWidth <= 720 && !action.stay) chatPanel.classList.remove('open');
         }, 900);
       };
 
@@ -1227,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         if (step === 'concept') {
-          botSay('Mẹ đang thích phong cách/dịch vụ nào cho bé ạ? Chọn nhanh bên dưới hoặc gõ đúng tên concept mẹ thích cũng được nhé.', 450).then(() => {
+          botSay('Mẹ đang thích phong cách/dịch vụ nào cho bé ạ? Mẹ chọn một trong các dịch vụ bên dưới nhé:', 450).then(() => {
             leadPending = 'concept';
             addQuickReplies(servicesFirst(Object.keys(SERVICE_INFO)),
               (label) => { leadPending = null; addMsg(label, 'user'); handleLeadAnswer('concept', label); });

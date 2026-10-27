@@ -24,7 +24,9 @@ async function portBusy() { try { await fetch(API + '/api/health', { signal: Abo
 async function startServer() {
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
-    env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '' },
+    env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
+      // Test này dùng Thợ ảnh/Sếp demo công khai -> bật ngoại lệ CHỈ DÀNH CHO TEST (mặc định server chặn họ)
+      EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF: '1' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   server.stdout.on('data', (d) => { serverLog += d; });

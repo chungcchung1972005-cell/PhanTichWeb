@@ -841,6 +841,7 @@
 .inbox-preview { font-size: 12.5px; color: var(--navy-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .inbox-item.unread .inbox-preview { color: var(--navy-900); font-weight: 600; }
 .inbox-unread {
+  flex-shrink: 0;
   align-self: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
   background: var(--pink-600); color: var(--white); font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
@@ -884,9 +885,50 @@
 .inbox-status[hidden] { display: none; }
 .inbox-status button { border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--pink-700); text-decoration: underline; cursor: pointer; }
 
+.inbox-item-badges { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 2px 0 3px; }
+.inbox-sale-badge {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
+  color: var(--pink-700); background: var(--pink-100); border-radius: 999px;
+  padding: 1px 7px; white-space: nowrap;
+}
+.inbox-channel-tag {
+  display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 500;
+  padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+}
+.inbox-channel-tag.tone-bot { background: #fff0ea; color: #b84318; border: 1px solid #ffd4c4; }
+.inbox-channel-tag.tone-direct { background: #eef4ff; color: #275296; border: 1px solid #d0e0fc; }
+.inbox-head-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inbox-head-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.inbox-sale-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+  background: var(--pink-50); border: 1px solid var(--pink-200); border-radius: 999px;
+  font-size: 12px; color: var(--navy-800);
+}
+.inbox-sale-chip svg { color: var(--pink-600); }
+.inbox-sale-chip strong { color: var(--pink-700); }
+.inbox-channel-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px;
+  background: #f4f5f8; border-radius: var(--radius-sm); font-size: 11.5px; color: var(--navy-600);
+}
+.dot-online { width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; }
+.inbox-crm-link {
+  font-size: 12px; padding: 4px 10px; text-decoration: none; border-radius: var(--radius-sm);
+  border: 1px solid var(--pink-200); color: var(--pink-700); background: var(--white);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.inbox-crm-link:hover { background: var(--pink-50); border-color: var(--pink-500); }
+.inbox-boss-bar {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  background: #fdf8fb; border-top: 1px solid var(--pink-100);
+  font-size: 12.5px; color: var(--navy-700); line-height: 1.45;
+}
+.inbox-boss-bar[hidden] { display: none; }
+.inbox-boss-bar svg { color: var(--pink-600); flex-shrink: 0; }
+.inbox-boss-bar strong { color: var(--pink-700); }
+
 @media (max-width: 760px) {
   .inbox { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
-  .inbox-list { max-height: 240px; border-right: none; border-bottom: 1px solid var(--pink-100); }
+  .inbox-list { max-height: 260px; border-right: none; border-bottom: 1px solid var(--pink-100); }
   .inbox-msgs { height: 360px; flex: none; }
   .inbox-msg { max-width: 86%; }
 }
@@ -940,6 +982,113 @@
 .kanban-msg-tag { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 1px 8px; border-radius: var(--radius-pill); background: #fff4e0; color: #b26a00; }
 .kanban-advance-hint { font-size: 12px; color: #b26a00; margin: 6px 0 0; text-align: center; }
 
+/* ---------------------------------- Hiệu suất Đội ngũ Sale trên Dashboard Sếp ---------------------------------- */
+.sale-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.sale-perf-card {
+  background: var(--white);
+  border: 1px solid var(--pink-100);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.sale-perf-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+.sale-perf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sale-perf-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--pink-100);
+  color: var(--pink-700);
+  flex-shrink: 0;
+}
+.sale-perf-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--navy-900);
+}
+.sale-perf-role {
+  font-size: 11.5px;
+  color: var(--navy-500);
+}
+.sale-perf-track {
+  background: var(--pink-50);
+  border-radius: var(--radius-pill);
+  height: 8px;
+  overflow: hidden;
+}
+.sale-perf-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--pink-500), var(--pink-600));
+  transition: width 0.8s ease;
+}
+.sale-perf-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--navy-500);
+}
+.sale-perf-stat-row strong {
+  color: var(--navy-900);
+}
+.sale-perf-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+/* Yêu cầu chuyển giao khách chờ duyệt */
+.sale-transfer-card {
+  background: var(--white);
+  border: 1px solid var(--pink-100);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-soft);
+  flex-wrap: wrap;
+}
+.sale-transfer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sale-transfer-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--navy-900);
+}
+.sale-transfer-desc {
+  font-size: 12px;
+  color: var(--navy-500);
+}
 /* ---------------- Khách hàng: Bảng giai đoạn + Danh sách (Sếp + Sale, 2026-10-12) ----------------
    Bố cục giống trang Khách hàng của Không gian Sale (css/sale.css: .kb-*, .cu-*) nhưng viết
    riêng, gói trong .ck, vì sale.css có quy tắc toàn trang (svg, body...) sẽ làm vỡ admin.
@@ -1008,6 +1157,12 @@
 .ck-btn:hover { background: var(--pink-50); border-color: var(--pink-200); color: var(--pink-700); }
 .ck-btn-sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
 .ck-btn-sm svg { width: 14px; height: 14px; }
+/* Nút Xem thêm / Thu gọn dưới mỗi cột Bảng giai đoạn và dưới bảng Danh sách */
+.ck-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ck-more:empty { display: none; }
+.ck-panel .ck-more { margin-top: 14px; }
+.ck-col .ck-more .ck-btn { flex: 1 1 auto; }
+.ck-more .ck-muted { font-weight: 500; }
 
 /* Danh sách + hồ sơ */
 .ck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
@@ -1074,6 +1229,7 @@
   .ck-col { scroll-snap-align: start; }
   .ck-panel { padding: 14px; }
 }
+
 /* =========================================================================
    BỘ CHỌN THỢ CHỈNH ẢNH (3 ô thợ chỉnh + ô Tất cả). Chép từ nhánh Thợ ảnh (7ee735d),
    tích hợp vào trang Sếp 2026-10-15. Thợ CHỈNH ảnh, khác thợ CHỤP trong Lịch hẹn.
@@ -1767,3 +1923,4 @@
    nhánh Thợ ảnh: hiện "Xem thêm -1 đơn" khi hàng ≤3 thẻ) - ép ẩn khi có hidden */
 .photo-row-more[hidden], .completed-summary[hidden] { display: none; }
 .kanban-link-form .link-note { font-size: 11.5px; color: var(--navy-500); margin: -2px 0 2px; }
+

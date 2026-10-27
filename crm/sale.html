@@ -11,27 +11,24 @@
 </head>
 <body class="sw-body">
 
-<!-- Không gian Sale: giao diện riêng cho 5 tài khoản Sale/CSKH (thiết kế theo
+<!-- Không gian Sale: giao diện riêng cho 3 tài khoản Sale/CSKH (thiết kế theo
      "ALOHA Sale Workspace"). Mỗi sale chỉ thấy khách/hộp thư/cọc/đơn do mình
-     phụ trách; Lịch chụp là lịch chung của cả studio. Dữ liệu minh hoạ, xem
-     crm/js/sale-data.js; logic hiển thị ở crm/js/sale.js. -->
+     phụ trách; Lịch chụp là lịch chung của cả studio. Sếp có quyền quản lý toàn studio. -->
 <script src="../js/auth.js"></script>
-<script>AlohaAuth.requireRole(['sale']);</script>
+<script>AlohaAuth.requireRole(['sale', 'sep']);</script>
 
 <div class="sw-app">
   <aside class="sw-side" id="swSide">
     <a class="sw-brand" href="#tong-quan">
       <span class="sw-brand-mark">A</span>
-      <span><strong>ALOHA Baby</strong><small>Không gian Sale</small></span>
+      <span><strong>ALOHA Baby</strong></span>
     </a>
     <nav class="sw-nav" id="swNav"></nav>
     <div class="sw-goal" id="swGoal"></div>
     <div class="sw-me">
       <span class="sw-avatar" id="swMeAvatar">NA</span>
       <span class="sw-me-text"><strong id="swMeName">—</strong><small>Sale / CSKH · Đang trực</small></span>
-      <button class="sw-icon-btn sw-logout" type="button" title="Đăng xuất" aria-label="Đăng xuất" onclick="AlohaAuth.logout()">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-      </button>
+      <button class="sw-btn sw-logout" type="button" onclick="AlohaAuth.logout()">Đăng xuất</button>
     </div>
   </aside>
   <div class="sw-scrim" id="swScrim"></div>
@@ -59,6 +56,7 @@
           </button>
           <div class="sw-bell-panel" id="swBellPanel" hidden></div>
         </div>
+        <a class="sw-btn" href="admin.html" id="swBackAdmin" style="display:none; text-decoration:none;"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Về Quản trị</span></a>
         <a class="sw-btn sw-btn-accent" href="#lich-chup" id="swQuickBtn">
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Tạo lịch nhanh</span>
         </a>

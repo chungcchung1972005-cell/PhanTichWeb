@@ -12,7 +12,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Chỉ hiện ảnh khi tài khoản này đã từng có buổi chụp (xem js/data-store.js).
   const session = window.AlohaAuth ? AlohaAuth.getSession() : null;
-  const record = (window.AlohaData && session) ? AlohaData.getCustomerRecord(session.phone) : null;
+  const record = (window.AlohaData && session) ? (AlohaData.getCustomerRecord(session.phone) || editDemoRecord(session)) : null;
+
+  // Khách THỬ NGHIỆM đồng bộ chỉnh ảnh (EDIT_DEMO_ACCOUNTS trên server, token có scope "edit-demo";
+  // thêm 2026-10-15): chưa có buổi chụp nào nên cấp 1 hồ sơ buổi chụp GIẢ riêng theo SĐT của chính
+  // tài khoản đó. Chỉ dựng trong bộ nhớ trang, KHÔNG ghi vào aloha_demo_db, không dùng hồ sơ của
+  // khách demo 0900000001. Chỉ để hiển thị: server vẫn tự kiểm quyền theo token (khách chỉ thấy yêu
+  // cầu của chính mình), đọc scope ở đây không cấp thêm quyền gì.
+  function editDemoRecord(s) {
+    if (!s || s.role !== 'khach-hang' || !s.token || !/^0\d{9,10}$/.test(s.phone || '')) return null;
+    let scope = '';
+    try {
+      const body = String(s.token).split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+      scope = (JSON.parse(atob(body + '==='.slice((body.length + 3) % 4))) || {}).scope || '';
+    } catch (e) { return null; }
+    if (scope !== 'edit-demo') return null;
+    return {
+      hasShoot: true,
+      orderCode: '#ABTN' + s.phone.slice(-4),   // mã đơn minh hoạ, khác mã của khách demo
+      serviceLabel: 'Newborn',
+      packageLabel: 'Gói thử nghiệm',
+      packageCount: 10,
+      photoCount: 16,
+      editDemo: true
+    };
+  }
   const emptyState = document.getElementById('psEmptyState');
   const psContent = document.getElementById('psContent');
 

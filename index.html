@@ -16,7 +16,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20260929f">
   <link rel="stylesheet" href="css/pages.css?v=20260929b">
-  <script src="js/features.js?v=20261015b"></script>
+  <script src="js/features.js?v=20261015c"></script>
 </head>
 
 <body>
@@ -59,11 +59,11 @@
               <path d="M6 9l6 6 6-6" />
             </svg></a>
           <ul class="dropdown">
-            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-            <li><a href="#dich-vu">Chụp ảnh Newborn</a></li>
+            <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
+            <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
+            <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
+            <li><a href="#/album/newborn">Chụp ảnh Newborn</a></li>
           </ul>
         </li>
         <li><a href="#" id="navPricing" title="Mở khung chat tư vấn giá">Báo giá</a></li>
@@ -1130,11 +1130,11 @@
         <div class="footer-col">
           <h5>Dịch vụ</h5>
           <ul>
-            <li><a href="#dich-vu">Chụp ảnh bé lớn</a></li>
-            <li><a href="#dich-vu">Chụp ảnh sinh nhật</a></li>
-            <li><a href="#dich-vu">Chụp ảnh bầu</a></li>
-            <li><a href="#dich-vu">Chụp ảnh gia đình</a></li>
-            <li><a href="#dich-vu">Chụp ảnh newborn</a></li>
+            <li><a href="#/album/be-lon">Chụp ảnh bé lớn</a></li>
+            <li><a href="#/album/sinh-nhat">Chụp ảnh sinh nhật</a></li>
+            <li><a href="#/album/bau">Chụp ảnh bầu</a></li>
+            <li><a href="#/album/gia-dinh">Chụp ảnh gia đình</a></li>
+            <li><a href="#/album/newborn">Chụp ảnh newborn</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -1250,6 +1250,7 @@
     </div>
     <div class="chat-body" id="chatBody"></div>
     <div class="sc-status" id="chatSaleStatus" role="status" hidden></div>
+    <!-- Ô nhập tin nhắn: ẩn ở chatbot tự động (theo kịch bản nút bấm), chỉ hiện khi chat trực tiếp với Sale -->
     <form class="chat-input-row" id="chatInputForm">
       <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho trợ lý..." autocomplete="off">
       <button type="submit" class="chat-send" aria-label="Gửi">
@@ -1304,7 +1305,7 @@
   <script src="js/sale-chat.js?v=20260929a"></script>
   <script src="js/dat-lich.js"></script>
   <script src="js/google-photos-data.js?v=20260925"></script>
-  <script src="js/chon-anh.js?v=20261015a"></script>
+  <script src="js/chon-anh.js?v=20261015b"></script>
 </body>
 
 </html>

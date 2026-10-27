@@ -861,8 +861,8 @@ body.hide-floating-book .floating-book { display: none; }
   z-index: 210;
   width: 340px;
   max-width: calc(100vw - 40px);
-  height: 460px;
-  max-height: 68vh;
+  height: 480px;
+  max-height: 75vh;
   background: var(--white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -904,7 +904,7 @@ body.hide-floating-book .floating-book { display: none; }
 
 .chat-body {
   flex: 1; overflow-y: auto;
-  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 14px 18px; display: flex; flex-direction: column; gap: 10px;
   background: var(--pink-50);
 }
 .chat-msg { max-width: 84%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; white-space: pre-line; }
@@ -995,8 +995,12 @@ body.hide-floating-book .floating-book { display: none; }
 @media (prefers-reduced-motion: reduce) { .chat-teaser { animation: none; } }
 
 .chat-input-row {
-  flex-shrink: 0; display: flex; gap: 8px; padding: 12px 14px;
+  display: none; /* Ẩn ô nhập tin nhắn: chuyển chatbot sang kịch bản tự động bấm nút */
+  flex-shrink: 0; gap: 8px; padding: 12px 14px;
   border-top: 1px solid var(--pink-100); background: var(--white);
+}
+.chat-panel.sale-mode .chat-input-row {
+  display: flex; /* Chỉ hiện ô nhập khi khách chuyển sang chat trực tiếp với Sale */
 }
 .chat-input-row input {
   flex: 1; border: 1px solid var(--pink-200); border-radius: var(--radius-pill);

@@ -18,7 +18,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const saleChat = require('./sale-chat');
-const editRequests = require('./edit-requests'); // yêu cầu chỉnh ảnh, CHỈ lưu RAM (2026-10-15)
+const editRequests = require('./edit-requests'); // yêu cầu chỉnh ảnh (2026-10-15): mặc định RAM, MongoDB RIÊNG khi có EDIT_REQUESTS_MONGODB_URI
 
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
