@@ -40,7 +40,7 @@
   const ALL_SERVICES = ['newborn', 'bau', 'sinh-nhat', 'be-lon', 'gia-dinh'];
 
   const CRUMB_CONCEPT = { label: 'Concept', href: '#concept' };
-  const CRUMB_NEWS = { label: 'Tin tức', href: '#tin-tuc' };
+  const CRUMB_NEWS = { label: 'Tin tức', href: '#/tin-tuc' };
 
   const PAGES = [
     // ------------------------------------------------ Video / Giới thiệu / Dịch vụ tại nhà
@@ -69,7 +69,7 @@
     },
     {
       slug: 'gioi-thieu-studio',
-      crumb: { label: 'Giới thiệu', href: '#gioi-thieu' },
+      crumb: { label: 'Giới thiệu', href: '#/gioi-thieu' },
       eyebrow: 'Về ALOHA Baby',
       title: 'Một "thiên đường" nhỏ dành cho tuổi thơ của bé',
       lead: 'Studio chụp ảnh dành riêng cho em bé và gia đình tại 35 Lê Văn Thiêm, Thanh Xuân, Hà Nội.',
@@ -92,7 +92,7 @@
     },
     {
       slug: 'chup-tai-nha',
-      crumb: { label: 'Dịch vụ', href: '#dich-vu' },
+      crumb: { label: 'Dịch vụ', href: '#/dich-vu' },
       eyebrow: 'Dịch vụ tại nhà',
       title: 'Chụp ảnh tại nhà cùng ALOHA Baby',
       lead: 'Ekip mang máy ảnh, ánh sáng và phông nền đến tận nhà, giúp bé thoải mái nhất trong không gian quen thuộc.',
@@ -293,7 +293,7 @@
       cover: 'images/news-2.jpg',
       blocks: [
         { type: 'heading', text: 'Trước khi đặt lịch' },
-        { type: 'text', text: 'Ba mẹ cần có tài khoản để studio lưu thông tin bé và gửi ảnh sau buổi chụp; đăng ký chỉ cần số điện thoại. Chưa biết chọn concept nào? Xem trước <a href="#dich-vu">album của từng dịch vụ</a> hoặc hỏi trợ lý tư vấn trong khung chat ở góc màn hình.' },
+        { type: 'text', text: 'Ba mẹ cần có tài khoản để studio lưu thông tin bé và gửi ảnh sau buổi chụp; đăng ký chỉ cần số điện thoại. Chưa biết chọn concept nào? Xem trước <a href="#/dich-vu">album của từng dịch vụ</a> hoặc hỏi trợ lý tư vấn trong khung chat ở góc màn hình.' },
         { type: 'heading', text: 'Đặt lịch trong 3 bước' },
         { type: 'steps', items: [
           { title: 'Chọn dịch vụ', text: 'Chọn 1 trong 5 dịch vụ: Newborn, Bầu, Sinh nhật, Bé lớn, Gia đình.' },
