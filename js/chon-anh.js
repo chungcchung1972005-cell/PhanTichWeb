@@ -286,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const PAY_POLL_MS = 4000;           // hỏi trạng thái thanh toán mỗi 4 giây
 
   let qr = null;        // { code, count, fee, deadline } của mã QR đang chờ tiền
+  let lastPaidCode='';
   let qrTicker = null;
   let lastPoll = 0;
   let polling = false;
@@ -369,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function onPaid(paid) {
+    lastPaidCode=paid.code;
     qr = null;
     stopPaymentWatch();
     qrOverlay.classList.remove('show');
@@ -976,6 +978,8 @@ document.addEventListener('DOMContentLoaded', () => {
         orderCode: record.orderCode,
         parentRequestId,
         sourceAlbumId:sourceAlbum.id,
+        workflowOrderId:sourceAlbum.workflowOrderId,
+        editorPhone:sourceAlbum.editorPhone,
         sourceFolderUrl:sourceAlbum.folderUrl,
         round,
         serviceLabel: record.serviceLabel,
@@ -1055,7 +1059,8 @@ document.addEventListener('DOMContentLoaded', () => {
       note: document.getElementById('psNote').value.trim(),
       photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: combinedNote(id).trim(), isExtra: extraPhotos.has(id) })),
       extraFee: extraFee,
-      paymentStatus: paymentStatus
+      paymentStatus: paymentStatus,
+      paymentCode:lastPaidCode
     });
     submitting = false;
     if (res.ok && res.data && res.data.request) {
@@ -1503,6 +1508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeLightbox(); hideUndo();
     privateUrls.forEach(url => URL.revokeObjectURL(url)); privateUrls.clear();
     sourceAlbum = album || null; photos.length = 0; grid.replaceChildren();
+    lastPaidCode='';
     const driveLink = document.getElementById('psDriveLink');
     if (driveLink) { driveLink.hidden = !album; if (album) driveLink.href = album.folderUrl; else driveLink.removeAttribute('href'); }
     Object.keys(photoById).forEach(id => delete photoById[id]);

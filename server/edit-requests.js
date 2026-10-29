@@ -84,6 +84,8 @@ const body = (req) => (req.body && typeof req.body === 'object' && !Array.isArra
 // opts.allowPublicDemoStaff: true = vẫn cho Thợ ảnh/Sếp demo CÔNG KHAI (0900000003/0900000004, mật khẩu in
 // trên login.html) dùng API này - chỉ để chạy test/phát triển local. Mặc định false = chặn (403).
 function createEditRequestsRouter(store, opts) {
+  const workflow = opts && opts.workflowService || require('./workflow').service;
+  workflow.attachRequestsStore(store);
   const allowPublicDemoStaff = !!(opts && opts.allowPublicDemoStaff);
   // ---------------------------------------------------------------- Giới hạn tần suất
   const hits = new Map(); // key -> [thời điểm]
@@ -129,6 +131,7 @@ function createEditRequestsRouter(store, opts) {
       return res.status(404).json({ error: 'not_found' });
     }
     req.editRequest = found;
+    if (req.user.role === 'tho-anh' && found.editorPhone && found.editorPhone !== req.user.phone) return res.status(403).json({error:'forbidden'});
     next();
   });
 
@@ -165,11 +168,13 @@ function createEditRequestsRouter(store, opts) {
     res.json({albums:(await store.listByPhone(req.user.phone)).filter(r => r.kind === 'source-album')});
   }));
   router.get('/albums', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
-    res.json({albums:(await store.listAll()).filter(r => r.kind === 'source-album')});
+    res.json({albums:(await store.listAll()).filter(r => r.kind === 'source-album' && (req.user.role==='sep' || !r.shooterPhone || [r.shooterPhone,r.editorPhone].includes(req.user.phone)))});
   }));
   router.post('/albums', auth(['tho-anh']), wrap(async (req, res) => {
     const b = body(req);
-    const phone = cleanStr(b.phone, 15), orderCode = cleanStr(b.orderCode, 30);
+    let order;
+    try { order=await workflow.sourceOrder(req.user,b.workflowOrderId); } catch(e) { return res.status(400).json({error:'shoot_order_required',message:e.message}); }
+    const phone = order.phone, orderCode = order.code;
     let folder;
     try { folder = new URL(b.folderUrl); } catch (_) { return res.status(400).json({error:'bad_source_album'}); }
     const folderId = folder.pathname.match(/\/folders\/([\w-]{10,200})/);
@@ -186,8 +191,10 @@ function createEditRequestsRouter(store, opts) {
     if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({error:'store_full'});
     const now = Date.now();
     const album = await store.insert({id:'AL-' + crypto.randomBytes(12).toString('hex'), kind:'source-album', phone, orderCode,
-      customerName:cleanStr(b.customerName,80), serviceLabel:cleanStr(b.serviceLabel,40), folderUrl:folder.href, folderId:folderId[1], photos,
+      workflowOrderId:order.id,shooterPhone:order.shooterPhone,editorPhone:order.editorPhone,
+      customerName:order.customerName, serviceLabel:order.service, folderUrl:folder.href, folderId:folderId[1], photos,
       staffName:req.user.name || 'Thợ ảnh', createdAt:now, updatedAt:now, rev:1});
+    await workflow.originalDelivered(order.id,album.id);
     res.status(201).json({album});
   }));
 
@@ -231,6 +238,15 @@ function createEditRequestsRouter(store, opts) {
     photos.forEach((p, i) => { p.isExtra = i >= freeCount; });
     const extraFee = Math.max(0, photos.length - freeCount) * 50000;
     if (b.extraFee !== extraFee) return res.status(400).json({ error: 'bad_extra_fee' });
+    let verifiedPayment=null;
+    if(extraFee>0 && b.paymentCode) {
+      const receipts=require('./payment-receipts'),code=receipts.normalize(b.paymentCode);
+      const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && receipts.find(code,extraFee);
+      if(!tx) return res.status(400).json({error:'payment_not_verified'});
+      const reference='sepay:'+tx.id;
+      if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return res.status(400).json({error:'payment_already_used'});
+      verifiedPayment={reference,amount:extraFee};
+    }
     // Chỉ đếm lượt tạo hợp lệ (lượt gửi sai đã bị từ chối ở trên, không ghi gì vào kho)
     if (limited('create:' + req.user.phone, RATE.create)) return res.status(429).json({ error: 'too_many_requests' });
     if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({ error: 'store_full' });
@@ -243,6 +259,8 @@ function createEditRequestsRouter(store, opts) {
       orderCode,
       parentRequestId,
       sourceAlbumId:sourceAlbum.id,
+      workflowOrderId:sourceAlbum.workflowOrderId,
+      editorPhone:sourceAlbum.editorPhone,
       sourceFolderUrl:sourceAlbum.folderUrl,
       round,
       serviceLabel: cleanStr(b.serviceLabel, 40),
@@ -253,6 +271,7 @@ function createEditRequestsRouter(store, opts) {
       extraCount: photos.filter((p) => p.isExtra).length,
       extraFee,
       paymentStatus: cleanStr(b.paymentStatus, 60),
+      verifiedPayment,
       status: STATUS_FLOW[0],
       doneIds: [],
       photographer: null,                  // "Chưa phân công"
@@ -269,13 +288,14 @@ function createEditRequestsRouter(store, opts) {
       updatedAt: now
     };
     const saved = await store.insert(rec);
+    if(saved.workflowOrderId) await workflow.progress(saved,'selected');
     res.status(201).json({ request: customerView(saved) });
   }));
 
   // ---- Nhân viên: danh sách (Thợ ảnh + Sếp). ?since=<ms> chỉ trả yêu cầu đổi sau mốc đó.
   router.get('/', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
     const since = Number(req.query.since);
-    const list = (await store.listAll(Number.isFinite(since) ? since : undefined)).filter(r => r.kind !== 'source-album').map(staffView);
+    const list = (await store.listAll(Number.isFinite(since) ? since : undefined)).filter(r => r.kind !== 'source-album' && (req.user.role==='sep' || !r.editorPhone || r.editorPhone===req.user.phone)).map(staffView);
     res.json({ requests: list, at: Date.now() });
   }));
 
@@ -366,7 +386,9 @@ function createEditRequestsRouter(store, opts) {
     if (!checkRev(req, res)) return;
     // Điều kiện rev (+ chưa Hoàn thành) kiểm lại khi ghi: link bị gỡ / đơn bị Hoàn tất ở phiên khác
     // trong lúc này đều làm rev đổi -> 409, không Hoàn tất nhầm.
-    sendConditional(req, res, await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành' }, { notDone: true }));
+    const result=await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành' }, { notDone: true });
+    if(result && result.doc && result.doc.workflowOrderId) await workflow.progress(result.doc,'delivered');
+    sendConditional(req, res, result);
   }));
 
   return router;

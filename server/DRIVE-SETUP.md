@@ -2,7 +2,7 @@
 
 The primary flow is **staff delivers an original Drive folder → customer selects from those delivered files → customer submits filenames, Drive file IDs and edit notes → retoucher returns an edited folder**. There is no customer input for arbitrary original-file links and no shared demo gallery substituted for an undelivered album.
 
-In Admin → Quản lý chụp & chỉnh ảnh, the photographer enters the customer's account phone, shoot order code and original Drive folder, reads the folder, reviews the filenames, then sends the album. This is available before an editing request exists. The customer sees their delivered albums under Ảnh của tôi, with a folder preview and an in-app selectable grid. Customer selection comes from the delivered manifest; the folder iframe is only a preview and cannot report selections across origins.
+In Admin → Quản lý chụp & chỉnh ảnh, the photographer selects a completed shoot assigned to their account and pastes the original Drive folder URL. One send action reads and delivers the album. Customer phone/name, order code, service, package and assigned retoucher come from Sale's existing order and cannot be retyped. This is available before an editing request exists. The customer sees their delivered albums under Ảnh của tôi, with a folder preview and an in-app selectable grid. Customer selection comes from the delivered manifest; the folder iframe is only a preview and cannot report selections across origins. See WORKFLOW.md for the connected compensation ledger.
 
 To enable Google access, set `window.AlohaDriveConfig` before loading `js/drive.js` (on both index.html and crm/admin.html):
 

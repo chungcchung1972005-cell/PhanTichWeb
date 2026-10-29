@@ -385,11 +385,10 @@ app.post('/api/edit-chat', async (req, res) => {
 // "khách chuyển khoản -> trang tự nhận ra trong vài giây", nhưng server khởi
 // động lại (vd Render free ngủ sau 15 phút không có request) là mất lịch sử.
 const MAX_TX = 500;
-const incomingTx = []; // [{ id, content, amount, at }]
+const {incomingTx,normalize} = require('./payment-receipts');
 
 // Bỏ dấu cách/ký tự lạ, viết hoa: ngân hàng hay tự chèn tiền tố/đổi định dạng
 // nội dung chuyển khoản, chỉ cần mã thanh toán nằm đâu đó trong nội dung là khớp.
-const normalize = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 app.post('/api/sepay-webhook', (req, res) => {
   if (!SEPAY_WEBHOOK_KEY) {
@@ -429,6 +428,7 @@ app.use('/api/sale-chat', saleChat.router);
 // CHỈ lưu trong RAM, không dùng MongoDB. Frontend (khách, Thợ ảnh, Sếp) chỉ gọi tới khi bật cờ
 // editSync trong js/features.js (mặc định TẮT).
 app.use('/api/edit-requests', editRequests.router);
+app.use('/api/workflow', require('./workflow').router);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
 

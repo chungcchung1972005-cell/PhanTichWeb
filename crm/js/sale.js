@@ -31,7 +31,7 @@
   const isSep = session.role === 'sep';
   const me = isSep
     ? { id: 'sep', name: session.name || 'Sếp demo', phone: session.phone || '0900000004', target: 870, achieved: 581 }
-    : (db.sales.find(s => s.phone === session.phone) || db.sales[0]);
+    : (db.sales.find(s => s.phone === session.phone) || {id:session.phone,name:session.name||'Sale',phone:session.phone,target:0,achieved:0});
 
   // Đồng hồ: dùng ngày giờ thật của máy. "Hôm nay" tự đổi khi qua nửa đêm (xem tick()).
   const demoNow = () => new Date();
@@ -469,6 +469,7 @@
   function apStatus(a) {
     return {
       'checkin': { text: 'Đã check-in', tone: 'teal' },
+      'da-chup': { text: 'Đã chụp', tone: 'teal' },
       'da-coc': { text: 'Đã cọc', tone: 'blue' },
       'chua-thu-du': { text: 'Chưa thu đủ', tone: 'amber' },
       'giu-cho': { text: 'Giữ chỗ, chưa cọc', tone: 'red' }
@@ -631,6 +632,8 @@
     { id: 'khong-mua', label: 'Không mua', tone: 'muted' }
   ];
   function shootCount(c) {
+    const linked=AlohaWorkflow.get() && AlohaWorkflow.get().orders.filter(o=>o.phone===c.phone);
+    if(linked && linked.length)return linked.filter(o=>o.shotAt).length;
     if (c.history) return c.history.filter(h => h.shoot).length;
     if (!c.stage) return c.lost ? 0 : 1; // khách cũ chưa có lịch sử chi tiết: đã chụp ít nhất 1 lần
     if (c.stage !== 'da-chot') return 0;
@@ -1007,8 +1010,10 @@
     const ordered = q.service === 'Newborn' ? list.slice().sort((a, b) => (b.warm ? 1 : 0) - (a.warm ? 1 : 0)) : list;
     return ordered.map(r => {
       const busy = q.date && q.time ? roomBusy(r.id, q.date, q.time, dur) : false;
-      const ph = q.date && q.time ? db.photographers.find(p => !photographerBusy(p, q.date, q.time, dur)) : db.photographers[0];
-      return { value: r.id + '|' + (ph || ''), label: r.label + ' · ' + (ph ? 'Thợ ' + ph : 'hết thợ trống'), disabled: busy || !ph, busy };
+      const worker=AlohaWorkflow.get() && AlohaWorkflow.get().employees.find(e=>e.phone===q.shooterPhone && e.role==='tho-anh');
+      const ph=worker && worker.name;
+      const workerBusy=ph && q.date && q.time && photographerBusy(ph,q.date,q.time,dur);
+      return { value: r.id + '|' + (ph || ''), label: r.label + (workerBusy?' · thợ đã có lịch':''), disabled: busy || !ph || workerBusy, busy };
     });
   }
   function nextCode() {
@@ -1044,6 +1049,12 @@
 
   function quickBookForm() {
     const q = ui.qb;
+    const workflow=AlohaWorkflow.get();
+    const crew=workflow ? workflow.employees.filter(e=>e.role==='tho-anh') : [];
+    const currentRule=workflow && workflow.rules.slice().reverse().find(r=>r.service===q.service && r.pkg===q.pkg);
+    if(!q.price && currentRule)q.price=currentRule.price;
+    if(!q.shooterPhone && crew.length===1)q.shooterPhone=crew[0].phone;
+    if(!q.editorPhone && crew.length===1)q.editorPhone=crew[0].phone;
     const opts = roomOptions();
     if (!q.room || !opts.some(o => o.value === q.room && !o.disabled)) q.room = (opts.find(o => !o.disabled) || { value: '' }).value;
     const lk = lookupPhone(q.phone);
@@ -1062,8 +1073,12 @@
           '<option value="' + esc(o.value) + '"' + (o.disabled ? ' disabled' : '') + (o.value === q.room ? ' selected' : '') + '>' + esc(o.label) + (o.busy ? ' (phòng đã kín)' : '') + '</option>').join('') + '</select></label>' +
         '<p class="qb-hint c-teal">Tự gợi ý: ' + (q.service === 'Newborn' ? 'phòng ấm cho newborn, ' : '') + 'thợ còn trống</p>' +
         '<label class="qb-field"><span>Gói</span><select data-qb="pkg"><option value="">[Tên gói] · ' + CFG.packagePriceText + '</option>' +
-          ['Cơ bản', 'Tiêu chuẩn', 'Premium'].map(p => '<option' + (q.pkg === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select></label>' +
-        '<div class="qb-deposit">' + icon('qr') + '<span>Cọc <strong>' + CFG.depositText + '</strong> · Mã <strong>' + nextCode() + '</strong> · giữ lịch ' + CFG.holdHours + ' tiếng, quá giờ chưa cọc tự nhả</span></div>' +
+          [...new Set(['Cơ bản', 'Tiêu chuẩn', 'Premium'].concat(workflow?workflow.rules.filter(r=>r.service===q.service).map(r=>r.pkg):[]))].map(p => '<option' + (q.pkg === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') + '</select></label>' +
+        '<label class="qb-field"><span>Giá gói thực tế (đ)</span><input type="number" min="1" step="1" data-qb="price" value="'+esc(q.price||'')+'" placeholder="Giá gói"></label>'+
+        (isSep?'<label class="qb-field"><span>Sale phụ trách</span><select data-qb="salePhone"><option value="">Chọn Sale</option>'+(workflow?workflow.employees.filter(e=>e.role==='sale').map(e=>'<option value="'+esc(e.phone)+'"'+(q.salePhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join(''):'')+'</select></label>':'')+
+        '<label class="qb-field"><span>Thợ chụp phụ trách</span><select data-qb="shooterPhone"><option value="">Chọn thợ chụp</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.shooterPhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join('')+'</select></label>'+
+        '<label class="qb-field"><span>Thợ chỉnh ảnh phụ trách</span><select data-qb="editorPhone"><option value="">Chọn thợ chỉnh ảnh</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.editorPhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join('')+'</select></label>'+
+        '<div class="qb-deposit">' + icon('qr') + '<span>Cọc <strong>' + (q.price?money(Math.ceil(Number(q.price)*.5)):'50% giá gói') + '</strong> · Mã <strong>' + nextCode() + '</strong> · giữ lịch ' + CFG.holdHours + ' tiếng, quá giờ chưa cọc tự nhả</span></div>' +
         '<div class="qb-field"><span>Gửi link cọc qua (chọn được nhiều kênh)</span><div class="qb-channels">' +
           CHANNELS.map(ch => '<button type="button" class="qb-ch' + (q.channels.includes(ch) ? ' on' : '') + '" data-act="qb-channel" data-id="' + ch + '">' + (q.channels.includes(ch) ? icon('check') : '') + ch + '</button>').join('') +
           '<button type="button" class="qb-ch" data-act="qb-copy">Sao chép link</button>' +
@@ -1083,7 +1098,9 @@
     document.getElementById('qbPreview').textContent = qbMessage();
   }
 
-  function submitQuickBook() {
+  let bookingBusy=false;
+  async function submitQuickBook() {
+    if(bookingBusy)return;
     const q = ui.qb;
     const err = (m) => { const el = document.getElementById('qbError'); el.textContent = m; el.hidden = false; };
     const lk = lookupPhone(q.phone);
@@ -1107,11 +1124,18 @@
         short: name.split(/\s+/).pop(), title: isAnh ? 'anh' : 'chị', phone: q.phone.replace(/\D/g, ''), area: 'Hà Nội',
         service: q.service, source: 'Hotline', stage: 'cho-coc', since: 'Vừa tạo', status: {}, tags: ['Khách mới'], note: ''
       };
-      db.customers.push(c);
+      // The persisted order projects this customer back into the shared CRM on success.
     }
     const code = nextCode();
     const hold = holdUntilText();
     const apId = 'ap-' + Date.now();
+    if(!q.pkg || !Number.isSafeInteger(Number(q.price)) || Number(q.price)<=0)return err('Chọn gói và nhập giá gói thực tế.');
+    bookingBusy=true;
+    const workflowOrderId=AlohaWorkflow.id();
+    try { await AlohaWorkflow.command('book',{id:workflowOrderId,code,phone:c.phone,customerName:c.name,customerId:c.id,service:q.service,pkg:q.pkg,price:Number(q.price),date:q.date,time:q.time,duration:Math.round(dur*60),room,shooterPhone:q.shooterPhone,editorPhone:q.editorPhone,salePhone:q.salePhone||me.phone}); }
+    catch(e) {bookingBusy=false;return err(e.message);}
+    bookingBusy=false;
+    if(db.appointments.some(a=>a.workflowOrderId===workflowOrderId)) {ui.qb.phone='';ui.qb.name='';render();toast('Đã lưu lịch. Thợ được phân công sẽ thấy cùng đơn này.');return;}
     db.appointments.push({ id: apId, date: q.date, start: q.time, dur, service: q.service, label: c.name.replace(/^Chị /, 'C. ').replace(/^Anh /, 'A. '), room, photographer: ph, status: 'giu-cho', owner: me.id, customerId: c.id, depositCode: code });
     db.deposits.unshift({ code, owner: me.id, customerId: c.id, appointmentId: apId, channels: q.channels.slice(), state: 'sent', sentAt: hm(demoNow()), holdUntil: hold, holdEnd: Date.now() + CFG.holdHours * 3600e3,
       log: [{ time: hm(demoNow()), who: 'sale', text: me.name + ' gửi link cọc qua ' + q.channels.join(', ') }] });
@@ -1698,6 +1722,27 @@
     }
   }
   window.addEventListener('hashchange', render);
+  function hydrateWorkflow(state) {
+    const employeeName=phone=>(state.employees.find(e=>e.phone===phone)||{}).name||phone;
+    state.orders.forEach(o=>{
+      const owner=(db.sales.find(s=>s.phone===o.salePhone)||{}).id||me.id;
+      let c=db.customers.find(c=>c.phone===o.phone);
+      if(!c) {c={id:o.customerId||'wf-customer-'+o.phone,owner,name:o.customerName,short:o.customerName.split(' ').pop(),title:'anh/chị',phone:o.phone,area:'',service:o.service,source:'Sale đặt lịch',stage:'cho-coc',since:o.date,status:{},tags:[],note:''};db.customers.push(c);}
+      c.stage=o.status==='booked'?'cho-coc':'da-chot';c.status={text:o.shotAt?'Đã chụp':o.collected?'Đã cọc':'Chờ cọc',tone:o.shotAt?'teal':'blue'};
+      const apId='wf-ap-'+o.id;
+      if(o.status==='cancelled') {db.appointments=db.appointments.filter(a=>a.workflowOrderId!==o.id);return;}
+      const ap={id:apId,workflowOrderId:o.id,date:o.date,start:o.time,dur:o.duration/60,service:o.service,label:o.customerName,room:o.room,photographer:employeeName(o.shooterPhone),status:o.shotAt?'da-chup':o.status==='shooting'?'checkin':o.status==='booked'?'giu-cho':'da-coc',owner,customerId:c.id,depositCode:o.code,pkg:o.pkg};
+      const old=db.appointments.find(a=>a.workflowOrderId===o.id||a.depositCode===o.code);if(old)Object.assign(old,ap);else db.appointments.push(ap);
+      const dep={code:o.code,workflowOrderId:o.id,owner,customerId:c.id,appointmentId:apId,channels:['Chat web'],state:o.collected>=Math.ceil(o.price*.5)?'confirmed':'sent',received:o.collected,amount:Math.ceil(o.price*.5),sentAt:hm(new Date(o.createdAt)),holdEnd:o.createdAt+CFG.holdHours*3600e3,holdUntil:hm(new Date(o.createdAt+CFG.holdHours*3600e3)),log:[]};
+      const oldDep=db.deposits.find(d=>d.code===o.code);if(oldDep)Object.assign(oldDep,dep);else db.deposits.unshift(dep);
+      if(o.shotAt) {
+        const order={code:o.code,workflowOrderId:o.id,owner,customer:o.customerName,customerId:c.id,service:o.service,pkg:o.pkg,date:o.date,status:o.status==='delivered'?'da-giao':o.status==='editing'?'dang-chinh':'cho-chon',progress:'',due:'Theo đơn'};
+        const oldOrder=db.orders.find(x=>x.code===o.code);if(oldOrder)Object.assign(oldOrder,order);else db.orders.push(order);
+      }
+    });
+    if(!document.querySelector('#qbPanel:focus-within, #swModal:not([hidden]), #ibInput:focus'))render();
+  }
+  window.addEventListener('aloha:workflow',e=>hydrateWorkflow(e.detail));
 
   // ---------- Sự kiện (uỷ quyền) ----------
   document.addEventListener('click', (e) => {
@@ -1911,7 +1956,7 @@
         else { ui.cal.day = dateKey(addDays(parseKey(ui.cal.day), dir)); ui.cal.weekStart = mondayOf(parseKey(ui.cal.day)); }
         return render();
       }
-      case 'qb-service': ui.qb.service = id; ui.qb.room = ''; return refreshQuickBook(true);
+      case 'qb-service': ui.qb.service = id; ui.qb.room = ''; ui.qb.price=''; return refreshQuickBook(true);
       case 'qb-channel': {
         const list = ui.qb.channels; const i = list.indexOf(id);
         if (i === -1) list.push(id); else list.splice(i, 1);
@@ -1961,8 +2006,9 @@
       return render();
     }
     if (t.dataset.trField) { if (t.value) ui.tr[t.dataset.trField] = t.value; return render(); }
-    if (t.dataset.qb && ['date', 'time', 'room', 'pkg'].includes(t.dataset.qb)) {
+    if (t.dataset.qb && ['date', 'time', 'room', 'pkg','shooterPhone','editorPhone','price','salePhone'].includes(t.dataset.qb)) {
       ui.qb[t.dataset.qb] = t.value;
+      if(t.dataset.qb==='pkg') {ui.qb.price='';return refreshQuickBook(true);}
       if (t.dataset.qb !== 'room' && t.dataset.qb !== 'pkg') refreshQuickBook(true); else refreshQuickBook(false);
     }
   });
@@ -2101,7 +2147,7 @@
   // Gộp 1 bản tóm tắt (và đủ tin nếu có) từ server vào hồ sơ + hội thoại trên trang.
   function liveMerge(sum, full) {
     const id = LIVE_ID(sum.phone);
-    let c = customer(id);
+    let c = customer(id) || db.customers.find(c=>c.phone===sum.phone);
     let v = db.conversations.find(x => x.id === id);
     const name = sum.customerName || 'Khách hàng';
     if (!c) {
@@ -2111,7 +2157,7 @@
       db.customers.unshift(c);
     }
     if (!v) {
-      v = { id, live: true, phone: sum.phone, owner: null, customerId: id, channel: 'Chat web', time: '', unread: false, messages: [], loaded: false };
+      v = { id, live: true, phone: sum.phone, owner: null, customerId: c.id, channel: 'Chat web', time: '', unread: false, messages: [], loaded: false };
       db.conversations.unshift(v);
     }
     c.name = name;
@@ -2133,6 +2179,8 @@
     } else if (!v.loaded && sum.last) {
       v.messages = [liveMsg(sum.last)];
     }
+    const linked=AlohaWorkflow.get() && AlohaWorkflow.get().orders.find(o=>o.phone===sum.phone);
+    if(linked){const owner=(db.sales.find(s=>s.phone===linked.salePhone)||{}).id;if(owner){c.owner=owner;v.owner=owner;}}
   }
 
   async function liveRefresh() {

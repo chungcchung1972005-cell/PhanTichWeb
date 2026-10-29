@@ -5,22 +5,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const sync = !!(window.AlohaEditSync && AlohaEditSync.enabled());
   const box = document.createElement('section'); box.className = 'source-delivery';
   box.innerHTML = `<h3>1. Gửi ảnh gốc cho khách chọn</h3>
-    <p>Chụp xong → đưa ảnh vào một thư mục Drive → chia sẻ quyền xem cho tài khoản Google của khách → gửi bộ ảnh tại đây.</p>
+    <p>Chọn khách đã chụp từ lịch Sale, dán link Drive và gửi. Thông tin khách, mã đơn, dịch vụ và người chỉnh ảnh được lấy tự động.</p>
     ${session.role === 'tho-anh' ? `<form id="sourceDeliveryForm">
-      <div class="source-delivery-fields">
-        <label>Số điện thoại khách<input name="phone" required pattern="0[0-9]{9,10}" placeholder="SĐT tài khoản khách"></label>
-        <label>Mã đơn / buổi chụp<input name="orderCode" required pattern="#?[A-Za-z0-9-]{3,29}" placeholder="#AB240915"></label>
-        <label>Tên khách<input name="customerName" maxlength="80" placeholder="Tên khách hàng"></label>
-        <label>Dịch vụ<input name="serviceLabel" maxlength="40" placeholder="Newborn, sinh nhật..."></label>
-      </div>
+      <label>Khách / buổi chụp đã hoàn tất<select name="workflowOrderId" id="sourceOrderSelect" required><option value="">Đang tải khách đã chụp...</option></select></label>
+      <div id="sourceOrderSummary"></div>
       <label>Thư mục Drive ảnh gốc<input name="folderUrl" type="url" required placeholder="https://drive.google.com/drive/folders/..."></label>
-      <div class="source-delivery-actions"><button type="button" id="sourceReadFolder">Đọc ảnh từ Drive</button><button type="submit" id="sourceSendAlbum" disabled>Gửi bộ ảnh cho khách chọn</button></div>
+      <div class="source-delivery-actions"><button type="submit" id="sourceSendAlbum" disabled>Gửi link ảnh gốc cho khách chọn</button></div>
       <p id="sourceDeliveryStatus" role="status"></p><div id="sourceDeliveryPreview"></div>
     </form>` : ''}
     <h4>Bộ ảnh gốc đã gửi</h4><div id="sourceDeliveryList"></div>`;
   section.querySelector('.photo-worker-bar').before(box);
   const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function refresh() {
+    const state=AlohaWorkflow.get() || await AlohaWorkflow.refresh();
+    const select=document.getElementById('sourceOrderSelect');
+    if(select) {
+      const selected=select.value;
+      const orders=state.orders.filter(o=>o.shooterPhone===session.phone && ['shot','choosing'].includes(o.status));
+      select.innerHTML='<option value="">Chọn khách đã chụp...</option>'+orders.map(o=>`<option value="${esc(o.id)}">${esc(o.customerName)} · ${esc(o.code)} · ${esc(o.date)} · ${esc(o.pkg)}</option>`).join('');
+      if(orders.some(o=>o.id===selected))select.value=selected;
+      const o=orders.find(o=>o.id===select.value);
+      document.getElementById('sourceOrderSummary').textContent=o?`${o.customerName} · ${o.phone} · ${o.service} / ${o.pkg} · Mã đơn ${o.code}`:orders.length?'':'Chưa có khách đã chụp do bạn phụ trách. Vào Lịch làm việc để check-in và xác nhận chụp xong.';
+      document.getElementById('sourceSendAlbum').disabled=!o;
+    }
     const list = document.getElementById('sourceDeliveryList');
     const result = sync ? await AlohaEditSync.listSourceAlbums() : {ok:true, data:{albums:AlohaData.getSourceAlbums()}};
     if (!result.ok) { list.textContent = result.message; return; }
@@ -29,34 +36,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const form = document.getElementById('sourceDeliveryForm');
   if (form) {
-    let imported = null, loading = false;
+    let loading = false;
     const status = document.getElementById('sourceDeliveryStatus');
     const send = document.getElementById('sourceSendAlbum');
-    const read = document.getElementById('sourceReadFolder');
-    form.elements.folderUrl.addEventListener('input', () => { imported = null; send.disabled = true; document.getElementById('sourceDeliveryPreview').replaceChildren(); });
-    read.onclick = async () => {
-      if (loading) return;
-      imported = null; send.disabled = true; loading = true; read.disabled = true;
-      status.textContent = 'Đang kết nối Drive và đọc ảnh trong thư mục...';
-      try {
-        imported = await AlohaDrive.readFolder(form.elements.folderUrl.value.trim());
-        document.getElementById('sourceDeliveryPreview').innerHTML = `<p><strong>${imported.photos.length} ảnh gốc</strong> trong bộ ảnh này</p><ul>${imported.photos.slice(0,12).map(p => `<li>${esc(p.name)}</li>`).join('')}</ul>`;
-        status.textContent = 'Đã đọc danh sách ảnh. Kiểm tra đúng khách và mã đơn rồi bấm gửi.'; send.disabled = false;
-      } catch (e) { status.textContent = e.message; }
-      finally { loading = false; read.disabled = false; }
-    };
+    form.elements.workflowOrderId.onchange=()=>refresh().catch(e=>{status.textContent=e.message;});
     form.onsubmit = async e => {
-      e.preventDefault(); if (loading || !imported || !form.reportValidity()) return;
-      const data = Object.assign(Object.fromEntries(new FormData(form)), imported);
-      loading = true; send.disabled = true; read.disabled = true;
+      e.preventDefault(); if (loading || !form.reportValidity()) return;
+      const orderId=form.elements.workflowOrderId.value, folderUrl=form.elements.folderUrl.value.trim();
+      loading = true; send.disabled = true; form.elements.workflowOrderId.disabled=true;form.elements.folderUrl.disabled=true;
       try {
+        status.textContent='Đang đọc ảnh từ Drive và gửi cho khách...';
+        const imported=await AlohaDrive.readFolder(folderUrl);
+        const data=Object.assign({workflowOrderId:orderId},imported);
         const result = sync ? await AlohaEditSync.deliverSourceAlbum(data) : {ok:true, data:{album:AlohaData.deliverSourceAlbum(data)}};
         if (!result.ok) throw new Error(result.message);
-        status.textContent = `Đã gửi ${data.photos.length} ảnh gốc cho ${data.phone}. Khách có thể chọn ảnh trong mục Ảnh của tôi.`;
-        imported = null; document.getElementById('sourceDeliveryPreview').replaceChildren(); await refresh();
+        const album=result.data.album;
+        status.textContent = `Đã gửi ${data.photos.length} ảnh gốc cho ${album.customerName}. Khách có thể chọn ảnh trong mục Ảnh của tôi.`;
+        form.elements.folderUrl.value='';document.getElementById('sourceDeliveryPreview').replaceChildren(); await refresh();
       } catch (e) { status.textContent = e.message; send.disabled = false; }
-      finally { loading = false; read.disabled = false; }
+      finally { loading = false; form.elements.workflowOrderId.disabled=false;form.elements.folderUrl.disabled=false;send.disabled=!form.elements.workflowOrderId.value; }
     };
   }
-  refresh(); window.addEventListener('storage', refresh);
+  window.addEventListener('aloha:choose-source-order',async e=>{await refresh();const select=document.getElementById('sourceOrderSelect');if(select){select.value=e.detail;select.dispatchEvent(new Event('change'));box.scrollIntoView({behavior:'smooth'});form.elements.folderUrl.focus();}});
+  refresh().catch(e=>{document.getElementById('sourceDeliveryList').textContent=e.message;});
+  window.addEventListener('aloha:workflow',()=>refresh().catch(()=>{}));
+  window.addEventListener('storage',()=>refresh().catch(()=>{}));
 });
