@@ -1,0 +1,47 @@
+const assert=require('assert/strict'),crypto=require('crypto');
+process.env.AUTH_SECRET='workflow-api-test';process.env.MONGODB_URI='';process.env.EDIT_REQUESTS_MONGODB_URI='';
+const express=require('../server/node_modules/express'),{memoryStore}=require('../server/edit-requests-store');
+const {createService,createRouter}=require('../server/workflow'),{createEditRequestsRouter}=require('../server/edit-requests');
+const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,name:role,exp:Date.now()+60000})).toString('base64url');return body+'.'+crypto.createHmac('sha256',process.env.AUTH_SECRET).update(body).digest('base64url');};
+(async()=>{
+ const service=createService(memoryStore()),store=memoryStore(),app=express();app.use(express.json());app.use('/workflow',createRouter(service));app.use('/edit',createEditRequestsRouter(store,{workflowService:service}));
+ const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+ const boss=token('sep','0910000004'),sale=token('sale','0910000002'),worker=token('tho-anh','0910000003'),stranger=token('tho-anh','0910000005'),customer=token('khach-hang','0910000001');
+ const call=async(path,t,data)=>{const r=await fetch('http://127.0.0.1:'+server.address().port+path,{method:data?'POST':'GET',headers:{authorization:'Bearer '+t,'content-type':'application/json'},body:data?JSON.stringify(data):undefined});return {status:r.status,body:await r.json()};};
+ const command=(t,c,d)=>call('/workflow/commands',t,{command:c,data:d});
+ try {
+  assert.equal((await call('/workflow',customer)).status,403);
+  assert.equal((await command(worker,'employee',{phone:'0910000003',name:'Worker',role:'tho-anh'})).status,400);
+  assert.equal((await command(boss,'employee',{phone:'0910000003',name:'Worker',role:'tho-anh'})).status,200);
+  const order={id:'wf-api',code:'ABAPI01',phone:'0910000001',customerName:'Customer',service:'Newborn',pkg:'Cơ bản',price:1500000,date:'2026-11-01',time:'09:00',shooterPhone:'0910000003',editorPhone:'0910000003',salePhone:'0919999999'};
+  assert.equal((await command(sale,'book',order)).status,200);
+  assert.equal((await service.read()).orders[0].salePhone,'0910000002');
+  const album={workflowOrderId:order.id,phone:'0919999999',orderCode:'WRONG',folderUrl:'https://drive.google.com/drive/folders/test-folder-12345',photos:[{id:'drive-test-file-0001',driveFileId:'test-file-0001',name:'IMG_0001.JPG'}]};
+  assert.equal((await call('/edit/albums',worker,album)).status,400);
+  const payments=await Promise.all([command(sale,'payment',{id:order.id,amount:750000,reference:'deposit-api'}),command(sale,'payment',{id:order.id,amount:750000,reference:'deposit-api'})]);
+  assert.deepEqual(payments.map(r=>r.status).sort(),[200,400]);
+  assert.equal((await command(worker,'checkin',{id:order.id})).status,200);assert.equal((await command(worker,'shot',{id:order.id})).status,200);
+  assert.equal((await call('/edit/albums',stranger,album)).status,400);
+  let r=await call('/edit/albums',worker,album);assert.equal(r.status,201);assert.equal(r.body.album.phone,order.phone);assert.equal(r.body.album.orderCode,order.code);
+  const source=r.body.album;
+  r=await call('/edit',customer,{orderCode:order.code,sourceAlbumId:source.id,photos:[{id:source.photos[0].id,src:source.photos[0].src,note:'Chỉnh da'}],extraFee:0});assert.equal(r.status,201);
+  let req=r.body.request;
+  assert.equal((await call('/edit/'+req.id+'/links',stranger,{rev:req.rev,resultLink:'https://drive.google.com/drive/folders/edited-folder-123'})).status,403);
+  r=await call('/edit/'+req.id+'/links',worker,{rev:req.rev,resultLink:'https://drive.google.com/drive/folders/edited-folder-123'});assert.equal(r.status,200);req=r.body.request;
+  assert.equal((await call('/edit/'+req.id+'/complete',worker,{rev:req.rev})).status,200);
+  r=await call('/workflow',worker);assert.equal(r.body.state.entries.length,2);assert.equal(r.body.state.entries.find(e=>e.kind==='edit').amount,150000);
+  assert.deepEqual((await call('/workflow',stranger)).body.state.entries,[]);
+  assert.equal((await command(boss,'approve-entry',{id:order.id+':shoot'})).status,400);
+  assert.equal((await command(sale,'payment',{id:order.id,amount:750000,reference:'balance-api'})).status,200);
+  assert.equal((await command(boss,'approve-entry',{id:order.id+':shoot'})).status,200);
+  const payouts=await Promise.all([command(boss,'pay-entry',{id:order.id+':shoot',reference:'pay-api'}),command(boss,'pay-entry',{id:order.id+':shoot',reference:'pay-api'})]);assert.deepEqual(payouts.map(r=>r.status).sort(),[200,400]);
+  await call('/workflow',boss);await call('/workflow',boss);
+  const final=await service.read();assert.equal(final.entries.length,3);assert.equal(final.orders[0].status,'delivered');
+  const paymentCode=order.code+'CS1ABCD';
+  require('../server/payment-receipts').incomingTx.push({id:'extra-bank-tx',content:paymentCode,amount:50000,at:Date.now()});
+  r=await call('/edit',customer,{orderCode:order.code,sourceAlbumId:source.id,parentRequestId:req.id,photos:[{id:source.photos[0].id,src:source.photos[0].src}],extraFee:50000,paymentCode});assert.equal(r.status,201);
+  assert.equal((await service.read()).orders[0].collected,1550000);assert.equal((await service.read()).orders[0].extraFees,50000);
+  await call('/workflow',boss);assert.equal((await service.read()).orders[0].collected,1550000);
+  console.log('PASS: real authenticated booking → deposit → assigned shoot → authoritative source delivery → editing → ledger → boss payout; concurrent duplicates and role restrictions');
+ } finally {await new Promise(r=>server.close(r));}
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -22,8 +22,10 @@
 <body>
 
   <script src="js/auth.js?v=20260927n"></script>
-  <script src="js/data-store.js?v=20260927m"></script>
-  <script src="js/edit-sync.js?v=20261015a"></script>
+  <script src="js/data-store.js?v=20261029b"></script>
+  <script src="js/edit-sync.js?v=20261029b"></script>
+  <script src="js/workflow-core.js?v=20261029b"></script>
+  <script src="js/workflow.js?v=20261029b"></script>
 
   <!-- Topbar -->
   <div class="topbar">
@@ -51,10 +53,10 @@
       </a>
 
       <ul class="nav-links" id="navLinks">
-        <li><a href="#/" id="navHomeLink" class="active">Trang chủ</a></li>
-        <li><a href="#gioi-thieu">Giới thiệu</a></li>
+        <li><a href="#/" id="navHomeLink" class="active" data-page="home">Trang chủ</a></li>
+        <li><a href="#/gioi-thieu" data-page="gioi-thieu">Giới thiệu</a></li>
         <li class="has-dropdown">
-          <a href="#dich-vu">Dịch vụ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+          <a href="#/dich-vu" data-page="dich-vu">Dịch vụ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
               stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 9l6 6 6-6" />
             </svg></a>
@@ -66,10 +68,10 @@
             <li><a href="#/album/newborn">Chụp ảnh Newborn</a></li>
           </ul>
         </li>
-        <li><a href="#" id="navPricing" title="Mở khung chat tư vấn giá">Báo giá</a></li>
-        <li><a href="#" id="navPromo" title="Mở khung chat hỏi khuyến mại hiện tại">Khuyến mại</a></li>
-        <li><a href="#tin-tuc">Tin tức</a></li>
-        <li><a href="#album">Album ảnh đẹp</a></li>
+        <li><a href="#/bao-gia" data-page="bao-gia">Báo giá</a></li>
+        <li><a href="#/khuyen-mai" data-page="khuyen-mai">Khuyến mại</a></li>
+        <li><a href="#/tin-tuc" data-page="tin-tuc">Tin tức</a></li>
+        <li><a href="#/album-anh" data-page="album-anh">Album ảnh đẹp</a></li>
       </ul>
 
       <div class="nav-actions">
@@ -123,7 +125,7 @@
          chưa đăng nhập thì sang login.html rồi quay lại đúng album (2026-09-28, gate ở
          js/albums.js; 27/09 từng dẫn vào màn chat Sale). Ảnh bìa lấy từ js/albums.js.
          Giữ id="dich-vu" vì menu, ô tìm kiếm và chatbot đều trỏ tới đây. -->
-      <section class="svc-hero" id="dich-vu">
+      <section class="svc-hero" id="dich-vu" data-pages="home dich-vu">
         <div class="container">
           <h1 class="svc-title reveal"><span>Dịch vụ</span></h1>
           <p class="svc-sub reveal">Chọn một dịch vụ để xem concept và ảnh mẫu</p>
@@ -175,7 +177,7 @@
       </section>
 
       <!-- Giới thiệu ngắn (trước đây là Hero đầu trang; từ khi 5 dịch vụ lên làm Hero Banner thì chuyển xuống đây, nội dung giữ nguyên, h1 đổi thành h2 vì trang chỉ nên có 1 h1) -->
-      <section class="hero">
+      <section class="hero" data-pages="gioi-thieu">
         <div class="container">
           <div class="hero-text reveal">
             <span class="eyebrow">Địa chỉ chụp ảnh em bé được yêu thích tại Hà Nội</span>
@@ -191,7 +193,7 @@
                 </svg>
                 Đặt lịch chụp ngay
               </a>
-              <a href="#album" class="btn btn-outline">Xem album ảnh đẹp</a>
+              <a href="#/album-anh" class="btn btn-outline">Xem album ảnh đẹp</a>
             </div>
             <!-- Số liệu minh họa - thay bằng số liệu thật của studio khi có -->
             <div class="hero-stats">
@@ -228,7 +230,7 @@
       </section>
 
       <!-- Album ảnh đẹp -->
-      <section class="album" id="album">
+      <section class="album" id="album" data-pages="home album-anh">
         <div class="container">
           <div class="section-head reveal">
             <h2>Những bộ ảnh nổi bật tại ALOHA Baby</h2>
@@ -282,11 +284,12 @@
               </div>
             </a>
           </div>
+          <p class="home-more"><a href="#/album-anh" class="more-link">Xem tất cả album</a></p>
         </div>
       </section>
 
       <!-- Concept -->
-      <section class="concept" id="concept">
+      <section class="concept" id="concept" data-pages="dich-vu album-anh">
         <div class="container">
           <div class="concept-top reveal">
             <div class="section-head">
@@ -314,7 +317,7 @@
       </section>
 
       <!-- About -->
-      <section class="about" id="gioi-thieu">
+      <section class="about" id="gioi-thieu" data-pages="gioi-thieu">
         <div class="container">
           <div class="about-visual reveal">
             <img src="images/about-studio.jpg" alt="Không gian studio ALOHA Baby" loading="lazy">
@@ -349,7 +352,7 @@
 
       <!-- Video giới thiệu -->
       <!-- Trước đây nút ▶ chỉ là hình, bấm không làm gì. Giờ mở trang #/noi-dung/mot-ngay-tai-aloha (video + các bước buổi chụp, js/content.js). -->
-      <section class="video" id="video">
+      <section class="video" id="video" data-pages="gioi-thieu">
         <div class="container">
           <a href="#/noi-dung/mot-ngay-tai-aloha" class="video-frame reveal"
             aria-label="Xem video Một ngày tại ALOHA Baby">
@@ -370,7 +373,7 @@
       </section>
 
       <!-- Process -->
-      <section class="process">
+      <section class="process" data-pages="dich-vu">
         <div class="container">
           <div class="section-head reveal">
             <span class="eyebrow">Quy trình</span>
@@ -405,7 +408,7 @@
 
       <!-- Tin tức - Sự kiện -->
       <!-- Bài viết đầy đủ nằm trong js/content.js (#/noi-dung/<slug>); ảnh bìa + tiêu đề + nút "Đọc tiếp" đều mở bài. -->
-      <section class="news" id="tin-tuc">
+      <section class="news" id="tin-tuc" data-pages="home tin-tuc">
         <div class="container">
           <div class="section-head reveal">
             <h2>Kinh nghiệm chụp ảnh cho bé từ ALOHA Baby</h2>
@@ -449,6 +452,99 @@
                 <a href="#/noi-dung/vi-sao-chon-aloha" class="news-more">Đọc tiếp →</a>
               </div>
             </div>
+          </div>
+          <p class="home-more"><a href="#/tin-tuc" class="more-link">Xem tất cả tin tức</a></p>
+        </div>
+      </section>
+
+      <!-- Báo giá (trang #/bao-gia, 2026-10-28). GIÁ MINH HOẠ do Claude tự viết, chờ studio gửi bảng giá thật.
+         Sửa giá/quyền lợi: sửa chữ trong từng thẻ .price-card. Ảnh: images/services/<dịch vụ>.jpg. -->
+      <section class="pricing" id="bao-gia" data-pages="bao-gia">
+        <div class="container">
+          <div class="section-head reveal">
+            <h1 class="page-title">Báo giá chụp ảnh</h1>
+            <p>Giá khởi điểm từng dịch vụ. Sale báo giá chính xác theo concept và số người trong ảnh.</p>
+            <span class="sample-note">Giá minh hoạ, chờ studio cập nhật</span>
+          </div>
+          <div class="price-grid reveal-stagger reveal">
+            <article class="price-card stagger-item">
+              <a href="#/album/newborn" class="price-img"><img src="images/services/newborn.jpg" alt="Chụp ảnh newborn" loading="lazy"></a>
+              <div class="price-body">
+                <h3>Newborn</h3><p class="price-who">Bé 5 đến 15 ngày tuổi</p>
+                <p class="price"><small>từ</small> 2.500.000<small>đ</small></p>
+                <ul class="price-list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>2 concept, chụp trong 3 giờ</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Phòng ấm, đồ chạm da bé tiệt trùng</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>15 ảnh chỉnh kỹ</li></ul>
+                <div class="price-actions"><a href="#/chat-sale/newborn" class="btn btn-primary btn-sm">Nhận báo giá</a><a href="#/album/newborn" class="more-link">Ảnh mẫu</a></div>
+              </div>
+            </article>
+            <article class="price-card stagger-item">
+              <a href="#/album/be-lon" class="price-img"><img src="images/services/be-lon.jpg" alt="Chụp ảnh bé lớn" loading="lazy"></a>
+              <div class="price-body">
+                <h3>Bé lớn</h3><p class="price-who">Bé từ 6 tháng tuổi</p>
+                <p class="price"><small>từ</small> 1.800.000<small>đ</small></p>
+                <ul class="price-list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>2 concept, mỗi concept 1 bộ đồ</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Đạo cụ theo chủ đề</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>12 ảnh chỉnh kỹ</li></ul>
+                <div class="price-actions"><a href="#/chat-sale/be-lon" class="btn btn-primary btn-sm">Nhận báo giá</a><a href="#/album/be-lon" class="more-link">Ảnh mẫu</a></div>
+              </div>
+            </article>
+            <article class="price-card is-featured stagger-item">
+              <a href="#/album/sinh-nhat" class="price-img"><img src="images/services/sinh-nhat.jpg" alt="Chụp ảnh sinh nhật" loading="lazy"><span class="price-badge">Được chọn nhiều</span></a>
+              <div class="price-body">
+                <h3>Sinh nhật</h3><p class="price-who">Thôi nôi, sinh nhật bé</p>
+                <p class="price"><small>từ</small> 2.200.000<small>đ</small></p>
+                <ul class="price-list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Set trang trí theo chủ đề</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Bánh kem chụp ảnh</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>15 ảnh chỉnh kỹ</li></ul>
+                <div class="price-actions"><a href="#/chat-sale/sinh-nhat" class="btn btn-primary btn-sm">Nhận báo giá</a><a href="#/album/sinh-nhat" class="more-link">Ảnh mẫu</a></div>
+              </div>
+            </article>
+            <article class="price-card stagger-item">
+              <a href="#/album/bau" class="price-img"><img src="images/services/bau.jpg" alt="Chụp ảnh bầu" loading="lazy"></a>
+              <div class="price-body">
+                <h3>Bầu</h3><p class="price-who">Mẹ bầu tuần 28 đến 34</p>
+                <p class="price"><small>từ</small> 2.000.000<small>đ</small></p>
+                <ul class="price-list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Trang điểm, làm tóc</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Váy chụp của studio</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>12 ảnh chỉnh kỹ</li></ul>
+                <div class="price-actions"><a href="#/chat-sale/bau" class="btn btn-primary btn-sm">Nhận báo giá</a><a href="#/album/bau" class="more-link">Ảnh mẫu</a></div>
+              </div>
+            </article>
+            <article class="price-card stagger-item">
+              <a href="#/album/gia-dinh" class="price-img"><img src="images/services/gia-dinh.jpg" alt="Chụp ảnh gia đình" loading="lazy"></a>
+              <div class="price-body">
+                <h3>Gia đình</h3><p class="price-who">Tối đa 6 người</p>
+                <p class="price"><small>từ</small> 2.800.000<small>đ</small></p>
+                <ul class="price-list"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>2 concept trong studio</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Gợi ý trang phục đồng bộ</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>20 ảnh chỉnh kỹ</li></ul>
+                <div class="price-actions"><a href="#/chat-sale/gia-dinh" class="btn btn-primary btn-sm">Nhận báo giá</a><a href="#/album/gia-dinh" class="more-link">Ảnh mẫu</a></div>
+              </div>
+            </article>
+          </div>
+          <div class="price-incl reveal">
+            <div><strong>Đã gồm</strong><span>Trang phục, đạo cụ, ảnh gốc gửi qua web</span></div>
+            <div><strong>Đặt cọc</strong><span>50% giá chụp để giữ lịch</span></div>
+            <div><strong>Chọn thêm ảnh</strong><span>Sale báo phí khi chọn vượt gói</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Khuyến mại (trang #/khuyen-mai, 2026-10-28). CHƯƠNG TRÌNH MINH HOẠ do Claude tự viết, chờ studio gửi ưu đãi thật. -->
+      <section class="promo" id="khuyen-mai" data-pages="khuyen-mai">
+        <div class="container">
+          <div class="section-head reveal">
+            <h1 class="page-title">Ưu đãi đang có</h1>
+            <p>Nhắn Sale để giữ ưu đãi trước khi hết suất.</p>
+            <span class="sample-note">Chương trình minh hoạ, chờ studio cập nhật</span>
+          </div>
+          <div class="promo-grid reveal-stagger reveal">
+            <article class="promo-card stagger-item">
+              <div class="promo-img"><img src="images/services/newborn.jpg" alt="" loading="lazy"><span class="promo-big">-10%</span></div>
+              <div class="promo-body"><h3>Đặt Newborn từ khi bé còn trong bụng mẹ</h3><p>Ba mẹ đặt trước ngày dự sinh được giảm 10% gói Newborn.</p>
+                <a href="#/chat-sale" class="btn btn-outline btn-sm">Giữ ưu đãi</a></div>
+            </article>
+            <article class="promo-card stagger-item">
+              <div class="promo-img"><img src="images/services/bau.jpg" alt="" loading="lazy"><span class="promo-big">Quà</span></div>
+              <div class="promo-body"><h3>Combo Bầu + Newborn</h3><p>Chụp cả hai dịch vụ được tặng 1 ảnh in khung 30x45.</p>
+                <a href="#/chat-sale" class="btn btn-outline btn-sm">Giữ ưu đãi</a></div>
+            </article>
+            <article class="promo-card stagger-item">
+              <div class="promo-img"><img src="images/services/be-lon.jpg" alt="" loading="lazy"><span class="promo-big">+3 ảnh</span></div>
+              <div class="promo-body"><h3>Quay lại chụp mốc tiếp theo</h3><p>Gia đình đã từng chụp tại studio được tặng thêm 3 ảnh chỉnh kỹ.</p>
+                <a href="#/chat-sale" class="btn btn-outline btn-sm">Giữ ưu đãi</a></div>
+            </article>
           </div>
         </div>
       </section>
@@ -717,10 +813,10 @@
           <div class="ps-head-row">
             <div>
               <h1>Ảnh của tôi</h1>
-              <p id="psOrderInfo">Mã đơn <strong>#AB240915</strong>, buổi chụp Newborn, gói Premium</p>
+              <p id="psOrderInfo">Bộ ảnh gốc của buổi chụp do thợ gửi cho bạn.</p>
             </div>
             <!-- Ô link Google Drive để khách tải ảnh gốc chất lượng cao -->
-            <a href="https://photos.google.com/share/AF1QipO_gMEnUdlOWKT3MUoGnqmKfyJv0cCF-_ZzSF-m0uSQpXEHQL7zwCG4aBa86UP6UQ?key=U3dFWWNVZHREVTkzeURwQnRvTVJLMzQ5SVdhTUJR"
+            <a hidden
               target="_blank" rel="noopener" class="ps-drive-link" id="psDriveLink">
               <span class="ps-drive-icon">
                 <svg width="20" height="20" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
@@ -739,7 +835,7 @@
               </span>
               <span class="ps-drive-text">
                 <strong>Tải ảnh gốc chất lượng cao</strong>
-                <small>Mở Google Drive để tải & chia sẻ</small>
+                <small>Mở thư mục thợ đã gửi cho bạn</small>
               </span>
               <span class="ps-drive-arrow">→</span>
             </a>
@@ -944,7 +1040,7 @@
       <div id="galleryFound">
         <section class="page-header gallery-header">
           <div class="container">
-            <div class="breadcrumb"><a href="#/">Trang chủ</a> / <a href="#dich-vu">Dịch vụ</a> / <span
+            <div class="breadcrumb"><a href="#/">Trang chủ</a> / <a href="#/dich-vu">Dịch vụ</a> / <span
                 id="galleryCrumb"></span></div>
             <div class="gallery-head">
               <div>
@@ -1122,7 +1218,7 @@
           <h5>Khám phá</h5>
           <ul>
             <li><a href="#/">Trang chủ</a></li>
-            <li><a href="#gioi-thieu">Giới thiệu</a></li>
+            <li><a href="#/gioi-thieu">Giới thiệu</a></li>
             <li><a href="#/dat-lich">Đặt lịch</a></li>
             <li><a href="#/chon-anh">Ảnh của tôi</a></li>
           </ul>
@@ -1304,8 +1400,8 @@
   <script src="js/script.js?v=20261015a"></script>
   <script src="js/sale-chat.js?v=20260929a"></script>
   <script src="js/dat-lich.js"></script>
-  <script src="js/google-photos-data.js?v=20260925"></script>
-  <script src="js/chon-anh.js?v=20261015b"></script>
+  <script src="js/drive.js?v=20261029"></script>
+  <script src="js/chon-anh.js?v=20261029b"></script>
 </body>
 
 </html>

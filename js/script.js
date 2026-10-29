@@ -79,8 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!target) target = document.getElementById(sectionId);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
+    // Từ 2026-10-28 mỗi khối thuộc 1 trang riêng trên menu (js/router.js HOME_PAGES):
+    // khối đang bị ẩn thì mở trang chứa nó trước rồi mới cuộn tới.
+    const PAGE_OF = { 'dich-vu': 'dich-vu', 'concept': 'dich-vu', 'album': 'album-anh', 'gioi-thieu': 'gioi-thieu', 'tin-tuc': 'tin-tuc', 'video': 'gioi-thieu' };
+    const sec = document.getElementById(sectionId);
+    const page = PAGE_OF[sectionId];
+    const homeView = document.getElementById('view-home');
+    if (sec && page && window.AlohaRouter && (sec.hidden || homeView.hidden)) {
+      history.replaceState(null, '', '#/' + page);
+      window.AlohaRouter.showView(page);
+      setTimeout(afterNav, 80);
+      return;
+    }
     const currentHash = window.location.hash;
-    if (currentHash.indexOf('#/') === 0 && currentHash !== '#/') {
+    if (homeView.hidden && currentHash.indexOf('#/') === 0 && currentHash !== '#/') {
       if (window.AlohaRouter) window.AlohaRouter.showView('');
       history.replaceState(null, '', '#/');
       setTimeout(afterNav, 80);

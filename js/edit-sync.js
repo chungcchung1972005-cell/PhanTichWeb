@@ -45,6 +45,16 @@
     bad_link: 'Link phải bắt đầu bằng https://',
     bad_text: 'Tin nhắn trống hoặc quá dài (tối đa 1500 ký tự).',
     bad_photos: 'Danh sách ảnh chưa hợp lệ.',
+    source_album_required: 'Cần chọn bộ ảnh gốc do thợ gửi cho đúng buổi chụp.',
+    photo_not_in_album: 'Có ảnh không thuộc bộ ảnh gốc thợ đã giao.',
+    bad_source_album: 'Thông tin bộ ảnh gốc chưa hợp lệ. Kiểm tra khách, mã đơn và thư mục Drive.',
+    shoot_order_required: 'Chọn khách đã chụp trong danh sách buổi chụp được giao cho bạn.',
+    payment_not_verified: 'Máy chủ chưa đối soát được khoản thanh toán. Giữ nguyên ảnh và thử gửi lại.',
+    payment_already_used: 'Giao dịch này đã được ghi nhận cho yêu cầu khác. Vui lòng kiểm tra tiến độ.',
+    bad_extra_fee: 'Phí chỉnh ảnh đã thay đổi. Vui lòng tải lại trang để kiểm tra trước khi gửi.',
+    previous_round_not_completed: 'Lượt trước chưa hoàn tất hoặc đã có lượt mới. Vui lòng tải lại tiến độ.',
+    bad_parent_request: 'Không tìm thấy lượt chỉnh trước của đơn này.',
+    request_in_progress: 'Yêu cầu đang được gửi từ một phiên khác. Vui lòng tải lại tiến độ.',
     store_full: 'Kho dữ liệu thử nghiệm đã đầy.'
   };
 
@@ -108,6 +118,9 @@
 
     // Khách: GET /me -> { requests, at }
     mine() { return request('/me'); },
+    sourceAlbums() { return request('/albums/me'); },
+    listSourceAlbums() { return request('/albums'); },
+    deliverSourceAlbum(data) { return request('/albums', {method:'POST', body:data}); },
 
     // Thợ ảnh / Sếp: GET / (?since=<ms> chỉ lấy yêu cầu đổi sau mốc) -> { requests, at }
     list(since) {
@@ -127,8 +140,9 @@
       const d = data || {};
       const body = {
         orderCode: d.orderCode, serviceLabel: d.serviceLabel, note: d.note,
+        sourceAlbumId: d.sourceAlbumId, parentRequestId: d.parentRequestId,
         photos: Array.isArray(d.photos) ? d.photos.map((p) => ({ id: p && p.id, src: p && p.src, note: (p && p.note) || '', isExtra: !!(p && p.isExtra) })) : d.photos,
-        extraFee: d.extraFee, paymentStatus: d.paymentStatus
+        extraFee: d.extraFee, paymentStatus: d.paymentStatus, paymentCode:d.paymentCode
       };
       return request('/', { method: 'POST', body });
     },

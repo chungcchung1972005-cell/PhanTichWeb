@@ -1,5 +1,5 @@
 // ALOHA Baby - view "Ảnh của tôi" (#/chon-anh trong index.html, xem js/router.js): chọn ảnh cần chỉnh sửa hậu kỳ.
-// Demo phía client: dữ liệu ảnh, gói, đơn giá vượt gói đều là MINH HỌA.
+// Thợ giao thư mục Drive trước; khách chọn đúng file đã giao để yêu cầu chỉnh.
 // Xem .claude/rules/workflow.md (mục "Giao diện chọn ảnh") và
 // .claude/rules/tech-defaults.md (mục "Cấu hình chưa xác định").
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,40 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!grid) return; // không phải trang chọn ảnh
 
   const EXTRA_PRICE = 50000;     // đơn giá mỗi ảnh chỉnh sửa thêm: 50K/tấm
-  const PACKAGE_COUNT = 10;      // gói tiêu chuẩn: 10 tấm ảnh miễn phí
-  const FAV_LIMIT = 10;          // giới hạn ảnh yêu thích miễn phí trong gói
+  let PACKAGE_COUNT = 10;      // gói tiêu chuẩn: 10 tấm ảnh miễn phí
 
-  // Chỉ hiện ảnh khi tài khoản này đã từng có buổi chụp (xem js/data-store.js).
+  // Hồ sơ hiển thị được lấy từ bộ ảnh thợ giao, kể cả khách chưa có hồ sơ demo.
   const session = window.AlohaAuth ? AlohaAuth.getSession() : null;
-  const record = (window.AlohaData && session) ? (AlohaData.getCustomerRecord(session.phone) || editDemoRecord(session)) : null;
+  const record = session ? {orderCode:'', serviceLabel:'', packageLabel:'10 ảnh'} : null;
+  let sourceAlbum = null;
 
-  // Khách THỬ NGHIỆM đồng bộ chỉnh ảnh (EDIT_DEMO_ACCOUNTS trên server, token có scope "edit-demo";
-  // thêm 2026-10-15): chưa có buổi chụp nào nên cấp 1 hồ sơ buổi chụp GIẢ riêng theo SĐT của chính
-  // tài khoản đó. Chỉ dựng trong bộ nhớ trang, KHÔNG ghi vào aloha_demo_db, không dùng hồ sơ của
-  // khách demo 0900000001. Chỉ để hiển thị: server vẫn tự kiểm quyền theo token (khách chỉ thấy yêu
-  // cầu của chính mình), đọc scope ở đây không cấp thêm quyền gì.
-  function editDemoRecord(s) {
-    if (!s || s.role !== 'khach-hang' || !s.token || !/^0\d{9,10}$/.test(s.phone || '')) return null;
-    let scope = '';
-    try {
-      const body = String(s.token).split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
-      scope = (JSON.parse(atob(body + '==='.slice((body.length + 3) % 4))) || {}).scope || '';
-    } catch (e) { return null; }
-    if (scope !== 'edit-demo') return null;
-    return {
-      hasShoot: true,
-      orderCode: '#ABTN' + s.phone.slice(-4),   // mã đơn minh hoạ, khác mã của khách demo
-      serviceLabel: 'Newborn',
-      packageLabel: 'Gói thử nghiệm',
-      packageCount: 10,
-      photoCount: 16,
-      editDemo: true
-    };
-  }
   const emptyState = document.getElementById('psEmptyState');
   const psContent = document.getElementById('psContent');
 
-  if (!record || !record.hasShoot) {
+  if (!record) {
     if (emptyState) emptyState.hidden = false;
     if (psContent) psContent.style.display = 'none';
     document.getElementById('psOrderInfo').textContent = 'Chưa có buổi chụp nào được ghi nhận cho tài khoản này.';
@@ -49,30 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  document.getElementById('psOrderInfo').innerHTML =
-    `Mã đơn <strong>${record.orderCode}</strong>, buổi chụp ${record.serviceLabel}, gói ${record.packageLabel}`;
+  document.getElementById('psOrderInfo').textContent = 'Đang tải bộ ảnh gốc thợ gửi cho bạn...';
 
-  // Ảnh lấy từ album Google Photos (js/google-photos-data.js, sinh bởi
-  // _screenshots/fetch-google-photos.js), không giới hạn số ảnh. Không có file
-  // dữ liệu đó thì quay về bộ ảnh demo trong images/my-photos/.
-  const albumPhotos = (typeof GOOGLE_PHOTOS_DATA !== 'undefined' && GOOGLE_PHOTOS_DATA.length) ? GOOGLE_PHOTOS_DATA : null;
-  const photos = albumPhotos
-    ? albumPhotos.map(p => ({ id: p.id, src: p.thumb, large: p.medium, full: p.full }))
-    : Array.from({ length: Math.min(record.photoCount || 16, 16) }, (_, i) => {
-        const src = 'images/my-photos/photo-' + (i + 1) + '.jpg';
-        return { id: 'ph-' + (i + 1), src, large: src, full: src };
-      });
+  // Only photos explicitly delivered to this customer belong in this grid.
+  const photos = [];
 
   const heartIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-9.5-8.5C.7 9.2 2.4 6 5.6 6c1.8 0 3.1 1 3.9 2.3.8 1.3 1 1.3 1 1.3s.2 0 1-1.3C12.3 7 13.6 6 15.4 6c3.2 0 4.9 3.2 3.1 6.5C16 16.65 12 21 12 21z"/></svg>';
 
-  grid.innerHTML = photos.map((p, i) => `
-    <div class="ps-photo" data-id="${p.id}">
-      <img src="${p.src}" alt="Ảnh gốc số ${i + 1}, buổi chụp ${record.serviceLabel}" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-      <span class="ps-photo-badge">Ảnh gốc</span>
-      <span class="ps-zoom-hint" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></span>
-      <button type="button" class="ps-heart" aria-label="Chọn ảnh số ${i + 1}" aria-pressed="false">${heartIcon}</button>
-    </div>
-  `).join('');
+  grid.replaceChildren();
 
   const selected = new Set();
   const extraPhotos = new Set();   // ảnh chỉnh sửa thêm (vượt gói)
@@ -92,6 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let submitting = false;          // đang chờ server xác nhận gửi yêu cầu
   let paidPending = null;          // đã thanh toán ảnh chọn thêm nhưng gửi lỗi -> cho gửi lại, không bắt trả lại tiền
   const photoNotes = new Map();
+  const photoOptions = new Map();
+  const editOptions = ['Chỉnh da', 'Chỉnh màu', 'Ánh sáng', 'Xóa chi tiết thừa', 'Khác'];
+  let parentRequestId = '';
+  let round = 1;
+  function combinedNote(id) { return [...(photoOptions.get(id) || []), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
   const packageEl = document.getElementById('packageCount');
@@ -320,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const PAY_POLL_MS = 4000;           // hỏi trạng thái thanh toán mỗi 4 giây
 
   let qr = null;        // { code, count, fee, deadline } của mã QR đang chờ tiền
+  let lastPaidCode='';
   let qrTicker = null;
   let lastPoll = 0;
   let polling = false;
@@ -403,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function onPaid(paid) {
+    lastPaidCode=paid.code;
     qr = null;
     stopPaymentWatch();
     qrOverlay.classList.remove('show');
@@ -496,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateSummary() {
     const n = selected.size;
     countEl.textContent = n;
-    const pct = Math.min(100, (n / PACKAGE_COUNT) * 100);
+    const pct = Math.min(100, (n / (PACKAGE_COUNT || 1)) * 100);
     barEl.style.width = pct + '%';
     barEl.classList.toggle('over', n > PACKAGE_COUNT);
 
@@ -510,13 +478,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Chế độ đồng bộ: chưa tải xong dữ liệu server (chưa biết đã gửi chưa) hoặc đang gửi -> khoá nút
-    submitBtn.disabled = n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
+    submitBtn.disabled = !sourceAlbum || n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
     syncLightbox();
     syncBulkButtons();
   }
 
   // ===== Xử lý click: tim = chọn ảnh, bấm vào ảnh = mở xem ảnh lớn =====
   grid.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
     const heart = e.target.closest('.ps-heart');
     if (heart) { toggleSelect(heart.closest('.ps-photo').dataset.id); return; }
     const photoCard = e.target.closest('.ps-photo');
@@ -740,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="ps-lb-note" id="psLbNoteWrap" hidden>
           <label for="psLbNote">Ghi chú chỉnh sửa cho ảnh này <span class="ps-lb-extra" id="psLbExtra" hidden>Ảnh chọn thêm +50K</span></label>
+          <fieldset id="psEditOptions"><legend>Bạn muốn chỉnh gì?</legend>${editOptions.map((label, i) => `<label><input type="checkbox" value="${label}" data-option="${i}"> ${label}</label>`).join('')}</fieldset>
           <textarea id="psLbNote" rows="2" placeholder="Vd: làm sáng da, xoá vết đỏ trên má, chỉnh màu ấm hơn..."></textarea>
         </div>
       </div>
@@ -793,9 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // chọn, nên nếu không nạp ở đây thì chữ của ảnh trước sẽ "dính" sang ảnh này)
     lbNote.value = photoNotes.get(id) || '';
     lbImg.src = p.large;
-    lbImg.alt = `Ảnh số ${photos.indexOf(p) + 1}`;
+    lbImg.alt = p.name || `Ảnh số ${photos.indexOf(p) + 1}`;
     applyLbTransform();
-    lb.querySelector('#psLbCounter').textContent = `${lbIndex + 1} / ${lbIds.length}`;
+    lb.querySelector('#psLbCounter').textContent = `${lbIndex + 1} / ${lbIds.length}${p.name ? ' · ' + p.name : ''}`;
     const single = lbIds.length < 2;
     lb.querySelector('#psLbPrev').hidden = single;
     lb.querySelector('#psLbNext').hidden = single;
@@ -826,6 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lb.querySelector('#psLbExtra').hidden = !extraPhotos.has(id);
     if (document.activeElement !== lbNote) lbNote.value = photoNotes.get(id) || '';
     lbNote.readOnly = locked;
+    lb.querySelectorAll('#psEditOptions input').forEach(input => { input.checked = (photoOptions.get(id) || []).includes(input.value); input.disabled = locked; });
   }
 
   function openLightbox(id) {
@@ -854,6 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lb.querySelector('#psLbZoomOut').addEventListener('click', () => setZoom(lbScale / 1.5));
   lb.querySelector('#psLbZoomReset').addEventListener('click', () => setZoom(1));
   lb.querySelector('#psLbFav').addEventListener('click', () => toggleSelect(lbIds[lbIndex]));
+  lb.querySelector('#psEditOptions').addEventListener('change', () => { photoOptions.set(lbIds[lbIndex], [...lb.querySelectorAll('#psEditOptions input:checked')].map(input => input.value)); });
   lbNote.addEventListener('input', () => photoNotes.set(lbIds[lbIndex], lbNote.value));
 
   lbStage.addEventListener('wheel', (e) => {
@@ -995,15 +967,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.AlohaData && session) {
       const perPhotoNotes = Array.from(selected)
-        .map(id => ({ id, note: (photoNotes.get(id) || '').trim() }))
+        .map(id => ({ id, note: combinedNote(id).trim() }))
         .filter(n => n.note);
       const allSelectedPhotos = Array.from(selected)
-        .map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) }));
+        .map(id => Object.assign({}, photoById[id], {note:combinedNote(id).trim(), isExtra:extraPhotos.has(id)}));
 
       AlohaData.createEditRequest({
         phone: session.phone,
         customerName: session.name,
         orderCode: record.orderCode,
+        parentRequestId,
+        sourceAlbumId:sourceAlbum.id,
+        workflowOrderId:sourceAlbum.workflowOrderId,
+        editorPhone:sourceAlbum.editorPhone,
+        sourceFolderUrl:sourceAlbum.folderUrl,
+        round,
         serviceLabel: record.serviceLabel,
         photoCount: selected.size,
         extraCount: extraCount,
@@ -1031,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         <div class="ps-banner-info">
           <strong>Đã nhận thanh toán, ảnh của bé đã được gửi tới đội ngũ Thợ ảnh!</strong>
-          <p>Bộ ảnh gồm <strong>${selected.size} ảnh</strong> (10 ảnh có trong gói + <strong>${extraCount} ảnh chọn thêm: ${extraFee.toLocaleString('vi-VN')}đ</strong>). Danh sách ảnh đã được khóa, bạn theo dõi tiến độ và nhận ảnh đã chỉnh ở tab "Ảnh đã chỉnh" nhé.</p>
+          <p>Lượt ${round}: <strong>${selected.size} ảnh</strong>, miễn phí ${PACKAGE_COUNT} ảnh; <strong>${extraCount} ảnh tính phí: ${extraFee.toLocaleString('vi-VN')}đ</strong>. Theo dõi tiến độ và nhận ảnh ở tab "Ảnh đã chỉnh".</p>
         </div>
       `;
     } else {
@@ -1074,11 +1052,15 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.textContent = 'Đang gửi yêu cầu...';
     const res = await AlohaEditSync.create({
       orderCode: record.orderCode,
+        parentRequestId,
+        sourceAlbumId:sourceAlbum.id,
+        round,
       serviceLabel: record.serviceLabel,
       note: document.getElementById('psNote').value.trim(),
-      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id) || '').trim(), isExtra: extraPhotos.has(id) })),
+      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: combinedNote(id).trim(), isExtra: extraPhotos.has(id) })),
       extraFee: extraFee,
-      paymentStatus: paymentStatus
+      paymentStatus: paymentStatus,
+      paymentCode:lastPaidCode
     });
     submitting = false;
     if (res.ok && res.data && res.data.request) {
@@ -1140,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatInput = document.getElementById('psChatInput');
   const chatSend = document.getElementById('psChatSend');
   const chatQuick = document.getElementById('psChatQuick');
+  if (window.AlohaDrive) AlohaDrive.attach(chatForm, chatInput);
   let editedSig = '';
   let aiPending = null; // id tin của khách đang chờ Trợ lý AI trả lời
   let chatSending = false; // chế độ đồng bộ: đang chờ server lưu tin nhắn
@@ -1147,13 +1130,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmtTime = (t) => new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 
+  function renderRevisionTools(req) {
+    document.getElementById('psRoundTools')?.remove();
+    if (!req) return;
+    const tools = document.createElement('div'); tools.id = 'psRoundTools';
+    const label = document.createElement('p');
+    label.textContent = `Lượt ${req.round || 1} · Phí chỉnh: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ. Lượt đầu miễn phí 10 ảnh; thêm ảnh 50.000đ/ảnh. Từ lượt 2: 50.000đ/ảnh.`;
+    tools.appendChild(label);
+    if (req.resultLink && window.AlohaDrive) {
+      const preview = document.createElement('div'); preview.innerHTML = AlohaDrive.render(req.resultLink); tools.appendChild(preview);
+    }
+    const history = (SYNC ? syncRequests : AlohaData.getEditRequests().filter(r => r.phone === session.phone)).filter(r => r.orderCode === record.orderCode && r.id !== req.id).sort((a,b) => a.createdAt-b.createdAt);
+    history.forEach(old => { const line = document.createElement('details'); const title = document.createElement('summary'); title.textContent = `Lượt ${old.round || 1} · ${old.photoCount} ảnh · ${old.status}`; line.appendChild(title); const body = document.createElement('div'); body.innerHTML = escHtml(old.note || '') + (old.resultLink && window.AlohaDrive ? AlohaDrive.render(old.resultLink) : ''); line.appendChild(body); tools.appendChild(line); });
+    if (req.status === 'Hoàn thành' && requestSent) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'ps-result-link';
+      button.textContent = 'Yêu cầu chỉnh lại · 50.000đ/ảnh';
+      button.onclick = () => {
+        parentRequestId = req.id; round = (req.round || 1) + 1; PACKAGE_COUNT = 0;
+        requestSent = false; selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear(); extraModeActive = true;
+        grid.querySelectorAll('.ps-photo').forEach(card => { card.classList.remove('selected', 'ps-extra-photo'); const b = card.querySelector('.ps-heart'); b.disabled = false; b.setAttribute('aria-pressed', 'false'); });
+        const note = document.getElementById('psNote'); note.readOnly = false; note.value = '';
+        packageEl.textContent = '0 (lượt chỉnh lại)'; submitBtn.textContent = `Gửi yêu cầu chỉnh lại lần ${round}`;
+        banner.classList.remove('show'); updateSummary(); switchToTab('all'); renderRevisionTools(req);
+      };
+      tools.appendChild(button);
+    }
+    resultBody.appendChild(tools);
+  }
+
   function latestRequest() {
     // Chế độ đồng bộ: chỉ dữ liệu server trả (server đã lọc đúng yêu cầu của khách theo token,
     // không có link ảnh gốc). Không đọc yêu cầu cũ trong localStorage.
-    if (SYNC) return syncRequests.slice().sort((a, b) => b.createdAt - a.createdAt)[0] || null;
+    if (SYNC) return syncRequests.filter(r => r.orderCode === record.orderCode).slice().sort((a, b) => b.createdAt - a.createdAt)[0] || null;
     if (!window.AlohaData || !session) return null;
     return AlohaData.getEditRequests()
-      .filter((r) => r.phone === session.phone)
+      .filter((r) => r.phone === session.phone && r.orderCode === record.orderCode)
       .sort((a, b) => b.createdAt - a.createdAt)[0] || null;
   }
   // Thay 1 yêu cầu trong bộ nhớ trang bằng bản server vừa trả
@@ -1300,6 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    renderRevisionTools(req);
     // --- Chat với thợ chỉnh ảnh. Người dùng chốt (2026-09-27): tin của trợ lý tự động hiện
     // như tin của thợ chỉnh ảnh, giao diện khách không nhắc tới AI. Trang quản trị vẫn ghi rõ
     // tin nào do trợ lý tự động trả lời, và trợ lý không nói dối nếu khách hỏi thẳng (server/).
@@ -1315,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
         <div class="ps-msg ${mine ? 'from-me' : 'from-staff'}">
           ${name}
-          <p>${escHtml(m.text)}</p>
+          <div>${window.AlohaDrive ? AlohaDrive.render(m.text) : escHtml(m.text)}</div>
           <time>${escHtml(fmtTime(m.at))}</time>
         </div>`;
       }).join('') + (aiPending ? `
@@ -1473,14 +1485,101 @@ document.addEventListener('DOMContentLoaded', () => {
     requestPlace();
   }
 
+  const drivePanel = document.createElement('section'); drivePanel.id = 'psDrivePanel';
+  drivePanel.innerHTML = '<strong>Ảnh gốc thợ gửi cho bạn</strong><p>Chọn bộ ảnh của buổi chụp, thả tim những ảnh muốn sửa và ghi yêu cầu cho từng ảnh. Sau đó bấm gửi lại cho thợ.</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psDriveConnect" hidden>Kết nối Google để xem ảnh riêng tư</button><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
+  grid.before(drivePanel);
+  const privateUrls = new Set();
+  function addDrivePhoto(doc) {
+    const id = doc.id;
+    if (photoById[id]) return;
+    const src = doc.src;
+    const photo = Object.assign({}, doc, {src, large:src, full:src}); photos.push(photo); photoById[id] = photo;
+    const card = document.createElement('div'); card.className = 'ps-photo'; card.dataset.id = id;
+    const image = document.createElement('img'); image.src = src; image.alt = doc.name || 'Ảnh từ Drive'; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; card.appendChild(image);
+    const badge = document.createElement('span'); badge.className = 'ps-photo-badge'; badge.textContent = doc.name; card.appendChild(badge);
+    const link = document.createElement('a'); link.className = 'ps-drive-file-link'; link.href = doc.driveUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Mở file gốc'; card.appendChild(link);
+    const heart = document.createElement('button'); heart.type = 'button'; heart.className = 'ps-heart'; heart.setAttribute('aria-label', 'Chọn ảnh từ Drive'); heart.setAttribute('aria-pressed', 'false'); heart.innerHTML = heartIcon; card.appendChild(heart);
+    image.onerror = () => { card.classList.add('ps-private-photo'); document.getElementById('psDriveConnect').hidden = false; };
+    grid.appendChild(card);
+  }
+  const driveStatus = drivePanel.querySelector('[role=status]');
+  let sourceAlbums = [], sourceSignature = '';
+  function showSourceAlbum(album) {
+    closeLightbox(); hideUndo();
+    privateUrls.forEach(url => URL.revokeObjectURL(url)); privateUrls.clear();
+    sourceAlbum = album || null; photos.length = 0; grid.replaceChildren();
+    lastPaidCode='';
+    const driveLink = document.getElementById('psDriveLink');
+    if (driveLink) { driveLink.hidden = !album; if (album) driveLink.href = album.folderUrl; else driveLink.removeAttribute('href'); }
+    Object.keys(photoById).forEach(id => delete photoById[id]);
+    selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear();
+    requestSent = false; parentRequestId = ''; round = 1; PACKAGE_COUNT = 10; extraModeActive = false; paidPending = null;
+    packageEl.textContent = '10'; banner.classList.remove('show');
+    const note = document.getElementById('psNote'); note.value = ''; note.readOnly = false;
+    submitBtn.textContent = 'Gửi ảnh đã chọn cho thợ chỉnh';
+    document.getElementById('psDriveConnect').hidden = true;
+    if (!album) {
+      record.orderCode = ''; driveStatus.textContent = 'Thợ chưa gửi ảnh gốc cho bạn. Bộ ảnh sẽ hiện ở đây sau khi thợ gửi.';
+      document.getElementById('psSourceFolder').replaceChildren();
+      document.getElementById('psOrderInfo').textContent = 'Chờ thợ gửi ảnh gốc của buổi chụp.';
+    } else {
+      record.orderCode = album.orderCode; record.serviceLabel = album.serviceLabel || '';
+      document.getElementById('psOrderInfo').textContent = `Mã đơn ${album.orderCode} · ${album.serviceLabel || 'Buổi chụp'} · ${album.photos.length} ảnh gốc`;
+      driveStatus.textContent = `${album.staffName || 'Thợ ảnh'} đã gửi ${album.photos.length} ảnh. Chọn ảnh bên dưới để yêu cầu chỉnh sửa.`;
+      document.getElementById('psSourceFolder').innerHTML = AlohaDrive.render(album.folderUrl);
+      album.photos.forEach(addDrivePhoto);
+      restoreSentRequest();
+    }
+    updateSummary(); applyFilter('all');
+  }
+  async function loadSourceAlbums(force = false) {
+    const result = SYNC ? await AlohaEditSync.sourceAlbums() : {ok:true, data:{albums:AlohaData.getSourceAlbums(session.phone)}};
+    if (!result.ok) { driveStatus.textContent = result.message; return; }
+    const albums = (result.data.albums || []).slice().sort((a,b) => b.createdAt-a.createdAt);
+    const signature = albums.map(a => a.id).join('|');
+    if (!force && signature === sourceSignature && sourceAlbum) return;
+    sourceSignature = signature; sourceAlbums = albums;
+    const select = document.getElementById('psSourceAlbum'); select.replaceChildren();
+    albums.forEach(a => { const option = document.createElement('option'); option.value = a.id; option.textContent = `${a.orderCode} · ${a.serviceLabel || 'Buổi chụp'} · ${a.photos.length} ảnh`; select.appendChild(option); });
+    select.disabled = !albums.length;
+    const album = albums.find(a => sourceAlbum && a.id === sourceAlbum.id) || albums[0];
+    if (album) select.value = album.id;
+    if (!sourceAlbum || !album || sourceAlbum.id !== album.id || force) showSourceAlbum(album);
+  }
+  document.getElementById('psSourceAlbum').onchange = e => {
+    if (submitting || paidPending || (qr && Date.now() < qr.deadline)) { e.target.value = sourceAlbum.id; driveStatus.textContent = 'Hãy hoàn tất lượt đang gửi hoặc thanh toán trước khi đổi bộ ảnh.'; return; }
+    showSourceAlbum(sourceAlbums.find(a => a.id === e.target.value));
+  };
+  document.getElementById('psReloadAlbums').onclick = () => loadSourceAlbums();
+  document.getElementById('psDriveConnect').onclick = async e => {
+    const albumId = sourceAlbum && sourceAlbum.id; e.target.disabled = true;
+    try {
+      await AlohaDrive.authorizeRead();
+      const cards = [...grid.querySelectorAll('.ps-private-photo')];
+      for (const card of cards) {
+        const p = photoById[card.dataset.id]; if (!p || !sourceAlbum || sourceAlbum.id !== albumId) break;
+        const url = await AlohaDrive.loadPrivatePhoto(p); privateUrls.add(url);
+        if (!sourceAlbum || sourceAlbum.id !== albumId) { URL.revokeObjectURL(url); break; }
+        p.large = url; p.full = url; card.querySelector('img').src = url; card.classList.remove('ps-private-photo');
+      }
+      driveStatus.textContent = 'Đã kết nối Google. Bạn có thể xem và chọn ảnh gốc.';
+    } catch (error) { driveStatus.textContent = error.message; }
+    finally { e.target.disabled = false; }
+  };
+  window.addEventListener('storage', () => { if (!SYNC) loadSourceAlbums(); });
+  if (SYNC) setInterval(() => loadSourceAlbums(), 10000);
+  loadSourceAlbums();
+
   // ===== Đã gửi yêu cầu từ trước (tải lại trang / quay lại sau) -> khôi phục đúng trạng thái đã gửi =====
   // Trước đây tải lại trang là lưới ảnh mở khoá, khách gửi được thêm yêu cầu trong khi tab
   // "Ảnh đã chỉnh" báo đã gửi -> 2 thông tin trái nhau. Giờ: đánh dấu lại đúng ảnh đã gửi
   // (kể cả ảnh vượt gói, ghi chú), khoá lưới + nút gửi, và báo rõ đã gửi lúc nào.
   function restoreSentRequest() {
     const req = latestRequest();
-    if (!req) return;
+    if (!req || !sourceAlbum) return;
     requestSent = true;
+    round = req.round || 1; PACKAGE_COUNT = round > 1 ? 0 : 10;
+    packageEl.textContent = round > 1 ? '0 (lượt chỉnh lại)' : '10';
     const sentPhotos = Array.isArray(req.photos) ? req.photos : [];
     // Yêu cầu cũ chưa lưu cờ isExtra: ảnh từ thứ (gói + 1) trở đi là ảnh vượt gói
     const hasExtraFlag = sentPhotos.some((p) => 'isExtra' in p);

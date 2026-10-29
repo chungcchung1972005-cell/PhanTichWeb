@@ -58,7 +58,7 @@ function requiredText(v, max) {
 const isHttpsUrl = (s) => typeof s === 'string' && s.length <= MAX_URL && /^https:\/\/[^\s<>"']+$/i.test(s);
 // Ảnh khách chọn: link Google Photos (https) hoặc ảnh demo trong dự án ("images/...")
 const isPhotoSrc = (s) => isHttpsUrl(s) || (typeof s === 'string' && s.length <= 300 && /^images\/[\w\-./]+$/.test(s) && !s.includes('..'));
-const isPhotoId = (s) => typeof s === 'string' && /^[\w-]{1,40}$/.test(s);
+const isPhotoId = (s) => typeof s === 'string' && /^[\w-]{1,200}$/.test(s);
 const isPhone = (p) => /^0\d{9,10}$/.test(String(p || ''));
 const nonNegInt = (v, max) => (Number.isInteger(v) && v >= 0 && v <= max ? v : null);
 
@@ -84,6 +84,8 @@ const body = (req) => (req.body && typeof req.body === 'object' && !Array.isArra
 // opts.allowPublicDemoStaff: true = vẫn cho Thợ ảnh/Sếp demo CÔNG KHAI (0900000003/0900000004, mật khẩu in
 // trên login.html) dùng API này - chỉ để chạy test/phát triển local. Mặc định false = chặn (403).
 function createEditRequestsRouter(store, opts) {
+  const workflow = opts && opts.workflowService || require('./workflow').service;
+  workflow.attachRequestsStore(store);
   const allowPublicDemoStaff = !!(opts && opts.allowPublicDemoStaff);
   // ---------------------------------------------------------------- Giới hạn tần suất
   const hits = new Map(); // key -> [thời điểm]
@@ -129,6 +131,7 @@ function createEditRequestsRouter(store, opts) {
       return res.status(404).json({ error: 'not_found' });
     }
     req.editRequest = found;
+    if (req.user.role === 'tho-anh' && found.editorPhone && found.editorPhone !== req.user.phone) return res.status(403).json({error:'forbidden'});
     next();
   });
 
@@ -156,11 +159,54 @@ function createEditRequestsRouter(store, opts) {
 
   // ---- Khách
   router.get('/me', auth(['khach-hang']), wrap(async (req, res) => {
-    const mine = (await store.listByPhone(req.user.phone)).map(customerView);
+    const mine = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album').map(customerView);
     res.json({ requests: mine, at: Date.now() });
   }));
 
-  router.post('/', auth(['khach-hang']), wrap(async (req, res) => {
+  // Delivery happens before the customer can create an editing request.
+  router.get('/albums/me', auth(['khach-hang']), wrap(async (req, res) => {
+    res.json({albums:(await store.listByPhone(req.user.phone)).filter(r => r.kind === 'source-album')});
+  }));
+  router.get('/albums', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
+    res.json({albums:(await store.listAll()).filter(r => r.kind === 'source-album' && (req.user.role==='sep' || !r.shooterPhone || [r.shooterPhone,r.editorPhone].includes(req.user.phone)))});
+  }));
+  router.post('/albums', auth(['tho-anh']), wrap(async (req, res) => {
+    const b = body(req);
+    let order;
+    try { order=await workflow.sourceOrder(req.user,b.workflowOrderId); } catch(e) { return res.status(400).json({error:'shoot_order_required',message:e.message}); }
+    const phone = order.phone, orderCode = order.code;
+    let folder;
+    try { folder = new URL(b.folderUrl); } catch (_) { return res.status(400).json({error:'bad_source_album'}); }
+    const folderId = folder.pathname.match(/\/folders\/([\w-]{10,200})/);
+    if (!isPhone(phone) || !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode) || folder.protocol !== 'https:' || folder.hostname !== 'drive.google.com' || !folderId || !Array.isArray(b.photos) || !b.photos.length || b.photos.length > 2000) return res.status(400).json({error:'bad_source_album'});
+    const seen = new Set(), photos = [];
+    for (const p of b.photos) {
+      if (!p || !/^[\w-]{10,190}$/.test(p.driveFileId || '') || p.id !== 'drive-' + p.driveFileId || seen.has(p.id) || !requiredText(p.name, 255)) return res.status(400).json({error:'bad_source_album'});
+      seen.add(p.id);
+      const resourceKey = /^[\w-]{1,200}$/.test(p.resourceKey || '') ? p.resourceKey : '';
+      photos.push({id:p.id, driveFileId:p.driveFileId, name:cleanStr(p.name,255), resourceKey,
+        src:'https://drive.google.com/thumbnail?id=' + p.driveFileId + '&sz=w1000',
+        driveUrl:'https://drive.google.com/file/d/' + p.driveFileId + '/view' + (resourceKey ? '?resourcekey=' + encodeURIComponent(resourceKey) : '')});
+    }
+    if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({error:'store_full'});
+    const now = Date.now();
+    const album = await store.insert({id:'AL-' + crypto.randomBytes(12).toString('hex'), kind:'source-album', phone, orderCode,
+      workflowOrderId:order.id,shooterPhone:order.shooterPhone,editorPhone:order.editorPhone,
+      customerName:order.customerName, serviceLabel:order.service, folderUrl:folder.href, folderId:folderId[1], photos,
+      staffName:req.user.name || 'Thợ ảnh', createdAt:now, updatedAt:now, rev:1});
+    await workflow.originalDelivered(order.id,album.id);
+    res.status(201).json({album});
+  }));
+
+  const creatingForPhone = new Set();
+  function serializeCreate(req, res, next) {
+    if (creatingForPhone.has(req.user.phone)) return res.status(409).json({ error: 'request_in_progress' });
+    creatingForPhone.add(req.user.phone);
+    res.once('finish', () => creatingForPhone.delete(req.user.phone));
+    res.once('close', () => creatingForPhone.delete(req.user.phone));
+    next();
+  }
+  router.post('/', auth(['khach-hang']), serializeCreate, wrap(async (req, res) => {
     const b = body(req);
     if (!Array.isArray(b.photos) || !b.photos.length || b.photos.length > MAX_PHOTOS) return res.status(400).json({ error: 'bad_photos' });
     const seen = new Set();
@@ -172,10 +218,35 @@ function createEditRequestsRouter(store, opts) {
     }
     const orderCode = cleanStr(b.orderCode, 30);
     if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return res.status(400).json({ error: 'bad_order_code' });
-    // Số ảnh/phí chỉnh thêm: trình duyệt tính theo cấu hình gói (chưa có bảng giá ở server) - server chỉ
-    // kiểm khoảng hợp lệ. extraCount suy ra từ chính danh sách ảnh để không lệch nhau.
-    const extraFee = b.extraFee === undefined ? 0 : nonNegInt(b.extraFee, 100000000);
-    if (extraFee === null) return res.status(400).json({ error: 'bad_extra_fee' });
+    const sourceAlbum = typeof b.sourceAlbumId === 'string' ? await store.get(b.sourceAlbumId) : null;
+    if (!sourceAlbum || sourceAlbum.kind !== 'source-album' || sourceAlbum.phone !== req.user.phone || sourceAlbum.orderCode !== orderCode) return res.status(400).json({error:'source_album_required'});
+    const sourcePhotos = new Map(sourceAlbum.photos.map(p => [p.id, p]));
+    for (const p of photos) {
+      const source = sourcePhotos.get(p.id);
+      if (!source) return res.status(400).json({error:'photo_not_in_album'});
+      Object.assign(p, source); // authoritative file identity and filename, never a client-supplied image URL
+    }
+    const history = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode).sort((a, b) => b.createdAt - a.createdAt);
+    const previous = history[0];
+    const parentRequestId = cleanStr(b.parentRequestId, 80);
+    if (previous && (!parentRequestId || parentRequestId !== previous.id || previous.status !== STATUS_FLOW[2])) {
+      return res.status(409).json({ error: 'previous_round_not_completed' });
+    }
+    if (!previous && parentRequestId) return res.status(400).json({ error: 'bad_parent_request' });
+    const round = previous ? (previous.round || 1) + 1 : 1;
+    const freeCount = round === 1 ? 10 : 0;
+    photos.forEach((p, i) => { p.isExtra = i >= freeCount; });
+    const extraFee = Math.max(0, photos.length - freeCount) * 50000;
+    if (b.extraFee !== extraFee) return res.status(400).json({ error: 'bad_extra_fee' });
+    let verifiedPayment=null;
+    if(extraFee>0 && b.paymentCode) {
+      const receipts=require('./payment-receipts'),code=receipts.normalize(b.paymentCode);
+      const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && receipts.find(code,extraFee);
+      if(!tx) return res.status(400).json({error:'payment_not_verified'});
+      const reference='sepay:'+tx.id;
+      if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return res.status(400).json({error:'payment_already_used'});
+      verifiedPayment={reference,amount:extraFee};
+    }
     // Chỉ đếm lượt tạo hợp lệ (lượt gửi sai đã bị từ chối ở trên, không ghi gì vào kho)
     if (limited('create:' + req.user.phone, RATE.create)) return res.status(429).json({ error: 'too_many_requests' });
     if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({ error: 'store_full' });
@@ -186,6 +257,12 @@ function createEditRequestsRouter(store, opts) {
       phone: req.user.phone,               // từ token, KHÔNG từ dữ liệu gửi lên
       customerName: req.user.name || 'Khách hàng',
       orderCode,
+      parentRequestId,
+      sourceAlbumId:sourceAlbum.id,
+      workflowOrderId:sourceAlbum.workflowOrderId,
+      editorPhone:sourceAlbum.editorPhone,
+      sourceFolderUrl:sourceAlbum.folderUrl,
+      round,
       serviceLabel: cleanStr(b.serviceLabel, 40),
       note: cleanStr(b.note, MAX_NOTE),
       photos,
@@ -194,6 +271,7 @@ function createEditRequestsRouter(store, opts) {
       extraCount: photos.filter((p) => p.isExtra).length,
       extraFee,
       paymentStatus: cleanStr(b.paymentStatus, 60),
+      verifiedPayment,
       status: STATUS_FLOW[0],
       doneIds: [],
       photographer: null,                  // "Chưa phân công"
@@ -210,13 +288,14 @@ function createEditRequestsRouter(store, opts) {
       updatedAt: now
     };
     const saved = await store.insert(rec);
+    if(saved.workflowOrderId) await workflow.progress(saved,'selected');
     res.status(201).json({ request: customerView(saved) });
   }));
 
   // ---- Nhân viên: danh sách (Thợ ảnh + Sếp). ?since=<ms> chỉ trả yêu cầu đổi sau mốc đó.
   router.get('/', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
     const since = Number(req.query.since);
-    const list = (await store.listAll(Number.isFinite(since) ? since : undefined)).map(staffView);
+    const list = (await store.listAll(Number.isFinite(since) ? since : undefined)).filter(r => r.kind !== 'source-album' && (req.user.role==='sep' || !r.editorPhone || r.editorPhone===req.user.phone)).map(staffView);
     res.json({ requests: list, at: Date.now() });
   }));
 
@@ -307,7 +386,9 @@ function createEditRequestsRouter(store, opts) {
     if (!checkRev(req, res)) return;
     // Điều kiện rev (+ chưa Hoàn thành) kiểm lại khi ghi: link bị gỡ / đơn bị Hoàn tất ở phiên khác
     // trong lúc này đều làm rev đổi -> 409, không Hoàn tất nhầm.
-    sendConditional(req, res, await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành' }, { notDone: true }));
+    const result=await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành' }, { notDone: true });
+    if(result && result.doc && result.doc.workflowOrderId) await workflow.progress(result.doc,'delivered');
+    sendConditional(req, res, result);
   }));
 
   return router;

@@ -25,6 +25,15 @@
   const FEATURES = window.ALOHA_FEATURES || {};
   // Route đang tạm tắt theo js/features.js -> coi như về Trang chủ.
   const DISABLED = { 'dat-lich': FEATURES.booking === false, 'album': FEATURES.albumPages === false };
+  // Các trang công khai trên menu (2026-10-28, người dùng: "bấm giới thiệu thì vào giới thiệu...,
+  // không để trang chủ dài"). Dùng chung view-home: mỗi <section data-pages="..."> trong
+  // index.html ghi nó thuộc trang nào ("home" = Trang chủ), section không có data-pages hiện ở mọi trang.
+  const HOME_PAGES = {
+    'gioi-thieu': 'Giới thiệu', 'dich-vu': 'Dịch vụ', 'bao-gia': 'Báo giá',
+    'khuyen-mai': 'Khuyến mại', 'tin-tuc': 'Tin tức', 'album-anh': 'Album ảnh đẹp'
+  };
+  // Neo cuộn cũ (#dich-vu...) giờ mở trang tương ứng.
+  const ANCHOR_PAGE = { 'dich-vu': 'dich-vu', 'gioi-thieu': 'gioi-thieu', 'tin-tuc': 'tin-tuc', 'album': 'album-anh', 'concept': 'dich-vu', 'video': 'gioi-thieu', 'bao-gia': 'bao-gia', 'khuyen-mai': 'khuyen-mai' };
   const TITLE = {
     '': document.title,
     'dat-lich': 'Đặt lịch chụp | ALOHA Baby',
@@ -80,6 +89,12 @@
     const [base, ...rest] = (route || '').split('/');
     const param = rest.join('/');
     const targetId = VIEW_ID.hasOwnProperty(base) ? VIEW_ID[base] : VIEW_ID[''];
+    const page = HOME_PAGES[base] ? base : 'home';
+    const homeView = document.getElementById('view-home');
+    if (homeView) homeView.dataset.page = page;
+    document.querySelectorAll('#view-home > section[data-pages]').forEach((sec) => {
+      sec.hidden = sec.dataset.pages.split(' ').indexOf(page) === -1;
+    });
     let pageTitle = null;
     if (window.AlohaAlbums) {
       window.AlohaAlbums.close(); // rời trang khi lightbox đang mở -> không kẹt khoá cuộn
@@ -89,6 +104,7 @@
       window.AlohaContent.stop(); // dừng video đang phát ở trang nội dung trước khi rời
       if (base === 'noi-dung') pageTitle = window.AlohaContent.render(param || '');
     }
+    if (HOME_PAGES[base]) pageTitle = HOME_PAGES[base] + ' | ALOHA Baby';
     noteRoute(base, param, pageTitle);
     Object.values(VIEW_ID).forEach((id) => {
       const el = document.getElementById(id);
@@ -108,8 +124,9 @@
     // "Trang chủ" là mục duy nhất trong nav chính có thể sáng active (Đặt lịch/
     // Ảnh của tôi nằm ở #navAuthArea, không phải #navLinks) -> tắt đi khi rời
     // Trang chủ, tránh sáng nhầm khi đang ở view khác (đã thấy qua screenshot).
-    const homeLink = document.getElementById('navHomeLink');
-    if (homeLink) homeLink.classList.toggle('active', targetId === VIEW_ID['']);
+    document.querySelectorAll('#navLinks a[data-page]').forEach((a) => {
+      a.classList.toggle('active', targetId === VIEW_ID[''] && a.dataset.page === page);
+    });
     document.title = pageTitle || TITLE[route] || TITLE[''];
     // Chuyển view = sang trang mới -> lên đầu NGAY, không cuộn mượt theo CSS
     // scroll-behavior:smooth (trước đây trang trôi ~300ms từ vị trí cũ lên đầu,
@@ -231,6 +248,8 @@
   });
 
   function handleHashChange() {
+    const anchor = window.location.hash.slice(1);
+    if (ANCHOR_PAGE[anchor]) { history.replaceState(null, '', '#/' + ANCHOR_PAGE[anchor]); }
     const route = parseRoute();
     if (route !== null) navigateTo(route);
     else if (currentRoute === null) currentRoute = ''; // không có route = đang ở Trang chủ
@@ -244,6 +263,8 @@
     if (!a) return;
     const href = a.getAttribute('href');
     if (href.length < 2 || href.indexOf('#/') === 0) return; // route hoặc "#" rỗng, bỏ qua
+    const id = href.slice(1);
+    if (ANCHOR_PAGE[id]) { e.preventDefault(); window.location.hash = '/' + ANCHOR_PAGE[id]; return; }
     const currentRoute = parseRoute();
     if (currentRoute) {
       e.preventDefault();

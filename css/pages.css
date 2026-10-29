@@ -1743,3 +1743,24 @@ body.lightbox-open { overflow: hidden; }
   .sc-retry { min-height: 36px; padding: 0 8px; }
   .ps-summary.is-floating .ps-bulk-btn { min-height: 36px; }
 }
+
+/* Drive exchange and per-photo edit suggestions */
+.aloha-drive-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; margin-top:10px; }
+.aloha-drive-tools button, #psDriveSelect { padding:10px 16px; border:1px solid #d6a0af; border-radius:12px; background:#fff4f7; color:#71394b; cursor:pointer; }
+.aloha-drive-tools small, .aloha-drive-tools [role=status] { flex-basis:100%; font-size:12px; }
+.aloha-drive-preview { margin:10px 0; }
+.aloha-drive-preview iframe { display:block; width:100%; height:360px; border:1px solid #eee; border-radius:12px; background:white; }
+.aloha-drive-preview small { display:block; padding:8px; }
+#psEditOptions { border:0; padding:8px 0; display:flex; flex-wrap:wrap; gap:8px 14px; }
+#psEditOptions label { display:inline-flex; gap:6px; align-items:center; font-size:13px; }
+#psEditOptions input { accent-color:#ba627d; }
+#psRoundTools { margin-top:16px; font-size:13px; }
+#psDrivePanel { padding:16px; border:1px solid #ecd8de; border-radius:16px; margin-bottom:16px; }
+#psDrivePanel input { width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px; }
+#psDrivePanel select { display:block; width:100%; padding:12px; margin:8px 0 12px; border:1px solid #d6a0af; border-radius:10px; background:#fff; }
+#psDriveLink[hidden] { display:none; }
+#psDrivePanel button { margin:8px 8px 0 0; padding:10px 14px; border:1px solid #d6a0af; border-radius:10px; background:#fff4f7; color:#71394b; cursor:pointer; }
+.ps-private-photo { background:#f8eef1; min-height:180px; }
+.ps-private-photo img { opacity:0; }
+.ps-private-photo::after { content:'Ảnh riêng tư · kết nối Google để xem'; position:absolute; inset:45% 12px auto; font-size:12px; color:#71394b; pointer-events:none; text-align:center; }
+.ps-drive-file-link { position:absolute; bottom:8px; left:8px; z-index:2; background:#fff; padding:6px 10px; border-radius:8px; font-size:12px; color:#71394b; }

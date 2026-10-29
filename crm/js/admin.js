@@ -343,6 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'khong-mua': { label: 'Không mua', tone: 'muted' }
   };
   function saleShootCount(c) {
+    const linked=window.AlohaWorkflow && AlohaWorkflow.get() && AlohaWorkflow.get().orders.filter(o=>o.phone===c.phone);
+    if(linked && linked.length)return linked.filter(o=>o.shotAt).length;
     if (c.history) return c.history.filter(h => h.shoot).length;
     if (!c.stage) return c.lost ? 0 : 1;
     if (c.stage !== 'da-chot') return 0;
@@ -832,6 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
       custView.innerHTML = toolbar() + (ui.mode === 'bang' ? board(base) : list(base));
       if (typing) { const s = custView.querySelector('[data-ck-search]'); s.focus(); s.setSelectionRange(caret, caret); }
     }
+    window.addEventListener('aloha:crm-projection',render);
 
     custView.addEventListener('click', e => {
       const t = e.target.closest('[data-ck]');
@@ -898,7 +901,9 @@ document.addEventListener('DOMContentLoaded', () => {
       'giu-cho': 'Giữ chỗ, chưa cọc'
     };
     function apptStatus(a, dayOffset) {
+      if(a.status==='da-chup')return 'Đã chụp';
       if (a.status === 'giu-cho') return 'Chưa cọc';
+      if(a.workflowOrderId)return a.status==='checkin'?'Đã đến/Đang chụp':'Sắp đến';
       if (dayOffset < 0) return 'Đã chụp';
       if (dayOffset === 0 && a.status === 'checkin') return 'Đã đến/Đang chụp';
       return 'Sắp đến';
@@ -912,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // như Lịch chụp bên Không gian Sale. Sếp thấy đủ.
     const roomLabel = id => ((SALE_DB && SALE_DB.rooms.find(r => r.id === id)) || {}).label || id;
 
-    const APPOINTMENTS = (SALE_DB ? SALE_DB.appointments : []).map(a => {
+    const mapAppointment=a => {
       const c = SALE_DB.customers.find(x => x.id === a.customerId) || {};
       const dayOffset = -saleDayDiff(a.date); // ngày đã được dời theo hôm nay khi nạp
       const seeContact = canSeeContact(a.owner);
@@ -932,7 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saleName: saleName(a.owner),
         note: seeContact ? (c.note || '') : ''
       };
-    });
+    };
+    const APPOINTMENTS = (SALE_DB ? SALE_DB.appointments : []).map(mapAppointment);
 
     // Màu badge tái dùng đúng bộ đã có trong css/admin.css, không thêm màu mới
     const STATUS_BADGE = {
@@ -1167,6 +1173,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('ResizeObserver' in window) new ResizeObserver(refit).observe(calGrid);
     else window.addEventListener('resize', refit);
 
+    window.addEventListener('aloha:crm-projection',()=>{
+      APPOINTMENTS.splice(0,APPOINTMENTS.length,...(SALE_DB.appointments || []).map(mapAppointment));
+      Object.keys(byDay).forEach(k=>delete byDay[k]);
+      APPOINTMENTS.forEach((a,i)=>{const d=new Date(today);d.setDate(d.getDate()+a.dayOffset);a.date=d;a.id='appt-'+i;(byDay[dayKey(d)]=byDay[dayKey(d)]||[]).push(a);});
+      Object.values(byDay).forEach(list=>list.sort((a,b)=>a.time.localeCompare(b.time)));
+      renderCalendar();
+    });
     renderCalendar();
   }
 
@@ -1203,9 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // phiên (không dựa vào tên hiển thị): tài khoản demo Thợ ảnh 0900000003 = Thợ chỉnh 1.
   const WORKER_DEFS = [
     { id: 'all', label: 'Tất cả' },
-    { id: 'tho1', label: 'Thợ chỉnh 1', phones: ['0900000003'] },
-    { id: 'tho2', label: 'Thợ chỉnh 2', phones: [] },
-    { id: 'tho3', label: 'Thợ chỉnh 3', phones: [] }
+    { id: '0900000003', label: 'Thợ ảnh demo', phones: ['0900000003'] }
   ];
   const workerLabel = (id) => { const w = WORKER_DEFS.find(x => x.id === id && id !== 'all'); return w ? w.label : ''; };
   function detectWorkerFromSession() {
@@ -1330,6 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // sâu hơn 1 cấp nên phải thêm "../" khi hiển thị lại ở đây.
   function toViewReq(r) {
     return Object.assign({ isStatic: false }, r, {
+      photographer:r.editorPhone || r.photographer,
       // Chỉ thêm '../' cho ảnh nằm trong thư mục dự án (trang này ở crm/); ảnh Google Photos là
       // URL đầy đủ https://... thì giữ nguyên, thêm '../' sẽ thành link hỏng.
       photos: (r.photos || []).map(p => Object.assign({}, p, { src: /^(https?:|data:|\/)/i.test(p.src || '') ? p.src : '../' + p.src }))
@@ -1337,8 +1349,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getAllRequests() {
-    const real = (EDIT_SYNC ? syncReqs : (window.AlohaData ? AlohaData.getEditRequests() : [])).map(toViewReq);
-    return STATIC_REQUESTS.concat(real);
+    const real = (EDIT_SYNC ? syncReqs : (window.AlohaData ? AlohaData.getEditRequests() : [])).filter(r=>role==='sep'||!r.editorPhone||r.editorPhone===session.phone).map(toViewReq);
+    return real;
   }
 
   // Thay 1 yêu cầu trong bộ nhớ trang bằng bản server vừa trả (chế độ đồng bộ)
@@ -1511,6 +1523,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Số đơn trên từng ô thợ (đúng bằng số thẻ ô đó sẽ hiện) + trạng thái đang chọn
   function renderWorkerBar() {
+    const bar=document.getElementById('photoWorkerBar');
+    if(bar)bar.innerHTML=WORKER_DEFS.map(w=>`<button type="button" class="photo-worker-card" id="workerBtn-${escHtml(w.id)}" data-worker="${escHtml(w.id)}"><span class="photo-worker-name">${escHtml(w.label)}</span><span class="photo-worker-count" id="workerCount-${escHtml(w.id)}"></span></button>`).join('');
     if (!document.getElementById('photoWorkerBar')) return;
     const pending = getPendingRequests();
     WORKER_DEFS.forEach(w => {
@@ -1875,6 +1889,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderModalChat(req) {
+    if (window.AlohaDrive) AlohaDrive.attach(document.getElementById('kanbanChatForm'), document.getElementById('kanbanChatInput'));
     const list = document.getElementById('kanbanChatList');
     if (!list) return;
     const msgs = Array.isArray(req.messages) ? req.messages : [];
@@ -1886,7 +1901,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
       <div class="kanban-msg ${who}">
         <span class="kanban-msg-name">${escHtml(name)}</span>
-        <p>${escHtml(m.text)}</p>
+        <div>${window.AlohaDrive ? AlohaDrive.render(m.text) : escHtml(m.text)}</div>
         <time>${escHtml(fmtTime(m.at))}</time>${tag}
       </div>`;
     }).join('') : '<p class="kanban-chat-empty">Chưa có tin nhắn nào với khách.</p>';
@@ -2031,6 +2046,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
+      ${/^https:\/\/drive\.google\.com\//.test(req.sourceFolderUrl || '') ? `<p class="kanban-modal-meta">Khách đã chọn từ bộ ảnh gốc được giao: <a href="${escHtml(req.sourceFolderUrl)}" target="_blank" rel="noopener noreferrer">Mở thư mục Drive</a> · Lượt ${req.round || 1}</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
         <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
@@ -2039,14 +2055,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Tiến độ đếm số ảnh đã được đánh dấu xong. Không đánh dấu từng ảnh nữa: khi Thợ ảnh bấm "Hoàn tất" (cần có link ảnh đã chỉnh), toàn bộ ảnh được tính là xong.</p>
       <div class="kanban-photo-grid">
         ${req.photos.map(p => {
-          const fname = photoFilename(p.id);
+          const fname = p.name || photoFilename(p.id);
           return `
           <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             <div class="photo-file-row">
               <span class="photo-filename">${escHtml(fname)}</span>
-              <a class="photo-download-btn" href="${escHtml(p.src)}" download="${escHtml(fname)}" title="Tải xuống ${escHtml(fname)}" aria-label="Tải xuống ${escHtml(fname)}">
+              <a class="photo-download-btn" href="${escHtml(p.driveUrl || p.src)}" target="_blank" rel="noopener noreferrer" title="Mở file gốc ${escHtml(fname)}" aria-label="Mở file gốc ${escHtml(fname)}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </a>
             </div>
@@ -2136,6 +2152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     previewGrid.innerHTML = photos.length ? photos.map(p => `
       <div class="photo-preview-tile">
         <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(photoFilename(p.id))}" loading="lazy">
+        ${/^drive-[\w-]+$/.test(p.id) ? `<a href="https://drive.google.com/file/d/${encodeURIComponent(p.id.slice(6))}/view" target="_blank" rel="noopener noreferrer">Mở ảnh trên Drive</a>` : ''}
         ${p.note ? `<p class="photo-preview-note">"${escHtml(p.note)}"</p>` : ''}
       </div>`).join('') : '<p class="photo-preview-empty">Yêu cầu này chưa có dữ liệu ảnh chi tiết.</p>';
     previewOverlay.classList.add('open');
@@ -3396,4 +3413,28 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     revealSections.forEach(s => { s.style.opacity = '1'; s.style.transform = 'none'; });
   }
+  window.addEventListener('aloha:workflow',event=>{
+    if(!SALE_DB)return;
+    const state=event.detail;
+    WORKER_DEFS.splice(0,WORKER_DEFS.length,{id:'all',label:'Tất cả'},...state.employees.filter(e=>e.role==='tho-anh').map(e=>({id:e.phone,label:e.name,phones:[e.phone]})));
+    if(role==='tho-anh')activeWorker=session.phone;
+    renderEditRequests();
+    state.employees.filter(e=>e.role==='sale').forEach(e=>{if(!SALE_DB.sales.some(s=>s.phone===e.phone))SALE_DB.sales.push({id:e.phone,phone:e.phone,name:e.name,target:0,achieved:0});});
+    const workerName=p=>(state.employees.find(e=>e.phone===p)||{}).name||p;
+    const orders=state.orders.filter(o=>o.status!=='cancelled');
+    SALE_DB.appointments=SALE_DB.appointments.filter(a=>!a.workflowOrderId);
+    SALE_DB.orders=SALE_DB.orders.filter(a=>!a.workflowOrderId);
+    orders.forEach(o=>{
+      const owner=(SALE_DB.sales.find(s=>s.phone===o.salePhone)||{}).id||o.salePhone;
+      let c=SALE_DB.customers.find(c=>c.phone===o.phone);
+      if(!c){c={id:o.customerId||'wf-'+o.phone,phone:o.phone,name:o.customerName,short:o.customerName.split(' ').pop(),title:'anh/chị',area:'',source:'Sale đặt lịch',tags:[],note:''};SALE_DB.customers.push(c);}
+      Object.assign(c,{owner,service:o.service,stage:o.status==='booked'?'cho-coc':'da-chot',since:o.date,status:{text:o.shotAt?'Đã chụp':o.collected?'Đã cọc':'Chờ cọc',tone:o.shotAt?'teal':'blue'}});
+      SALE_DB.appointments.push({id:o.id,workflowOrderId:o.id,customerId:c.id,owner,date:o.date,start:o.time,dur:o.duration/60,service:o.service,label:o.customerName,room:o.room,photographer:workerName(o.shooterPhone),status:o.shotAt?'da-chup':o.status==='shooting'?'checkin':o.status==='booked'?'giu-cho':'da-coc',depositCode:o.code});
+      if(o.shotAt)SALE_DB.orders.push({code:o.code,workflowOrderId:o.id,customerId:c.id,owner,customer:o.customerName,service:o.service,pkg:o.pkg,date:o.date,status:o.status==='delivered'?'da-giao':o.status==='editing'?'dang-chinh':'cho-chon',progress:'',due:'Theo đơn'});
+    });
+    const counts=saleFunnelCounts();
+    ['quan-tam','tu-van','dat-lich','da-chup','hoan-thanh'].forEach((k,i)=>{const num=document.querySelector('#kpi .kpi-'+k+' .num');if(num){num.textContent=counts[i];num.dataset.val=counts[i];}});
+    document.querySelectorAll('#funnelChart .funnel-row').forEach((row,i)=>{const pct=Math.round(counts[i]/(counts[0]||1)*100),val=row.querySelector('.val'),bar=row.querySelector('.funnel-bar');if(val){val.dataset.val=counts[i];val.dataset.pct=pct;val.textContent=counts[i]+' ('+pct+'%)';}if(bar){bar.dataset.w=pct;bar.style.width=pct+'%';}});
+    window.dispatchEvent(new Event('aloha:crm-projection'));
+  });
 });
