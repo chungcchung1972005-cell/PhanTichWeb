@@ -6,7 +6,7 @@
 //  - MongoDB CHỈ khi có biến RIÊNG EDIT_REQUESTS_MONGODB_URI (database mặc định "aloha_edit_demo",
 //    collection "edit_requests"). KHÔNG đọc MONGODB_URI của chat Sale; từ chối database / collection
 //    của chat. Không tự chuyển dữ liệu RAM cũ sang MongoDB.
-// Frontend nối vào qua js/edit-sync.js NHƯNG chỉ khi bật cờ editSync (js/features.js, mặc định TẮT):
+// Frontend nối vào qua js/edit-sync.js NHƯNG chỉ khi bật cờ editSync (js/features.js, mặc định BẬT):
 // khách, Thợ ảnh (ghi) và Sếp (chỉ đọc). Cờ tắt thì các trang vẫn đọc/ghi localStorage như trước.
 //
 // Xác thực dùng chung token của server/sale-chat.js (requireAuth, ký bằng AUTH_SECRET).
@@ -19,7 +19,7 @@
 //  - Tài khoản THỬ NGHIỆM (EDIT_DEMO_ACCOUNTS, token scope "edit-demo"): dùng được router này theo đúng
 //    vai trò trên; mọi route chat Sale từ chối token có scope (xem requireAuth trong sale-chat.js).
 //  - Thợ ảnh/Sếp demo CÔNG KHAI (0900000003 / 0900000004): bị chặn 403 public_demo_staff_blocked, trừ khi
-//    đặt EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 (chỉ test/local). Khách demo 0900000001 không bị chặn.
+//    đặt EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 (bản demo nhiều máy; khi studio dùng thật thì bỏ). Khách demo 0900000001 không bị chặn.
 // Link ảnh GỐC (resultLinkOriginal) chỉ dùng nội bộ: KHÔNG BAO GIỜ có trong phản hồi gửi khách.
 // Tin nhắn from 'ai' KHÔNG nhận từ client: người gửi luôn suy ra từ vai trò trong token.
 // Chống ghi đè: mỗi yêu cầu có "rev" (tăng mỗi lần đổi dữ liệu nghiệp vụ: link, Hoàn tất, ảnh đã
@@ -170,29 +170,24 @@ function createEditRequestsRouter(store, opts) {
   router.get('/albums', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
     res.json({albums:(await store.listAll()).filter(r => r.kind === 'source-album' && (req.user.role==='sep' || !r.shooterPhone || [r.shooterPhone,r.editorPhone].includes(req.user.phone)))});
   }));
+  router.get('/drive-folder', auth(['tho-anh','sep']), wrap(async (req,res) => {
+    try { res.json(await require('./drive').readFolder(req.query.url)); }
+    catch(e) { res.status(400).json({error:'drive_folder_error',message:e.message}); }
+  }));
   router.post('/albums', auth(['tho-anh']), wrap(async (req, res) => {
     const b = body(req);
     let order;
     try { order=await workflow.sourceOrder(req.user,b.workflowOrderId); } catch(e) { return res.status(400).json({error:'shoot_order_required',message:e.message}); }
     const phone = order.phone, orderCode = order.code;
-    let folder;
-    try { folder = new URL(b.folderUrl); } catch (_) { return res.status(400).json({error:'bad_source_album'}); }
-    const folderId = folder.pathname.match(/\/folders\/([\w-]{10,200})/);
-    if (!isPhone(phone) || !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode) || folder.protocol !== 'https:' || folder.hostname !== 'drive.google.com' || !folderId || !Array.isArray(b.photos) || !b.photos.length || b.photos.length > 2000) return res.status(400).json({error:'bad_source_album'});
-    const seen = new Set(), photos = [];
-    for (const p of b.photos) {
-      if (!p || !/^[\w-]{10,190}$/.test(p.driveFileId || '') || p.id !== 'drive-' + p.driveFileId || seen.has(p.id) || !requiredText(p.name, 255)) return res.status(400).json({error:'bad_source_album'});
-      seen.add(p.id);
-      const resourceKey = /^[\w-]{1,200}$/.test(p.resourceKey || '') ? p.resourceKey : '';
-      photos.push({id:p.id, driveFileId:p.driveFileId, name:cleanStr(p.name,255), resourceKey,
-        src:'https://drive.google.com/thumbnail?id=' + p.driveFileId + '&sz=w1000',
-        driveUrl:'https://drive.google.com/file/d/' + p.driveFileId + '/view' + (resourceKey ? '?resourcekey=' + encodeURIComponent(resourceKey) : '')});
-    }
+    let manifest;
+    try { manifest=await require('./drive').readFolder(b.folderUrl); }
+    catch(e) { return res.status(400).json({error:'drive_folder_error',message:e.message}); }
+    const {photos,folderId,folderUrl}=manifest;
     if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({error:'store_full'});
     const now = Date.now();
     const album = await store.insert({id:'AL-' + crypto.randomBytes(12).toString('hex'), kind:'source-album', phone, orderCode,
       workflowOrderId:order.id,shooterPhone:order.shooterPhone,editorPhone:order.editorPhone,
-      customerName:order.customerName, serviceLabel:order.service, folderUrl:folder.href, folderId:folderId[1], photos,
+      customerName:order.customerName, serviceLabel:order.service, folderUrl, folderId, photos,
       staffName:req.user.name || 'Thợ ảnh', createdAt:now, updatedAt:now, rev:1});
     await workflow.originalDelivered(order.id,album.id);
     res.status(201).json({album});
@@ -214,7 +209,7 @@ function createEditRequestsRouter(store, opts) {
     for (const p of b.photos) {
       if (!p || typeof p !== 'object' || !isPhotoId(p.id) || !isPhotoSrc(p.src) || seen.has(p.id)) return res.status(400).json({ error: 'bad_photos' });
       seen.add(p.id);
-      photos.push({ id: p.id, src: p.src, note: cleanStr(p.note, MAX_NOTE), isExtra: p.isExtra === true });
+      photos.push({ id: p.id, src: p.src, note: cleanStr(p.note, MAX_NOTE), editOptions: [...new Set((Array.isArray(p.editOptions)?p.editOptions:[]).filter(x=>['Chỉnh da','Chỉnh màu','Ánh sáng','Xóa chi tiết thừa','Khác'].includes(x)))], isExtra: p.isExtra === true });
     }
     const orderCode = cleanStr(b.orderCode, 30);
     if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return res.status(400).json({ error: 'bad_order_code' });
@@ -396,10 +391,10 @@ function createEditRequestsRouter(store, opts) {
 
 // Kho mặc định chọn theo biến môi trường (xem server/edit-requests-store.js)
 const { store, configError } = createStoreFromEnv(process.env);
-// Chỉ đặt EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 khi chạy test / phát triển local, KHÔNG đặt trên Render.
+// Bản demo nhiều máy (người dùng chốt 2026-10-29) đặt EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1; khi studio dùng thật thì bỏ.
 const ALLOW_PUBLIC_DEMO_STAFF = process.env.EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF === '1';
 if (configError) console.error('edit-requests: cấu hình MongoDB riêng KHÔNG hợp lệ (' + configError + ') -> dùng RAM.');
 if (store.kind === 'mongodb') console.log('edit-requests: lưu MongoDB riêng (database "' + store.dbName + '", collection "' + store.collectionName + '").');
 
-if (ALLOW_PUBLIC_DEMO_STAFF) console.warn('edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (chỉ dành cho test/local).');
+if (ALLOW_PUBLIC_DEMO_STAFF) console.warn('edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).');
 module.exports = { router: createEditRequestsRouter(store, { allowPublicDemoStaff: ALLOW_PUBLIC_DEMO_STAFF }), storeKind: store.kind, createEditRequestsRouter };

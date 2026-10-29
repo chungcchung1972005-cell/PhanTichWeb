@@ -1958,3 +1958,17 @@
 #psRoundTools { margin-top:16px; font-size:13px; }
 #psDrivePanel { padding:16px; border:1px solid #ecd8de; border-radius:16px; margin-bottom:16px; }
 #psDrivePanel input { width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px; }
+
+/* Source album details */
+.photo-copy-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; }
+#copyPhotoNames { min-height:44px; padding:10px 16px; border:1px solid var(--pink-200); border-radius:var(--radius-pill); background:var(--pink-50); color:var(--pink-700); font:inherit; cursor:pointer; }
+#copyPhotoStatus { font-size:12px; color:var(--navy-500); }
+.photo-download-btn { width:auto; min-width:44px; min-height:44px; height:auto; padding:8px 10px; gap:5px; border-radius:var(--radius-pill); white-space:nowrap; font-size:12px; }
+.photo-file-row { flex-wrap:wrap; background:var(--white); }
+.photo-filename { min-width:0; flex:1 1 100%; white-space:normal; overflow-wrap:anywhere; font-family:var(--font-body); }
+.kanban-photo-tile { min-width:0; }
+.kanban-photo-tile .badge { margin:4px; }
+
+.kanban-photo-tile .badge { background:var(--pink-100); border:1px solid var(--pink-200); border-radius:var(--radius-pill); }
+
+.kanban-modal-close { width:44px; height:44px; min-width:44px; min-height:44px; }

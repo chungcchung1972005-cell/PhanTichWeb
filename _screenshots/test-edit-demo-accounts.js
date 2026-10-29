@@ -1,3 +1,4 @@
+const fixture = require('./workflow-fixture');
 // Test cách ly tài khoản THỬ NGHIỆM + chặn Thợ ảnh/Sếp demo CÔNG KHAI ở API chỉnh ảnh. Test cách ly tài khoản THỬ NGHIỆM đồng bộ chỉnh ảnh (EDIT_DEMO_ACCOUNTS, server/sale-chat.js) khỏi
 // chat Sale - CHỈ gọi API, không mở trình duyệt, không chụp ảnh, chỉ dữ liệu giả, kho RAM
 // (MONGODB_URI='', không kết nối Atlas). Mật khẩu thử nghiệm sinh NGẪU NHIÊN mỗi lần chạy (không
@@ -45,6 +46,7 @@ async function portBusy() {
   try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; }
 }
 async function startServer(extraEnv) {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '', EDIT_REQUESTS_MONGODB_URI: '', ...extraEnv },
@@ -208,7 +210,7 @@ const newReq = () => ({
     check('F10 Khách demo 0900000001 KHÔNG bị chặn ở API chỉnh ảnh (200)', (await call(er('/me'), { t: tKhachDemo }))[0] === 200);
 
     // ---- Tài khoản thử nghiệm dùng được API chỉnh ảnh, đúng vai trò
-    [s, d] = await call(er('/'), { t: tKhach, b: newReq() });
+    [s, d] = await call(er('/'), { t: tKhach, b: fixture.requestFrom(await fixture.sourceAlbum(API,{customer:tKhach,worker:tTho,boss:tSep,code:newReq().orderCode}),newReq()) });
     check('G1 Khách thử nghiệm tạo yêu cầu (201), SĐT lấy từ token', s === 201 && d.request.phone === PHONE.khach, [s, d && d.error]);
     const id = d.request.id;
     check('G2 Khách thử nghiệm xem yêu cầu của mình (200)', (await call(er('/me'), { t: tKhach }))[1].requests.length === 1);
@@ -217,7 +219,7 @@ const newReq = () => ({
     check('G5 Sếp thử nghiệm đọc danh sách (200)', (await call(er('/'), { t: tSep }))[0] === 200);
     check('G6 Thợ thử nghiệm đọc danh sách (200)', (await call(er('/'), { t: tTho }))[0] === 200);
     const rev = (await call(er('/' + id), { t: tTho }))[1].request.rev;
-    for (const [name, p, b] of [['nhắn tin', '/messages', { text: 'x' }], ['đánh dấu ảnh', '/done-photos', { photoId: 'ph-1', done: true }],
+    for (const [name, p, b] of [['nhắn tin', '/messages', { text: 'x' }], ['đánh dấu ảnh', '/done-photos', { photoId: 'drive-fixture-file-1', done: true }],
       ['lưu link', '/links', { resultLink: 'https://drive.google.com/drive/folders/test-demo', rev }], ['Hoàn tất', '/complete', { rev }]]) {
       check('G7 Sếp thử nghiệm KHÔNG ' + name + ' (403)', (await call(er('/' + id + p), { t: tSep, b }))[0] === 403);
     }

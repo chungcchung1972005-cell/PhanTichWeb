@@ -35,6 +35,8 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
   });
   await page.waitForFunction(()=>document.getElementById('sourceDeliveryStatus').textContent.includes('Đã gửi'));
   assert.match(await page.$eval('.wf-kpis',e=>e.textContent),/300.000/);
+  assert.doesNotMatch(await page.$eval('#quy-trinh',e=>e.textContent),/Hoa hồng Sale|Cơ bản chia Sale|Premium 200k/);
+  assert.deepEqual(await page.evaluate(()=>AlohaWorkflow.get().rules),[]);
   assert.doesNotMatch(await page.$eval('.wf-table-wrap',e=>e.textContent),/Hoa hồng Sale/);
   const req=await page.evaluate(()=>{
    const album=AlohaData.getSourceAlbums()[0];
@@ -53,7 +55,7 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
    const shoot=AlohaWorkflow.get().entries.find(e=>e.kind==='shoot');await AlohaWorkflow.command('approve-entry',{id:shoot.id});await AlohaWorkflow.command('pay-entry',{id:shoot.id,reference:'payout-ui'});
   });
   assert.match(await page.$eval('#quy-trinh',e=>e.textContent),/payout-ui/);
-  assert.equal(await page.evaluate(()=>AlohaWorkflow.get().entries.find(e=>e.kind==='sale').amount),100000);
+  assert.equal(await page.evaluate(()=>AlohaWorkflow.get().entries.find(e=>e.kind==='sale').amount),75000);
   await page.setViewport({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);

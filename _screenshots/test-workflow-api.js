@@ -4,6 +4,7 @@ const express=require('../server/node_modules/express'),{memoryStore}=require('.
 const {createService,createRouter}=require('../server/workflow'),{createEditRequestsRouter}=require('../server/edit-requests');
 const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,name:role,exp:Date.now()+60000})).toString('base64url');return body+'.'+crypto.createHmac('sha256',process.env.AUTH_SECRET).update(body).digest('base64url');};
 (async()=>{
+ const drive=await require('./drive-fixture').startDrive();
  const service=createService(memoryStore()),store=memoryStore(),app=express();app.use(express.json());app.use('/workflow',createRouter(service));app.use('/edit',createEditRequestsRouter(store,{workflowService:service}));
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
  const boss=token('sep','0910000004'),sale=token('sale','0910000002'),worker=token('tho-anh','0910000003'),stranger=token('tho-anh','0910000005'),customer=token('khach-hang','0910000001');
@@ -30,6 +31,8 @@ const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,nam
   r=await call('/edit/'+req.id+'/links',worker,{rev:req.rev,resultLink:'https://drive.google.com/drive/folders/edited-folder-123'});assert.equal(r.status,200);req=r.body.request;
   assert.equal((await call('/edit/'+req.id+'/complete',worker,{rev:req.rev})).status,200);
   r=await call('/workflow',worker);assert.equal(r.body.state.entries.length,2);assert.equal(r.body.state.entries.find(e=>e.kind==='edit').amount,150000);
+  assert.deepEqual(r.body.state.rules,[]);assert.equal(r.body.state.orders.some(o=>o.policy),false);
+  const saleView=await call('/workflow',sale);assert.equal(saleView.body.state.rules.some(r=>r.sale||r.shoot||r.edit||r.extraEditPerPhoto),false);
   assert.deepEqual((await call('/workflow',stranger)).body.state.entries,[]);
   assert.equal((await command(boss,'approve-entry',{id:order.id+':shoot'})).status,400);
   assert.equal((await command(sale,'payment',{id:order.id,amount:750000,reference:'balance-api'})).status,200);
@@ -43,5 +46,5 @@ const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,nam
   assert.equal((await service.read()).orders[0].collected,1550000);assert.equal((await service.read()).orders[0].extraFees,50000);
   await call('/workflow',boss);assert.equal((await service.read()).orders[0].collected,1550000);
   console.log('PASS: real authenticated booking → deposit → assigned shoot → authoritative source delivery → editing → ledger → boss payout; concurrent duplicates and role restrictions');
- } finally {await new Promise(r=>server.close(r));}
+ } finally {await new Promise(r=>server.close(r));await new Promise(r=>drive.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

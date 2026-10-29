@@ -48,7 +48,7 @@ async function launchAllFeatures(puppeteer, opts) {
   browser.newPage = async (...args) => {
     const page = await newPage(...args);
     await page.evaluateOnNewDocument(() => {
-      window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true };
+      window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true, editSync: false };
       // Từ 2026-09-28 chatbot tự mở ở trang chủ (máy tính) / hiện bong bóng lời chào (điện thoại).
       // Test cũ bấm nút chat như trước -> coi như khách đã đóng lời chào (test-chatbot-greeting.js
       // kiểm tra riêng phần tự mở). Không ghi đè nếu trang đã có trạng thái (vd vừa đăng nhập).

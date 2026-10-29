@@ -970,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(id => ({ id, note: combinedNote(id).trim() }))
         .filter(n => n.note);
       const allSelectedPhotos = Array.from(selected)
-        .map(id => Object.assign({}, photoById[id], {note:combinedNote(id).trim(), isExtra:extraPhotos.has(id)}));
+        .map(id => Object.assign({}, photoById[id], {note:(photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra:extraPhotos.has(id)}));
 
       AlohaData.createEditRequest({
         phone: session.phone,
@@ -1057,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
         round,
       serviceLabel: record.serviceLabel,
       note: document.getElementById('psNote').value.trim(),
-      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: combinedNote(id).trim(), isExtra: extraPhotos.has(id) })),
+      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra: extraPhotos.has(id) })),
       extraFee: extraFee,
       paymentStatus: paymentStatus,
       paymentCode:lastPaidCode
@@ -1470,12 +1470,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const slotRect = slot.getBoundingClientRect();
       const shouldFloat = active && slotRect.height > 0 && slotRect.bottom < headerBottom + 8;
       if (shouldFloat !== floating) setFloating(shouldFloat, slotRect);
-      if (!floating) return;
+      if (!floating) { grid.style.setProperty('--ps-grid-clip', '0px'); return; }
       summaryCard.style.top = headerBottom + 10 + 'px';
       // Màn rộng: nổi đúng cột bên phải như vị trí gốc; màn hẹp: trải ngang (xem CSS)
       const wide = window.innerWidth > 768;
       summaryCard.style.left = wide ? slotRect.left + 'px' : '';
       summaryCard.style.width = wide ? slotRect.width + 'px' : '';
+      const safeTop = summaryCard.getBoundingClientRect().bottom + 12;
+      document.documentElement.style.setProperty('--ps-sticky-bottom', safeTop + 'px');
+      // Chỉ cắt lưới khi khối đếm trải ngang (điện thoại); máy tính khối đếm chỉ nằm cột phải
+      grid.style.setProperty('--ps-grid-clip', wide ? '0px' : Math.max(0, safeTop - grid.getBoundingClientRect().top) + 'px');
     }
     const requestPlace = () => { if (!ticking) { ticking = true; requestAnimationFrame(placeSummary); } };
     window.addEventListener('scroll', requestPlace, { passive: true });
@@ -1486,27 +1490,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const drivePanel = document.createElement('section'); drivePanel.id = 'psDrivePanel';
-  drivePanel.innerHTML = '<strong>Ảnh gốc thợ gửi cho bạn</strong><p>Chọn bộ ảnh của buổi chụp, thả tim những ảnh muốn sửa và ghi yêu cầu cho từng ảnh. Sau đó bấm gửi lại cho thợ.</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psDriveConnect" hidden>Kết nối Google để xem ảnh riêng tư</button><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
+  drivePanel.innerHTML = '<strong>Ảnh gốc thợ gửi cho bạn</strong><p>Chọn bộ ảnh của buổi chụp, thả tim những ảnh muốn sửa và ghi yêu cầu cho từng ảnh. Sau đó bấm gửi lại cho thợ.</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
   grid.before(drivePanel);
-  const privateUrls = new Set();
   function addDrivePhoto(doc) {
     const id = doc.id;
     if (photoById[id]) return;
     const src = doc.src;
-    const photo = Object.assign({}, doc, {src, large:src, full:src}); photos.push(photo); photoById[id] = photo;
+    const photo = Object.assign({}, doc, {src, large:src.replace('sz=w1000','sz=w2000'), full:src.replace('sz=w1000','sz=w2000')}); photos.push(photo); photoById[id] = photo;
     const card = document.createElement('div'); card.className = 'ps-photo'; card.dataset.id = id;
     const image = document.createElement('img'); image.src = src; image.alt = doc.name || 'Ảnh từ Drive'; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; card.appendChild(image);
     const badge = document.createElement('span'); badge.className = 'ps-photo-badge'; badge.textContent = doc.name; card.appendChild(badge);
     const link = document.createElement('a'); link.className = 'ps-drive-file-link'; link.href = doc.driveUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Mở file gốc'; card.appendChild(link);
     const heart = document.createElement('button'); heart.type = 'button'; heart.className = 'ps-heart'; heart.setAttribute('aria-label', 'Chọn ảnh từ Drive'); heart.setAttribute('aria-pressed', 'false'); heart.innerHTML = heartIcon; card.appendChild(heart);
-    image.onerror = () => { card.classList.add('ps-private-photo'); document.getElementById('psDriveConnect').hidden = false; };
+    image.onerror = () => { driveStatus.textContent = 'Không tải được ảnh. Thử tải lại hoặc mở thư mục Drive.'; };
     grid.appendChild(card);
   }
   const driveStatus = drivePanel.querySelector('[role=status]');
   let sourceAlbums = [], sourceSignature = '';
   function showSourceAlbum(album) {
     closeLightbox(); hideUndo();
-    privateUrls.forEach(url => URL.revokeObjectURL(url)); privateUrls.clear();
     sourceAlbum = album || null; photos.length = 0; grid.replaceChildren();
     lastPaidCode='';
     const driveLink = document.getElementById('psDriveLink');
@@ -1514,10 +1516,11 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(photoById).forEach(id => delete photoById[id]);
     selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear();
     requestSent = false; parentRequestId = ''; round = 1; PACKAGE_COUNT = 10; extraModeActive = false; paidPending = null;
-    packageEl.textContent = '10'; banner.classList.remove('show');
+    packageEl.textContent = '10';
+    // Giữ banner lỗi (mất kết nối / không tải được yêu cầu) để khách vẫn thấy vì sao nút gửi bị khoá
+    if (banner.getAttribute('role') !== 'alert') banner.classList.remove('show');
     const note = document.getElementById('psNote'); note.value = ''; note.readOnly = false;
     submitBtn.textContent = 'Gửi ảnh đã chọn cho thợ chỉnh';
-    document.getElementById('psDriveConnect').hidden = true;
     if (!album) {
       record.orderCode = ''; driveStatus.textContent = 'Thợ chưa gửi ảnh gốc cho bạn. Bộ ảnh sẽ hiện ở đây sau khi thợ gửi.';
       document.getElementById('psSourceFolder').replaceChildren();
@@ -1551,21 +1554,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showSourceAlbum(sourceAlbums.find(a => a.id === e.target.value));
   };
   document.getElementById('psReloadAlbums').onclick = () => loadSourceAlbums();
-  document.getElementById('psDriveConnect').onclick = async e => {
-    const albumId = sourceAlbum && sourceAlbum.id; e.target.disabled = true;
-    try {
-      await AlohaDrive.authorizeRead();
-      const cards = [...grid.querySelectorAll('.ps-private-photo')];
-      for (const card of cards) {
-        const p = photoById[card.dataset.id]; if (!p || !sourceAlbum || sourceAlbum.id !== albumId) break;
-        const url = await AlohaDrive.loadPrivatePhoto(p); privateUrls.add(url);
-        if (!sourceAlbum || sourceAlbum.id !== albumId) { URL.revokeObjectURL(url); break; }
-        p.large = url; p.full = url; card.querySelector('img').src = url; card.classList.remove('ps-private-photo');
-      }
-      driveStatus.textContent = 'Đã kết nối Google. Bạn có thể xem và chọn ảnh gốc.';
-    } catch (error) { driveStatus.textContent = error.message; }
-    finally { e.target.disabled = false; }
-  };
   window.addEventListener('storage', () => { if (!SYNC) loadSourceAlbums(); });
   if (SYNC) setInterval(() => loadSourceAlbums(), 10000);
   loadSourceAlbums();
@@ -1589,6 +1577,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selected.add(p.id);
       if (extra) extraPhotos.add(p.id);
       if (p.note) photoNotes.set(p.id, p.note);
+      if (p.editOptions) photoOptions.set(p.id, p.editOptions);
       setCardSelected(p.id, true, extra);
     });
     extraModeActive = extraPhotos.size > 0;

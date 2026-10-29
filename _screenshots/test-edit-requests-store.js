@@ -1,3 +1,4 @@
+const fixture = require('./workflow-fixture');
 // Test kho dữ liệu yêu cầu chỉnh ảnh (server/edit-requests-store.js) + API chạy trên kho MongoDB.
 // KHÔNG chụp ảnh, KHÔNG mở trình duyệt, KHÔNG kết nối MongoDB / Atlas thật, chỉ dữ liệu giả.
 //
@@ -212,6 +213,9 @@ async function contract(label, store) {
     const app = express();
     app.use(express.json({ limit: '200kb' }));
     app.use('/api/sale-chat', saleChat.router);
+    process.env.EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF='1';
+    app.use('/api/workflow', require('../server/workflow').router);
+    await fixture.driveFixture();
     app.use('/api/edit-requests', createEditRequestsRouter(fakeMongoStore(colD), { allowPublicDemoStaff: true })); // test dùng Thợ ảnh/Sếp demo công khai
     // Kho lỗi (giả lập mất kết nối MongoDB, thông báo lỗi chứa chuỗi kết nối)
     app.use('/api/edit-requests-broken', createEditRequestsRouter(storeLib.mongoStoreFromCollection(async () => { throw new Error('getaddrinfo failed mongodb+srv://u:matkhau-lo@x.example'); })));
@@ -231,7 +235,7 @@ async function contract(label, store) {
 
     let [st, d, raw2] = await call('/health');
     check('API health báo store "mongodb" khi dùng kho MongoDB', st === 200 && d.store === 'mongodb' && d.count === 0, d);
-    [st, d] = await call('/', khach, { orderCode: '#ABFAKE1', serviceLabel: 'Newborn', note: 'ghi chu', photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg', note: 'lam sang' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0 });
+    [st, d] = await call('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABFAKE1'}), { orderCode: '#ABFAKE1', serviceLabel: 'Newborn', note: 'ghi chu', photos: [{ id: 'drive-fixture-file-1', src: 'images/my-photos/photo-1.jpg', note: 'lam sang' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0 }));
     const rid = d && d.request && d.request.id;
     check('Khách tạo yêu cầu -> 201, ghi vào collection', st === 201 && colD.docs.has(rid) && colD.docs.get(rid).phone === '0900000001');
     [st, d] = await call('/', sale); check('Sale -> 403 (phân quyền giữ nguyên)', st === 403);
@@ -239,7 +243,7 @@ async function contract(label, store) {
     [st, d] = await call('/' + rid + '/messages', khach, { text: 'Khach nhan', from: 'ai' });
     check('Tin nhắn ghi vào collection, from "ai" bị bỏ qua, rev không đổi', st === 200 && colD.docs.get(rid).messages[0].from === 'customer' && colD.docs.get(rid).rev === 1);
     [st, d] = await call('/' + rid + '/seen', tho, {}); check('Thợ ảnh đã xem -> staffSeen lưu trong collection, rev không đổi', st === 200 && colD.docs.get(rid).staffSeen === true && colD.docs.get(rid).rev === 1);
-    [st, d] = await call('/' + rid + '/done-photos', tho, { photoId: 'ph-1', done: true }); check('Đánh dấu ảnh xong -> collection doneIds, rev 2', st === 200 && colD.docs.get(rid).doneIds.join() === 'ph-1' && colD.docs.get(rid).rev === 2);
+    [st, d] = await call('/' + rid + '/done-photos', tho, { photoId: 'drive-fixture-file-1', done: true }); check('Đánh dấu ảnh xong -> collection doneIds, rev 2', st === 200 && colD.docs.get(rid).doneIds.join() === 'drive-fixture-file-1' && colD.docs.get(rid).rev === 2);
     [st, d] = await call('/' + rid + '/complete', tho, { rev: 2 }); check('Hoàn tất khi chưa có link ảnh đã chỉnh -> 422, collection không đổi', st === 422 && colD.docs.get(rid).status === 'Chờ xử lý');
     [st, d] = await call('/' + rid + '/links', tho, { resultLink: 'https://drive.google.com/edit', resultLinkOriginal: 'https://drive.google.com/goc-NOIBO', rev: 2 });
     check('Lưu 2 link -> collection có 2 link, rev 3', st === 200 && colD.docs.get(rid).resultLink.endsWith('/edit') && colD.docs.get(rid).resultLinkOriginal.includes('NOIBO') && colD.docs.get(rid).rev === 3);

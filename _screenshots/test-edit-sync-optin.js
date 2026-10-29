@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test bật editSync THEO TRÌNH DUYỆT (?editSync=1 / ?editSync=0, localStorage "aloha_edit_sync",
 // js/features.js), hồ sơ buổi chụp giả của KHÁCH THỬ NGHIỆM (js/chon-anh.js) và giao diện khi
 // Thợ ảnh demo công khai bị server chặn. KHÔNG chụp ảnh, chỉ dữ liệu giả, kho RAM (MONGODB_URI='').
@@ -35,6 +36,7 @@ const SEP = acc('09000000102', 'sep', 'Sếp thử nghiệm');
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -61,6 +63,10 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
   try {
     if (await portBusy()) throw new Error('Cổng 3001 đang có server khác chạy - tắt nó rồi chạy lại test.');
     await startServer();
+    const worker=await fixture.login(API,THO.entry.phone,THO.pw),boss=await fixture.login(API,SEP.entry.phone,SEP.pw);
+    const customer1=await fixture.login(API,K1.entry.phone,K1.pw),customer2=await fixture.login(API,K2.entry.phone,K2.pw);
+    await fixture.sourceAlbum(API,{customer:customer1,worker,boss,code:'#ABTN0103'});
+    await fixture.sourceAlbum(API,{customer:customer2,worker,boss,code:'#ABTN0104'});
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
 
     // 1 "máy" = 1 ngữ cảnh ẩn danh (localStorage riêng). KHÔNG đặt window.ALOHA_FEATURES.
@@ -73,6 +79,8 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
       await page.evaluateOnNewDocument(() => {
         try { if (!sessionStorage.getItem('aloha_chat_ui')) sessionStorage.setItem('aloha_chat_ui', JSON.stringify({ dismissed: true })); } catch (e) { /* bỏ qua */ }
       });
+      await page.setRequestInterception(true);
+      page.on('request', async r=>{if(!await fixture.thumbnail(page,r)) await r.continue();});
       page.on('request', (r) => { if (r.url().includes('/api/edit-requests')) m.calls.push(r.method() + ' ' + r.url().replace(API, '')); });
       return m;
     }
@@ -91,43 +99,46 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     const orderInfo = (page) => page.$eval('#psOrderInfo', (el) => el.textContent.replace(/\s+/g, ' ').trim());
     const localDb = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('aloha_demo_db')) || {}; } catch (e) { return {}; } });
 
-    // =============================================================== A. Mặc định TẮT
+    // =============================================================== A. Mặc định BẬT; kiểm tra local bằng opt-out tường minh
     const plain = await machine();
+    await plain.page.goto(ROOT_URL + 'index.html', {waitUntil:'networkidle0'});
+    check('Default editSync ON', (await state(plain.page)).flag);
+    await plain.page.goto(ROOT_URL + 'index.html?editSync=0', {waitUntil:'networkidle0'});
     for (const p of ['index.html', 'login.html', 'index.html#/chon-anh']) {
       await plain.page.goto(ROOT_URL + p, { waitUntil: 'networkidle0' });
       const st = await state(plain.page);
-      check('A1 khách thường mở ' + p + ': editSync TẮT, không có key', !st.flag && !st.sync && st.key === null, st);
+      check('A1 khách thường mở ' + p + ': editSync TẮT sau opt-out, key 0', !st.flag && !st.sync && st.key === '0', st);
     }
     await login(plain, '0900000001', 'khach123');
     let st = await state(plain.page);
-    check('A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập', !st.sync && st.key === null, st);
-    check('A3 khách demo vẫn có hồ sơ cũ #AB240915 (không bị đổi)', /#AB240915/.test(await orderInfo(plain.page)), await orderInfo(plain.page));
+    check('A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập', !st.sync && st.key === '0', st);
+    check('A3 khách demo chưa có album: chờ thợ gửi ảnh gốc', /Chờ thợ gửi ảnh gốc/.test(await orderInfo(plain.page)), await orderInfo(plain.page));
     check('A4 không gọi /api/edit-requests lần nào khi TẮT', plain.calls.length === 0, plain.calls);
     await plain.page.goto(ROOT_URL + 'index.html?editSync=abc', { waitUntil: 'networkidle0' });
     st = await state(plain.page);
-    check('A5 ?editSync=abc (giá trị lạ) không bật', !st.sync && st.key === null, st);
+    check('A5 ?editSync=abc (giá trị lạ) không bật', !st.sync && st.key === '0', st);
 
     // =============================================================== B. Khách thử nghiệm 1 bật bằng ?editSync=1
     const k1 = await machine();
     await k1.page.goto(ROOT_URL + 'login.html?editSync=1', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
     // login.html không nạp js/edit-sync.js -> chỉ kiểm cờ + key ở trang này
-    check('B1 login.html?editSync=1: cờ bật + ghi key "1"', st.flag && st.key === '1', st);
+    check('B1 login.html?editSync=1: cờ bật + xóa lựa chọn tắt', st.flag && st.key === null, st);
     await login(k1, K1.entry.phone, K1.pw);
     st = await state(k1.page);
-    check('B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT nhờ key', st.sync && k1.page.url().includes('#/chon-anh') && !k1.page.url().includes('editSync'), [st, k1.page.url()]);
+    check('B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT mặc định', st.sync && k1.page.url().includes('#/chon-anh') && !k1.page.url().includes('editSync'), [st, k1.page.url()]);
     const info1 = await orderInfo(k1.page);
-    check('B3 khách thử nghiệm có hồ sơ buổi chụp GIẢ riêng (#ABTN0103), không phải #AB240915', /#ABTN0103/.test(info1) && !/AB240915/.test(info1), info1);
+    check('B3 khách thử nghiệm thấy album từ workflow (#ABTN0103), không dùng hồ sơ demo cũ', /#ABTN0103/.test(info1) && !/AB240915/.test(info1), info1);
     check('B4 có lưới ảnh để chọn', (await k1.page.$$('.ps-photo')).length > 0);
     let db = await localDb(k1.page);
     check('B5 hồ sơ giả KHÔNG ghi vào aloha_demo_db', !(db.customers || {})[K1.entry.phone], db.customers);
-    await k1.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi yêu cầu chỉnh sửa', { timeout: 10000 });
-    await k1.page.click('.ps-photo[data-id="ph-1"] .ps-heart');
-    await k1.page.click('.ps-photo[data-id="ph-2"] .ps-heart');
+    await k1.page.waitForFunction(() => /^Gửi (ảnh|yêu cầu)/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 10000 });
+    await k1.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
+    await k1.page.click('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart');
     await k1.page.click('#psSubmitBtn');
     await k1.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 10000 });
     const h1 = await health();
-    check('B6 gửi yêu cầu qua server thành công (server có 1 yêu cầu)', h1.count === 1, h1);
+    check('B6 gửi yêu cầu qua server thành công (server có 1 yêu cầu và 2 album gốc)', h1.count === 3, h1);
     db = await localDb(k1.page);
     check('B7 yêu cầu KHÔNG ghi localStorage', !(db.editRequests || []).length, (db.editRequests || []).length);
 
@@ -137,7 +148,7 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     await k2.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi yêu cầu chỉnh sửa', { timeout: 10000 });
     const mine2 = await k2.page.evaluate(async () => (await window.AlohaEditSync.mine()).data.requests.length);
     check('B8 khách thử nghiệm 2 không thấy yêu cầu của khách 1 (GET /me = 0, nút gửi chưa khoá)', mine2 === 0, mine2);
-    check('B9 khách thử nghiệm 2 có hồ sơ riêng #ABTN0104', /#ABTN0104/.test(await orderInfo(k2.page)));
+    check('B9 khách thử nghiệm 2 thấy album riêng #ABTN0104', /#ABTN0104/.test(await orderInfo(k2.page)));
     const otherId = (await k1.page.evaluate(async () => (await window.AlohaEditSync.mine()).data.requests[0].id));
     const peek = await k2.page.evaluate(async (id) => { const r = await window.AlohaEditSync.get(id); return [r.ok, r.status || r.error]; }, otherId);
     check('B10 khách thử nghiệm 2 mở thẳng id yêu cầu của khách 1 -> bị từ chối (404)', peek[0] === false, peek);
@@ -149,7 +160,7 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     await login(reg, '0911222333', 'matkhau123', '?editSync=1');
     await reg.page.goto(ROOT_URL + 'index.html#/chon-anh', { waitUntil: 'networkidle0' });
     await wait(500);
-    check('B12 khách thường (không scope) vẫn "Chưa có buổi chụp", không nhận hồ sơ giả', /Chưa có buổi chụp/.test(await orderInfo(reg.page)), await orderInfo(reg.page));
+    check('B12 khách thường chưa có album: chờ thợ gửi ảnh gốc, không nhận hồ sơ giả', /Chờ thợ gửi ảnh gốc/.test(await orderInfo(reg.page)), await orderInfo(reg.page));
     // Sửa token trong localStorage thành có scope (không có chữ ký đúng) -> giao diện có thể hiện hồ sơ giả
     // nhưng server vẫn từ chối mọi lệnh gọi (chữ ký sai).
     const forged = await reg.page.evaluate(async () => {
@@ -191,12 +202,12 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     // =============================================================== ?editSync=0 tắt lại
     await k1.page.goto(ROOT_URL + 'index.html?editSync=0#/chon-anh', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
-    check('D1 ?editSync=0: xoá key, TẮT', !st.sync && st.key === null, st);
+    check('D1 ?editSync=0: ghi key 0, TẮT', !st.sync && st.key === '0', st);
     await k1.page.goto(ROOT_URL + 'index.html#/chon-anh', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
-    check('D2 mở lại không tham số: vẫn TẮT', !st.sync && st.key === null, st);
+    check('D2 mở lại không tham số: vẫn TẮT', !st.sync && st.key === '0', st);
     st = await state(tho.page);
-    check('D3 máy khác (Thợ thử nghiệm) không bị ảnh hưởng: vẫn BẬT', st.sync && st.key === '1', st);
+    check('D3 máy khác (Thợ thử nghiệm) không bị ảnh hưởng: vẫn BẬT', st.sync && st.key === null, st);
 
     check('E1 không có lỗi JavaScript trên trang', errors.length === 0, errors);
   } catch (e) {

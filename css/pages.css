@@ -1764,3 +1764,16 @@ body.lightbox-open { overflow: hidden; }
 .ps-private-photo img { opacity:0; }
 .ps-private-photo::after { content:'Ảnh riêng tư · kết nối Google để xem'; position:absolute; inset:45% 12px auto; font-size:12px; color:#71394b; pointer-events:none; text-align:center; }
 .ps-drive-file-link { position:absolute; bottom:8px; left:8px; z-index:2; background:#fff; padding:6px 10px; border-radius:8px; font-size:12px; color:#71394b; }
+
+/* Keep source names and actions in separate rows. */
+.ps-photo:has(.ps-drive-file-link) { padding-bottom:82px; aspect-ratio:auto; min-width:0; }
+.ps-photo:has(.ps-drive-file-link) img { position:relative; display:block; aspect-ratio:1; height:auto; }
+.ps-photo:has(.ps-drive-file-link) .ps-photo-badge { bottom:54px; left:8px; right:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:var(--pink-50); color:var(--navy-700); border-radius:var(--radius-sm); }
+.ps-drive-file-link { bottom:6px; left:8px; right:8px; min-height:44px; display:flex; align-items:center; justify-content:center; padding:6px; border-radius:var(--radius-sm); background:var(--white); color:var(--pink-700); font-size:12px; }
+.ps-heart { width:44px; height:44px; }
+.ps-bulk-btn, .ps-summary.is-floating .ps-bulk-btn { min-height:44px; }
+.ps-grid { scroll-margin-top:var(--ps-sticky-bottom, 100px); clip-path:inset(var(--ps-grid-clip, 0px) 0 0); }
+
+.ps-photo { scroll-margin-top:var(--ps-sticky-bottom, 100px); }
+
+#psDrivePanel select, #psDrivePanel button, .ps-tab { min-height:44px; }

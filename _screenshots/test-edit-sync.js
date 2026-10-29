@@ -1,3 +1,4 @@
+const fixture = require('./workflow-fixture');
 // Test lớp AlohaEditSync (js/edit-sync.js) + cờ editSync (js/features.js). KHÔNG chụp ảnh,
 // chỉ dùng dữ liệu giả, không kết nối MongoDB Atlas.
 //  A. Mock API (Node vm, không mạng): cờ mặc định tắt, tắt thì không gọi mạng / không đụng
@@ -77,6 +78,7 @@ const ID = 'ER-abc123-0123abcd';
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -101,12 +103,17 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
   try {
     // =============================================================== A. Mock API
     // Cờ mặc định
-    const fw = makeWindow();
+    const fw = makeWindow({URLSearchParams});
     load(fw, 'js/features.js');
-    check('features.js: editSync mặc định false', fw.ALOHA_FEATURES.editSync === false, fw.ALOHA_FEATURES);
+    check('features.js: editSync mặc định true', fw.ALOHA_FEATURES.editSync === true, fw.ALOHA_FEATURES);
+    const opt=makeWindow({URLSearchParams,location:{search:'?editSync=0'}});
+    load(opt,'js/features.js');check('editSync=0 persists browser opt-out',!opt.ALOHA_FEATURES.editSync && opt.localStorage.getItem('aloha_edit_sync')==='0');
+    opt.ALOHA_FEATURES=undefined;opt.location.search='';load(opt,'js/features.js');check('browser opt-out survives reload',!opt.ALOHA_FEATURES.editSync);
+    opt.ALOHA_FEATURES=undefined;opt.location.search='?editSync=1';load(opt,'js/features.js');check('editSync=1 clears opt-out',opt.ALOHA_FEATURES.editSync && opt.localStorage.getItem('aloha_edit_sync')===null);
+    opt.ALOHA_FEATURES={editSync:false};load(opt,'js/features.js');check('preset feature override has priority',!opt.ALOHA_FEATURES.editSync);
     check('features.js: 3 cờ cũ giữ nguyên giá trị mặc định', fw.ALOHA_FEATURES.booking === false && fw.ALOHA_FEATURES.aiChat === true && fw.ALOHA_FEATURES.albumPages === true);
     check('features.js: cờ editSync không gắn class mới lên <html>', [...fw.__classes].every((c) => ['feat-no-booking', 'feat-no-ai', 'feat-no-album'].includes(c)), [...fw.__classes]);
-    const fw2 = makeWindow({ ALOHA_FEATURES: { booking: true, aiChat: true, albumPages: true } });
+    const fw2 = makeWindow({ ALOHA_FEATURES: { booking: true, aiChat: true, albumPages: true, editSync: false } });
     load(fw2, 'js/features.js');
     check('Test cũ đặt sẵn 3 cờ (launchAllFeatures) -> editSync vẫn false', fw2.ALOHA_FEATURES.editSync === false);
 
@@ -116,14 +123,14 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     check('edit-sync.js không có hạn 7 ngày', !/7\s*ngày|7\s*\*\s*24/.test(read('js/edit-sync.js')));
 
     // Cờ TẮT: không gọi mạng, không ghi localStorage, AlohaData chạy như cũ
-    const offWin = makeWindow();
+    const offWin = makeWindow({ALOHA_FEATURES:{editSync:false}});
     load(offWin, 'js/features.js');
     load(offWin, 'js/data-store.js');
     const dataKeysBefore = Object.keys(offWin.AlohaData).sort().join(',');
     offWin.AlohaAuth = mockAuth('tok');
     load(offWin, 'js/edit-sync.js');
     const S = offWin.AlohaEditSync;
-    check('AlohaData giữ nguyên 12 hàm/hằng sau khi nạp edit-sync.js', Object.keys(offWin.AlohaData).sort().join(',') === dataKeysBefore && Object.keys(offWin.AlohaData).length === 12, Object.keys(offWin.AlohaData));
+    check('AlohaData giữ nguyên 14 hàm/hằng sau khi nạp edit-sync.js', Object.keys(offWin.AlohaData).sort().join(',') === dataKeysBefore && Object.keys(offWin.AlohaData).length === 14, Object.keys(offWin.AlohaData));
     const writesBefore = offWin.localStorage.writes;
     const offResults = await Promise.all([S.health(), S.mine(), S.list(), S.get(ID), S.create({ photos: [] }), S.addMessage(ID, 'x'), S.markSeen(ID), S.setPhotoDone(ID, 'ph-1', true), S.setLinks(ID, { resultLink: 'https://a.b' }, 1), S.complete(ID, 1)]);
     check('Cờ tắt: cả 10 hàm trả ok:false, error "disabled"', offResults.every((r) => r.ok === false && r.error === 'disabled' && r.message), offResults.map((r) => r.error));
@@ -160,7 +167,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     check('13 lời gọi đúng phương thức + đường dẫn router', JSON.stringify(sig) === JSON.stringify(expected), sig);
     check('health gọi không kèm token (auth:false), các hàm khác kèm token', calls[0].auth === false && calls.slice(1).every((c) => c.auth === true));
     const createBody = calls[5].body;
-    check('create: chỉ gửi trường cho phép (không gửi phone/from, ảnh bỏ trường lạ, isExtra thành boolean)', !('phone' in createBody) && !('from' in createBody) && JSON.stringify(createBody.photos[0]) === JSON.stringify({ id: 'ph-1', src: 'images/a.jpg', note: 'x', isExtra: true }), createBody);
+    check('create: chỉ gửi trường cho phép (không gửi phone/from, ảnh bỏ trường lạ, isExtra thành boolean)', !('phone' in createBody) && !('from' in createBody) && JSON.stringify(createBody.photos[0]) === JSON.stringify({ id: 'ph-1', src: 'images/a.jpg', note: 'x', editOptions: [], isExtra: true }), createBody);
     check('addMessage: chỉ gửi { text } (không có "from")', JSON.stringify(calls[6].body) === '{"text":"Xin chào"}', calls[6].body);
     check('markSeen: { done, editedSig } / {} ', JSON.stringify(calls[7].body) === '{"done":true,"editedSig":"sig"}' && JSON.stringify(calls[8].body) === '{}');
     check('setPhotoDone: { photoId, done }', JSON.stringify(calls[9].body) === '{"photoId":"ph-1","done":true}');
@@ -223,10 +230,12 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
 
     const h = await kh.AlohaEditSync.health();
     check('health(): server báo kho RAM', h.ok && h.data.store === 'memory', h);
-    const c = await kh.AlohaEditSync.create({ orderCode: '#ABTEST01', serviceLabel: 'Newborn', note: 'Giữ tông ấm', photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg', note: 'Làm sáng da' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0, paymentStatus: 'Trong gói' });
+    const source = await fixture.sourceAlbum(API,{customer:kh.AlohaAuth.getSession().token,code:'#ABTEST01'});
+    const c = await kh.AlohaEditSync.create(fixture.requestFrom(source, { orderCode: '#ABTEST01', serviceLabel: 'Newborn', note: 'Giữ tông ấm', photos: [{ id: 'drive-fixture-file-1', src: 'images/my-photos/photo-1.jpg', note: 'Làm sáng da' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0, paymentStatus: 'Trong gói' }));
     check('Khách create() -> 201 qua API thật', c.ok && c.status === 201 && c.data.request.phone === '0900000001', c);
     const id = c.data.request.id;
-    const c2 = await kh.AlohaEditSync.create({ orderCode: '#ABTEST02', photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg' }] });
+    const source2=await fixture.sourceAlbum(API,{customer:kh.AlohaAuth.getSession().token,code:'#ABTEST02'});
+    const c2 = await kh.AlohaEditSync.create(fixture.requestFrom(source2,{orderCode:'#ABTEST02',photos:[{note:''}],extraFee:0}));
     const id2 = c2.data.request.id;
     const mine = await kh.AlohaEditSync.mine();
     check('Khách mine() -> 2 yêu cầu của mình', mine.ok && mine.data.requests.length === 2);
@@ -239,7 +248,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     const sepWrite = await sp.AlohaEditSync.setLinks(id, { resultLink: 'https://drive.google.com/e' }, 1);
     check('Sếp setLinks() -> forbidden', sepWrite.error === 'forbidden', sepWrite);
     check('Thợ ảnh markSeen()', (await th.AlohaEditSync.markSeen(id)).data.request.staffSeen === true);
-    check('Thợ ảnh setPhotoDone()', (await th.AlohaEditSync.setPhotoDone(id, 'ph-1', true)).data.request.doneIds.join() === 'ph-1');
+    check('Thợ ảnh setPhotoDone()', (await th.AlohaEditSync.setPhotoDone(id, 'drive-fixture-file-1', true)).data.request.doneIds.join() === 'drive-fixture-file-1');
     const cur = (await th.AlohaEditSync.get(id)).data.request;
     const lk = await th.AlohaEditSync.setLinks(id, { resultLink: 'https://drive.google.com/drive/folders/da-chinh', resultLinkOriginal: 'https://drive.google.com/drive/folders/goc-NOIBO' }, cur.rev);
     check('Thợ ảnh setLinks() với rev đúng -> ok, rev tăng', lk.ok && lk.data.request.rev === cur.rev + 1, lk);
@@ -275,6 +284,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
     const errors = [];
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{window.ALOHA_FEATURES={editSync:false};});
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(ROOT_URL + 'index.html', { waitUntil: 'domcontentloaded' });
     await wait(800);
@@ -283,7 +293,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
       dataKeys: window.AlohaData ? Object.keys(window.AlohaData).length : -1, ls: Object.keys(localStorage)
     }));
     check('index.html: có AlohaEditSync, cờ editSync=false, enabled()=false', v.has && v.enabled === false && v.flag === false, v);
-    check('index.html: AlohaData vẫn đủ 12 hàm/hằng', v.dataKeys === 12, v.dataKeys);
+    check('index.html: AlohaData vẫn đủ 14 hàm/hằng', v.dataKeys === 14, v.dataKeys);
     v = await page.evaluate(async () => (await window.AlohaEditSync.mine()).error);
     check('index.html: gọi thử khi cờ tắt -> "disabled"', v === 'disabled', v);
     // Trang quản trị (đăng nhập Sếp giả, không cần server)
@@ -296,7 +306,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
       rows: document.querySelectorAll('#photoRows .photo-row-card').length, cust: document.getElementById('custView') ? document.getElementById('custView').children.length : -1
     }));
     check('crm/admin.html: có AlohaEditSync, enabled()=false (đã nạp features.js, cờ mặc định tắt)', v.has && v.enabled === false, v);
-    check('crm/admin.html: 3 hàng ảnh + Khách hàng vẫn dựng như cũ (đọc AlohaData)', v.rows > 0 && v.cust > 0 && v.dataKeys === 12, v);
+    check('crm/admin.html: không tự sinh đơn ảnh minh họa; Khách hàng vẫn dựng từ AlohaData', v.rows === 0 && v.cust > 0 && v.dataKeys === 14, v);
     check('Không có lỗi JS trên 2 trang', errors.length === 0, errors);
   } catch (e) {
     fail++;

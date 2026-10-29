@@ -13,33 +13,20 @@
 //   booking    : nút/link Đặt lịch + trang #/dat-lich
 //   aiChat     : chatbot kịch bản + AI Gemini (tắt thì khung chat nổi là chat với Sale)
 //   albumPages : trang album #/album/... (ảnh bìa trên trang chủ vẫn hiện)
-//   editSync   : (2026-10-15, mặc định TẮT) cho phép js/edit-sync.js (AlohaEditSync) gọi API yêu cầu
-//                chỉnh ảnh trên server (server/edit-requests.js; RAM, hoặc MongoDB RIÊNG khi có EDIT_REQUESTS_MONGODB_URI;
-//                server khởi động lại). BẬT: "Ảnh của tôi" + chuông thông báo (khách), khu Ảnh & chỉnh sửa
-//                (Thợ ảnh đọc/ghi, Sếp chỉ đọc) đọc/ghi qua API thay localStorage. TẮT (mặc định): mọi
-//                trang giữ nguyên luồng AlohaData/localStorage cũ. Không gắn class lên <html>.
-//
-//                Bật RIÊNG cho 1 trình duyệt (2026-10-15, nhánh feat/edit-sync-demo): mở trang bất kỳ có
-//                nạp file này (index.html, login.html, crm/admin.html) với ?editSync=1 (vd
-//                login.html?editSync=1, hoặc index.html?editSync=1#/chon-anh - tham số đứng TRƯỚC dấu #).
-//                Trình duyệt đó nhớ trong localStorage key "aloha_edit_sync" (giá trị "1") nên đổi trang /
-//                đăng nhập vẫn giữ. ?editSync=0 xoá key -> tắt lại. Khách khác không có key -> vẫn TẮT.
-//                Đây chỉ là công tắc giao diện, KHÔNG phải hàng rào bảo mật: quyền do server kiểm.
-//
-// Nạp trong <head> để class trên <html> có trước khi trang vẽ, tránh nút đã
-// ẩn vẫn nháy lên một nhịp. Test có thể đặt sẵn window.ALOHA_FEATURES (qua
-// evaluateOnNewDocument) để bật lại mọi tính năng khi kiểm tra luồng cũ.
+// editSync defaults ON for multi-device demo (2026-10-29).
+// ?editSync=0 persists this browser's opt-out; ?editSync=1 clears it.
 (function (window) {
-  // Công tắc editSync theo trình duyệt. localStorage bị chặn (chế độ riêng tư...) -> coi như TẮT.
+  // Đồng bộ mặc định bật, kể cả khi localStorage bị chặn.
   const EDIT_SYNC_KEY = 'aloha_edit_sync';
-  let editSyncOptIn = false;
+  let editSyncOptIn = true;
   try {
     const q = new URLSearchParams(window.location.search).get('editSync');
-    if (q === '1') window.localStorage.setItem(EDIT_SYNC_KEY, '1');
-    else if (q === '0') window.localStorage.removeItem(EDIT_SYNC_KEY);
-    editSyncOptIn = window.localStorage.getItem(EDIT_SYNC_KEY) === '1';
+    editSyncOptIn = q !== '0';
+    if (q === '1') window.localStorage.removeItem(EDIT_SYNC_KEY);
+    else if (q === '0') window.localStorage.setItem(EDIT_SYNC_KEY, '0');
+    editSyncOptIn = window.localStorage.getItem(EDIT_SYNC_KEY) !== '0';
   } catch (e) {
-    editSyncOptIn = false;
+    // Keep the URL choice for this page when browser storage is unavailable.
   }
 
   // window.ALOHA_FEATURES đặt sẵn (test) vẫn được ưu tiên hơn công tắc trên.

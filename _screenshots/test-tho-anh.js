@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test trang Thợ ảnh (crm/admin.html #anh + #hoan-tat), lấy từ nhánh Thợ ảnh (7ee735d) và sửa
 // theo quyết định tích hợp vào trang Sếp 2026-10-15:
 //  - Hoàn thành chỉ bắt buộc link ẢNH ĐÃ CHỈNH; link ẢNH GỐC tuỳ chọn, chỉ nội bộ, khách không thấy.
@@ -18,11 +19,21 @@ const LINK_EDIT = 'https://drive.google.com/drive/folders/da_chinh_test';
 const CODE = '#ABTEST01';
 
 (async () => {
+  const fixtureProcess=await fixture.fixtureServer();
+  const customerToken=await fixture.login('http://localhost:3001','0900000001','khach123');
+  const other=(await fixture.json('http://localhost:3001','/api/sale-chat/auth/register',null,{phone:'0911111111',name:'Fixture other',password:'fixture123'})).data.token;
+  const sample2=await fixture.sourceAlbum('http://localhost:3001',{customer:other,code:'#AB240702'});
+  const sample3=await fixture.sourceAlbum('http://localhost:3001',{customer:other,code:'#AB240703'});
+  const album=await fixture.sourceAlbum('http://localhost:3001',{customer:customerToken,code:'#ABTEST01'});
   const browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
   const errors = [];
 
   async function login(phone, pw, width = 1440) {
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument(()=>{window.ALOHA_FEATURES={editSync:false};});
+    await fixture.installLocalAlbum(page,album);
+    await page.setRequestInterception(true);
+    page.on('request',async r=>{if(!await fixture.thumbnail(page,r))await r.continue();});
     await page.setViewport({ width, height: 900 });
     page.on('pageerror', e => errors.push(e.message));
     page.on('dialog', d => d.dismiss());
@@ -58,16 +69,20 @@ const CODE = '#ABTEST01';
 
   const tho = await login('0900000003', 'anh123');
   await tho.goto(ROOT_URL + 'crm/admin.html#anh', { waitUntil: 'networkidle0' });
-  await tho.evaluate((code) => AlohaData.createEditRequest({
+  await fixture.localRequest(tho,sample2,5);
+  const finished=await fixture.localRequest(tho,sample3,3);
+  await tho.evaluate(id=>(AlohaData.setResultLink(id,'https://drive.google.com/edited','https://drive.google.com/original'),AlohaData.advanceRequestStatus(id),AlohaData.advanceRequestStatus(id)),finished.id);
+  await tho.evaluate(({code,album}) => AlohaData.createEditRequest({
+    sourceAlbumId:album.id,
     phone: '0900000001', customerName: 'Khách test', orderCode: code, serviceLabel: 'Newborn', photoCount: 2,
-    photos: [{ id: 'p1', src: 'images/my-photos/photo-1.jpg', note: '' }, { id: 'p2', src: 'images/my-photos/photo-2.jpg', note: 'Làm sáng da' }]
-  }), CODE);
+    photos: album.photos.slice(0,2).map((p,i)=>({...p,note:i?'Làm sáng da':''}))
+  }), {code:CODE,album});
   await tho.reload({ waitUntil: 'networkidle0' });
   await wait(400);
 
   // 1. Thợ ảnh 0900000003 = Thợ chỉnh 1 (theo SĐT); thấy đơn của mình + đơn chưa phân công
   const active = await tho.$eval('.photo-worker-card.active', b => b.dataset.worker);
-  check('Thợ ảnh 0900000003 tự chọn ô "Thợ chỉnh 1" (nhận diện theo SĐT)', active === 'tho1', active);
+  check('Thợ ảnh 0900000003 tự chọn ô "Thợ chỉnh 1" (nhận diện theo SĐT)', active === '0900000003', active);
   const moreState = await tho.evaluate(() => ['urgent', 'medium', 'normal'].map(k => ({
     cards: document.querySelectorAll('#photoRowCards-' + k + ' .photo-row-card').length,
     shown: getComputedStyle(document.getElementById('photoRowMore-' + k)).display !== 'none',
@@ -77,9 +92,9 @@ const CODE = '#ABTEST01';
   await expandAll(tho);
   let rows = await rowCodes(tho);
   const workers = await tho.$$eval('#photoRows .photo-row-card-worker', els => els.map(e => e.textContent.trim()));
-  check('Ô Thợ chỉnh 1: chỉ đơn của Thợ chỉnh 1 hoặc "Chưa phân công"', workers.length > 0 && workers.every(w => w === 'Thợ chỉnh 1' || w === 'Chưa phân công'), workers.join(','));
+  check('Ô Thợ chỉnh 1: chỉ đơn của Thợ chỉnh 1 hoặc "Chưa phân công"', workers.length > 0 && workers.every(w => w === 'Thợ ảnh demo' || w === 'Chưa phân công'), workers.join(','));
   check('Yêu cầu thật (chưa phân công) hiện ở ô Thợ chỉnh 1', rows.includes(CODE), rows.join(','));
-  check('Số đơn trên ô Thợ chỉnh 1 = số thẻ đang hiện', +(await tho.$eval('#workerCount-tho1', e => e.textContent)) === rows.length);
+  check('Số đơn trên ô Thợ chỉnh 1 = số thẻ đang hiện', +(await tho.$eval('#workerCount-0900000003', e => e.textContent)) === rows.length);
   await tho.click('#workerBtn-all'); await wait(200);
   await expandAll(tho);
   rows = await rowCodes(tho);
@@ -92,7 +107,7 @@ const CODE = '#ABTEST01';
   // 2. Mở cửa sổ Drive từ thẻ
   let card = await cardByCode(tho, CODE);
   check('Thẻ có nút "Gửi link Drive"', card && /Gửi link Drive/.test(await card.$eval('.photo-row-drive-btn', b => b.textContent)));
-  await (await card.$('.photo-row-drive-btn')).click();
+  await tho.evaluate(code=>[...document.querySelectorAll('#photoRows .photo-row-card')].find(c=>c.querySelector('.photo-row-card-code').textContent.trim()===code).querySelector('.photo-row-drive-btn').click(),CODE);
   await wait(300);
   check('Cửa sổ Drive mở, chưa có nút Hoàn tất', await tho.$eval('#driveModalOverlay', o => o.classList.contains('open'))
     && await tho.$eval('#driveModalCompleteBtnWrap', w => w.hidden));
@@ -120,12 +135,12 @@ const CODE = '#ABTEST01';
   check('Có link ảnh đã chỉnh: hiện nút Hoàn tất', !(await tho.$eval('#driveModalCompleteBtnWrap', w => w.hidden)));
   let stored = await tho.evaluate((c) => AlohaData.getEditRequests().find(r => r.orderCode === c), CODE);
   check('Lưu đủ 2 link vào aloha_demo_db', stored.resultLink === LINK_EDIT && stored.resultLinkOriginal === LINK_ORIG);
-  await tho.screenshot({ path: shot('tho-anh-drive-modal.png') });
+  await tho.screenshot({ path: require('path').resolve(__dirname, '../output/dot1b-tho-anh-drive-modal.png') });
 
   // 3. Modal chi tiết: hiện cả 2 link (link gốc ghi rõ nội bộ)
   await tho.click('#driveModalClose');
   card = await cardByCode(tho, CODE);
-  await card.click();
+  await tho.evaluate(code=>[...document.querySelectorAll('#photoRows .photo-row-card')].find(c=>c.querySelector('.photo-row-card-code').textContent.trim()===code).click(),CODE);
   await wait(300);
   const resultTxt = await tho.$eval('#kanbanResultCurrent', e => e.textContent);
   check('Modal chi tiết hiện link ảnh gốc (nội bộ) + ảnh đã chỉnh', resultTxt.includes(LINK_ORIG) && resultTxt.includes(LINK_EDIT) && resultTxt.includes('nội bộ'), resultTxt.replace(/\s+/g, ' '));
@@ -134,7 +149,7 @@ const CODE = '#ABTEST01';
 
   // 4. Bấm Hoàn tất từ cửa sổ Drive (Chờ xử lý -> Hoàn thành, đi lần lượt từng bước)
   card = await cardByCode(tho, CODE);
-  await (await card.$('.photo-row-drive-btn')).click();
+  await tho.evaluate(code=>[...document.querySelectorAll('#photoRows .photo-row-card')].find(c=>c.querySelector('.photo-row-card-code').textContent.trim()===code).querySelector('.photo-row-drive-btn').click(),CODE);
   await wait(300);
   check('Mở lại: nút thẻ đổi thành "Cập nhật link Drive"', /Cập nhật/.test(await card.$eval('.photo-row-drive-btn', b => b.textContent)));
   await tho.click('#driveModalCompleteBtn');
@@ -177,19 +192,19 @@ const CODE = '#ABTEST01';
   await tho.evaluate(() => document.getElementById('kanbanLinkForm').requestSubmit()); await wait(300);
   m = await tho.evaluate(() => ({ cur: document.getElementById('kanbanResultCurrent').textContent, done: !!document.getElementById('kanbanLinkComplete') }));
   check('Form dưới ảnh: thêm link ảnh đã chỉnh -> hiện 2 link + nút Hoàn tất', m.cur.includes('goc_test') && m.cur.includes('da_chinh_test') && m.done, JSON.stringify(m));
-  await tho.screenshot({ path: shot('tho-anh-chi-tiet.png') });
+  await tho.screenshot({ path: require('path').resolve(__dirname, '../output/dot1b-tho-anh-chi-tiet.png') });
   await tho.click('#kanbanLinkComplete'); await wait(400);
   check('Hoàn tất từ form dưới ảnh -> #AB240702 sang bảng Đã hoàn tất', (await doneCodes(tho)).includes('#AB240702') && !(await rowCodes(tho)).includes('#AB240702'));
 
   // Ảnh chụp desktop + mobile
   await tho.goto(ROOT_URL + 'crm/admin.html#anh', { waitUntil: 'networkidle0' });
   await wait(500);
-  await tho.screenshot({ path: shot('tho-anh-desktop.png'), fullPage: false });
+  await tho.screenshot({ path: require('path').resolve(__dirname, '../output/dot1b-tho-anh-desktop.png'), fullPage: false });
   await tho.setViewport({ width: 390, height: 844, isMobile: true });
   await wait(500);
   const overflow = await tho.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   check('Mobile 390px không cuộn ngang', !overflow);
-  await tho.screenshot({ path: shot('tho-anh-mobile.png'), fullPage: false });
+  await tho.screenshot({ path: require('path').resolve(__dirname, '../output/dot1b-tho-anh-mobile.png'), fullPage: false });
   await tho.close();
 
   // 6. Khách 0900000001: thấy link ảnh đã chỉnh, KHÔNG thấy link ảnh gốc
@@ -222,5 +237,6 @@ const CODE = '#ABTEST01';
   check('Không có lỗi JS', errors.length === 0, errors.join(' | '));
   console.log(`\n${pass}/${pass + fail} PASS`);
   await browser.close();
+  fixtureProcess.close();
   process.exit(fail ? 1 : 0);
-})();
+})().catch(e=>{console.error(e);process.exit(1);});

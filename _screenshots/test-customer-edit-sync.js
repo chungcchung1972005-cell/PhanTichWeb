@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test tích hợp phía KHÁCH với AlohaEditSync (js/chon-anh.js + js/script.js) - KHÔNG chụp ảnh,
 // chỉ dữ liệu giả. Tự bật server/server.js ở cổng 3001 với kho RAM (MONGODB_URI='', không nối
 // MongoDB Atlas), tự tắt khi xong kể cả khi lỗi. Mỗi "máy" là 1 ngữ cảnh trình duyệt ẩn danh riêng
@@ -23,6 +24,7 @@ const LINK_ORIG = 'https://drive.google.com/drive/folders/' + MARK_ORIG;
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -51,11 +53,13 @@ async function api(p, token, body) {
 }
 
 (async () => {
-  let browser = null;
+  let browser = null, debugMachine=null;
   const errors = [];
   try {
     if (await portBusy()) throw new Error('Cổng 3001 đang có server khác chạy (có thể nối MongoDB thật) - tắt nó rồi chạy lại test.');
     await startServer();
+    const sourceCustomer=await fixture.login(API,'0900000001','khach123');
+    const album=await fixture.sourceAlbum(API,{customer:sourceCustomer,code:'#ABFIXTURE01'});
     const tho = await apiLogin('0900000003', 'anh123');
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
 
@@ -64,6 +68,7 @@ async function api(p, token, body) {
     async function machine(sync) {
       const ctx = await browser.createBrowserContext();
       const page = await ctx.newPage();
+      if (!sync) await fixture.installLocalAlbum(page,album);
       await page.setViewport({ width: 1440, height: 1200 });
       const m = { page, ctx, calls: [], bodies: [], responses: [], intercept: { mode: null } };
       page.on('pageerror', (e) => errors.push(e.message));
@@ -73,7 +78,8 @@ async function api(p, token, body) {
       }, sync);
       await page.setRequestInterception(true);
       const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type, authorization', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
-      page.on('request', (r) => {
+      page.on('request', async (r) => {
+        if(await fixture.thumbnail(page,r)) return;
         const url = r.url();
         if (url.includes('/api/edit-requests')) {
           m.calls.push(r.method() + ' ' + url.replace(API, ''));
@@ -91,6 +97,7 @@ async function api(p, token, body) {
         if (!res.url().includes('/api/edit-requests') || res.request().method() === 'OPTIONS') return;
         try { m.responses.push(await res.text()); } catch (e) { /* bỏ qua */ }
       });
+      debugMachine=m;
       return m;
     }
     async function loginCustomer(m, phone = '0900000001', pw = 'khach123') {
@@ -108,21 +115,27 @@ async function api(p, token, body) {
       await page.keyboard.press('Escape');
       await wait(200);
     }
+    async function clickSubmit(page) {
+      // Error banners scroll smoothly; finish positioning before Puppeteer sends pointer events.
+      await page.$eval('#psSubmitBtn',b=>b.scrollIntoView({behavior:'instant',block:'center'}));
+      await wait(250);
+      await page.click('#psSubmitBtn');
+    }
     const localReqs = (page) => page.evaluate(() => { try { return (JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests || []; } catch (e) { return []; } });
     const btn = (page) => page.$eval('#psSubmitBtn', (b) => ({ text: b.textContent.trim(), disabled: b.disabled }));
     const bannerText = (page) => page.$eval('#psSubmittedBanner', (b) => (b.classList.contains('show') ? b.textContent.replace(/\s+/g, ' ').trim() : ''));
-    const serverCount = async () => (await (await fetch(API + '/api/edit-requests/health')).json()).count;
+    const serverCount = async () => (await (await fetch(API + '/api/edit-requests/health')).json()).count - 1;
 
     // =============================================================== 1. Cờ TẮT: luồng cũ
     const w = await machine(false);
     await loginCustomer(w);
     check('Cờ tắt: đăng nhập vào "Ảnh của tôi", AlohaEditSync tắt', await w.page.evaluate(() => location.hash === '#/chon-anh' && window.AlohaEditSync.enabled() === false));
-    await w.page.click('.ps-photo[data-id="ph-1"] .ps-heart');
-    await w.page.click('.ps-photo[data-id="ph-2"] .ps-heart');
-    await noteInLightbox(w.page, 'ph-1', 'Ghi chu rieng anh 1');
+    await w.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
+    await w.page.click('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart');
+    await noteInLightbox(w.page, 'drive-fixture-file-1', 'Ghi chu rieng anh 1');
     await w.page.click('.ps-tab[data-filter="liked"]');
     await w.page.type('#psNote', 'Ghi chu chung luong cu');
-    await w.page.click('#psSubmitBtn');
+    await clickSubmit(w.page);
     await wait(400);
     let lr = await localReqs(w.page);
     check('Cờ tắt: yêu cầu lưu localStorage như cũ (2 ảnh, ghi chú riêng + chung)', lr.length === 1 && lr[0].photos.length === 2 && lr[0].photoNotes.length === 1 && lr[0].note === 'Ghi chu chung luong cu', lr.length);
@@ -134,18 +147,18 @@ async function api(p, token, body) {
     // =============================================================== 2. Cờ BẬT, máy X: lỗi trước, gửi thành công sau
     const x = await machine(true);
     await loginCustomer(x);
-    await x.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi yêu cầu chỉnh sửa', { timeout: 8000 });
+    await x.page.waitForFunction(() => /^Gửi (ảnh|yêu cầu)/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 8000 });
     check('Cờ bật: mở trang gọi GET /me trước, có token server', x.calls.some((c) => c.startsWith('GET /api/edit-requests/me')), x.calls);
-    await x.page.click('.ps-photo[data-id="ph-1"] .ps-heart');
-    await x.page.click('.ps-photo[data-id="ph-3"] .ps-heart');
-    await noteInLightbox(x.page, 'ph-1', 'Xoa vet do tren ma');
-    await noteInLightbox(x.page, 'ph-3', 'Lam sang vung mat');
+    await x.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
+    await x.page.click('.ps-photo[data-id="drive-fixture-file-3"] .ps-heart');
+    await noteInLightbox(x.page, 'drive-fixture-file-1', 'Xoa vet do tren ma');
+    await noteInLightbox(x.page, 'drive-fixture-file-3', 'Lam sang vung mat');
     await x.page.click('.ps-tab[data-filter="liked"]');
     await x.page.type('#psNote', 'Giu tong mau am');
 
     // 2a. Mất mạng khi gửi
     x.intercept.mode = 'abort-post';
-    await x.page.click('#psSubmitBtn');
+    await clickSubmit(x.page);
     await x.page.waitForFunction(() => /CHƯA được gửi/.test(document.getElementById('psSubmittedBanner').textContent), { timeout: 8000 });
     let b = await btn(x.page);
     let st = await x.page.evaluate(() => ({ sel: document.querySelectorAll('.ps-photo.selected').length, hearts: [...document.querySelectorAll('.ps-heart')].every((h) => !h.disabled), note: document.getElementById('psNote').value }));
@@ -156,7 +169,7 @@ async function api(p, token, body) {
 
     // 2b. 401 khi gửi
     x.intercept.mode = '401-post';
-    await x.page.click('#psSubmitBtn');
+    await clickSubmit(x.page);
     await x.page.waitForFunction(() => /đăng nhập lại/i.test(document.getElementById('psSubmittedBanner').textContent), { timeout: 8000 });
     check('401: báo phiên hết hạn / đăng nhập lại, không báo đã gửi', /đăng nhập lại/i.test(await bannerText(x.page)) && /CHƯA được gửi/.test(await bannerText(x.page)));
     check('401: vẫn không ghi localStorage', (await localReqs(x.page)).length === 0);
@@ -164,11 +177,11 @@ async function api(p, token, body) {
     // 2c. Kết nối lại -> gửi thành công
     x.intercept.mode = null;
     x.bodies.length = 0;
-    await x.page.click('#psSubmitBtn');
+    await clickSubmit(x.page);
     await x.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 8000 });
     check('Server xác nhận -> mới báo "đã gửi" + khoá lưới', /Đã gửi yêu cầu chỉnh sửa/.test(await bannerText(x.page)) && await x.page.evaluate(() => [...document.querySelectorAll('.ps-heart')].every((h) => h.disabled)));
     const sent = JSON.parse(x.bodies[0] || '{}');
-    check('POST / gửi đúng cấu trúc: 2 ảnh có ghi chú riêng, ghi chú chung, mã đơn, phí 0', JSON.stringify(sent.photos.map((p) => [p.id, p.note, p.isExtra])) === JSON.stringify([['ph-1', 'Xoa vet do tren ma', false], ['ph-3', 'Lam sang vung mat', false]]) && sent.note === 'Giu tong mau am' && sent.orderCode === '#AB240915' && sent.extraFee === 0, sent);
+    check('POST / gửi đúng cấu trúc: 2 ảnh có ghi chú riêng, ghi chú chung, mã đơn, phí 0', JSON.stringify(sent.photos.map((p) => [p.id, p.note, p.isExtra])) === JSON.stringify([['drive-fixture-file-1', 'Xoa vet do tren ma', false], ['drive-fixture-file-3', 'Lam sang vung mat', false]]) && sent.note === 'Giu tong mau am' && sent.orderCode === '#ABFIXTURE01' && sent.extraFee === 0, sent);
     check('POST / không gửi phone / customerName / from (server lấy từ token)', !('phone' in sent) && !('customerName' in sent) && !('from' in sent));
     check('Thành công vẫn KHÔNG ghi localStorage (chỉ server lưu)', (await localReqs(x.page)).length === 0);
     let [s, d] = await api('/', tho);
@@ -180,7 +193,7 @@ async function api(p, token, body) {
     await loginCustomer(y);
     await y.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 8000 });
     st = await y.page.evaluate(() => ({ sel: [...document.querySelectorAll('.ps-photo.selected')].map((c) => c.dataset.id).join(','), locked: [...document.querySelectorAll('.ps-heart')].every((h) => h.disabled), note: document.getElementById('psNote').value, banner: document.getElementById('psSubmittedBanner').textContent }));
-    check('Máy Y (localStorage khác): khôi phục từ server đúng 2 ảnh đã gửi, ghi chú chung, lưới khoá', st.sel === 'ph-1,ph-3' && st.locked && st.note === 'Giu tong mau am' && /Bạn đã gửi 2 ảnh/.test(st.banner), st);
+    check('Máy Y (localStorage khác): khôi phục từ server đúng 2 ảnh đã gửi, ghi chú chung, lưới khoá', st.sel === 'drive-fixture-file-1,drive-fixture-file-3' && st.locked && st.note === 'Giu tong mau am' && /Bạn đã gửi 2 ảnh/.test(st.banner), st);
     check('Máy Y: không có yêu cầu nào trong localStorage của máy này', (await localReqs(y.page)).length === 0);
 
     // Tin nhắn qua server
@@ -214,7 +227,7 @@ async function api(p, token, body) {
     await api('/' + reqA.id + '/messages', tho, { text: 'Tho da gui link roi nhe' });
     await y.page.waitForFunction((l) => { const a = document.getElementById('psResultLink'); return a && a.href === l; }, { timeout: 10000 }, LINK_EDIT);
     check('Máy Y tự hiện link ảnh đã chỉnh (vòng hỏi server)', true);
-    await y.page.waitForFunction(() => [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].some((p) => p.textContent.includes('Tho da gui link')), { timeout: 10000 });
+    await y.page.waitForFunction(() => [...document.querySelectorAll('#psChatList .ps-msg.from-staff > div')].some((p) => p.textContent.includes('Tho da gui link')), { timeout: 10000 });
     check('Máy Y tự hiện tin trả lời của thợ', true);
     const html = await y.page.content();
     check('Trang khách KHÔNG chứa link ảnh gốc', !html.includes(MARK_ORIG));
@@ -243,13 +256,13 @@ async function api(p, token, body) {
       return { mineN: mine.ok ? mine.data.requests.length : -1, err: one.error };
     }, reqA.id);
     check('Khách B (đã đăng ký giả): mine() = 0 yêu cầu, get(yêu cầu của A) = not_found', reg.token && other.mineN === 0 && other.err === 'not_found', other);
-    check('Khách B không có hồ sơ buổi chụp -> trang "Ảnh của tôi" không hiện ảnh (như cũ)', await z.page.evaluate(() => !document.getElementById('psEmptyState').hidden));
+    check('Khách B không có hồ sơ buổi chụp -> trang "Ảnh của tôi" không hiện ảnh (như cũ)', await z.page.evaluate(() => document.querySelectorAll('#psGrid .ps-photo').length === 0 && document.getElementById('psSourceAlbum').disabled && /Chờ thợ gửi ảnh gốc/.test(document.getElementById('psOrderInfo').textContent)));
 
     // =============================================================== 5. Lỗi khi tải trang rồi tự phục hồi
     const v = await machine(true);
     v.intercept.mode = 'abort-me';
     await loginCustomer(v);
-    await v.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Chưa kết nối được máy chủ', { timeout: 8000 });
+    await v.page.waitForFunction(() => document.getElementById('psSubmitBtn').disabled && /CHƯA được gửi/.test(document.getElementById('psSubmittedBanner').textContent), { timeout: 8000 });
     b = await btn(v.page);
     check('Không tải được dữ liệu: khoá nút gửi + báo lỗi, không đoán theo localStorage', b.disabled && /CHƯA được gửi/.test(await bannerText(v.page)), b);
     v.intercept.mode = null;
@@ -261,6 +274,7 @@ async function api(p, token, body) {
   } catch (e) {
     fail++;
     console.log('✗ Lỗi khi chạy test:', e.message);
+    if(debugMachine){await debugMachine.page.screenshot({path:require('path').join(__dirname,'../output/dot1b-customer-failure.png')}).catch(()=>{}); console.log('DEBUG',await debugMachine.page.evaluate(()=>({button:document.getElementById('psSubmitBtn').outerHTML,banner:document.getElementById('psSubmittedBanner').textContent})).catch(()=>null),debugMachine.calls.slice(-8));}
     if (serverLog) console.log('--- log server ---\n' + serverLog.slice(-1500));
   } finally {
     if (browser) await browser.close().catch(() => {});

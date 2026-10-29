@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test nhánh đồng bộ của trang Thợ ảnh (crm/js/admin.js khi bật cờ editSync) - KHÔNG chụp ảnh,
 // chỉ dữ liệu giả. Tự bật server/server.js ở cổng 3001 với kho RAM (MONGODB_URI='', không nối
 // MongoDB Atlas), tự tắt khi xong kể cả khi lỗi. Mỗi "máy" là 1 ngữ cảnh trình duyệt ẩn danh riêng.
@@ -22,6 +23,7 @@ const ORIG = 'https://drive.google.com/drive/folders/' + ORIG_MARK;
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -58,9 +60,9 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Giu
     await startServer();
     const khach = await apiLogin('0900000001', 'khach123');
     const tho2 = await apiLogin('0900000003', 'anh123'); // "phiên Thợ ảnh khác" (máy khác)
-    let [s, d] = await api('/', khach, newReq('#ABSYNC01'));
+    let [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSYNC01'}),newReq('#ABSYNC01')));
     const r1 = d.request;
-    [s, d] = await api('/', khach, newReq('#ABSYNC02'));
+    [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSYNC02'}),newReq('#ABSYNC02')));
     const r2 = d.request;
     check('Dữ liệu giả: khách tạo 2 yêu cầu trên server RAM', !!(r1 && r2));
 
@@ -74,7 +76,8 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Giu
       page.on('dialog', (dlg) => { errors.push('dialog: ' + dlg.message()); dlg.dismiss(); });
       await page.evaluateOnNewDocument((sy) => { window.ALOHA_FEATURES = { booking: true, aiChat: true, albumPages: true, editSync: sy }; }, sync);
       await page.setRequestInterception(true);
-      page.on('request', (r) => {
+      page.on('request', async (r) => {
+        if(await fixture.thumbnail(page,r)) return;
         const url = r.url();
         if (url.includes('/api/edit-requests')) {
           m.calls.push(r.method() + ' ' + url.replace(API, ''));
@@ -105,7 +108,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Giu
     await login(off, '0900000003', 'anh123');
     await expandAll(off.page);
     check('Cờ tắt: trang Thợ ảnh không gọi /api/edit-requests', off.calls.length === 0, off.calls);
-    check('Cờ tắt: yêu cầu trên server KHÔNG hiện (đọc localStorage như cũ), thẻ minh hoạ vẫn có', (await cardText(off.page, '#ABSYNC01')) === null && (await cardText(off.page, '#AB240701')) !== null);
+    check('Cờ tắt: yêu cầu trên server KHÔNG hiện (đọc localStorage như cũ), không tự sinh thẻ minh họa', (await cardText(off.page, '#ABSYNC01')) === null && (await cardText(off.page, '#AB240701')) === null);
     await off.ctx.close();
 
     // =============================================================== 2. Cờ BẬT: đọc từ API
@@ -116,8 +119,8 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Giu
     await expandAll(t.page);
     check('Cờ bật: trang gọi GET /api/edit-requests/', t.calls.some((c) => /^GET \/api\/edit-requests\/$/.test(c)), t.calls);
     let card = await cardText(t.page, '#ABSYNC01');
-    check('Yêu cầu từ server hiện ở 3 hàng: "Chưa phân công", "Mới", tên khách, 2 ảnh', !!card && /Chưa phân công/.test(card) && /Mới/.test(card) && /Khách demo/.test(card) && /2 ảnh/.test(card), card);
-    check('Thẻ minh hoạ vẫn hiện bình thường', (await cardText(t.page, '#AB240701')) !== null);
+    check('Yêu cầu từ server hiện ở 3 hàng: "Thợ ảnh demo", "Mới", tên khách, 2 ảnh', !!card && /Thợ ảnh demo/.test(card) && /Mới/.test(card) && /Khách demo/.test(card) && /2 ảnh/.test(card), card);
+    check('Không tự sinh thẻ minh họa', (await cardText(t.page, '#AB240701')) === null);
     check('Không ghi yêu cầu nào vào localStorage', (await localReqs(t.page)).length === 0);
 
     // Mở chi tiết -> server lưu "đã xem"
@@ -223,7 +226,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Giu
     check('Khách thấy Hoàn thành qua API, vẫn không có link gốc', d.request.status === 'Hoàn thành' && !('resultLinkOriginal' in d.request));
 
     // Phiên khác đổi dữ liệu -> trang tự cập nhật qua vòng hỏi
-    [s, d] = await api('/', khach, newReq('#ABSYNC03'));
+    [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSYNC03'}),newReq('#ABSYNC03')));
     // Chờ vòng hỏi 5 giây: mỗi lần kiểm mở hết "Xem thêm" rồi tìm thẻ mới
     await t.page.waitForFunction(() => {
       document.querySelectorAll('.photo-row-more').forEach((b) => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });

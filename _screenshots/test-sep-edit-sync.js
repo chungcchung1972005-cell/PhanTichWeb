@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test khu ảnh chỉnh sửa của SẾP khi bật cờ editSync (crm/js/admin.js, chỉ đọc qua API) - KHÔNG chụp
 // ảnh, chỉ dữ liệu giả. Tự bật server/server.js ở cổng 3001 với kho RAM (MONGODB_URI='', không nối
 // MongoDB Atlas), tự tắt khi xong kể cả khi lỗi. Mỗi "máy" là 1 ngữ cảnh trình duyệt ẩn danh riêng;
@@ -21,6 +22,7 @@ const ORIG = 'https://drive.google.com/drive/folders/sep-goc-NOIBO';
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -55,7 +57,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     await startServer();
     const khach = await apiLogin('0900000001', 'khach123');
     const tho = await apiLogin('0900000003', 'anh123');
-    let [s, d] = await api('/', khach, newReq('#ABSEP01'));
+    let [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSEP01'}),newReq('#ABSEP01')));
     const r1 = d.request;
     [s, d] = await api('/' + r1.id + '/links', tho, { resultLink: EDIT, resultLinkOriginal: ORIG, rev: r1.rev });
     await api('/' + r1.id + '/messages', khach, { text: 'Khach hoi tien do' });
@@ -78,7 +80,8 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
         }
       }, sync, !!seedLocal);
       await page.setRequestInterception(true);
-      page.on('request', (r) => {
+      page.on('request', async (r) => {
+        if(await fixture.thumbnail(page,r)) return;
         const url = r.url();
         if (url.includes('/api/edit-requests')) {
           m.calls.push(r.method() + ' ' + url.replace(API, ''));
@@ -119,13 +122,13 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     codes = await rowCodes(sp.page);
     check('Cờ bật: Sếp gọi GET /api/edit-requests/, thấy yêu cầu trên server', loaded && sp.calls.some((c) => c.startsWith('GET /api/edit-requests/')), sp.calls);
     check('Cờ bật: KHÔNG hiện yêu cầu trong localStorage như dữ liệu server', !codes.includes('#ABLOCAL1'), codes);
-    check('Thẻ minh hoạ vẫn hiện; Sếp không có nút gửi link trên thẻ', codes.includes('#AB240701') && (await sp.page.$$('.photo-row-drive-btn')).length === 0);
+    check('Không tự sinh thẻ minh họa; Sếp không có nút gửi link trên thẻ', !codes.includes('#AB240701') && (await sp.page.$$('.photo-row-drive-btn')).length === 0);
     let card = await sp.page.evaluate(() => { const el = [...document.querySelectorAll('#photoRows .photo-row-card')].find((x) => x.querySelector('.photo-row-card-code').textContent.trim() === '#ABSEP01'); return el.textContent.replace(/\s+/g, ' '); });
-    check('Thẻ: tên khách, 2 ảnh, "Chưa phân công", "Mới" (thợ chưa xem), "Khách cần thợ trả lời"? (thợ đã trả lời -> không)', /Khách demo/.test(card) && /2 ảnh/.test(card) && /Chưa phân công/.test(card) && /Mới/.test(card) && !/Khách cần thợ trả lời/.test(card) && /Đã gửi link ảnh/.test(card), card);
-    // Bộ lọc thợ: Thợ chỉnh 1 vẫn thấy yêu cầu chưa phân công
-    await sp.page.click('#workerBtn-tho1');
+    check('Thẻ: tên khách, 2 ảnh, "Thợ ảnh demo", "Mới" (thợ chưa xem), "Khách cần thợ trả lời"? (thợ đã trả lời -> không)', /Khách demo/.test(card) && /2 ảnh/.test(card) && /Thợ ảnh demo/.test(card) && /Mới/.test(card) && !/Khách cần thợ trả lời/.test(card) && /Đã gửi link ảnh/.test(card), card);
+    // Bộ lọc thợ: Thợ ảnh demo vẫn thấy yêu cầu chưa phân công
+    await sp.page.click('#workerBtn-0900000003');
     await wait(200);
-    check('Bộ lọc Thợ chỉnh 1: vẫn thấy yêu cầu chưa phân công từ server', (await rowCodes(sp.page)).includes('#ABSEP01'));
+    check('Bộ lọc Thợ ảnh demo: vẫn thấy yêu cầu chưa phân công từ server', (await rowCodes(sp.page)).includes('#ABSEP01'));
     await sp.page.click('#workerBtn-all');
     await wait(200);
 
@@ -135,7 +138,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     await wait(500);
     let v = await sp.page.evaluate(() => ({
       cur: document.getElementById('kanbanResultCurrent').textContent,
-      msgs: [...document.querySelectorAll('#kanbanChatList .kanban-msg p')].map((p) => p.textContent),
+      msgs: [...document.querySelectorAll('#kanbanChatList .kanban-msg > div')].map((p) => p.textContent),
       form: !!document.getElementById('kanbanLinkForm'), chat: !!document.getElementById('kanbanChatForm'), complete: !!document.getElementById('kanbanLinkComplete'),
       photos: document.querySelectorAll('#kanbanModalBody .kanban-photo-tile').length, note: document.getElementById('kanbanModalBody').textContent.includes('Lam sang da')
     }));
@@ -147,7 +150,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     check('Từ đầu tới giờ Sếp không gửi lệnh ghi nào (không có POST)', !sp.calls.some((c) => c.startsWith('POST')), sp.calls.filter((c) => !c.startsWith('GET') && !c.startsWith('OPTIONS')));
     // Khách nhắn thêm khi chi tiết đang mở -> khung chat của Sếp tự cập nhật
     await api('/' + r1.id + '/messages', khach, { text: 'Khach nhan them' });
-    const chatUpd = await waitFor(sp.page, () => [...document.querySelectorAll('#kanbanChatList .kanban-msg p')].some((p) => p.textContent === 'Khach nhan them'));
+    const chatUpd = await waitFor(sp.page, () => [...document.querySelectorAll('#kanbanChatList .kanban-msg > div')].some((p) => p.textContent === 'Khach nhan them'));
     check('Khách nhắn thêm -> khung chat Sếp đang mở tự cập nhật sau vòng làm mới', chatUpd);
     await sp.page.evaluate(() => document.getElementById('kanbanModalClose').click());
 
@@ -164,7 +167,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     check('Server không đổi sau các lệnh ghi bị từ chối', d.request.resultLink === EDIT && d.request.status === 'Chờ xử lý' && d.request.messages.length === 3 && d.request.staffSeen === false && d.request.doneIds.length === 0);
 
     // =============================================================== 3. Thay đổi từ khách / Thợ ảnh xuất hiện sau vòng làm mới
-    [s, d] = await api('/', khach, newReq('#ABSEP02'));
+    [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSEP02'}),newReq('#ABSEP02')));
     const r2 = d.request;
     const got2 = await waitFor(sp.page, () => {
       document.querySelectorAll('.photo-row-more').forEach((b) => { if (!b.hidden && /Xem thêm/.test(b.textContent)) b.click(); });
@@ -179,7 +182,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
       const tr = [...document.querySelectorAll('#completedTableBody tr')].find((x) => x.textContent.includes('#ABSEP01'));
       return tr ? { links: [...tr.querySelectorAll('.ct-link-anchor')].map((a) => a.href), worker: tr.querySelector('.ct-worker-badge').textContent } : null;
     });
-    check('Trạng thái Hoàn thành từ Thợ ảnh -> yêu cầu 1 sang bảng Đã hoàn tất của Sếp (2 link, "Chưa phân công")', gotDone && v && v.links.join('|') === EDIT + '|' + ORIG && v.worker === 'Chưa phân công', v);
+    check('Trạng thái Hoàn thành từ Thợ ảnh -> yêu cầu 1 sang bảng Đã hoàn tất của Sếp (2 link, "Thợ ảnh demo")', gotDone && v && v.links.join('|') === EDIT + '|' + ORIG && v.worker === 'Thợ ảnh demo', v);
     check('Yêu cầu 1 rời 3 hàng của Sếp', !(await rowCodes(sp.page)).includes('#ABSEP01'));
     v = await sp.page.evaluate(() => { const b = document.querySelector('#adminTabs a[href="#anh"] .admin-tab-badge'); return b ? b.textContent : ''; });
     check('Badge "chưa xem" trên menu Ảnh & chỉnh sửa đếm yêu cầu thợ chưa mở (2)', v === '2', v);
@@ -190,7 +193,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     const errShown = await waitFor(sp.page, () => [...document.querySelectorAll('.photo-sync-status')].some((e) => !e.hidden));
     let st = await statusTexts(sp.page);
     check('Mất mạng: hiện "Chưa cập nhật được... dữ liệu là lần tải gần nhất" ở cả 2 mục (Ảnh & chỉnh sửa + Đã hoàn tất)', errShown && st.length === 2 && st.every((t) => /Chưa cập nhật được/.test(t) && /lần tải được gần nhất/.test(t)), st);
-    [s, d] = await api('/', khach, newReq('#ABSEP03'));
+    [s, d] = await api('/', khach, fixture.requestFrom(await fixture.sourceAlbum(API,{customer:khach,code:'#ABSEP03'}),newReq('#ABSEP03')));
     await wait(6000);
     check('Mất mạng: yêu cầu mới trên server KHÔNG hiện (không giả vờ đã đồng bộ), giữ dữ liệu lần tải trước', !(await rowCodes(sp.page)).includes('#ABSEP03') && (await rowCodes(sp.page)).includes('#ABSEP02'));
     sp.intercept.mode = null;
@@ -207,7 +210,7 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     await waitFor(cold.page, () => [...document.querySelectorAll('.photo-sync-status')].some((e) => !e.hidden));
     codes = await rowCodes(cold.page);
     st = await statusTexts(cold.page);
-    check('Mở trang lúc mất mạng: báo lỗi, KHÔNG hiện yêu cầu server, KHÔNG lấy localStorage thay thế', st.length === 2 && !codes.includes('#ABSEP01') && !codes.includes('#ABLOCAL1') && codes.includes('#AB240701'), { st, codes });
+    check('Mở trang lúc mất mạng: báo lỗi, KHÔNG hiện yêu cầu server, KHÔNG lấy localStorage thay thế', st.length === 2 && !codes.includes('#ABSEP01') && !codes.includes('#ABLOCAL1') && !codes.includes('#AB240701'), { st, codes });
     await cold.ctx.close();
 
     // =============================================================== 5. Các khu vực khác của Sếp vẫn như cũ

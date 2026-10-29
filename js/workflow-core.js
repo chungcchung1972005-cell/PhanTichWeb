@@ -13,21 +13,22 @@
     const s=empty();
     s.employees=[{phone:'0900000002',name:'Ngọc Anh',role:'sale'},{phone:'0900000005',name:'Minh Thư',role:'sale'},{phone:'0900000006',name:'Thu Hà',role:'sale'},{phone:'0900000003',name:'Thợ ảnh demo',role:'tho-anh'}];
     ['Newborn','Bé lớn','Sinh nhật','Bầu','Gia đình'].forEach(service=>[
-      {pkg:'Cơ bản',price:1500000,sale:100000,shoot:300000,edit:150000},
-      {pkg:'Tiêu chuẩn',price:2500000,sale:150000,shoot:500000,edit:250000},
-      {pkg:'Premium',price:3500000,sale:200000,shoot:700000,edit:350000}
-    ].forEach((p,i)=>s.rules.push({id:'sample-'+service+'-'+i,service,pkg:p.pkg,price:p.price,sale:{mode:'fixed',value:p.sale},shoot:{mode:'fixed',value:p.shoot},edit:{mode:'fixed',value:p.edit},extraEditPerPhoto:20000,sample:true,createdAt:0})));
+      {pkg:'Cơ bản',price:1500000,shoot:300000,edit:150000},
+      {pkg:'Tiêu chuẩn',price:2500000,shoot:500000,edit:250000},
+      {pkg:'Premium',price:3500000,shoot:700000,edit:350000}
+    ].forEach((p,i)=>s.rules.push({id:'sample-'+service+'-'+i,service,pkg:p.pkg,price:p.price,sale:{mode:'percent',value:5},shoot:{mode:'fixed',value:p.shoot},edit:{mode:'fixed',value:p.edit},extraEditPerPhoto:20000,sample:true,createdAt:0})));
     return s;
   }
   const allowedOrder = (u,o) => u.role === 'sep' || (u.role === 'sale' && o.salePhone === u.phone) || (u.role === 'tho-anh' && [o.shooterPhone,o.editorPhone].includes(u.phone));
   function view(state, user) {
     const s = copy(state);
     s.orders = s.orders.filter(o => allowedOrder(user,o));
-    s.entries = s.entries.filter(e => user.role === 'sep' || e.phone === user.phone);
+    s.entries = s.entries.filter(e => user.role === 'sep' || (e.phone === user.phone && (user.role==='sale' ? ['sale','sale-extra'].includes(e.kind) : ['shoot','edit','extra-edit'].includes(e.kind))));
     if (user.role !== 'sep') {
       s.audit = [];
-      // Share the applicable package schedule with staff, but never another person's ledger.
-      s.orders.forEach(o => { o.myEstimate=o.policy ? (user.phone===o.salePhone?cut(o.policy.sale,o.price):0)+(user.phone===o.shooterPhone?cut(o.policy.shoot,o.price):0)+(user.phone===o.editorPhone?cut(o.policy.edit,o.price):0) : null; delete o.policy; });
+      // Booking needs public package names/prices, never the studio compensation schedule.
+      s.rules = user.role==='sale' ? s.rules.map(r=>({id:r.id,service:r.service,pkg:r.pkg,price:r.price})) : [];
+      s.orders.forEach(o => { o.myEstimate=o.policy ? (user.role==='sale' && user.phone===o.salePhone?cut(o.policy.sale,o.price):0)+(user.role==='tho-anh' && user.phone===o.shooterPhone?cut(o.policy.shoot,o.price):0)+(user.role==='tho-anh' && user.phone===o.editorPhone?cut(o.policy.edit,o.price):0) : null; delete o.policy; });
     }
     return s;
   }
@@ -43,7 +44,7 @@
   function accrue(s,o,kind,person,id,quantity,now) {
     if (s.entries.some(e => e.id === id)) return;
     const values = amounts(o.policy,o.price);
-    const amount = !values ? null : kind === 'extra-edit' ? quantity*o.policy.extraEditPerPhoto : values[kind];
+    const amount = !values ? null : kind === 'sale-extra' ? (o.policy.sale.mode==='percent'?cut(o.policy.sale,quantity):0) : kind === 'extra-edit' ? quantity*o.policy.extraEditPerPhoto : values[kind];
     s.entries.push({id,orderId:o.id,orderCode:o.code,customerName:o.customerName,kind,phone:person,quantity,amount,policyId:o.policy && o.policy.id,status:'pending',createdAt:now});
   }
   function apply(input,user,command,data,now=Date.now()) {
@@ -105,7 +106,7 @@
         assert(!o.policy,'Đơn đã chốt quy tắc; không thay đổi tiền công của dữ liệu cũ.');
         const p = policyFor(s,o); assert(p,'Chưa có quy tắc cho dịch vụ/gói này.');
         const a = amounts(p,o.price); assert(a.sale+a.shoot+a.edit <= o.price,'Tổng chia vượt giá gói.'); o.policy=copy(p);
-        s.entries.filter(e => e.orderId===o.id && e.amount===null && e.status==='pending').forEach(e => { e.amount=e.kind==='extra-edit'?e.quantity*p.extraEditPerPhoto:a[e.kind]; e.policyId=p.id; });
+        s.entries.filter(e => e.orderId===o.id && e.amount===null && e.status==='pending').forEach(e => { e.amount=e.kind==='sale-extra'?(p.sale.mode==='percent'?cut(p.sale,e.quantity):0):e.kind==='extra-edit'?e.quantity*p.extraEditPerPhoto:a[e.kind]; e.policyId=p.id; });
       } else if (command === 'cancel') {
         assert(['sale','sep'].includes(user.role) && o.status==='booked' && o.collected===0,'Chỉ hủy lịch chưa cọc và chưa thực hiện.'); o.status='cancelled';
       } else fail('Thao tác không hợp lệ.');
@@ -123,6 +124,7 @@
       const tag='request:'+request.id;
       if(!o.requestIds) o.requestIds=[];
       if(!o.requestIds.includes(tag)) { o.requestIds.push(tag); o.extraFees=(o.extraFees||0)+(request.extraFee||0); o.status='editing'; }
+      if(request.extraFee>0) accrue(s,o,'sale-extra',o.salePhone,request.id+':sale-extra',request.extraFee,now);
       const receipt=request.verifiedPayment;
       if(receipt && money(receipt.amount) && receipt.amount===(request.extraFee||0) && !s.orders.some(order=>order.payments.some(p=>p.reference===receipt.reference))) {
         o.payments.push({amount:receipt.amount,reference:receipt.reference,by:'sepay',at:now});o.collected+=receipt.amount;
@@ -136,5 +138,5 @@
     }
     o.updatedAt=now; return s;
   }
-  return {empty,seed,expire,apply,view,progress,amounts,allowedOrder};
+  return {empty,seed,expire,apply,view,progress,amounts,cut,allowedOrder};
 });
