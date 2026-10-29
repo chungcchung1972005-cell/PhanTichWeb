@@ -205,8 +205,8 @@ Chưa đặt `GOOGLE_CLIENT_ID` thì trang đăng nhập không hiện nút Goog
 
 ## Demo đồng bộ chỉnh ảnh Thợ ảnh – Sếp trên nhiều máy — thêm 2026-10-15
 
-Yêu cầu chỉnh ảnh của khách / Thợ ảnh / Sếp đi qua server (`server/edit-requests.js`) **chỉ ở
-trình duyệt đã bật**; mọi khách khác vẫn chạy dữ liệu cục bộ như cũ. Dữ liệu demo nằm ở database
+Yêu cầu chỉnh ảnh của khách / Thợ ảnh / Sếp mặc định đi qua server (`server/edit-requests.js`).
+`?editSync=0` tắt riêng trình duyệt, `?editSync=1` xóa lựa chọn tắt. Dữ liệu demo nằm ở database
 RIÊNG, tài khoản demo RIÊNG, không đụng tới chat Sale.
 
 > Các bước Atlas/Render dưới đây **chưa kiểm chứng trên giao diện thật** và code chỉ chạy trên
@@ -242,7 +242,7 @@ console.log(JSON.stringify(out));
 
 **3. Render → Environment** thêm `EDIT_REQUESTS_MONGODB_URI` (chuỗi ở bước 1) và
 `EDIT_DEMO_ACCOUNTS` (JSON ở bước 2). `EDIT_REQUESTS_DB` / `EDIT_REQUESTS_COLLECTION` để trống.
-**KHÔNG** đặt `EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF`. Giữ nguyên `MONGODB_URI`, `MONGODB_DB`,
+Bản demo nhiều máy (người dùng chốt 2026-10-29) đặt `EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1`; khi studio dùng thật thì bỏ. Giữ nguyên `MONGODB_URI`, `MONGODB_DB`,
 `AUTH_SECRET`, `ALLOWED_ORIGINS`. Save → Render tự khởi động lại.
 
 **4. Kiểm tra:** `https://phantichweb.onrender.com/api/edit-requests/health` phải có

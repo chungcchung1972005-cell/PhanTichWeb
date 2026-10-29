@@ -12,7 +12,7 @@ command(boss,'rule',{id:'rule-new',service:'Newborn',pkg:'Cơ bản',price:15000
 assert.throws(()=>command(other,'checkin',{id:'order-1'}),/phụ trách/);
 command(worker,'checkin',{id:'order-1'});command(worker,'shot',{id:'order-1'});
 assert.equal(s.entries.find(e=>e.kind==='shoot').amount,300000); // frozen at deposit, before rule edit
-assert.equal(s.entries.find(e=>e.kind==='sale').amount,100000);
+assert.equal(s.entries.find(e=>e.kind==='sale').amount,75000);
 assert.throws(()=>command(boss,'approve-entry',{id:'order-1:shoot'}),/thanh toán đủ/);
 const r={id:'req-1',workflowOrderId:'order-1',round:1,photoCount:12,extraCount:2,extraFee:100000};
 s=c.progress(s,r,'selected');s=c.progress(s,r,'selected');assert.equal(s.orders[0].extraFees,100000);
@@ -23,6 +23,9 @@ command(sale,'payment',{id:'order-1',amount:850000,reference:'balance-1'});
 command(boss,'approve-entry',{id:'order-1:shoot'});command(boss,'pay-entry',{id:'order-1:shoot',reference:'pay-shoot-1'});
 assert.throws(()=>command(boss,'pay-entry',{id:'order-1:shoot',reference:'duplicate'}),/đã duyệt/);
 assert.equal(c.view(s,worker).entries.some(e=>e.kind==='sale'),false);
+assert.deepEqual(c.view(s,worker).rules,[]);
+assert.equal(c.view(s,worker).orders.some(o=>o.policy),false);
+assert.equal(c.view(s,sale).rules.some(r=>r.sale||r.shoot||r.edit||r.extraEditPerPhoto),false);
 assert.deepEqual(c.view(s,other).orders,[]);assert.deepEqual(c.view(s,other).entries,[]);
 const second={id:'req-2',workflowOrderId:'order-1',round:2,photoCount:1,extraCount:1,extraFee:50000};
 s=c.progress(s,second,'selected');s=c.progress(s,r,'delivered');assert.equal(s.orders[0].status,'editing');
@@ -32,3 +35,12 @@ assert.throws(()=>command(boss,'rule',{id:'bad',service:'Newborn',pkg:'Cơ bản
 let held=c.apply(c.seed(),sale,'book',{id:'held',code:'ABHOLD',phone:'0900000001',customerName:'Test',service:'Newborn',pkg:'Cơ bản',price:1500000,date:'2026-11-01',time:'09:00',shooterPhone:worker.phone,editorPhone:worker.phone},1000);
 assert.equal(c.expire(held,3601000).orders[0].status,'cancelled');
 console.log('PASS: linked order transitions, room/crew ownership, deposit gate, frozen package splits, idempotent earnings, extra rounds, debt gate, approvals and payouts, staff privacy');
+
+assert.equal(s.entries.find(e=>e.id==='req-1:sale-extra').amount,5000);
+assert.equal(s.entries.filter(e=>e.id==='req-1:sale-extra').length,1);
+assert.equal(c.view(s,worker).entries.some(e=>['sale','sale-extra'].includes(e.kind)),false);
+assert.ok(c.view(s,sale).entries.every(e=>e.phone===sale.phone && ['sale','sale-extra'].includes(e.kind)));
+assert.deepEqual(c.view(s,{role:'sale',phone:'0919999999'}).entries,[]);
+assert.deepEqual(c.view(s,{role:'tho-anh',phone:sale.phone}).entries,[]);
+assert.deepEqual(c.view(s,{role:'sale',phone:worker.phone}).entries,[]);
+console.log('PASS: Sale package 5%, extra fee 5%, retry idempotence and own-role ledger privacy');

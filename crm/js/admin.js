@@ -2053,16 +2053,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="kanban-progress-label">Đã xong ${doneIds.length}/${total} ảnh</span>
       </div>
       <p class="kanban-modal-meta">Tiến độ đếm số ảnh đã được đánh dấu xong. Không đánh dấu từng ảnh nữa: khi Thợ ảnh bấm "Hoàn tất" (cần có link ảnh đã chỉnh), toàn bộ ảnh được tính là xong.</p>
+      <button type="button" id="copyPhotoNames">Chép tên file</button><span id="copyPhotoStatus" role="status"></span>
       <div class="kanban-photo-grid">
         ${req.photos.map(p => {
           const fname = p.name || photoFilename(p.id);
           return `
           <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
+            ${(p.editOptions || []).map(x=>`<small class="badge">${escHtml(x)}</small>`).join(' ')}
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             <div class="photo-file-row">
               <span class="photo-filename">${escHtml(fname)}</span>
-              <a class="photo-download-btn" href="${escHtml(p.driveUrl || p.src)}" target="_blank" rel="noopener noreferrer" title="Mở file gốc ${escHtml(fname)}" aria-label="Mở file gốc ${escHtml(fname)}">
+              <a class="photo-download-btn" href="${escHtml(p.driveUrl || p.src)}" target="_blank" rel="noopener noreferrer" title="Mở trên Drive ${escHtml(fname)}" aria-label="Mở trên Drive ${escHtml(fname)}">Mở trên Drive
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </a>
             </div>
@@ -2071,6 +2073,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>` : '<p class="kanban-modal-meta">Yêu cầu này chưa có dữ liệu chi tiết từng ảnh (dữ liệu cũ).</p>'}
       ${renderResultSection(req)}
     `;
+    const copy=modalBody.querySelector('#copyPhotoNames');
+    if(copy) copy.onclick=async()=>{
+      const status=modalBody.querySelector('#copyPhotoStatus');
+      try { await navigator.clipboard.writeText(req.photos.map(p=>p.name || photoFilename(p.id)).join('\n')); status.textContent='Đã chép '+req.photos.length+' tên file'; }
+      catch(_) {status.textContent='Không chép được. Hãy cho phép truy cập clipboard.';}
+    };
     bindResultSection(req);
   }
 

@@ -91,31 +91,34 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     const orderInfo = (page) => page.$eval('#psOrderInfo', (el) => el.textContent.replace(/\s+/g, ' ').trim());
     const localDb = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('aloha_demo_db')) || {}; } catch (e) { return {}; } });
 
-    // =============================================================== A. Mặc định TẮT
+    // =============================================================== A. Mặc định BẬT; kiểm tra local bằng opt-out tường minh
     const plain = await machine();
+    await plain.page.goto(ROOT_URL + 'index.html', {waitUntil:'networkidle0'});
+    check('Default editSync ON', (await state(plain.page)).flag);
+    await plain.page.goto(ROOT_URL + 'index.html?editSync=0', {waitUntil:'networkidle0'});
     for (const p of ['index.html', 'login.html', 'index.html#/chon-anh']) {
       await plain.page.goto(ROOT_URL + p, { waitUntil: 'networkidle0' });
       const st = await state(plain.page);
-      check('A1 khách thường mở ' + p + ': editSync TẮT, không có key', !st.flag && !st.sync && st.key === null, st);
+      check('A1 khách thường mở ' + p + ': editSync TẮT sau opt-out, key 0', !st.flag && !st.sync && st.key === '0', st);
     }
     await login(plain, '0900000001', 'khach123');
     let st = await state(plain.page);
-    check('A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập', !st.sync && st.key === null, st);
+    check('A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập', !st.sync && st.key === '0', st);
     check('A3 khách demo vẫn có hồ sơ cũ #AB240915 (không bị đổi)', /#AB240915/.test(await orderInfo(plain.page)), await orderInfo(plain.page));
     check('A4 không gọi /api/edit-requests lần nào khi TẮT', plain.calls.length === 0, plain.calls);
     await plain.page.goto(ROOT_URL + 'index.html?editSync=abc', { waitUntil: 'networkidle0' });
     st = await state(plain.page);
-    check('A5 ?editSync=abc (giá trị lạ) không bật', !st.sync && st.key === null, st);
+    check('A5 ?editSync=abc (giá trị lạ) không bật', !st.sync && st.key === '0', st);
 
     // =============================================================== B. Khách thử nghiệm 1 bật bằng ?editSync=1
     const k1 = await machine();
     await k1.page.goto(ROOT_URL + 'login.html?editSync=1', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
     // login.html không nạp js/edit-sync.js -> chỉ kiểm cờ + key ở trang này
-    check('B1 login.html?editSync=1: cờ bật + ghi key "1"', st.flag && st.key === '1', st);
+    check('B1 login.html?editSync=1: cờ bật + xóa lựa chọn tắt', st.flag && st.key === null, st);
     await login(k1, K1.entry.phone, K1.pw);
     st = await state(k1.page);
-    check('B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT nhờ key', st.sync && k1.page.url().includes('#/chon-anh') && !k1.page.url().includes('editSync'), [st, k1.page.url()]);
+    check('B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT mặc định', st.sync && k1.page.url().includes('#/chon-anh') && !k1.page.url().includes('editSync'), [st, k1.page.url()]);
     const info1 = await orderInfo(k1.page);
     check('B3 khách thử nghiệm có hồ sơ buổi chụp GIẢ riêng (#ABTN0103), không phải #AB240915', /#ABTN0103/.test(info1) && !/AB240915/.test(info1), info1);
     check('B4 có lưới ảnh để chọn', (await k1.page.$$('.ps-photo')).length > 0);
@@ -191,12 +194,12 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     // =============================================================== ?editSync=0 tắt lại
     await k1.page.goto(ROOT_URL + 'index.html?editSync=0#/chon-anh', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
-    check('D1 ?editSync=0: xoá key, TẮT', !st.sync && st.key === null, st);
+    check('D1 ?editSync=0: ghi key 0, TẮT', !st.sync && st.key === '0', st);
     await k1.page.goto(ROOT_URL + 'index.html#/chon-anh', { waitUntil: 'networkidle0' });
     st = await state(k1.page);
-    check('D2 mở lại không tham số: vẫn TẮT', !st.sync && st.key === null, st);
+    check('D2 mở lại không tham số: vẫn TẮT', !st.sync && st.key === '0', st);
     st = await state(tho.page);
-    check('D3 máy khác (Thợ thử nghiệm) không bị ảnh hưởng: vẫn BẬT', st.sync && st.key === '1', st);
+    check('D3 máy khác (Thợ thử nghiệm) không bị ảnh hưởng: vẫn BẬT', st.sync && st.key === null, st);
 
     check('E1 không có lỗi JavaScript trên trang', errors.length === 0, errors);
   } catch (e) {

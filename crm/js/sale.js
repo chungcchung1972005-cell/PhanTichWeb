@@ -519,7 +519,6 @@
   function chatPane(v) {
     const c = customer(v.customerId);
     const own = isMine(v) || (v.live && !v.owner);
-    const quick = [SERVICES.includes(c.service) ? 'Bảng giá ' + c.service : 'Bảng giá', 'Concept đang được chọn nhiều', 'Khung giờ còn trống', 'Hướng dẫn đặt cọc', 'Lưu ý chuẩn bị cho bé'];
     return '<section class="ib-chat">' +
       '<header class="ib-chat-head">' +
         '<button type="button" class="sw-icon-btn ib-back" data-act="inbox-back" aria-label="Quay lại danh sách">' + icon('back') + '</button>' +
@@ -535,24 +534,14 @@
         v.messages.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>').join('') +
       '</div>' +
       (own ? '<div class="ib-compose">' +
-        '<div class="ib-quick">' + quick.map(q => '<button type="button" class="sw-chip sw-chip-outline" data-act="quick-reply" data-id="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>' +
         '<form class="ib-form" data-form="send-msg" data-id="' + v.id + '">' +
-          '<input id="ibInput" type="text" placeholder="Nhập tin nhắn, gõ / để chèn mẫu trả lời" autocomplete="off">' +
+          '<input id="ibInput" type="text" placeholder="Nhập tin nhắn cho khách" autocomplete="off">' +
           '<button type="submit" class="sw-btn sw-btn-accent">' + icon('send') + 'Gửi</button>' +
         '</form>' +
       '</div>' : '<div class="ib-compose">' + readOnlyNote(v.owner) + '</div>') +
     '</section>';
   }
 
-  function quickReplyText(label, c) {
-    const who = c.title + ' ' + c.short;
-    if (label.startsWith('Bảng giá') && !SERVICES.includes(c.service)) return 'Dạ ' + who + ' đang quan tâm dịch vụ nào ạ (Newborn, Bé lớn, Sinh nhật, Bầu, Gia đình)? Em gửi bảng giá đúng gói cho mình nhé.';
-    if (label.startsWith('Bảng giá')) return 'Dạ em gửi ' + who + ' bảng giá gói ' + c.service + ': [Bảng giá gói ' + c.service + ' theo cấu hình studio]. ' + capital(c.title) + ' cần em tư vấn thêm gói nào không ạ?';
-    if (label.startsWith('Concept')) return 'Dạ các concept ' + c.service + ' đang được nhiều bố mẹ chọn gần đây là tông kem trắng nhẹ nhàng, vintage và Hàn Quốc ạ. Em gửi ' + who + ' ảnh mẫu tham khảo nhé.';
-    if (label.startsWith('Khung giờ')) return 'Dạ hiện studio còn trống các khung ' + freeSlotsText() + '. ' + capital(c.title) + ' chọn khung nào em giữ lịch luôn cho mình ạ.';
-    if (label.startsWith('Hướng dẫn')) return 'Dạ sau khi em giữ lịch, ' + c.title + ' sẽ nhận link đặt cọc. ' + capital(c.title) + ' chỉ cần quét mã QR và giữ nguyên nội dung chuyển khoản là lịch được xác nhận tự động trong vài giây ạ.';
-    return 'Dạ ' + who + ' lưu ý cho bé ăn no trước buổi chụp, mang thêm 1 bộ đồ dự phòng và khăn quấn quen thuộc để bé dễ ngủ ngoan ạ.';
-  }
   function capital(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
   function freeSlotsText() {
     const out = [];
@@ -606,7 +595,7 @@
       '<div class="ci-tags">' + c.tags.map(t => '<span class="sw-tag tone-peach">' + esc(t) + '</span>').join('') + svcTag(c.service) + '</div>' +
       babyBlock(c) +
       (own ? '<button type="button" class="sw-btn sw-btn-accent sw-btn-block" data-act="book-for" data-id="' + c.id + '">' + icon('calendar') + 'Tạo lịch và gửi link cọc</button>' +
-      '<button type="button" class="sw-btn sw-btn-block" data-act="send-quote" data-id="' + c.id + '">' + icon('send') + 'Gửi báo giá gói ' + esc(c.service) + '</button>' +
+      '<button type="button" class="sw-btn sw-btn-block" data-act="send-quote" data-id="' + c.id + '">' + icon('send') + 'Soạn báo giá cho khách</button>' +
       '<button type="button" class="sw-btn sw-btn-block" data-act="callback" data-id="' + c.id + '">' + icon('clock') + 'Hẹn gọi lại</button>' : readOnlyNote(c.owner)) +
       '<small class="sw-label">Ghi chú nội bộ</small>' +
       noteBox(c) +
@@ -985,6 +974,7 @@
           : '<p class="sw-note">Lịch do ' + esc(saleName(a.owner)) + ' phụ trách, chưa gắn hồ sơ khách trong CRM.</p>')));
   }
   function depStateText(d) {
+    if (d.state === 'created') return 'Đã lưu lịch · chưa gửi link cọc';
     if (d.state === 'confirmed') return 'Đã xác nhận · ' + money(d.received);
     if (d.state === 'paid') return 'Tiền đã về ' + d.paidAt + ' · ' + money(d.received) + ', chờ xác nhận';
     if (d.state === 'short') return 'Nhận ' + money(d.received) + ', thiếu so với số tiền cọc';
@@ -1076,17 +1066,11 @@
           [...new Set(['Cơ bản', 'Tiêu chuẩn', 'Premium'].concat(workflow?workflow.rules.filter(r=>r.service===q.service).map(r=>r.pkg):[]))].map(p => '<option' + (q.pkg === p ? ' selected' : '') + '>' + esc(p) + '</option>').join('') + '</select></label>' +
         '<label class="qb-field"><span>Giá gói thực tế (đ)</span><input type="number" min="1" step="1" data-qb="price" value="'+esc(q.price||'')+'" placeholder="Giá gói"></label>'+
         (isSep?'<label class="qb-field"><span>Sale phụ trách</span><select data-qb="salePhone"><option value="">Chọn Sale</option>'+(workflow?workflow.employees.filter(e=>e.role==='sale').map(e=>'<option value="'+esc(e.phone)+'"'+(q.salePhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join(''):'')+'</select></label>':'')+
-        '<label class="qb-field"><span>Thợ chụp phụ trách</span><select data-qb="shooterPhone"><option value="">Chọn thợ chụp</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.shooterPhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join('')+'</select></label>'+
-        '<label class="qb-field"><span>Thợ chỉnh ảnh phụ trách</span><select data-qb="editorPhone"><option value="">Chọn thợ chỉnh ảnh</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.editorPhone===e.phone?' selected':'')+'>'+esc(e.name)+'</option>').join('')+'</select></label>'+
+        '<label class="qb-field"><span>Thợ chụp phụ trách</span><select data-qb="shooterPhone"><option value="">Chọn thợ chụp</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.shooterPhone===e.phone?' selected':'')+'>'+esc(e.name)+' · '+esc(e.phone)+'</option>').join('')+'</select></label>'+
+        '<label class="qb-field"><span>Thợ chỉnh ảnh phụ trách</span><select data-qb="editorPhone"><option value="">Chọn thợ chỉnh ảnh</option>'+crew.map(e=>'<option value="'+esc(e.phone)+'"'+(q.editorPhone===e.phone?' selected':'')+'>'+esc(e.name)+' · '+esc(e.phone)+'</option>').join('')+'</select></label>'+
         '<div class="qb-deposit">' + icon('qr') + '<span>Cọc <strong>' + (q.price?money(Math.ceil(Number(q.price)*.5)):'50% giá gói') + '</strong> · Mã <strong>' + nextCode() + '</strong> · giữ lịch ' + CFG.holdHours + ' tiếng, quá giờ chưa cọc tự nhả</span></div>' +
-        '<div class="qb-field"><span>Gửi link cọc qua (chọn được nhiều kênh)</span><div class="qb-channels">' +
-          CHANNELS.map(ch => '<button type="button" class="qb-ch' + (q.channels.includes(ch) ? ' on' : '') + '" data-act="qb-channel" data-id="' + ch + '">' + (q.channels.includes(ch) ? icon('check') : '') + ch + '</button>').join('') +
-          '<button type="button" class="qb-ch" data-act="qb-copy">Sao chép link</button>' +
-        '</div></div>' +
-        (online ? '<p class="qb-hint c-teal">Gợi ý: khách đang online trên chat web. Thêm SMS để khách không lỡ link.</p>' : '') +
-        '<div class="qb-preview" id="qbPreview">' + esc(qbMessage()) + '</div>' +
         '<p class="qb-error c-red" id="qbError" hidden></p>' +
-        '<button type="submit" class="sw-btn sw-btn-accent sw-btn-block qb-submit">' + icon('send') + 'Giữ lịch và gửi link cọc (' + q.channels.length + ' kênh)</button>' +
+        '<button type="submit" class="sw-btn sw-btn-accent sw-btn-block qb-submit">Lưu lịch &amp; phân công thợ</button>' +
       '</form>';
   }
 
@@ -1095,7 +1079,6 @@
     if (!panel) return;
     if (full) { panel.innerHTML = quickBookForm(); return; }
     document.getElementById('qbLookup').innerHTML = qbLookupHtml();
-    document.getElementById('qbPreview').textContent = qbMessage();
   }
 
   let bookingBusy=false;
@@ -1110,7 +1093,6 @@
     if (!q.date || !q.time) return err('Chọn ngày và giờ chụp.');
     if (toMin(q.time) < DAY_START * 60 || toMin(q.time) + durationOf(q.service) * 60 > DAY_END * 60) return err('Giờ chụp phải nằm trong khung 08:00–19:00.');
     if (!q.room) return err('Không còn phòng/thợ trống ở khung giờ này, chọn giờ khác.');
-    if (!q.channels.length) return err('Chọn ít nhất 1 kênh gửi link cọc.');
     const [room, ph] = q.room.split('|');
     const dur = durationOf(q.service);
     if (roomBusy(room, q.date, q.time, dur) || photographerBusy(ph, q.date, q.time, dur)) return err('Khung giờ vừa bị giữ, chọn giờ khác.');
@@ -1135,21 +1117,10 @@
     try { await AlohaWorkflow.command('book',{id:workflowOrderId,code,phone:c.phone,customerName:c.name,customerId:c.id,service:q.service,pkg:q.pkg,price:Number(q.price),date:q.date,time:q.time,duration:Math.round(dur*60),room,shooterPhone:q.shooterPhone,editorPhone:q.editorPhone,salePhone:q.salePhone||me.phone}); }
     catch(e) {bookingBusy=false;return err(e.message);}
     bookingBusy=false;
-    if(db.appointments.some(a=>a.workflowOrderId===workflowOrderId)) {ui.qb.phone='';ui.qb.name='';render();toast('Đã lưu lịch. Thợ được phân công sẽ thấy cùng đơn này.');return;}
-    db.appointments.push({ id: apId, date: q.date, start: q.time, dur, service: q.service, label: c.name.replace(/^Chị /, 'C. ').replace(/^Anh /, 'A. '), room, photographer: ph, status: 'giu-cho', owner: me.id, customerId: c.id, depositCode: code });
-    db.deposits.unshift({ code, owner: me.id, customerId: c.id, appointmentId: apId, channels: q.channels.slice(), state: 'sent', sentAt: hm(demoNow()), holdUntil: hold, holdEnd: Date.now() + CFG.holdHours * 3600e3,
-      log: [{ time: hm(demoNow()), who: 'sale', text: me.name + ' gửi link cọc qua ' + q.channels.join(', ') }] });
-    c.stage = 'cho-coc';
-    c.status = { text: 'Hết hạn giữ ' + hold, tone: 'amber' };
-    c.since = 'Giữ ' + fmtDM(q.date) + ' ' + q.time;
-    const conv = convOf(c.id);
-    if (conv && q.channels.includes('Chat web')) {
-      conv.messages.push({ from: 'sale', text: qbMessage().replace(/aloha\.vn\/c\/AB\d+/, 'aloha.vn/c/' + code), time: hm(demoNow()) });
-    }
     ui.dep.selected = code;
     ui.qb.phone = ''; ui.qb.name = '';
     render();
-    toast('Đã giữ lịch ' + fmtDM(q.date) + ' ' + q.time + ' và gửi link cọc ' + code, { label: 'Xem trang khách', href: cocLink(db.deposits[0]) });
+    toast('Đã lưu lịch. Thợ được phân công sẽ thấy cùng đơn này.');
   }
 
   function cocLink(dep) {
@@ -1160,11 +1131,12 @@
 
   // ---------- Trang: Đặt cọc & đối soát ----------
   const DEP_STEPS = ['Đã gửi link', 'Khách mở link', 'Tiền về', 'Lịch xác nhận'];
-  function depStepCount(d) { return { expired: 2, sent: 1, opened: 2, short: 3, paid: 3, confirmed: 4 }[d.state] || 1; }
+  function depStepCount(d) { return { created:0, expired: 2, sent: 1, opened: 2, short: 3, paid: 3, confirmed: 4 }[d.state] ?? 1; }
   // Trạng thái 1 dòng: chấm màu + chữ ngắn (thay nhãn viên thuốc dài).
   function depStatus(d) {
     const [text, tone] =
-      d.state === 'confirmed' ? ['Đã xác nhận lịch', 'green']
+      d.state === 'created' ? ['Đã lưu lịch · chưa gửi link cọc', 'muted']
+      : d.state === 'confirmed' ? ['Đã xác nhận lịch', 'green']
       : d.state === 'paid' ? ['Tiền về lúc ' + d.paidAt, 'green']
       : d.state === 'expired' ? ['Hết giờ giữ ' + d.holdUntil + ' · đã nhả khung giờ', 'red']
       : d.state === 'opened' ? ['Đã mở link · giữ đến ' + d.holdUntil, 'blue']
@@ -1209,7 +1181,7 @@
     const manual = shortOnes.length + expiredOnes.length + db.unmatched.length;
     const groups = {
       all: () => true,
-      'cho-coc': d => d.state === 'sent' || d.state === 'opened',
+      'cho-coc': d => ['created','sent','opened'].includes(d.state),
       'kiem-tra': d => d.state === 'short' || d.state === 'expired',
       'da-khop': d => d.state === 'paid' || d.state === 'confirmed'
     };
@@ -1733,7 +1705,7 @@
       if(o.status==='cancelled') {db.appointments=db.appointments.filter(a=>a.workflowOrderId!==o.id);return;}
       const ap={id:apId,workflowOrderId:o.id,date:o.date,start:o.time,dur:o.duration/60,service:o.service,label:o.customerName,room:o.room,photographer:employeeName(o.shooterPhone),status:o.shotAt?'da-chup':o.status==='shooting'?'checkin':o.status==='booked'?'giu-cho':'da-coc',owner,customerId:c.id,depositCode:o.code,pkg:o.pkg};
       const old=db.appointments.find(a=>a.workflowOrderId===o.id||a.depositCode===o.code);if(old)Object.assign(old,ap);else db.appointments.push(ap);
-      const dep={code:o.code,workflowOrderId:o.id,owner,customerId:c.id,appointmentId:apId,channels:['Chat web'],state:o.collected>=Math.ceil(o.price*.5)?'confirmed':'sent',received:o.collected,amount:Math.ceil(o.price*.5),sentAt:hm(new Date(o.createdAt)),holdEnd:o.createdAt+CFG.holdHours*3600e3,holdUntil:hm(new Date(o.createdAt+CFG.holdHours*3600e3)),log:[]};
+      const dep={code:o.code,workflowOrderId:o.id,owner,customerId:c.id,appointmentId:apId,channels:[],state:o.collected>=Math.ceil(o.price*.5)?'confirmed':o.collected>0?'short':'created',received:o.collected,amount:Math.ceil(o.price*.5),sentAt:'',holdEnd:o.createdAt+CFG.holdHours*3600e3,holdUntil:hm(new Date(o.createdAt+CFG.holdHours*3600e3)),log:[]};
       const oldDep=db.deposits.find(d=>d.code===o.code);if(oldDep)Object.assign(oldDep,dep);else db.deposits.unshift(dep);
       if(o.shotAt) {
         const order={code:o.code,workflowOrderId:o.id,owner,customer:o.customerName,customerId:c.id,service:o.service,pkg:o.pkg,date:o.date,status:o.status==='delivered'?'da-giao':o.status==='editing'?'dang-chinh':'cho-chon',progress:'',due:'Theo đơn'};
@@ -1773,17 +1745,11 @@
       }
       case 'profile': document.getElementById('swSearchResults').hidden = true; return showProfile(id);
       case 'offer': {
-        ui.done[key] = true; closeModal(); render();
-        return toast('Đã gửi ưu đãi chụp mốc tiếp theo cho khách');
+        return toast('Chưa gửi tin. Mở hội thoại của khách để soạn nội dung.');
       }
       case 'resend-deposit': case 'resend-sms': {
         const d = myDeposits().find(x => x.code === code); if (!d) return;
-        const ch = act === 'resend-sms' ? 'SMS' : d.channels.join(', ');
-        if (act === 'resend-sms' && !d.channels.includes('SMS')) d.channels.push('SMS');
-        d.log.unshift({ time: hm(demoNow()), who: 'sale', text: me.name + ' gửi lại link cọc qua ' + ch });
-        ui.dep.fresh[d.code] = true;
-        if (key) ui.done[key] = true;
-        render(); return toast('Đã gửi lại link cọc ' + d.code + ' qua ' + ch);
+        return toast('Chưa gửi tin. Chức năng gửi SMS tự động chưa kết nối.');
       }
       case 'confirm-deposit': closeModal(); return confirmDeposit(code);
       case 'view-deposit': case 'select-deposit-go': {
@@ -1809,8 +1775,7 @@
       }
       case 'remind-short': {
         const d = myDeposits().find(x => x.code === code); if (!d) return;
-        d.log.unshift({ time: hm(demoNow()), who: 'sale', text: me.name + ' nhắc khách chuyển nốt phần cọc còn thiếu' });
-        ui.dep.fresh[d.code] = true; closeModal(); render(); return toast('Đã nhắc khách chuyển nốt phần cọc còn thiếu');
+        return toast('Chưa gửi tin nhắc. Mở hội thoại để trao đổi trực tiếp với khách.');
       }
       case 'assign-tx': {
         const tx = db.unmatched.find(t => t.id === id); if (!tx) return;
@@ -1830,19 +1795,15 @@
         return toast('Đã gán giao dịch cho ' + d.code + '. Bấm "Xác nhận" để chốt lịch.');
       }
       case 'remind-pick': {
-        const o = myOrders().find(x => x.code === code); if (o) o.remindedAt = hm(demoNow());
-        ui.done['ord:' + code] = true; render(); return toast('Đã nhắc ' + (o ? o.customer : 'khách') + ' chọn ảnh');
+        return toast('Chưa gửi tin nhắc. Mở hội thoại để trao đổi trực tiếp với khách.');
       }
-      case 'remind-tomorrow': ui.done['tomorrow'] = true; render(); return toast('Đã gửi tin nhắc lịch cho các khách chụp ngày mai');
+      case 'remind-tomorrow': return toast('Chưa gửi tin. Gửi nhắc lịch hàng loạt chưa được kết nối.');
       case 'remind-all': {
-        const list = myOrders().filter(o => o.status === 'cho-chon');
-        list.forEach(o => { o.remindedAt = hm(demoNow()); ui.done['ord:' + o.code] = true; });
-        render(); return toast(list.length ? 'Đã nhắc ' + list.length + ' khách chưa chọn ảnh' : 'Không có khách nào đang chờ chọn ảnh');
+        return toast('Chưa gửi tin. Gửi nhắc khách hàng loạt chưa được kết nối.');
       }
       case 'order-action': {
         const o = myOrders().find(x => x.code === code); if (!o) return;
-        if (id === 'Nhắc chọn ảnh') { o.remindedAt = hm(demoNow()); ui.done['ord:' + code] = true; }
-        render(); return toast(id + ': đã gửi tới ' + o.customer);
+        return toast('Chưa gửi tin cho '+o.customer+'. Mở hội thoại để soạn nội dung.');
       }
       case 'ord-filter': ui.ord.filter = id; return render();
       case 'goto-order': ui.ord.filter = 'all'; location.hash = '#don-anh'; return render();
@@ -1852,17 +1813,12 @@
       case 'inbox-filter': ui.inbox.filter = id; ui.inbox.active = null; ui.inbox.mobileChat = false; return render();
       case 'open-conv': ui.inbox.active = id; ui.inbox.mobileChat = true; return render();
       case 'inbox-back': ui.inbox.mobileChat = false; if (location.hash !== '#hop-thu') location.hash = '#hop-thu'; else render(); return;
-      case 'quick-reply': {
-        const v = db.conversations.find(x => x.id === ui.inbox.active); const input = document.getElementById('ibInput');
-        if (v && input) { input.value = quickReplyText(id, customer(v.customerId)); input.focus(); }
-        return;
-      }
       case 'send-quote': {
         const c = myCustomer(id); const v = convOf(id); if (!c) return;
-        if (v && v.live) liveSend(v, quickReplyText('Bảng giá', c));
-        else if (v) { v.messages.push({ from: 'sale', text: quickReplyText('Bảng giá', c), time: hm(demoNow()) }); v.unread = false; }
-        if (c.stage === 'moi' || c.stage === 'tu-van') { c.stage = 'bao-gia'; c.status = { text: 'Đã gửi báo giá', tone: 'muted' }; }
-        closeModal(); render(); return toast('Đã gửi báo giá gói ' + c.service + ' cho ' + c.name);
+        if(!v || !v.live)return toast('Khách chưa có hội thoại trên web. Chưa gửi báo giá.');
+        closeModal();ui.inbox.active=v.id;ui.inbox.mobileChat=true;location.hash='#hop-thu/'+v.id;render();
+        const input=document.getElementById('ibInput');if(input)input.focus();
+        return;
       }
       case 'callback': {
         const c = myCustomer(id); if (!c) return;
@@ -1978,10 +1934,10 @@
     if (t.dataset.orderNote) { const o = myOrders().find(x => x.code === t.dataset.orderNote); if (o) o.note = t.value; return; }
     if (t.hasAttribute('data-tr-note')) { ui.tr.note = t.value; ui.tr.noteTouched = t.value.trim() !== ''; return; }
     if (t.dataset.qb) {
+      if(t.dataset.qb==='shooterPhone' && (!ui.qb.editorPhone || ui.qb.editorPhone===ui.qb.shooterPhone)) ui.qb.editorPhone=t.value;
       ui.qb[t.dataset.qb] = t.value;
       if (t.dataset.qb === 'phone' || t.dataset.qb === 'name') {
         if (t.dataset.qb === 'phone') { refreshQuickBook(true); const inp = document.querySelector('[data-qb="phone"]'); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-        else document.getElementById('qbPreview').textContent = qbMessage();
       }
       return;
     }
@@ -2007,6 +1963,7 @@
     }
     if (t.dataset.trField) { if (t.value) ui.tr[t.dataset.trField] = t.value; return render(); }
     if (t.dataset.qb && ['date', 'time', 'room', 'pkg','shooterPhone','editorPhone','price','salePhone'].includes(t.dataset.qb)) {
+      if(t.dataset.qb==='shooterPhone' && (!ui.qb.editorPhone || ui.qb.editorPhone===ui.qb.shooterPhone)) ui.qb.editorPhone=t.value;
       ui.qb[t.dataset.qb] = t.value;
       if(t.dataset.qb==='pkg') {ui.qb.price='';return refreshQuickBook(true);}
       if (t.dataset.qb !== 'room' && t.dataset.qb !== 'pkg') refreshQuickBook(true); else refreshQuickBook(false);
@@ -2023,11 +1980,7 @@
       const v = db.conversations.find(x => x.id === f.dataset.id);
       if (v && v.live && text && (v.owner === me.id || !v.owner)) { input.value = ''; liveSend(v, text); return; }
       if (!text || !v || v.owner !== me.id) return;
-      v.messages.push({ from: 'sale', text, time: hm(demoNow()) });
-      v.unread = false; v.time = 'Vừa xong';
-      render();
-      const inp = document.getElementById('ibInput'); if (inp) inp.focus();
-      return;
+      return toast('Hội thoại chưa kết nối máy chủ. Tin nhắn chưa được gửi.');
     }
     if (f.dataset.form === 'add-lead') {
       const fd = new FormData(f);

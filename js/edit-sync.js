@@ -141,7 +141,7 @@
       const body = {
         orderCode: d.orderCode, serviceLabel: d.serviceLabel, note: d.note,
         sourceAlbumId: d.sourceAlbumId, parentRequestId: d.parentRequestId,
-        photos: Array.isArray(d.photos) ? d.photos.map((p) => ({ id: p && p.id, src: p && p.src, note: (p && p.note) || '', isExtra: !!(p && p.isExtra) })) : d.photos,
+        photos: Array.isArray(d.photos) ? d.photos.map((p) => ({ id: p && p.id, src: p && p.src, note: (p && p.note) || '', editOptions: (p && p.editOptions) || [], isExtra: !!(p && p.isExtra) })) : d.photos,
         extraFee: d.extraFee, paymentStatus: d.paymentStatus, paymentCode:d.paymentCode
       };
       return request('/', { method: 'POST', body });

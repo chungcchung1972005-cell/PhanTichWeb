@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const u=AlohaAuth.getSession(); if(!u || !['sale','sep','tho-anh'].includes(u.role)) return;
   const salePage=!!document.getElementById('swView'), boss=u.role==='sep';
+  // Sale uses this panel in sale.html; admin.html is also accessible for inbox only.
+  if(!salePage && (!document.getElementById('anh') || u.role==='sale')) return;
   const panel=document.createElement(salePage?'details':'section');panel.id='quy-trinh';panel.className='wf-panel '+(salePage?'':'admin-section');
   if(salePage) { panel.innerHTML='<summary>Quy trình đơn chụp & thu nhập của tôi</summary><div class="wf-body"></div>';document.getElementById('swView').before(panel); }
   else {panel.innerHTML='<div class="wf-body"></div>';document.getElementById('anh').before(panel);}
@@ -8,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const vnd=n=>n===null?'Chưa có mức công':Number(n||0).toLocaleString('vi-VN')+'đ';
   const names={booked:'Chờ cọc',confirmed:'Đã cọc · chờ chụp',shooting:'Đang chụp',shot:'Đã chụp · chờ gửi gốc',choosing:'Chờ khách chọn',editing:'Đang chỉnh ảnh',delivered:'Đã giao ảnh',cancelled:'Đã hủy'};
-  const kinds={sale:'Hoa hồng Sale',shoot:'Công chụp',edit:'Công chỉnh trong gói','extra-edit':'Công chỉnh thêm'};
+  const kinds={'sale-extra':'Hoa hồng Sale (ảnh thêm)',sale:'Hoa hồng Sale',shoot:'Công chụp',edit:'Công chỉnh trong gói','extra-edit':'Công chỉnh thêm'};
   const stages={pending:'Chờ duyệt',approved:'Đã duyệt · chờ chi',paid:'Đã chi'};
   let state=null, error='', busy=false, month=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Ho_Chi_Minh'}).slice(0,7);
   const dateMonth=t=>new Date(t).toLocaleDateString('sv-SE',{timeZone:'Asia/Ho_Chi_Minh'}).slice(0,7);
@@ -23,8 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="wf-store">${AlohaWorkflow.store()==='local'?'Bản demo trên máy này; dữ liệu giữ sau khi tải lại và liên kết các vai trò trong cùng trình duyệt.':AlohaWorkflow.store()==='memory'?'Máy chủ đang lưu RAM; cần cấu hình MongoDB để giữ dữ liệu qua lần khởi động lại.':'Dữ liệu đồng bộ trên máy chủ.'}</p>
       ${error?`<p class="wf-error" role="alert">${esc(error)}</p>`:''}
       <div class="wf-toolbar"><label>Tháng ghi nhận<input type="month" id="wfMonth" value="${month}"></label><span>Tiền phát sinh theo ngày hoàn thành việc; tiền dự kiến chưa phải khoản đã nhận.</span></div>
-      <div class="wf-kpis">${[['Hoa hồng Sale',totals('sale')],['Công chụp',totals('shoot')],['Công chỉnh ảnh',totals('edit')+totals('extra-edit')],['Chờ duyệt',sumStatus('pending')],['Đã duyệt · chờ chi',sumStatus('approved')],['Đã nhận / đã chi',sumStatus('paid')]].map(([k,v])=>`<article><span>${k}</span><strong>${vnd(v)}</strong></article>`).join('')}</div>
-      <p>${entries.filter(e=>e.amount===null).length?'<strong>Có khoản chưa tính được vì thiếu cấu hình.</strong> ':''}Mức mẫu cố định: Cơ bản chia Sale 100k / chụp 300k / chỉnh 150k; Tiêu chuẩn 150k / 500k / 250k; Premium 200k / 700k / 350k; chỉnh thêm 20k/ảnh. Sếp có thể thay đổi. Đơn đã chốt giữ mức của thời điểm xác nhận cọc.</p>
+      <div class="wf-kpis">${[...(boss||u.role==='sale'?[['Hoa hồng Sale',totals('sale')+totals('sale-extra')]]:[]),...(boss||u.role==='tho-anh'?[['Công chụp',totals('shoot')],['Công chỉnh ảnh',totals('edit')+totals('extra-edit')]]:[]),['Chờ duyệt',sumStatus('pending')],['Đã duyệt · chờ chi',sumStatus('approved')],['Đã nhận / đã chi',sumStatus('paid')]].map(([k,v])=>`<article><span>${k}</span><strong>${vnd(v)}</strong></article>`).join('')}</div>
+      ${entries.some(e=>e.amount===null)?'<p>Có khoản đang chờ Sếp xác nhận mức công.</p>':''}
+      ${boss?'<p>Mức chia hiện tại là số mẫu. Cấu hình mức chia ở cuối trang; đơn đã chốt giữ mức tại thời điểm xác nhận cọc.</p>':''}
       <h3>Đơn / buổi chụp ${boss?'toàn studio':'được phân công'}</h3>
       <div class="wf-orders">${state.orders.slice().reverse().map(o=>{
         const estimate=boss?AlohaWorkflowCore.amounts(o.policy,o.price):null;
@@ -39,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <h3>Sổ tiền công ${boss?'toàn studio':'của tôi'}</h3><p>Chỉ phát sinh công chụp sau khi xác nhận đã chụp, công chỉnh sau khi gửi ảnh hoàn tất. Chỉ duyệt và chi khi khách đã thanh toán đủ.</p>
       <div class="wf-table-wrap"><table><thead><tr><th>Đơn / khách</th>${boss?'<th>Người nhận</th>':''}<th>Công việc</th><th>Số tiền</th><th>Trạng thái</th><th>Đối soát</th></tr></thead><tbody>${entries.map(e=>`<tr><td>${esc(e.orderCode)}<small>${esc(e.customerName)}</small></td>${boss?`<td>${esc(staffName(e.phone))}</td>`:''}<td>${kinds[e.kind]}${e.kind==='extra-edit'?' · '+e.quantity+' ảnh':''}</td><td>${vnd(e.amount)}</td><td>${stages[e.status]}</td><td>${e.reference?esc(e.reference):boss&&e.status==='pending'?`<button data-wf="approve-entry" data-id="${esc(e.id)}">Duyệt</button>`:boss&&e.status==='approved'?`<form data-wf-form="pay-entry" data-id="${esc(e.id)}"><input name="reference" required maxlength="150" placeholder="Mã chuyển khoản / phiếu chi"><button>Xác nhận đã chi</button></form>`:'Chờ Sếp đối soát'}</td></tr>`).join('')||'<tr><td colspan="6">Chưa phát sinh tiền công trong tháng này.</td></tr>'}</tbody></table></div>
       ${boss?`<details class="wf-settings"><summary>Cấu hình gói, mức chia cố định & nhân sự</summary><p>Mức chia mẫu để xem quy trình. Sửa mức tại đây cho các đơn xác nhận cọc về sau; không đổi số tiền đã chốt của đơn cũ.</p>
-      <form data-wf-form="rule" class="wf-form">${field('Dịch vụ','service','text','Newborn','required list="wfServices"')}<datalist id="wfServices">${['Newborn','Bé lớn','Sinh nhật','Bầu','Gia đình'].map(x=>`<option>${x}</option>`).join('')}</datalist>${field('Tên gói','pkg','text','Cơ bản','required')}${field('Giá gói','price','number',1500000,'required min="1" step="1"')}${field('Hoa hồng Sale / gói','sale','number',100000,'required min="0" step="1"')}${field('Công chụp / gói','shoot','number',300000,'required min="0" step="1"')}${field('Công chỉnh / gói','edit','number',150000,'required min="0" step="1"')}${field('Công chỉnh thêm / ảnh','extraEditPerPhoto','number',20000,'required min="0" max="50000" step="1"')}<button>Lưu phiên bản mức chia</button></form>
-      <div class="wf-table-wrap"><table><thead><tr><th>Dịch vụ / gói</th><th>Giá gói</th><th>Sale</th><th>Chụp</th><th>Chỉnh trong gói</th><th>Chỉnh thêm / ảnh</th></tr></thead><tbody>${rules.map(r=>`<tr><td>${esc(r.service)} / ${esc(r.pkg)} ${r.sample?'(mẫu)':''}</td><td>${vnd(r.price)}</td><td>${vnd(r.sale.value)}</td><td>${vnd(r.shoot.value)}</td><td>${vnd(r.edit.value)}</td><td>${vnd(r.extraEditPerPhoto)}</td></tr>`).join('')}</tbody></table></div>
+      <form data-wf-form="rule" class="wf-form">${field('Dịch vụ','service','text','Newborn','required list="wfServices"')}<datalist id="wfServices">${['Newborn','Bé lớn','Sinh nhật','Bầu','Gia đình'].map(x=>`<option>${x}</option>`).join('')}</datalist>${field('Tên gói','pkg','text','Cơ bản','required')}${field('Giá gói','price','number',1500000,'required min="1" step="1"')}${field('% hoa hồng Sale','sale','number',5,'required min="0" max="100" step="0.01"')}${field('Công chụp / gói','shoot','number',300000,'required min="0" step="1"')}${field('Công chỉnh / gói','edit','number',150000,'required min="0" step="1"')}${field('Công chỉnh thêm / ảnh','extraEditPerPhoto','number',20000,'required min="0" max="50000" step="1"')}<button>Lưu phiên bản mức chia</button></form>
+      <div class="wf-table-wrap"><table><thead><tr><th>Dịch vụ / gói</th><th>Giá gói</th><th>Sale</th><th>Chụp</th><th>Chỉnh trong gói</th><th>Chỉnh thêm / ảnh</th></tr></thead><tbody>${rules.map(r=>`<tr><td>${esc(r.service)} / ${esc(r.pkg)} ${r.sample?'(mẫu)':''}</td><td>${vnd(r.price)}</td><td>${r.sale.mode==='percent'?esc(r.sale.value)+'%':vnd(r.sale.value)}</td><td>${vnd(r.shoot.value)}</td><td>${vnd(r.edit.value)}</td><td>${vnd(r.extraEditPerPhoto)}</td></tr>`).join('')}</tbody></table></div>
       <h4>Gán công việc theo tài khoản nhân sự</h4><form data-wf-form="employee" class="wf-form">${field('Tên nhân sự','name','text','','required')}${field('SĐT tài khoản đăng nhập','phone','tel','','required pattern="0[0-9]{9,10}"')}<label>Vai trò<select name="role"><option value="tho-anh">Thợ chụp / chỉnh ảnh</option><option value="sale">Sale</option></select></label><button>Lưu nhân sự</button></form><p>${state.employees.map(e=>esc(e.name)+' · '+esc(e.phone)+' · '+(e.role==='sale'?'Sale':'Thợ ảnh')).join('<br>')}</p></details>
       `:''}<p class="wf-message" role="status"></p>`;
     body.querySelector('#wfMonth').onchange=e=>{month=e.target.value;render();};
@@ -62,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form=e.target.closest('[data-wf-form]');if(!form)return;e.preventDefault();const command=form.dataset.wfForm;
     const data=Object.fromEntries(new FormData(form));data.id=form.dataset.id||AlohaWorkflow.id();
     if(command==='payment')data.amount=Number(data.amount);
-    if(command==='rule') {['sale','shoot','edit'].forEach(k=>data[k]={mode:'fixed',value:Number(data[k])});data.price=Number(data.price);data.extraEditPerPhoto=Number(data.extraEditPerPhoto);}
+    if(command==='rule') {['sale','shoot','edit'].forEach(k=>data[k]={mode:k==='sale'?'percent':'fixed',value:Number(data[k])});data.price=Number(data.price);data.extraEditPerPhoto=Number(data.extraEditPerPhoto);}
     run(command,data);
   });
   window.addEventListener('aloha:workflow',e=>{state=e.detail;render();});
