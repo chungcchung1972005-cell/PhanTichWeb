@@ -1875,6 +1875,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderModalChat(req) {
+    if (window.AlohaDrive) AlohaDrive.attach(document.getElementById('kanbanChatForm'), document.getElementById('kanbanChatInput'));
     const list = document.getElementById('kanbanChatList');
     if (!list) return;
     const msgs = Array.isArray(req.messages) ? req.messages : [];
@@ -1886,7 +1887,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
       <div class="kanban-msg ${who}">
         <span class="kanban-msg-name">${escHtml(name)}</span>
-        <p>${escHtml(m.text)}</p>
+        <div>${window.AlohaDrive ? AlohaDrive.render(m.text) : escHtml(m.text)}</div>
         <time>${escHtml(fmtTime(m.at))}</time>${tag}
       </div>`;
     }).join('') : '<p class="kanban-chat-empty">Chưa có tin nhắn nào với khách.</p>';
@@ -2031,6 +2032,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
+      ${/^https:\/\/drive\.google\.com\//.test(req.sourceFolderUrl || '') ? `<p class="kanban-modal-meta">Khách đã chọn từ bộ ảnh gốc được giao: <a href="${escHtml(req.sourceFolderUrl)}" target="_blank" rel="noopener noreferrer">Mở thư mục Drive</a> · Lượt ${req.round || 1}</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
         <div class="kanban-progress-track"><div class="kanban-progress-fill${pct === 100 ? ' done' : ''}" style="width:${pct}%"></div></div>
@@ -2039,14 +2041,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Tiến độ đếm số ảnh đã được đánh dấu xong. Không đánh dấu từng ảnh nữa: khi Thợ ảnh bấm "Hoàn tất" (cần có link ảnh đã chỉnh), toàn bộ ảnh được tính là xong.</p>
       <div class="kanban-photo-grid">
         ${req.photos.map(p => {
-          const fname = photoFilename(p.id);
+          const fname = p.name || photoFilename(p.id);
           return `
           <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             <div class="photo-file-row">
               <span class="photo-filename">${escHtml(fname)}</span>
-              <a class="photo-download-btn" href="${escHtml(p.src)}" download="${escHtml(fname)}" title="Tải xuống ${escHtml(fname)}" aria-label="Tải xuống ${escHtml(fname)}">
+              <a class="photo-download-btn" href="${escHtml(p.driveUrl || p.src)}" target="_blank" rel="noopener noreferrer" title="Mở file gốc ${escHtml(fname)}" aria-label="Mở file gốc ${escHtml(fname)}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </a>
             </div>
@@ -2136,6 +2138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     previewGrid.innerHTML = photos.length ? photos.map(p => `
       <div class="photo-preview-tile">
         <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(photoFilename(p.id))}" loading="lazy">
+        ${/^drive-[\w-]+$/.test(p.id) ? `<a href="https://drive.google.com/file/d/${encodeURIComponent(p.id.slice(6))}/view" target="_blank" rel="noopener noreferrer">Mở ảnh trên Drive</a>` : ''}
         ${p.note ? `<p class="photo-preview-note">"${escHtml(p.note)}"</p>` : ''}
       </div>`).join('') : '<p class="photo-preview-empty">Yêu cầu này chưa có dữ liệu ảnh chi tiết.</p>';
     previewOverlay.classList.add('open');

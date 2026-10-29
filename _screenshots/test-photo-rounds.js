@@ -1,0 +1,84 @@
+const assert = require('assert/strict');
+const puppeteer = require('puppeteer-core');
+const env = require('./test-env');
+(async () => {
+  const browser = await env.launchAllFeatures(puppeteer, { executablePath: env.CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({width:1440,height:1000});
+    await page.setRequestInterception(true);
+    page.on('request', req => /^https?:/.test(req.url()) ? req.abort() : req.continue());
+    const errors = []; page.on('pageerror', e => { errors.push(e.message); console.error('PAGE:', e.message); });
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('aloha_auth', JSON.stringify({phone:'0900000001', name:'Test', role:'khach-hang'}));
+    });
+    await page.goto(env.ROOT_URL + 'index.html#/chon-anh', {waitUntil:'domcontentloaded'});
+    await page.waitForSelector('#psDrivePanel');
+    console.log('Customer waiting for originals');
+    assert.equal(await page.$$eval('.ps-photo', els => els.length),0);
+    assert.match(await page.$eval('#psDrivePanel [role=status]', el => el.textContent),/chưa gửi/);
+    assert.equal(await page.$('#psDriveUrl'),null);
+    const staff = await browser.newPage();
+    await staff.setRequestInterception(true);
+    staff.on('request', req => /^https?:/.test(req.url()) ? req.abort() : req.continue());
+    staff.on('pageerror', e => errors.push(e.message));
+    await staff.evaluateOnNewDocument(() => localStorage.setItem('aloha_auth',JSON.stringify({phone:'0900000003',name:'Thợ test',role:'tho-anh'})));
+    await staff.goto(env.ROOT_URL+'crm/admin.html#anh',{waitUntil:'domcontentloaded'});
+    await staff.waitForSelector('#sourceDeliveryForm');
+    console.log('Staff delivery form ready');
+    await staff.evaluate(() => {
+      // Fixture only: replace Google's network response, then exercise the real delivery form.
+      AlohaDrive.readFolder = async url => ({folderId:'test-folder-12345',folderUrl:url,photos:Array.from({length:12},(_,i)=>({id:'drive-test-file-000'+i,driveFileId:'test-file-000'+i,name:'IMG_'+i+'.JPG',src:'images/my-photos/photo-'+(i+1)+'.jpg',driveUrl:'https://drive.google.com/file/d/test-file-000'+i+'/view'}))});
+      const form = document.getElementById('sourceDeliveryForm');
+      form.elements.phone.value='0900000001'; form.elements.orderCode.value='#AB240915';
+      form.elements.customerName.value='Test'; form.elements.folderUrl.value='https://drive.google.com/drive/folders/test-folder-12345';
+      document.getElementById('sourceReadFolder').click();
+    });
+    await staff.waitForFunction(() => !document.getElementById('sourceSendAlbum').disabled);
+    await staff.$eval('#sourceSendAlbum', el => el.click());
+    await staff.waitForFunction(() => document.getElementById('sourceDeliveryStatus').textContent.includes('Đã gửi'));
+    console.log('Original album delivered');
+    await page.bringToFront();
+    await page.$eval('#psReloadAlbums', el => el.click());
+    await page.waitForSelector('.ps-photo[data-id="drive-test-file-0000"]');
+    assert.equal(await page.$$eval('.ps-photo', els => els.length),12);
+    await page.click('.ps-photo[data-id="drive-test-file-0000"] .ps-heart');
+    await page.click('.ps-photo[data-id="drive-test-file-0000"] img');
+    await page.evaluate(() => Promise.all(document.getElementById('psLightbox').getAnimations({subtree:true}).map(a => a.finished.catch(() => {}))));
+    await page.click('#psEditOptions input[value="Chỉnh da"]');
+    await page.click('#psEditOptions input[value="Chỉnh màu"]');
+    await page.click('#psLbClose');
+    await page.click('#psSubmitBtn');
+    let req = await page.evaluate(() => AlohaData.getEditRequests().slice(-1)[0]);
+    assert.equal(req.extraFee, 0); assert.match(req.photos[0].note, /Chỉnh da.*Chỉnh màu/);
+    assert.equal(req.photos[0].name,'IMG_0.JPG'); assert.match(req.photos[0].driveUrl,/test-file-0000/);
+    assert.ok(req.sourceAlbumId);
+    console.log('Customer submitted selected files');
+    await staff.bringToFront();
+    await staff.evaluate(() => { window.dispatchEvent(new StorageEvent('storage',{key:'aloha_demo_db'})); document.querySelectorAll('.photo-row-more:not([hidden])').forEach(el => el.click()); });
+    await staff.waitForFunction(() => document.getElementById('photoRows').textContent.includes('Test'), {timeout:10000});
+    console.log('Staff received request');
+    await staff.evaluate(id => document.querySelector(`[data-req-id="${id}"]`).click(),req.id);
+    assert.match(await staff.$eval('#kanbanModalBody',el => el.textContent),/IMG_0.JPG/);
+    assert.match(await staff.$eval('#kanbanModalBody',el => el.textContent),/Chỉnh da.*Chỉnh màu/);
+    assert.match(await staff.$eval('#kanbanModalBody .photo-download-btn',el => el.href),/test-file-0000/);
+    await staff.$eval('#kanbanModalClose',el => el.click());
+    await page.bringToFront();
+    await page.evaluate(() => {
+      const db = JSON.parse(localStorage.getItem('aloha_demo_db'));
+      Object.assign(db.editRequests.at(-1), {status:'Hoàn thành', resultLink:'https://drive.google.com/drive/folders/test-folder-12345'});
+      localStorage.setItem('aloha_demo_db', JSON.stringify(db));
+      document.querySelector('.ps-tab[data-filter="edited"]').click();
+    });
+    await page.waitForSelector('#psRoundTools button');
+    assert.equal(await page.$eval('#psRoundTools iframe', el => el.src.includes('embeddedfolderview')), true);
+    await page.click('#psRoundTools button');
+    await page.click('.ps-photo[data-id="drive-test-file-0000"] .ps-heart');
+    assert.match(await page.$eval('#extraFee', el => el.textContent), /50.000/);
+    assert.equal(await page.$eval('#psSubmitBtn', el => el.disabled), false);
+    await page.setViewport({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
+    assert.deepEqual(errors, []);
+    console.log('PASS: no photos before delivery → staff delivers Drive originals → customer selects exact files and notes → staff receives request; paid revisions, folder embed, mobile layout');
+  } finally { await browser.close(); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

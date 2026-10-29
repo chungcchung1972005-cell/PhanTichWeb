@@ -67,6 +67,10 @@
       phone: data.phone || '',
       customerName: data.customerName || 'Khách hàng',
       orderCode: data.orderCode || '',
+      parentRequestId: data.parentRequestId || '',
+      sourceAlbumId: data.sourceAlbumId || '',
+      sourceFolderUrl: data.sourceFolderUrl || '',
+      round: data.round || 1,
       serviceLabel: data.serviceLabel || '',
       photoCount: data.photoCount || 0,
       extraCount: data.extraCount || 0,
@@ -226,6 +230,14 @@
   readDb();
 
   window.AlohaData = {
+    getSourceAlbums(phone) { return (readDb().sourceAlbums || []).filter(a => !phone || a.phone === phone); },
+    deliverSourceAlbum(data) {
+      const s = window.AlohaAuth && AlohaAuth.getSession();
+      if (!s || s.role !== 'tho-anh') throw new Error('Chỉ thợ ảnh được gửi ảnh gốc.');
+      const db = readDb();
+      const album = Object.assign({}, data, {id:'AL-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), createdAt:Date.now(), staffName:s.name});
+      db.sourceAlbums = (db.sourceAlbums || []).concat([album]); writeDb(db); return album;
+    },
     getCustomerRecord,
     createEditRequest,
     getEditRequests,

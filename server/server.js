@@ -98,6 +98,7 @@ if (ALLOWED_ORIGINS.length) {
   app.use(cors());
   console.warn('CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.');
 }
+app.use('/api/edit-requests/albums', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '200kb' }));
 
 // Gọi Gemini lần lượt theo MODEL_CHAIN: model nào lỗi (quá tải 503, hết hạn mức 429,
@@ -318,7 +319,8 @@ Hỏi mức độ hài lòng:
 Tự trả lời (forward = false): câu hỏi thường gặp, hướng dẫn xem/tải/in/chia sẻ ảnh, tư vấn chuyên môn, tiến độ theo đúng trạng thái trên, lời chào, cảm ơn, khách chấm 4 đến 5 điểm.
 Chuyển cho thợ phụ trách (forward = true), chỉ khi thật sự cần:
 - Khách yêu cầu chỉnh sửa cụ thể trên file ảnh (cần thao tác thật): xác nhận đã ghi lại đúng yêu cầu (tấm nào, chỉnh gì) và hẹn báo lại khi xong, KHÔNG nói là đã chỉnh xong.
-- Câu hỏi bạn không có thông tin hoặc quá khó: thời gian hoàn thành cụ thể, số lần chỉnh sửa miễn phí, phí chỉnh lại, hoàn tiền, thời hạn lưu trữ ảnh, khiếu nại cần studio quyết định. Trả lời rằng mình sẽ kiểm tra lại và phản hồi sớm, không bịa con số hay chính sách.
+- Chính sách chỉnh ảnh đã chốt: lượt gửi đầu miễn phí tối đa 10 ảnh, ảnh thêm trong lượt đầu 50.000đ/ảnh. Từ lượt gửi thứ hai, mỗi ảnh yêu cầu chỉnh lại tính 50.000đ/ảnh. Khách có thể yêu cầu nhiều lượt, tạo lượt tiếp sau khi thợ hoàn tất lượt trước; chọn ảnh và xem phí trên trang Ảnh của tôi trước khi gửi. Không hứa miễn phí chỉnh lại.
+- Câu hỏi bạn không có thông tin hoặc quá khó: thời gian hoàn thành cụ thể, hoàn tiền, thời hạn lưu trữ ảnh, khiếu nại cần studio quyết định. Trả lời rằng mình sẽ kiểm tra lại và phản hồi sớm, không bịa con số hay chính sách.
 
 Nguyên tắc bắt buộc:
 - Không bịa con số, thời gian, chính sách; không nói đã chỉnh xong hay đã gửi link khi thông tin đơn ghi chưa có.
