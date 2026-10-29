@@ -2053,14 +2053,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="kanban-progress-label">Đã xong ${doneIds.length}/${total} ảnh</span>
       </div>
       <p class="kanban-modal-meta">Tiến độ đếm số ảnh đã được đánh dấu xong. Không đánh dấu từng ảnh nữa: khi Thợ ảnh bấm "Hoàn tất" (cần có link ảnh đã chỉnh), toàn bộ ảnh được tính là xong.</p>
-      <button type="button" id="copyPhotoNames">Chép tên file</button><span id="copyPhotoStatus" role="status"></span>
+      <div class="photo-copy-row"><button type="button" id="copyPhotoNames">Chép tên file</button><span id="copyPhotoStatus" role="status"></span></div>
       <div class="kanban-photo-grid">
         ${req.photos.map(p => {
           const fname = p.name || photoFilename(p.id);
           return `
           <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
-            ${(p.editOptions || []).map(x=>`<small class="badge">${escHtml(x)}</small>`).join(' ')}
+            ${(p.editOptions || []).map(x=>`<small class="badge badge-dat-lich">${escHtml(x)}</small>`).join(' ')}
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             <div class="photo-file-row">
               <span class="photo-filename">${escHtml(fname)}</span>

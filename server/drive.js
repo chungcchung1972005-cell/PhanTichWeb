@@ -8,7 +8,17 @@ async function readFolder(value) {
   const folderId=match[1], resourceKey=folder.searchParams.get('resourcekey'), photos=[];
   const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),10000);
   let pageToken=''; const pages=new Set();
+  const base=(process.env.GOOGLE_DRIVE_API_BASE || 'https://www.googleapis.com').replace(/\/$/,'');
+  const permissionError=()=>Object.assign(new Error("Không đọc được thư mục. Kiểm tra thư mục đã để 'Bất kỳ ai có đường liên kết' chưa."),{drivePermission:true});
   try {
+    // Thư mục chưa chia sẻ: files.list vẫn trả danh sách rỗng (không 403) -> hỏi chính thư mục trước
+    // để báo đúng "chưa để công khai" thay vì "chưa có ảnh".
+    try {
+      const meta=new URLSearchParams({key:process.env.GOOGLE_DRIVE_API_KEY,fields:'id,mimeType',supportsAllDrives:'true'});
+      const r=await fetch(base+'/drive/v3/files/'+encodeURIComponent(folderId)+'?'+meta,{headers:resourceKey?{'X-Goog-Drive-Resource-Keys':folderId+'/'+resourceKey}:{},signal:controller.signal});
+      if(r.status===403 || r.status===404) throw permissionError();
+      if(!r.ok) throw new Error();
+    } catch(e) { if(e.drivePermission) throw e; throw new Error('Google Drive không phản hồi, thử lại sau.'); }
     do {
       const q=new URLSearchParams({key:process.env.GOOGLE_DRIVE_API_KEY,q:`'${folderId}' in parents and trashed = false and mimeType contains 'image/'`,fields:'nextPageToken,files(id,name,resourceKey)',orderBy:'name',pageSize:'1000',supportsAllDrives:'true',includeItemsFromAllDrives:'true'});
       if(pageToken) q.set('pageToken',pageToken);

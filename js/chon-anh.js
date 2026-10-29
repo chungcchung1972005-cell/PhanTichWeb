@@ -1470,12 +1470,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const slotRect = slot.getBoundingClientRect();
       const shouldFloat = active && slotRect.height > 0 && slotRect.bottom < headerBottom + 8;
       if (shouldFloat !== floating) setFloating(shouldFloat, slotRect);
-      if (!floating) return;
+      if (!floating) { grid.style.setProperty('--ps-grid-clip', '0px'); return; }
       summaryCard.style.top = headerBottom + 10 + 'px';
       // Màn rộng: nổi đúng cột bên phải như vị trí gốc; màn hẹp: trải ngang (xem CSS)
       const wide = window.innerWidth > 768;
       summaryCard.style.left = wide ? slotRect.left + 'px' : '';
       summaryCard.style.width = wide ? slotRect.width + 'px' : '';
+      const safeTop = summaryCard.getBoundingClientRect().bottom + 12;
+      document.documentElement.style.setProperty('--ps-sticky-bottom', safeTop + 'px');
+      // Chỉ cắt lưới khi khối đếm trải ngang (điện thoại); máy tính khối đếm chỉ nằm cột phải
+      grid.style.setProperty('--ps-grid-clip', wide ? '0px' : Math.max(0, safeTop - grid.getBoundingClientRect().top) + 'px');
     }
     const requestPlace = () => { if (!ticking) { ticking = true; requestAnimationFrame(placeSummary); } };
     window.addEventListener('scroll', requestPlace, { passive: true });
@@ -1512,7 +1516,9 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(photoById).forEach(id => delete photoById[id]);
     selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear();
     requestSent = false; parentRequestId = ''; round = 1; PACKAGE_COUNT = 10; extraModeActive = false; paidPending = null;
-    packageEl.textContent = '10'; banner.classList.remove('show');
+    packageEl.textContent = '10';
+    // Giữ banner lỗi (mất kết nối / không tải được yêu cầu) để khách vẫn thấy vì sao nút gửi bị khoá
+    if (banner.getAttribute('role') !== 'alert') banner.classList.remove('show');
     const note = document.getElementById('psNote'); note.value = ''; note.readOnly = false;
     submitBtn.textContent = 'Gửi ảnh đã chọn cho thợ chỉnh';
     if (!album) {

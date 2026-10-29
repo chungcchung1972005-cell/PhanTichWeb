@@ -1,3 +1,4 @@
+const fixture = require('./workflow-fixture');
 // Test API yêu cầu chỉnh ảnh (server/edit-requests.js) - CHỈ gọi API, không mở trình duyệt, không
 // chụp ảnh, chỉ dùng dữ liệu giả. Tự bật server/server.js ở cổng 3001 với kho RAM
 // (MONGODB_URI='', không kết nối MongoDB Atlas), tự tắt server khi xong kể cả khi lỗi.
@@ -23,6 +24,7 @@ async function portBusy() {
   try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; }
 }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -60,7 +62,7 @@ async function login(phone, password) {
 // Dữ liệu giả
 const EDIT = 'https://drive.google.com/drive/folders/test-anh-da-chinh';
 const ORIG = 'https://drive.google.com/drive/folders/test-anh-goc-NOIBO';
-const photos = (n, extra = 0) => Array.from({ length: n }, (_, i) => ({ id: 'ph-' + (i + 1), src: 'images/my-photos/photo-' + (i + 1) + '.jpg', note: i === 0 ? 'Làm sáng da' : '', isExtra: i >= n - extra }));
+const photos = (n, extra = 0) => Array.from({ length: n }, (_, i) => ({ id: 'drive-fixture-file-' + (i + 1), src: 'images/my-photos/photo-' + (i + 1) + '.jpg', note: i === 0 ? 'Làm sáng da' : '', isExtra: i >= n - extra }));
 const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLabel: 'Newborn', note: 'Ghi chú chung', photos: photos(3), extraFee: 0, paymentStatus: 'Trong gói' }, over);
 
 (async () => {
@@ -101,15 +103,16 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     [s] = await call('/', { t: guest, b: newReq() }); check('Khách vãng lai: POST / -> 403', s === 403, s);
     [s] = await call('/', { t: khach }); check('Khách: GET / (danh sách nhân viên) -> 403', s === 403, s);
 
+    const sourceFor = async (token, body) => fixture.requestFrom(await fixture.sourceAlbum(API, {customer:token,code:body.orderCode}), body);
     // ---------- Khách tạo yêu cầu
     let d;
-    [s, d] = await call('/', { t: khach, b: newReq({ phone: '0999999999', customerName: 'Giả mạo', from: 'ai' }) });
+    [s, d] = await call('/', { t: khach, b: await sourceFor(khach, newReq({ phone: '0999999999', customerName: 'Giả mạo', from: 'ai' })) });
     check('Khách tạo yêu cầu -> 201', s === 201, s);
     const rA = d.request;
     check('SĐT + tên lấy từ token, bỏ qua phone/customerName gửi lên', rA.phone === '0900000001' && rA.customerName === 'Khách demo', { phone: rA.phone, name: rA.customerName });
     check('Yêu cầu mới: Chờ xử lý, rev 1, chưa phân công, 3 ảnh, 1 ghi chú riêng', rA.status === 'Chờ xử lý' && rA.rev === 1 && rA.photoCount === 3 && rA.photoNotes.length === 1, rA);
     check('Phản hồi tạo cho khách không có resultLinkOriginal / photographer', !('resultLinkOriginal' in rA) && !('photographer' in rA));
-    [s, d] = await call('/', { t: khachB, b: newReq({ orderCode: '#ABTEST02', photos: photos(2) }) });
+    [s, d] = await call('/', { t: khachB, b: await sourceFor(khachB, newReq({ orderCode: '#ABTEST02', photos: photos(2) })) });
     const rB = d.request;
     check('Khách B tạo yêu cầu riêng -> 201', s === 201, s);
 
@@ -130,7 +133,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     [s] = await call('/' + rA.id + '/links', { t: sep, b: { resultLink: EDIT, rev: 1 } }); check('Sếp lưu link -> 403', s === 403, s);
     [s] = await call('/' + rA.id + '/complete', { t: sep, b: { rev: 1 } }); check('Sếp Hoàn tất -> 403', s === 403, s);
     [s] = await call('/' + rA.id + '/messages', { t: sep, b: { text: 'x' } }); check('Sếp nhắn khách -> 403', s === 403, s);
-    [s] = await call('/' + rA.id + '/done-photos', { t: sep, b: { photoId: 'ph-1', done: true } }); check('Sếp đánh dấu ảnh -> 403', s === 403, s);
+    [s] = await call('/' + rA.id + '/done-photos', { t: sep, b: { photoId: 'drive-fixture-file-1', done: true } }); check('Sếp đánh dấu ảnh -> 403', s === 403, s);
     [s] = await call('/' + rA.id + '/links', { t: sale, b: { resultLink: EDIT, rev: 1 } }); check('Sale lưu link -> 403', s === 403, s);
     [s] = await call('/' + rA.id + '/links', { t: khach, b: { resultLink: EDIT, rev: 1 } }); check('Khách tự lưu link -> 403', s === 403, s);
     [s] = await call('/' + rA.id + '/complete', { t: khach, b: { rev: 1 } }); check('Khách tự Hoàn tất -> 403', s === 403, s);
@@ -165,7 +168,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     [s, d] = await call('/' + rA.id + '/complete', { t: tho, b: { rev: d.request.rev } }); check('Hoàn tất lần 2 -> 409 already_completed', s === 409 && d.error === 'already_completed', d);
     [s, d] = await call('/' + rA.id, { t: tho });
     [s] = await call('/' + rA.id + '/links', { t: tho, b: { resultLink: '', rev: d.request.rev } }); check('Không gỡ được link ảnh đã chỉnh sau Hoàn tất -> 409', s === 409, s);
-    [s] = await call('/' + rA.id + '/done-photos', { t: tho, b: { photoId: 'ph-1', done: false } }); check('Không bỏ đánh dấu ảnh sau Hoàn tất -> 409', s === 409, s);
+    [s] = await call('/' + rA.id + '/done-photos', { t: tho, b: { photoId: 'drive-fixture-file-1', done: false } }); check('Không bỏ đánh dấu ảnh sau Hoàn tất -> 409', s === 409, s);
 
     // ---------- Tin nhắn: không giả được 'ai'
     [s, d] = await call('/' + rA.id + '/messages', { t: khach, b: { text: 'Giả trợ lý', from: 'ai', name: 'Trợ lý AI' } });
@@ -180,14 +183,14 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     check('Tin của khách có needsStaff=true phía nhân viên', d.request.messages.find((m) => m.from === 'customer').needsStaff === true);
 
     // ---------- Đầu vào độc hại / sai
-    [s, d] = await call('/', { t: khach, b: newReq({ photos: [{ id: 'ph-1', src: 'javascript:alert(1)' }] }) }); check('Ảnh src javascript: -> 400', s === 400 && d.error === 'bad_photos', d);
-    [s] = await call('/', { t: khach, b: newReq({ photos: [{ id: 'ph-1', src: '../../server/.env' }] }) }); check('Ảnh src đường dẫn lạ -> 400', s === 400, s);
+    [s, d] = await call('/', { t: khach, b: newReq({ photos: [{ id: 'drive-fixture-file-1', src: 'javascript:alert(1)' }] }) }); check('Ảnh src javascript: -> 400', s === 400 && d.error === 'bad_photos', d);
+    [s] = await call('/', { t: khach, b: newReq({ photos: [{ id: 'drive-fixture-file-1', src: '../../server/.env' }] }) }); check('Ảnh src đường dẫn lạ -> 400', s === 400, s);
     [s] = await call('/', { t: khach, b: newReq({ photos: [{ id: '<img>', src: 'images/a.jpg' }] }) }); check('Mã ảnh chứa ký tự lạ -> 400', s === 400, s);
     [s] = await call('/', { t: khach, b: newReq({ photos: [] }) }); check('Không có ảnh -> 400', s === 400, s);
     [s] = await call('/', { t: khach, b: newReq({ photos: photos(201) }) }); check('Quá 200 ảnh -> 400', s === 400, s);
     [s] = await call('/', { t: khach, b: newReq({ photos: [{ id: 'a', src: 'images/a.jpg' }, { id: 'a', src: 'images/b.jpg' }] }) }); check('Mã ảnh trùng -> 400', s === 400, s);
     [s] = await call('/', { t: khach, b: newReq({ orderCode: '<script>' }) }); check('Mã đơn có ký tự lạ -> 400', s === 400, s);
-    [s] = await call('/', { t: khach, b: newReq({ extraFee: -5 }) }); check('Phí âm -> 400', s === 400, s);
+    [s, d] = await call('/', { t: khach, b: await sourceFor(khach, newReq({orderCode:'#ABNEGATIVE1', extraFee: -5})) }); check('Phí âm -> 400', s === 400 && d.error === 'bad_extra_fee', d);
     [s] = await call('/', { t: khach, raw: '{"photos": [' }); check('JSON hỏng -> 400', s === 400, s);
     [s] = await call('/', { t: khach, raw: JSON.stringify(newReq({ note: 'x'.repeat(300 * 1024) })) }); check('Dữ liệu quá 200kb -> 413', s === 413, s);
     [s, d] = await call('/' + rA.id + '/messages', { t: khach, b: { text: 'x'.repeat(1501) } }); check('Tin quá 1500 ký tự -> 400', s === 400, d);
@@ -195,14 +198,14 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     [s] = await call('/' + rA.id + '/messages', { t: khach, b: { text: 123 } }); check('Tin không phải chuỗi -> 400', s === 400, s);
     [s] = await call('/' + rA.id + '/messages', { t: khach, raw: '[1,2]' }); check('Thân là mảng -> 400', s === 400, s);
     const xss = '<img src=x onerror=alert(1)>';
-    [s, d] = await call('/', { t: khachB, b: newReq({ orderCode: '#ABTEST03', note: xss + '\u0000\u0007', photos: [{ id: 'p1', src: 'images/my-photos/photo-1.jpg', note: xss }] }) });
+    [s, d] = await call('/', { t: khachB, b: await sourceFor(khachB, newReq({ orderCode: '#ABTEST03', note: xss + '\u0000\u0007', photos: [{ id: 'p1', src: 'images/my-photos/photo-1.jpg', note: xss }] })) });
     check('HTML lưu dạng chữ thuần (trả nguyên văn), ký tự điều khiển bị bỏ', s === 201 && d.request.note === xss && d.request.photos[0].note === xss, d && d.request && d.request.note);
     [s] = await call('/', { t: khachB, raw: '{"__proto__": {"polluted": "yes"}, "constructor": {"prototype": {"polluted2": "yes"}}, "photos": [{"id": "p1", "src": "images/a.jpg"}]}' });
     [, d] = await call('/health');
     check('Gửi __proto__/constructor không làm nhiễm đối tượng chung', ({}).polluted === undefined && d.polluted === undefined && d.polluted2 === undefined, s);
 
     // ---------- Thao tác đồng thời cơ bản
-    [s, d] = await call('/', { t: khachB, b: newReq({ orderCode: '#ABTEST04', photos: photos(4) }) });
+    [s, d] = await call('/', { t: khachB, b: await sourceFor(khachB, newReq({ orderCode: '#ABTEST04', photos: photos(4) })) });
     const rC = d.request;
     const both = await Promise.all([
       call('/' + rC.id + '/links', { t: tho, b: { resultLink: EDIT + '-thoA', rev: rC.rev } }),
@@ -213,7 +216,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     [, d] = await call('/' + rC.id, { t: tho });
     const winner = both.find((x) => x[0] === 200)[1].request.resultLink;
     check('Link được giữ là của người thắng, không bị đè ngầm', d.request.resultLink === winner, d.request.resultLink);
-    await Promise.all(['ph-1', 'ph-2', 'ph-3', 'ph-4'].map((id) => call('/' + rC.id + '/done-photos', { t: tho, b: { photoId: id, done: true } })));
+    await Promise.all(['drive-fixture-file-1', 'drive-fixture-file-2', 'drive-fixture-file-3', 'drive-fixture-file-4'].map((id) => call('/' + rC.id + '/done-photos', { t: tho, b: { photoId: id, done: true } })));
     [, d] = await call('/' + rC.id, { t: tho });
     check('4 lượt đánh dấu 4 ảnh khác nhau cùng lúc -> đủ 4 ảnh', d.request.doneIds.length === 4 && new Set(d.request.doneIds).size === 4, d.request.doneIds);
     await Promise.all(Array.from({ length: 10 }, (_, i) => call('/' + rC.id + '/messages', { t: i % 2 ? tho : khachB, b: { text: 'tin ' + i } })));
@@ -235,7 +238,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     check('Phản hồi đánh dấu đã xem của khách vẫn không có link gốc', !('resultLinkOriginal' in d.request));
 
     // ---------- "Đã xem" không tăng rev (sửa 2026-10-15), nhưng vẫn lưu cờ + vẫn bắt xung đột thật
-    [s, d] = await call('/', { t: khachB, b: newReq({ orderCode: '#ABTEST05', photos: photos(2) }) });
+    [s, d] = await call('/', { t: khachB, b: await sourceFor(khachB, newReq({ orderCode: '#ABTEST05', photos: photos(2) })) });
     const rD = d.request;
     [s, d] = await call('/' + rD.id, { t: tho });
     const R = d.request.rev;
@@ -279,7 +282,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
     check('Khách xem thông báo Hoàn thành -> customerSeenDone lưu, rev không đổi', s === 200 && d.request.customerSeenDone === true && d.request.rev === revBeforeComplete + 1);
 
     // ---------- Tin nhắn không tăng rev (sửa 2026-10-15), vẫn lưu đúng thứ tự + vẫn bắt xung đột thật
-    [s, d] = await call('/', { t: khach, b: newReq({ orderCode: '#ABTEST06', photos: photos(2) }) });
+    [s, d] = await call('/', { t: khach, b: await sourceFor(khach, newReq({ orderCode: '#ABTEST06', photos: photos(2) })) });
     const rE = d.request;
     [s, d] = await call('/' + rE.id, { t: tho });
     const RE = d.request.rev;
@@ -325,7 +328,7 @@ const newReq = (over = {}) => Object.assign({ orderCode: '#ABTEST01', serviceLab
 
     // ---------- Giới hạn tần suất tạo yêu cầu (5 lượt HỢP LỆ/phút/tài khoản; A đã tạo 1, lượt gửi sai không bị đếm)
     let got429 = false;
-    for (let i = 0; i < 8 && !got429; i++) { [s] = await call('/', { t: khach, b: newReq() }); if (s === 429) got429 = true; }
+    for (let i = 0; i < 8 && !got429; i++) { [s] = await call('/', { t: khach, b: await sourceFor(khach, newReq({orderCode:'#ABRATE'+i})) }); if (s === 429) got429 = true; }
     check('Tạo yêu cầu dồn dập -> bị chặn 429', got429);
 
     // ---------- Chat Sale không bị ảnh hưởng

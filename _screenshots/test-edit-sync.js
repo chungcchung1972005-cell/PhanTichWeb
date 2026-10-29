@@ -1,3 +1,4 @@
+const fixture = require('./workflow-fixture');
 // Test lớp AlohaEditSync (js/edit-sync.js) + cờ editSync (js/features.js). KHÔNG chụp ảnh,
 // chỉ dùng dữ liệu giả, không kết nối MongoDB Atlas.
 //  A. Mock API (Node vm, không mạng): cờ mặc định tắt, tắt thì không gọi mạng / không đụng
@@ -77,6 +78,7 @@ const ID = 'ER-abc123-0123abcd';
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -228,10 +230,12 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
 
     const h = await kh.AlohaEditSync.health();
     check('health(): server báo kho RAM', h.ok && h.data.store === 'memory', h);
-    const c = await kh.AlohaEditSync.create({ orderCode: '#ABTEST01', serviceLabel: 'Newborn', note: 'Giữ tông ấm', photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg', note: 'Làm sáng da' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0, paymentStatus: 'Trong gói' });
+    const source = await fixture.sourceAlbum(API,{customer:kh.AlohaAuth.getSession().token,code:'#ABTEST01'});
+    const c = await kh.AlohaEditSync.create(fixture.requestFrom(source, { orderCode: '#ABTEST01', serviceLabel: 'Newborn', note: 'Giữ tông ấm', photos: [{ id: 'drive-fixture-file-1', src: 'images/my-photos/photo-1.jpg', note: 'Làm sáng da' }, { id: 'ph-2', src: 'images/my-photos/photo-2.jpg' }], extraFee: 0, paymentStatus: 'Trong gói' }));
     check('Khách create() -> 201 qua API thật', c.ok && c.status === 201 && c.data.request.phone === '0900000001', c);
     const id = c.data.request.id;
-    const c2 = await kh.AlohaEditSync.create({ orderCode: '#ABTEST02', photos: [{ id: 'ph-1', src: 'images/my-photos/photo-1.jpg' }] });
+    const source2=await fixture.sourceAlbum(API,{customer:kh.AlohaAuth.getSession().token,code:'#ABTEST02'});
+    const c2 = await kh.AlohaEditSync.create(fixture.requestFrom(source2,{orderCode:'#ABTEST02',photos:[{note:''}],extraFee:0}));
     const id2 = c2.data.request.id;
     const mine = await kh.AlohaEditSync.mine();
     check('Khách mine() -> 2 yêu cầu của mình', mine.ok && mine.data.requests.length === 2);
@@ -244,7 +248,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     const sepWrite = await sp.AlohaEditSync.setLinks(id, { resultLink: 'https://drive.google.com/e' }, 1);
     check('Sếp setLinks() -> forbidden', sepWrite.error === 'forbidden', sepWrite);
     check('Thợ ảnh markSeen()', (await th.AlohaEditSync.markSeen(id)).data.request.staffSeen === true);
-    check('Thợ ảnh setPhotoDone()', (await th.AlohaEditSync.setPhotoDone(id, 'ph-1', true)).data.request.doneIds.join() === 'ph-1');
+    check('Thợ ảnh setPhotoDone()', (await th.AlohaEditSync.setPhotoDone(id, 'drive-fixture-file-1', true)).data.request.doneIds.join() === 'drive-fixture-file-1');
     const cur = (await th.AlohaEditSync.get(id)).data.request;
     const lk = await th.AlohaEditSync.setLinks(id, { resultLink: 'https://drive.google.com/drive/folders/da-chinh', resultLinkOriginal: 'https://drive.google.com/drive/folders/goc-NOIBO' }, cur.rev);
     check('Thợ ảnh setLinks() với rev đúng -> ok, rev tăng', lk.ok && lk.data.request.rev === cur.rev + 1, lk);
@@ -302,7 +306,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
       rows: document.querySelectorAll('#photoRows .photo-row-card').length, cust: document.getElementById('custView') ? document.getElementById('custView').children.length : -1
     }));
     check('crm/admin.html: có AlohaEditSync, enabled()=false (đã nạp features.js, cờ mặc định tắt)', v.has && v.enabled === false, v);
-    check('crm/admin.html: 3 hàng ảnh + Khách hàng vẫn dựng như cũ (đọc AlohaData)', v.rows > 0 && v.cust > 0 && v.dataKeys === 14, v);
+    check('crm/admin.html: không tự sinh đơn ảnh minh họa; Khách hàng vẫn dựng từ AlohaData', v.rows === 0 && v.cust > 0 && v.dataKeys === 14, v);
     check('Không có lỗi JS trên 2 trang', errors.length === 0, errors);
   } catch (e) {
     fail++;

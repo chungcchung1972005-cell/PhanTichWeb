@@ -1,3 +1,4 @@
+const fixture=require('./workflow-fixture');
 // Test TỔNG THỂ 3 vai trò (Khách, Thợ ảnh, Sếp) qua CÙNG 1 server RAM khi bật cờ editSync - KHÔNG chụp
 // ảnh, chỉ dữ liệu giả, MONGODB_URI='' (không nối MongoDB Atlas). Tự bật/tắt server/server.js ở cổng 3001.
 //
@@ -25,6 +26,7 @@ const ORIG = 'https://drive.google.com/drive/folders/' + ORIG_MARK;
 let server = null, serverLog = '';
 async function portBusy() { try { await fetch(API + '/api/health', { signal: AbortSignal.timeout(1500) }); return true; } catch (e) { return false; } }
 async function startServer() {
+  await fixture.driveFixture();
   server = spawn(process.execPath, ['server.js'], {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
@@ -43,7 +45,7 @@ async function startServer() {
 function stopServer() { if (server) { server.kill(); server = null; } }
 process.on('exit', stopServer);
 process.on('SIGINT', () => { stopServer(); process.exit(1); });
-const serverCount = async () => (await (await fetch(API + '/api/edit-requests/health')).json()).count;
+const serverCount = async () => (await (await fetch(API + '/api/edit-requests/health')).json()).count - 1;
 
 (async () => {
   let browser = null;
@@ -51,6 +53,8 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
   try {
     if (await portBusy()) throw new Error('Cổng 3001 đang có server khác chạy (có thể nối MongoDB thật) - tắt nó rồi chạy lại test.');
     await startServer();
+    const sourceCustomer=await fixture.login(API,'0900000001','khach123');
+    const album=await fixture.sourceAlbum(API,{customer:sourceCustomer,code:'#ABFIXTURE01'});
     check('Server test: kho chỉnh ảnh RAM, chat Sale memory (không MongoDB)', (await (await fetch(API + '/api/edit-requests/health')).json()).store === 'memory' && (await (await fetch(API + '/api/health')).json()).chatStore === 'memory');
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
 
@@ -58,6 +62,7 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
     async function session(name, sync) {
       const ctx = await browser.createBrowserContext();
       const page = await ctx.newPage();
+      if (!sync) await fixture.installLocalAlbum(page,album);
       await page.setViewport({ width: 1440, height: 1000 });
       const m = { name, page, ctx, calls: [], responses: [], intercept: { mode: null } };
       page.on('pageerror', (e) => errors.push(name + ': ' + e.message));
@@ -67,7 +72,8 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
         try { if (!sessionStorage.getItem('aloha_chat_ui')) sessionStorage.setItem('aloha_chat_ui', JSON.stringify({ dismissed: true })); } catch (e) { /* */ }
       }, sync);
       await page.setRequestInterception(true);
-      page.on('request', (r) => {
+      page.on('request', async (r) => {
+        if(await fixture.thumbnail(page,r)) return;
         if (r.url().includes('/api/edit-requests')) {
           m.calls.push(r.method() + ' ' + r.url().replace(API, ''));
           if (m.intercept.mode === 'abort' && r.method() !== 'OPTIONS') return r.abort();
@@ -110,7 +116,7 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
     const t0 = await session('Thợ(tắt)', false);
     const s0 = await session('Sếp(tắt)', false);
     await login(k0, '0900000001', 'khach123');
-    await k0.page.click('.ps-photo[data-id="ph-1"] .ps-heart');
+    await k0.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
     await k0.page.click('#psSubmitBtn');
     await wait(500);
     await login(t0, '0900000003', 'anh123');
@@ -131,21 +137,21 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
     await login(S, '0900000004', 'sep123');
 
     // B1. Khách gửi yêu cầu bằng giao diện
-    await K.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi yêu cầu chỉnh sửa', { timeout: 8000 });
-    await K.page.click('.ps-photo[data-id="ph-2"] .ps-heart');
-    await K.page.click('.ps-photo[data-id="ph-4"] .ps-heart');
-    await noteInLightbox(K.page, 'ph-2', 'Lam min da be');
+    await K.page.waitForFunction(() => /^Gửi (ảnh|yêu cầu)/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 8000 });
+    await K.page.click('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart');
+    await K.page.click('.ps-photo[data-id="drive-fixture-file-4"] .ps-heart');
+    await noteInLightbox(K.page, 'drive-fixture-file-2', 'Lam min da be');
     await K.page.click('.ps-tab[data-filter="liked"]');
     await K.page.type('#psNote', 'Giu mau tu nhien');
     await K.page.click('#psSubmitBtn');
     const sentOk = await until(K, () => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu');
     check('Khách gửi yêu cầu qua giao diện -> server xác nhận mới báo "đã gửi"', sentOk && /Đã gửi yêu cầu chỉnh sửa/.test(await K.page.$eval('#psSubmittedBanner', (b) => b.textContent)));
     check('Khách: yêu cầu KHÔNG nằm trong localStorage (chỉ trên server)', (await localReqs(K.page)).length === 0 && (await serverCount()) === 1);
-    const CODE = '#AB240915';
+    const CODE = '#ABFIXTURE01';
     check('Thợ ảnh (trình duyệt khác) thấy yêu cầu mới sau vòng polling', await hasCard(T, CODE));
     check('Sếp (trình duyệt khác) thấy yêu cầu mới sau vòng polling', await hasCard(S, CODE));
-    const tCard = await T.page.evaluate(new Function(expand + ' const c = [...document.querySelectorAll("#photoRows .photo-row-card")].find((x) => x.querySelector(".photo-row-card-code").textContent.trim() === "#AB240915"); return c ? c.textContent.replace(/\\s+/g, " ") : "";'));
-    check('Thẻ ở Thợ ảnh: tên khách, 2 ảnh, 1 ảnh có ghi chú riêng, "Mới", "Chưa phân công"', /Khách demo/.test(tCard) && /2 ảnh/.test(tCard) && /1 ảnh có ghi chú riêng/.test(tCard) && /Mới/.test(tCard) && /Chưa phân công/.test(tCard), tCard);
+    const tCard = await T.page.evaluate(new Function(expand + ' const c = [...document.querySelectorAll("#photoRows .photo-row-card")].find((x) => x.querySelector(".photo-row-card-code").textContent.trim() === "#ABFIXTURE01"); return c ? c.textContent.replace(/\\s+/g, " ") : "";'));
+    check('Thẻ ở Thợ ảnh: tên khách, 2 ảnh, 1 ảnh có ghi chú riêng, "Mới", "Thợ ảnh demo"', /Khách demo/.test(tCard) && /2 ảnh/.test(tCard) && /1 ảnh có ghi chú riêng/.test(tCard) && /Mới/.test(tCard) && /Thợ ảnh demo/.test(tCard), tCard);
 
     // B2. Thợ ảnh mở chi tiết, lưu 2 link + nhắn bằng giao diện
     await openCard(T, CODE);
@@ -163,7 +169,7 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
     // Khách nhận link + tin (không có link gốc)
     await K.page.click('.ps-tab[data-filter="edited"]');
     check('Khách thấy link ảnh đã chỉnh sau vòng polling', await until(K, (l) => { const a = document.getElementById('psResultLink'); return a && a.href === l; }, EDIT));
-    check('Khách thấy tin nhắn của thợ', await until(K, () => [...document.querySelectorAll('#psChatList .ps-msg.from-staff p')].some((p) => p.textContent.includes('Tho da gui link'))));
+    check('Khách thấy tin nhắn của thợ', await until(K, () => [...document.querySelectorAll('#psChatList .ps-msg.from-staff > div')].some((p) => p.textContent.includes('Tho da gui link'))));
     // Khách trả lời
     await K.page.type('#psChatInput', 'Cam on tho a');
     await K.page.keyboard.press('Enter');
@@ -174,7 +180,7 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
     const sepOk = await until(S, () => { const c = document.getElementById('kanbanResultCurrent'); return c && c.textContent.includes('e2e-anh-da-chinh'); });
     v = await S.page.evaluate(() => ({ cur: document.getElementById('kanbanResultCurrent').textContent, form: !!document.getElementById('kanbanLinkForm'), chat: !!document.getElementById('kanbanChatForm') }));
     check('Sếp thấy link ảnh đã chỉnh + link ảnh gốc (ghi rõ nội bộ), không có form ghi', sepOk && v.cur.includes(EDIT) && v.cur.includes(ORIG) && /nội bộ/.test(v.cur) && !v.form && !v.chat, v);
-    check('Sếp thấy tin của thợ và tin khách vừa trả lời (khung chat tự làm mới)', await until(S, () => { const t = [...document.querySelectorAll('#kanbanChatList .kanban-msg p')].map((p) => p.textContent); return t.includes('Tho da gui link anh da chinh') && t.includes('Cam on tho a'); }));
+    check('Sếp thấy tin của thợ và tin khách vừa trả lời (khung chat tự làm mới)', await until(S, () => { const t = [...document.querySelectorAll('#kanbanChatList .kanban-msg > div')].map((p) => p.textContent); return t.includes('Tho da gui link anh da chinh') && t.includes('Cam on tho a'); }));
     await S.page.evaluate(() => document.getElementById('kanbanModalClose').click());
 
     // B3. 409: phiên Thợ ảnh thứ 2 (trình duyệt khác, cùng tài khoản) lưu link trước
@@ -215,12 +221,12 @@ const serverCount = async () => (await (await fetch(API + '/api/edit-requests/he
 
     // B5. Thợ ảnh Hoàn tất bằng giao diện (cửa sổ Drive) -> cả 3 vai trò cập nhật
     await hasCard(T, CODE);
-    await T.page.evaluate(new Function(expand + ' [...document.querySelectorAll("#photoRows .photo-row-card")].find((x) => x.querySelector(".photo-row-card-code").textContent.trim() === "#AB240915").querySelector(".photo-row-drive-btn").click();'));
+    await T.page.evaluate(new Function(expand + ' [...document.querySelectorAll("#photoRows .photo-row-card")].find((x) => x.querySelector(".photo-row-card-code").textContent.trim() === "#ABFIXTURE01").querySelector(".photo-row-drive-btn").click();'));
     await wait(300);
     await T.page.click('#driveModalCompleteBtn');
     check('Thợ ảnh Hoàn tất -> cửa sổ đóng sau khi server xác nhận', await until(T, () => !document.getElementById('driveModalOverlay').classList.contains('open')));
-    check('Thợ ảnh: đơn sang bảng Đã hoàn tất', await until(T, () => [...document.querySelectorAll('#completedTableBody .ct-code-val')].some((e) => e.textContent.trim() === '#AB240915')));
-    check('Sếp: đơn sang bảng Đã hoàn tất sau vòng polling', await until(S, () => [...document.querySelectorAll('#completedTableBody .ct-code-val')].some((e) => e.textContent.trim() === '#AB240915')));
+    check('Thợ ảnh: đơn sang bảng Đã hoàn tất', await until(T, () => [...document.querySelectorAll('#completedTableBody .ct-code-val')].some((e) => e.textContent.trim() === '#ABFIXTURE01')));
+    check('Sếp: đơn sang bảng Đã hoàn tất sau vòng polling', await until(S, () => [...document.querySelectorAll('#completedTableBody .ct-code-val')].some((e) => e.textContent.trim() === '#ABFIXTURE01')));
     await K.page.click('.ps-tab[data-filter="all"]');
     await wait(5600); // chuông thông báo của khách hỏi lại 5 giây/lần
     await K.page.click('#notifBtn');
