@@ -34,6 +34,8 @@ function memoryStore() {
     async insert(rec) { map.set(rec.id, clone(rec)); return clone(rec); },
     async get(id) { return clone(get(id)); },
     async listByPhone(phone) { return [...map.values()].filter((r) => r.phone === phone).sort(byCreated).map(clone); },
+    // Xoá mọi yêu cầu chỉnh của 1 SĐT, giữ bộ ảnh gốc (dùng để làm mới tài khoản khách demo)
+    async removeRequestsByPhone(phone) { let n = 0; for (const [id, r] of map) if (r.phone === phone && r.kind !== 'source-album') { map.delete(id); n++; } return n; },
     async listAll(since) {
       return [...map.values()].filter((r) => !Number.isFinite(since) || r.updatedAt > since).sort(byCreated).map(clone);
     },
@@ -86,6 +88,7 @@ function mongoStoreFromCollection(getCollection) {
     async insert(rec) { await (await col()).insertOne({ _id: rec.id, ...clone(rec) }); return clone(rec); },
     async get(id) { return strip(await (await col()).findOne({ _id: id })); },
     async listByPhone(phone) { return (await (await col()).find({ phone }).sort({ createdAt: 1 }).toArray()).map(strip); },
+    async removeRequestsByPhone(phone) { return (await (await col()).deleteMany({ phone, kind: { $ne: 'source-album' } })).deletedCount; },
     async listAll(since) {
       const filter = Number.isFinite(since) ? { updatedAt: { $gt: since } } : {};
       return (await (await col()).find(filter).sort({ createdAt: 1 }).toArray()).map(strip);
