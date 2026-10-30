@@ -93,9 +93,9 @@ const app = express();
 // đặt đúng header X-Forwarded-For, không phải header khách tự gửi lên được.
 app.set('trust proxy', true);
 if (ALLOWED_ORIGINS.length) {
-  app.use(cors({ origin: ALLOWED_ORIGINS }));
+  app.use(cors({ origin: ALLOWED_ORIGINS, exposedHeaders:['Content-Disposition'] }));
 } else {
-  app.use(cors());
+  app.use(cors({exposedHeaders:['Content-Disposition']}));
   console.warn('CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.');
 }
 app.use('/api/edit-requests/albums', express.json({ limit: '2mb' }));

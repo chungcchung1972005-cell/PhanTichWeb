@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <p>Chọn khách đã chụp từ lịch Sale, dán link Drive và gửi. Thông tin khách, mã đơn, dịch vụ và người chỉnh ảnh được lấy tự động.</p>
     ${session.role === 'tho-anh' ? `<form id="sourceDeliveryForm">
       <label>Khách / buổi chụp đã hoàn tất<select name="workflowOrderId" id="sourceOrderSelect" required><option value="">Đang tải khách đã chụp...</option></select></label>
-      <div id="sourceOrderSummary"></div>
+      <div id="sourceOrderSummary"></div><div id="sourceOriginalUpload"></div>
       <label>Thư mục Drive ảnh gốc<input name="folderUrl" type="url" required placeholder="https://drive.google.com/drive/folders/..."></label>
       <div class="source-delivery-actions"><button type="submit" id="sourceSendAlbum" disabled>Gửi link ảnh gốc cho khách chọn</button></div>
       <p id="sourceDeliveryStatus" role="status"></p><div id="sourceDeliveryPreview"></div>
@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const form = document.getElementById('sourceDeliveryForm');
   if (form) {
+    if(sync)AlohaEditSync.mountUpload(document.getElementById('sourceOriginalUpload'),()=>{const id=form.elements.workflowOrderId.value;if(!id)throw Error('Chọn buổi chụp đã hoàn tất trước khi tải ảnh.');return '/orders/'+encodeURIComponent(id);},refresh);
     let loading = false;
     const status = document.getElementById('sourceDeliveryStatus');
     const send = document.getElementById('sourceSendAlbum');

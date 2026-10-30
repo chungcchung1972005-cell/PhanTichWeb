@@ -2047,8 +2047,11 @@ document.addEventListener('DOMContentLoaded', () => {
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
       ${req.driveJob ? `<div class="drive-folder-actions">
-        ${req.driveJob.inputFolderId ? `<a class="btn btn-primary btn-sm" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.inputFolderId)}" target="_blank" rel="noopener noreferrer">Mở ảnh cần chỉnh</a>` : ''}
-        ${req.driveJob.outputFolderId ? `<a class="btn btn-outline btn-sm" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.outputFolderId)}" target="_blank" rel="noopener noreferrer">Mở thư mục lưu ảnh đã chỉnh</a>` : ''}
+        <strong data-drive-count>Đã nhận ${req.driveJob.delivery?.matched || 0}/${total} ảnh đã chỉnh</strong>
+        ${role === 'tho-anh' && req.driveJob.inputFolderId ? '<button type="button" class="btn btn-primary" data-drive-download>Tải ảnh cần chỉnh (.zip)</button>' : ''}
+        ${role === 'tho-anh' && req.status !== 'Hoàn thành' && req.driveJob.outputFolderId ? '<div data-drive-upload></div>' : ''}
+        <div class="drive-output-grid" data-drive-output></div>
+        ${req.driveJob.roundFolderId ? `<a class="drive-small-link" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.roundFolderId)}" target="_blank" rel="noopener noreferrer">Xem trên Drive</a>` : ''}
         ${['pending','copying'].includes(req.driveJob.status) ? '<span class="drive-folder-note">Đang chép ảnh khách chọn lên Drive…</span>' : ''}
         ${req.driveJob.status === 'error' ? `<span class="drive-folder-error">${escHtml(req.driveJob.message)}</span> ${role === 'tho-anh' ? `<button type="button" class="btn btn-outline btn-sm" data-drive-retry="${escHtml(req.id)}">Thử lại</button>` : ''}` : ''}
         ${req.driveJob.delivery ? `<span class="drive-folder-note">${req.driveJob.delivery.status === 'delivered' ? 'Đã tự giao cho khách lúc ' + escHtml(fmtTime(req.driveJob.delivery.at)) : 'Đã nhận ' + req.driveJob.delivery.matched + '/' + req.driveJob.delivery.total + ' ảnh đã chỉnh'}</span>
@@ -2084,6 +2087,14 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>` : '<p class="kanban-modal-meta">Yêu cầu này chưa có dữ liệu chi tiết từng ảnh (dữ liệu cũ).</p>'}
       ${renderResultSection(req)}
     `;
+    if(req.driveJob && window.AlohaEditSync){
+      const grid=modalBody.querySelector('[data-drive-output]');
+      async function refreshOutput(){const result=await AlohaEditSync.outputFiles(req.id);if(!grid.isConnected)return;if(!result.ok){grid.textContent=result.message;return;}modalBody.querySelector('[data-drive-count]').textContent=`Đã nhận ${result.data.matched}/${result.data.total} ảnh đã chỉnh`;grid.replaceChildren();for(const f of result.data.files){const tile=document.createElement('article'),img=document.createElement('img'),label=document.createElement('p');img.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(f.id)+'&sz=w200';img.alt=f.name;label.textContent=f.name+' / '+(f.matchedPhotos.length?'Khớp: '+f.matchedPhotos.join(', '):'Tên lạ');tile.append(img,label);if(role==='tho-anh'&&req.status!=='Hoàn thành'){const del=document.createElement('button');del.type='button';del.textContent='Xoá ảnh';del.onclick=async()=>{del.disabled=true;const r=await AlohaEditSync.deleteOutput(req.id,f.id);if(!r.ok){del.disabled=false;alert(r.message);}await refreshOutput();};tile.append(del);}grid.append(tile);}}
+      const upload=modalBody.querySelector('[data-drive-upload]');if(upload)AlohaEditSync.mountUpload(upload,'/'+encodeURIComponent(req.id),refreshOutput);
+      const download=modalBody.querySelector('[data-drive-download]');if(download)download.onclick=async()=>{download.disabled=true;try{await AlohaEditSync.downloadZip(req.id);}catch(e){alert(e.message);}finally{download.disabled=false;}};
+      refreshOutput();
+      const outputTimer=setInterval(()=>{if(!grid.isConnected){clearInterval(outputTimer);return;}refreshOutput();},30000);
+    }
     const copy=modalBody.querySelector('#copyPhotoNames');
     if(copy) copy.onclick=async()=>{
       const status=modalBody.querySelector('#copyPhotoStatus');

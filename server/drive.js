@@ -73,6 +73,21 @@ function createWriter(options = {}) {
   const json = data => ({method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(data)});
   const escape = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   return {
+    async openFile(id, pdf=false) {
+      const token=await auth.getAccessToken();
+      const r=await (options.fetch||fetch)(base+'/drive/v3/files/'+encodeURIComponent(id)+(pdf?'/export?mimeType=application%2Fpdf':'?alt=media'),{headers:{authorization:'Bearer '+token}});
+      if(!r.ok)throw Error('drive_download_failed');return r.body;
+    },
+    async uploadSession(parentId, name, size, mime, origin) {
+      const token=await auth.getAccessToken();
+      const r=await (options.fetch||fetch)(base+'/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json','X-Upload-Content-Type':mime,'X-Upload-Content-Length':String(size),...(origin?{Origin:origin}:{})},body:JSON.stringify({name,parents:[parentId]})});
+      const url=r.headers.get('location');if(!r.ok||!url)throw Error('drive_upload_session_failed');return url;
+    },
+    async uploadStream(parentId,name,size,mime,stream) {
+      const url=await this.uploadSession(parentId,name,size,mime);
+      const r=await (options.fetch||fetch)(url,{method:'PUT',headers:{'content-type':mime,'content-length':String(size)},body:stream,duplex:'half'});
+      if(!r.ok)throw Error('drive_upload_failed');return r.json();
+    },
     async listFiles(parentId) {
       const files=[]; let pageToken='';
       do { const data=await request('/drive/v3/files?'+new URLSearchParams({q:`'${escape(parentId)}' in parents and trashed = false`,fields:'nextPageToken,files(id,name,mimeType,size,modifiedTime,resourceKey,appProperties)',pageSize:'1000',pageToken})); files.push(...(data.files||[])); pageToken=data.nextPageToken||''; } while(pageToken);
