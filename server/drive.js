@@ -85,9 +85,9 @@ function createWriter(options = {}) {
       return found.files?.[0] || request('/drive/v3/files?supportsAllDrives=true', json({name, parents:[parentId], mimeType:'application/vnd.google-apps.folder'}));
     },
     copyFile: (fileId, parentId, name, appProperties) => request('/drive/v3/files/' + encodeURIComponent(fileId) + '/copy?supportsAllDrives=true', json({name, parents:[parentId], appProperties})),
-    uploadText(parentId, name, mime, text) {
+    uploadText(parentId, name, mime, text, targetMime) {
       const boundary = 'aloha_' + require('crypto').randomBytes(16).toString('hex');
-      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[parentId],mimeType:mime})}\r\n--${boundary}\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`;
+      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[parentId],mimeType:targetMime||mime})}\r\n--${boundary}\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`;
       return request('/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {method:'POST', headers:{'content-type':'multipart/related; boundary='+boundary}, body});
     },
     getStartPageToken: () => request('/drive/v3/changes/startPageToken?supportsAllDrives=true'),

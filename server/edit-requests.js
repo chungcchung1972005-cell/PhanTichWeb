@@ -27,6 +27,7 @@
 // đang có, lệch thì trả 409 kèm bản mới nhất để trang tải lại. Kho cập nhật CÓ ĐIỀU KIỆN theo rev
 // trong 1 lệnh nên 2 phiên ghi cùng lúc (kể cả trên MongoDB) chỉ 1 phiên thắng.
 const crypto = require('crypto');
+const delivery = require('./edit-delivery');
 const express = require('express');
 const { requireAuth, EDIT_DEMO_SCOPE, isPublicDemoPhone } = require('./sale-chat');
 const { createStoreFromEnv, safeError } = require('./edit-requests-store');
@@ -407,8 +408,7 @@ function createEditRequestsRouter(store, opts) {
         try { set.resultPhotos = (await drive.readFolder(b.resultLink)).photos; }
         catch (_) { set.resultPreviewUnavailable = true; }
       }
-      set.resultLink = b.resultLink;
-      set.resultLinkAt = b.resultLink ? Date.now() : null;
+      Object.assign(set, delivery.resultLinks(b.resultLink, set.resultPhotos, Date.now(), set.resultPreviewUnavailable));
     }
     if (has('resultLinkOriginal')) set.resultLinkOriginal = b.resultLinkOriginal;
     sendConditional(req, res, await store.updateIfRev(r.id, b.rev, set));
@@ -423,8 +423,7 @@ function createEditRequestsRouter(store, opts) {
     if (!checkRev(req, res)) return;
     // Điều kiện rev (+ chưa Hoàn thành) kiểm lại khi ghi: link bị gỡ / đơn bị Hoàn tất ở phiên khác
     // trong lúc này đều làm rev đổi -> 409, không Hoàn tất nhầm.
-    const result=await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành', completedAt:Date.now() }, { notDone: true });
-    if(result && result.doc && result.doc.workflowOrderId) await workflow.progress(result.doc,'delivered');
+    const result=await delivery.complete({store,workflow,request:r,rev:req.body.rev});
     sendConditional(req, res, result);
   }));
 
