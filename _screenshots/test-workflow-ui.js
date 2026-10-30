@@ -34,7 +34,8 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
    document.querySelector('[name=folderUrl]').value='https://drive.google.com/drive/folders/test-folder-12345';document.getElementById('sourceDeliveryForm').requestSubmit();
   });
   await page.waitForFunction(()=>document.getElementById('sourceDeliveryStatus').textContent.includes('Đã gửi'));
-  assert.match(await page.$eval('.wf-kpis',e=>e.textContent),/300.000/);
+  assert.match(await page.$eval('.wf-table-wrap',e=>e.textContent),/300.000/);
+  assert.equal(await page.$$eval('.wf-kpis article',els=>els.length),3);
   assert.doesNotMatch(await page.$eval('#quy-trinh',e=>e.textContent),/Hoa hồng Sale|Cơ bản chia Sale|Premium 200k/);
   assert.deepEqual(await page.evaluate(()=>AlohaWorkflow.get().rules),[]);
   assert.doesNotMatch(await page.$eval('.wf-table-wrap',e=>e.textContent),/Hoa hồng Sale/);
@@ -44,7 +45,7 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
    AlohaData.setResultLink(r.id,'https://drive.google.com/drive/folders/edited-folder-123');AlohaData.advanceRequestStatus(r.id);AlohaData.advanceRequestStatus(r.id);return r.id;
   });
   await page.evaluate(()=>AlohaWorkflow.refresh());
-  assert.match(await page.$eval('.wf-kpis',e=>e.textContent),/150.000/);
+  assert.match(await page.$eval('.wf-table-wrap',e=>e.textContent),/150.000/);
   console.log('Worker chooses existing shot customer, sends only Drive link; shooting/edit earnings separated');
   await page.screenshot({path:env.shot('workflow-worker-desktop.png'),fullPage:false});
   await page.evaluate(()=>sessionStorage.setItem('test-role','boss'));

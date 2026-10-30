@@ -1324,3 +1324,5 @@ body.hide-floating-book .floating-book { display: none; }
 @media (max-width: 400px) { .price-body { padding: 12px; } .price { font-size: 18px; } .price-list li { font-size: 13px; } }
 .home-more { text-align: center; margin-top: 24px; }
 #view-home:not([data-page="home"]) .home-more { display: none; }
+
+.booking-off-copy{display:none}.feat-no-booking .booking-on-copy,.feat-no-booking [data-booking-process]{display:none!important}.feat-no-booking .booking-off-copy{display:inline}

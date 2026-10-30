@@ -767,3 +767,7 @@ button.sw-pill-select { cursor: pointer; color: var(--s-text); }
   .kb-ic { width: 36px; height: 36px; }
   .kb-actions .sw-btn, .cu-seg button { height: 36px; }
 }
+
+.sw-chat-unread[hidden]{display:none!important}.sw-chat-unread{background:var(--s-accent);color:var(--s-surface);border-radius:20px;padding:2px 6px;font-size:12px;font-style:normal}.sw-bottom a{position:relative;min-width:0;min-height:44px}.sw-bottom .sw-chat-unread{position:absolute;top:0;right:0}.sw-nav a{min-height:44px}
+
+@media(max-width:760px){.sw-bottom{grid-template-columns:repeat(5,minmax(0,1fr))}}

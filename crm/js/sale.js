@@ -1,4 +1,4 @@
-// ALOHA Baby — Không gian Sale (crm/sale.html).
+// ALOHA Baby · Không gian Sale (crm/sale.html).
 // SPA nhỏ dùng location.hash: #tong-quan, #hop-thu, #khach-hang (Bảng giai đoạn +
 // Danh sách; #khach-tiem-nang cũ tự chuyển về đây), #lich-chup, #dat-coc, #don-anh,
 // #chuyen-giao, #bao-cao.
@@ -182,7 +182,7 @@
     const pick = parts.length > 1 ? parts[parts.length - 2][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2);
     return pick.toUpperCase();
   }
-  function saleName(id) { if (!id) return 'Chưa có sale nhận'; const s = db.sales.find(x => x.id === id); return s ? s.name : '—'; }
+  function saleName(id) { if (!id) return 'Chưa có sale nhận'; const s = db.sales.find(x => x.id === id); return s ? s.name : '·'; }
   function svcTag(s) { return '<span class="sw-tag svc-tag tone-' + (SVC_TONE[s] || 'beige') + '">' + esc(s) + '</span>'; }
   // Số đếm trong nút lọc: huy hiệu tròn nhỏ, số 0 làm mờ.
   function chipNum(n) { return ' <span class="sw-chip-n' + (n ? '' : ' zero') + '">' + n + '</span>'; }
@@ -348,7 +348,8 @@
       const c = n.count ? n.count() : 0;
       return '<a href="#' + n.route + '" class="' + (n.route === route ? 'active' : '') + '">' + icon(n.icon) +
         '<span>' + n.label + '</span>' + (c ? '<em>' + c + '</em>' : '') + '</a>';
-    }).join('');
+    }).join('') + '<a href="admin.html#tin-nhan">' + icon('chat') + '<span>Tin nhắn</span><em class="sw-chat-unread" hidden></em></a>';
+    updateChatBadges();
     const pct = Math.min(100, Math.round(me.achieved / me.target * 100));
     document.getElementById('swGoal').innerHTML =
       '<small>Mục tiêu tháng ' + (parseKey(TODAY).getMonth() + 1) + '</small>' +
@@ -792,7 +793,7 @@
               '<td><strong>' + esc(c.name) + '</strong><small class="sw-muted sw-block">' + esc(c.since) + '</small></td>' +
               '<td class="cu-nowrap">' + maskPhone(c.phone) + '</td>' +
               '<td>' + esc(c.source) + '</td>' +
-              '<td>' + (c.service ? svcTag(c.service) : '<span class="sw-muted">—</span>') + '</td>' +
+              '<td>' + (c.service ? svcTag(c.service) : '<span class="sw-muted">·</span>') + '</td>' +
               '<td>' + badge(g.label, g.tone) + (st ? '<small class="sw-muted sw-block">' + esc(st) + '</small>' : '') + '</td>' +
               '<td class="cu-nowrap">' + esc(saleName(c.owner)) + (c.owner === me.id ? ' <span class="sw-muted">(tôi)</span>' : '') + '</td>' +
               '<td><strong class="cu-next' + (n.tone ? ' c-' + n.tone : '') + '">' + esc(n.text) + '</strong></td>' +
@@ -1213,7 +1214,7 @@
         (ui.dep.fresh[d.code] ? badge('Vừa cập nhật', 'teal') : '') + '</div>' +
       '<dl class="dp-grid">' +
         '<div><dt>Giai đoạn</dt><dd class="c-teal"><strong>' + esc(stageText) + '</strong></dd></div>' +
-        '<div><dt>Lịch chụp</dt><dd>' + esc(ap ? ap.service + ' · ' + fmtDM(ap.date) + ' ' + ap.start : '—') + '</dd></div>' +
+        '<div><dt>Lịch chụp</dt><dd>' + esc(ap ? ap.service + ' · ' + fmtDM(ap.date) + ' ' + ap.start : '·') + '</dd></div>' +
         '<div><dt>Đã thanh toán</dt><dd><strong>' + (d.received ? money(d.received) : '0đ') + '</strong></dd></div>' +
         '<div><dt>Còn lại</dt><dd>[Giá gói − tiền cọc]</dd></div>' +
         '<div><dt>Liên hệ</dt><dd>' + maskPhone(c.phone) + ' · ' + esc(d.channels[0]) + '</dd></div>' +
@@ -1570,7 +1571,7 @@
     return '<div class="sw-kpis sw-kpis-4">' +
         '<div class="sw-card sw-kpi"><small>Doanh số tháng</small><strong>' + me.achieved + ' triệu</strong><span class="c-teal">' + pct + '% mục tiêu ' + me.target + ' triệu</span></div>' +
         '<div class="sw-card sw-kpi"><small>Tỉ lệ chốt</small><strong>' + (leads.length ? Math.round(closed / leads.length * 100) : 0) + '%</strong><span class="c-teal">' + closed + '/' + leads.length + ' lead đã chốt</span></div>' +
-        '<div class="sw-card sw-kpi"><small>Phản hồi trung bình</small><strong>' + (me.responseMin == null ? '—' : me.responseMin + ' phút') + '</strong><span class="c-amber">Mục tiêu dưới 10 phút</span></div>' +
+        '<div class="sw-card sw-kpi"><small>Phản hồi trung bình</small><strong>' + (me.responseMin == null ? '·' : me.responseMin + ' phút') + '</strong><span class="c-amber">Mục tiêu dưới 10 phút</span></div>' +
         '<div class="sw-card sw-kpi"><small>Công nợ cần thu</small><strong>' + million(dueTotal) + '</strong><span class="c-red">' + myOrders().filter(o => o.due > 0).length + ' đơn còn nợ</span></div>' +
       '</div>' +
       '<div class="sw-grid-2 sw-grid-even">' +
@@ -2228,3 +2229,15 @@
   render();
   liveRefresh();
 })();
+
+// Quiet badge for the admin inbox destination, polled every 20 seconds.
+var saleChatUnread;
+function updateChatBadges() {
+  document.querySelectorAll('.sw-chat-unread').forEach(b=>{b.hidden=!saleChatUnread;b.textContent=saleChatUnread>99?'99+':String(saleChatUnread||0);b.setAttribute('aria-label',(saleChatUnread||0)+' tin chưa đọc');});
+}
+async function refreshChatBadge() {
+  try {const r=await AlohaAuth.api('/api/sale-chat/inbox');saleChatUnread=r.ok?(r.data.chats||[]).reduce((n,c)=>n+Math.max(0,Number(c.staffUnread)||0),0):0;}
+  catch(e) {saleChatUnread=0;}
+  updateChatBadges();
+}
+refreshChatBadge();setInterval(refreshChatBadge,20000);

@@ -52,10 +52,12 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   await customer.reload({waitUntil:'domcontentloaded'});
   await customer.waitForSelector('.ps-heart[aria-disabled="true"]');
   assert.equal(await customer.$eval('.ps-heart',e=>getComputedStyle(e).opacity),'0.35');
-  assert.equal(await customer.$eval('.ps-heart',e=>e.disabled),true);
+  // Ảnh đã gửi: nút không tắt hẳn (để bấm vào hiện lời nhắc), chỉ đánh dấu khoá
+  assert.equal(await customer.$eval('.ps-heart',e=>e.getAttribute('aria-disabled')),'true');
+  await customer.$eval('.ps-heart',e=>e.click());assert.match(await customer.$eval('#psLockedHint',e=>e.textContent),/Đã gửi thợ/);
   assert.match(await customer.$eval('.ps-photo',e=>e.textContent),/Đã gửi thợ/);
   await customer.click('.ps-photo img');await customer.waitForSelector('#psLightbox.show');
-  assert.equal(await customer.$eval('#psLbFav',e=>e.disabled),true);
+  assert.equal(await customer.$eval('#psLbFav',e=>e.disabled),false);
   await customer.click('#psLbClose');
   assert.equal(await customer.$eval('.ps-photo[data-id="drive-test-file-0002"] .ps-heart',e=>e.disabled),false);
   await customer.click('.ps-photo[data-id="drive-test-file-0002"] .ps-heart');
@@ -67,7 +69,10 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   assert.equal(newer.status,201);
   await customer.click('#psReloadAlbums');await customer.waitForFunction(()=>document.querySelector('#psSourceAlbum').options.length===2);
   await customer.select('#psSourceAlbum',newer.data.album.id);
-  assert.equal(await customer.$eval('.ps-heart',e=>e.disabled),true);
+  // Ảnh đã gửi: nút không tắt hẳn (để bấm vào hiện lời nhắc), chỉ đánh dấu khoá
+  assert.equal(await customer.$eval('.ps-heart',e=>e.getAttribute('aria-disabled')),'true');
+  await customer.$eval('.ps-heart',e=>e.click());assert.match(await customer.$eval('#psLockedHint',e=>e.textContent),/Đã gửi thợ/);
+  await customer.waitForSelector('.ps-photo[data-id="drive-test-file-0002"] .ps-heart',{visible:true});await new Promise(r=>setTimeout(r,500));
   await customer.click('.ps-photo[data-id="drive-test-file-0002"] .ps-heart');assert.equal(await customer.$eval('.ps-photo[data-id="drive-test-file-0002"] .ps-heart',e=>e.getAttribute('aria-pressed')),'true');
   console.log('PASS new source album in same order permits selection; force reload refreshes server manifests');
   await worker.goto(env.ROOT_URL+'crm/admin.html#anh',{waitUntil:'domcontentloaded'});

@@ -59,7 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let parentRequestId = '';
   let round = 1;
   // Lượt sau không có ảnh miễn phí: ẩn "/ 0", ghi rõ giá mỗi ảnh
-  function showQuota() { const q=document.getElementById('psQuotaPart'),n=document.getElementById('psPaidNote'); if(q) q.hidden=PACKAGE_COUNT===0; if(n) n.hidden=PACKAGE_COUNT!==0; }
+  function showQuota() { const q=document.getElementById('psQuotaPart'),n=document.getElementById('psPaidNote'); if(q) q.hidden=PACKAGE_COUNT===0; if(n) n.hidden=PACKAGE_COUNT!==0;
+    const lead=document.getElementById('psExtraLead'),note=document.getElementById('psExtraNote');
+    if(lead) lead.textContent=PACKAGE_COUNT===0?'Lượt chỉnh thêm:':'Vượt';
+    if(note) note.textContent=PACKAGE_COUNT===0?'(Từ lượt thứ 2, mỗi ảnh chỉnh 50.000đ)':'(Đơn giá: 50.000đ / ảnh chỉnh sửa thêm ngoài gói 10 ảnh)'; }
   function combinedNote(id) { return [...(photoOptions.get(id) || []), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
@@ -303,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Khoá chọn ảnh khi đang chờ tiền, để danh sách gửi đi khớp đúng số tiền đã trả
   function lockSelection(locked) {
-    document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = locked || sentPhotoIds.has(btn.closest('.ps-photo').dataset.id); });
+    document.querySelectorAll('.ps-heart').forEach((btn) => { btn.disabled = locked; btn.setAttribute('aria-disabled', String(locked || sentPhotoIds.has(btn.closest('.ps-photo').dataset.id))); });
     if (locked) hideUndo();
     syncBulkButtons();
   }
@@ -794,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const favBtn = lb.querySelector('#psLbFav');
     favBtn.classList.toggle('active', isSel);
     favBtn.setAttribute('aria-pressed', String(isSel));
-    favBtn.disabled = locked; favBtn.style.opacity=requestSent?'0.35':'';
+    favBtn.disabled = locked && !sentPhotoIds.has(id); favBtn.style.opacity=requestSent?'0.35':'';
     lb.querySelector('#psLbFavText').textContent = isSel ? 'Đã chọn yêu thích' : 'Chọn làm yêu thích';
     lb.querySelector('#psLbFavInfo').textContent = locked && !isSel
       ? 'Danh sách ảnh đang khoá'
@@ -1571,8 +1574,8 @@ document.addEventListener('DOMContentLoaded', () => {
     history.filter(r=>r.status!=='Hoàn thành').forEach(r=>(r.photos||[]).forEach(p=>sentPhotoIds.add(p.id)));
     grid.querySelectorAll('.ps-photo').forEach(card=>{
       const locked=sentPhotoIds.has(card.dataset.id),btn=card.querySelector('.ps-heart');
-      btn.disabled=locked || submitting || !!paidPending || !!(qr && Date.now()<qr.deadline);
-      btn.setAttribute('aria-disabled',String(btn.disabled));btn.style.opacity=locked?'0.35':'';
+      btn.disabled=submitting || !!paidPending || !!(qr && Date.now()<qr.deadline);
+      btn.setAttribute('aria-disabled',String(locked || btn.disabled));btn.style.opacity=locked?'0.35':'';
       card.querySelector('.ps-sent-label')?.remove();
       if(locked) {selected.delete(card.dataset.id);extraPhotos.delete(card.dataset.id);setCardSelected(card.dataset.id,false,false);const label=document.createElement('span');label.className='ps-sent-label';label.textContent='Đã gửi thợ';card.appendChild(label);}
     });
