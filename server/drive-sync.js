@@ -3,8 +3,16 @@ const FOLDER='application/vnd.google-apps.folder';
 const normalize=s=>String(s).replace(/\s/g,'').toLowerCase();
 const escape=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function instruction(r) {
-  return '<!doctype html><meta charset="utf-8"><title>Yêu cầu chỉnh</title><h1>'+escape(r.orderCode)+'</h1><p>'+escape(r.customerName)+' · Lượt '+escape(r.round)+'</p><p>'+escape(r.note)+'</p>'+r.photos.map(p=>'<article><img width="160" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(p.driveFileId)+'&amp;sz=w200"><h2>'+escape(p.name)+'</h2><p>'+escape((p.editOptions||[]).join(', '))+'</p><p>'+escape(p.note)+'</p></article>').join('');
+  const cell='style="border:1px solid #ccc;padding:6px;vertical-align:top"';
+  const rows=r.photos.map((p,i)=>'<tr><td '+cell+'>'+(i+1)+'</td><td '+cell+'><img width="120" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(p.driveFileId)+'&amp;sz=w200"></td><td '+cell+'><b>'+escape(p.name)+'</b></td><td '+cell+'>'+escape((p.editOptions||[]).join(', ')||'Theo ghi chú chung')+'</td><td '+cell+'>'+escape(p.note)+'</td></tr>').join('');
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Yêu cầu chỉnh</title></head><body>'+
+    '<h1>Yêu cầu chỉnh ảnh · '+escape(r.orderCode)+'</h1>'+
+    '<p><b>Khách:</b> '+escape(r.customerName)+' · <b>Lượt:</b> '+escape(r.round)+' · <b>Số ảnh:</b> '+r.photos.length+'</p>'+
+    (r.note?'<p><b>Ghi chú chung:</b> '+escape(r.note)+'</p>':'')+
+    '<p>Chỉnh xong lưu vào thư mục <b>DA-CHINH</b> cùng lượt, <b>giữ nguyên tên file</b>.</p>'+
+    '<table style="border-collapse:collapse"><tr><th '+cell+'>#</th><th '+cell+'>Ảnh</th><th '+cell+'>Tên file</th><th '+cell+'>Khách muốn sửa</th><th '+cell+'>Ghi chú</th></tr>'+rows+'</table></body></html>';
 }
+
 function createService({store,workflow,syncStore,drive=require('./drive'),enabled=()=>require('./drive-auth').isConnected(),env=process.env,now=Date.now}) {
   let running=false,lastKick=-Infinity,folderQueue=Promise.resolve(); const jobs=new Map();
   async function patch(id,set) {for(let i=0;i<20;i++){const r=await store.get(id);if(!r)throw Error('request_missing');const out=await store.updateIfRev(id,r.rev,set);if(out?.doc)return out.doc;}throw Error('drive_state_conflict');}
@@ -46,6 +54,15 @@ function createService({store,workflow,syncStore,drive=require('./drive'),enable
         else {if(await store.count()>=2000)throw Error('store_full');album=await store.insert({id:'AL-auto-'+crypto.createHash('sha256').update(o.id).digest('hex').slice(0,24),kind:'source-album',phone:o.phone,orderCode:o.code,workflowOrderId:o.id,shooterPhone:o.shooterPhone,editorPhone:o.editorPhone,customerName:o.customerName,serviceLabel:o.service,staffName:'Drive',createdAt:now(),updatedAt:now(),rev:1,...data});}
         await workflow.originalDelivered(o.id,album.id);
       }
+      for(const r of await store.listAll()) {
+        if(r.kind==='source-album' || r.status==='Hoàn thành' || r.driveJob?.status!=='done' || !r.driveJob.outputFolderId)continue;
+        try {await require('./drive-delivery').scan({store,workflow,syncStore,drive,request:r,now,env});}
+        catch(e) {
+          const current=await store.get(r.id);
+          if(current && current.rev===r.rev && current.status!=='Hoàn thành')
+            await store.updateIfRev(r.id,r.rev,{driveJob:{...r.driveJob,delivery:{status:'waiting',matched:0,total:r.photos.length,missing:r.photos.map(p=>p.name),unknown:[],error:'Không quét được ảnh đã chỉnh. Vui lòng thử lại.'}}},{notDone:true});
+        }
+      }
       await syncStore.setCursor(cursor);return {ok:true};
     } finally {running=false;}
   }
@@ -61,7 +78,7 @@ function createService({store,workflow,syncStore,drive=require('./drive'),enable
         if(!p.driveFileId)throw Error('photo_missing_drive_id');
         if(!job.copies[p.id]) {const found=existing.find(f=>f.appProperties?.alohaRequest===id && f.appProperties?.alohaPhoto===p.id);const f=found||await drive.copyFile(p.driveFileId,job.inputFolderId,p.name,{alohaRequest:id,alohaPhoto:p.id});job.copies[p.id]=f.id;await patch(id,{driveJob:job});}
       }
-      if(!job.htmlFileId){const found=existing.find(f=>f.name==='YEU-CAU-CHINH.html');job.htmlFileId=found?.id||(await drive.uploadText(job.inputFolderId,'YEU-CAU-CHINH.html','text/html',instruction(r))).id;}
+      if(!job.htmlFileId){const found=existing.find(f=>/^YEU-CAU-CHINH/.test(f.name));job.htmlFileId=found?.id||(await drive.uploadText(job.inputFolderId,'YEU-CAU-CHINH','text/html',instruction(r),'application/vnd.google-apps.document')).id;}
       job.status='done';await patch(id,{driveJob:job});
     } catch(e) {job.status='error';job.message='Không chép được ảnh lên Drive. Vui lòng thử lại.';await patch(id,{driveJob:job});}
   }

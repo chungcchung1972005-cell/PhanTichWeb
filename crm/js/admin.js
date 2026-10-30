@@ -2051,6 +2051,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ${req.driveJob.outputFolderId ? `<a class="btn btn-outline btn-sm" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.outputFolderId)}" target="_blank" rel="noopener noreferrer">Mở thư mục lưu ảnh đã chỉnh</a>` : ''}
         ${['pending','copying'].includes(req.driveJob.status) ? '<span class="drive-folder-note">Đang chép ảnh khách chọn lên Drive…</span>' : ''}
         ${req.driveJob.status === 'error' ? `<span class="drive-folder-error">${escHtml(req.driveJob.message)}</span> ${role === 'tho-anh' ? `<button type="button" class="btn btn-outline btn-sm" data-drive-retry="${escHtml(req.id)}">Thử lại</button>` : ''}` : ''}
+        ${req.driveJob.delivery ? `<span class="drive-folder-note">${req.driveJob.delivery.status === 'delivered' ? 'Đã tự giao cho khách lúc ' + escHtml(fmtTime(req.driveJob.delivery.at)) : 'Đã nhận ' + req.driveJob.delivery.matched + '/' + req.driveJob.delivery.total + ' ảnh đã chỉnh'}</span>
+        ${req.driveJob.delivery.missing?.length ? `<span class="drive-folder-note">Thiếu: ${escHtml(req.driveJob.delivery.missing.join(', '))}</span>` : ''}
+        ${req.driveJob.delivery.unknown?.length ? `<span class="drive-folder-note">Tên lạ: ${escHtml(req.driveJob.delivery.unknown.join(', '))}</span>` : ''}
+        ${req.driveJob.delivery.error ? `<span class="drive-folder-error">${escHtml(req.driveJob.delivery.error)}</span>` : ''}` : ''}
       </div>` : ''}
       ${/^https:\/\/drive\.google\.com\//.test(req.sourceFolderUrl || '') ? `<p class="kanban-modal-meta">Khách đã chọn từ bộ ảnh gốc được giao: <a href="${escHtml(req.sourceFolderUrl)}" target="_blank" rel="noopener noreferrer">Mở thư mục Drive</a> · Lượt ${req.round || 1}</p>` : ''}
       ${total > 0 ? `
