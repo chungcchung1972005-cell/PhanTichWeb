@@ -209,6 +209,42 @@ function createEditRequestsRouter(store, opts) {
     res.status(201).json({album});
   }));
 
+  const driveFiles = opts?.drive || require('./drive');
+  const transfer = require('./drive-transfer');
+  async function originalTarget(req,res,next) {
+    try {req.uploadFolder=await driveSync.originalFolder(await workflow.sourceOrder(req.user,req.params.orderId));next();}
+    catch(_){res.status(403).json({error:'forbidden'});}
+  }
+  const outputTarget=wrap(async(req,res,next)=>{
+    if(req.editRequest.status==='Hoàn thành')return res.status(409).json({error:'already_completed'});
+    req.uploadFolder=req.editRequest.driveJob?.outputFolderId;
+    if(!req.uploadFolder)return res.status(409).json({error:'drive_not_ready'});next();
+  });
+  router.post('/orders/:orderId/upload-session',auth(['tho-anh']),originalTarget,wrap(transfer.session(driveFiles)));
+  router.put('/orders/:orderId/upload',auth(['tho-anh']),originalTarget,wrap(transfer.upload(driveFiles)));
+  router.post('/orders/:orderId/upload-complete',auth(['tho-anh']),originalTarget,wrap(async(req,res)=>{await driveSync.syncOnce();await driveSync.syncOnce();res.json({ok:true});}));
+  router.post('/:id/upload-session',auth(['tho-anh']),loadRequest,outputTarget,wrap(transfer.session(driveFiles)));
+  router.put('/:id/upload',auth(['tho-anh']),loadRequest,outputTarget,wrap(transfer.upload(driveFiles)));
+  router.post('/:id/upload-complete',auth(['tho-anh']),loadRequest,wrap(async(req,res)=>{await driveSync.syncOnce();res.json({ok:true});}));
+  router.get('/:id/output-files',auth(['tho-anh','sep']),loadRequest,wrap(async(req,res)=>{
+    const r=req.editRequest, files=r.driveJob?.outputFolderId?await driveFiles.listFiles(r.driveJob.outputFolderId):[];
+    const m=require('./drive-delivery').matchPhotos(r.photos,files);
+    res.json({files:files.filter(f=>f.mimeType?.startsWith('image/')).map(f=>({...f,matchedPhotos:r.photos.filter((p,i)=>m.matches[i].some(x=>x.id===f.id)).map(p=>p.name)})),matched:m.matches.filter(x=>x.length===1).length,total:r.photos.length});
+  }));
+  router.delete('/:id/output-files/:fileId',auth(['tho-anh']),loadRequest,outputTarget,wrap(async(req,res)=>{
+    const files=await driveFiles.listFiles(req.uploadFolder);
+    if(!files.some(f=>f.id===req.params.fileId))return res.status(404).json({error:'not_found'});
+    if((await store.get(req.editRequest.id)).status==='Hoàn thành')return res.status(409).json({error:'already_completed'});
+    await driveFiles.trash(req.params.fileId);await driveSync.syncOnce();res.json({ok:true});
+  }));
+  router.get('/:id/download.zip',auth(['tho-anh']),loadRequest,wrap(async(req,res)=>{
+    const r=req.editRequest;if(!r.driveJob?.inputFolderId)return res.status(409).json({error:'drive_not_ready'});
+    const files=await driveFiles.listFiles(r.driveJob.inputFolderId);
+    const entries=files.filter(f=>f.mimeType!=='application/vnd.google-apps.folder').map(f=>({name:f.name+(f.mimeType==='application/vnd.google-apps.document'?'.pdf':''),open:()=>driveFiles.openFile(f.id,f.mimeType==='application/vnd.google-apps.document')}));
+    res.setHeader('Content-Type','application/zip');res.setHeader('Content-Disposition','attachment; filename="ALOHA_'+String(r.orderCode).replace(/[^a-zA-Z0-9-]/g,'')+'_LUOT-'+(r.round||1)+'.zip"');
+    try{await require('./drive-zip').zip(res,entries);}catch(e){res.destroy(e);}
+  }));
+
   router.post('/:id/drive-retry', auth(['tho-anh']), loadRequest, wrap(async(req,res)=>{
     if(!driveSync.enabled())return res.status(503).json({error:'drive_disabled'});
     driveSync.enqueue(req.editRequest.id);

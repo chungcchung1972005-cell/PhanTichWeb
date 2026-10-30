@@ -110,8 +110,28 @@
   const badId = (id) => !ID_RE.test(String(id || ''));
   const badRev = (rev) => !Number.isInteger(rev);
 
+  function transferUrl(path){return window.AlohaAuth.API_BASE+BASE+path;}
+  function authHeaders(){return {authorization:'Bearer '+window.AlohaAuth.getSession().token};}
+  function putFile(url,file,onProgress,headers={}) {return new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('PUT',url);Object.entries(headers).forEach(([k,v])=>x.setRequestHeader(k,v));x.setRequestHeader('Content-Type',file.type);x.upload.onprogress=e=>onProgress(e.lengthComputable?Math.round(e.loaded/e.total*100):0);x.onload=()=>x.status>=200&&x.status<300?resolve():reject(Error('Không tải được ảnh lên Drive.'));x.onerror=()=>reject(Error('Không kết nối được Drive.'));x.send(file);});}
+  async function uploadPhoto(path,file,onProgress){
+    if(!/^image\//.test(file.type)||file.size>60*1024*1024||!file.size)throw Error('Chỉ nhận ảnh tối đa 60MB.');
+    const result=await request(path+'/upload-session',{method:'POST',body:{name:file.name,size:file.size,mime:file.type}});
+    if(!result.ok)throw Error(result.message);
+    try{await putFile(result.data.uploadUrl,file,onProgress);}
+    catch(e){if(file.size>25*1024*1024)throw Error('Drive không cho tải trực tiếp. Đường lui chỉ nhận ảnh tối đa 25MB. Hãy thử lại.');await putFile(transferUrl(path+'/upload?name='+encodeURIComponent(file.name)),file,onProgress,authHeaders());}
+    const done=await request(path+'/upload-complete',{method:'POST',body:{}});if(!done.ok)throw Error(done.message);
+  }
+  function mountUpload(host,path,after){
+    host.classList.add('drive-upload');host.innerHTML='<p>Kéo thả ảnh vào đây</p><label class="btn btn-outline">Chọn ảnh<input type="file" accept="image/*" multiple hidden></label><div class="drive-upload-list" role="status"></div>';
+    function add(files){for(const file of files){const row=document.createElement('div'),name=document.createElement('span'),progress=document.createElement('progress'),status=document.createElement('span'),retry=document.createElement('button');name.textContent=file.name;progress.max=100;retry.type='button';retry.textContent='Thử lại';retry.hidden=true;row.append(name,progress,status,retry);host.querySelector('.drive-upload-list').append(row);
+      async function run(){retry.hidden=true;status.textContent='Đang tải';try{await uploadPhoto(typeof path==='function'?path():path,file,n=>progress.value=n);status.textContent='Đã lưu trên Drive';await after();}catch(e){status.textContent=e.message;retry.hidden=false;}}retry.onclick=run;run();}}
+    host.querySelector('input').onchange=e=>add(e.target.files);host.ondragover=e=>{e.preventDefault();};host.ondrop=e=>{e.preventDefault();add(e.dataTransfer.files);};
+  }
   const api = {
-    enabled,
+    enabled, mountUpload,
+    outputFiles(id){return request('/'+encodeURIComponent(id)+'/output-files');},
+    deleteOutput(id,fileId){return request('/'+encodeURIComponent(id)+'/output-files/'+encodeURIComponent(fileId),{method:'DELETE'});},
+    async downloadZip(id){const r=await fetch(transferUrl('/'+encodeURIComponent(id)+'/download.zip'),{headers:authHeaders()});if(!r.ok)throw Error('Không tải được ảnh. Vui lòng thử lại.');const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ALOHA.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);},
     retryDrive(id) { return request('/'+encodeURIComponent(id)+'/drive-retry',{method:'POST',body:{}}); },
     ERRORS: Object.freeze(Object.assign({}, ERRORS)),
 

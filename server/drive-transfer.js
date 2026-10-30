@@ -1,0 +1,5 @@
+﻿const {Transform}=require('stream');
+function valid(name,size,mime,limit){return typeof name==='string'&&name.trim()&&name.length<=240&&!/[\\/\x00-\x1f]/.test(name)&&Number.isSafeInteger(size)&&size>0&&size<=limit&&/^image\/[a-z0-9.+-]+$/i.test(mime||'');}
+function session(drive){return async(req,res)=>{const {name,size,mime}=req.body||{};if(!valid(name,size,mime,60*1024*1024))return res.status(400).json({error:'bad_image'});res.json({uploadUrl:await drive.uploadSession(req.uploadFolder,name,size,mime,req.get('origin'))});};}
+function upload(drive){return async(req,res)=>{const name=req.query.name,size=Number(req.get('content-length')),mime=req.get('content-type');if(!valid(name,size,mime,25*1024*1024))return res.status(size>25*1024*1024?413:400).json({error:'bad_image'});let received=0;const guard=new Transform({transform(chunk,enc,cb){received+=chunk.length;cb(received>size||received>25*1024*1024?Error('upload_too_large'):null,chunk);}});req.on('aborted',()=>guard.destroy(Error('upload_aborted')));req.pipe(guard);res.json({file:await drive.uploadStream(req.uploadFolder,name,size,mime,guard)});};}
+module.exports={session,upload,valid};

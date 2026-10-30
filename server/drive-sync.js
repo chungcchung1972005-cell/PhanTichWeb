@@ -85,7 +85,7 @@ function createService({store,workflow,syncStore,drive=require('./drive'),enable
   function enqueue(id) {if(!enabled()||jobs.has(id))return jobs.get(id);const pending=new Promise(resolve=>setImmediate(resolve)).then(()=>runJob(id)).finally(()=>jobs.delete(id));jobs.set(id,pending);pending.catch(()=>console.error('drive job: state unavailable'));return pending;}
   function kick(){if(enabled()&&now()-lastKick>=30000){lastKick=now();syncOnce().catch(()=>console.error('drive sync failed'));}}
   function start(){if(!enabled())return;const t=setInterval(()=>{syncOnce().catch(()=>console.error('drive sync failed'));store.listAll().then(rs=>rs.filter(r=>r.driveJob&&['pending','copying'].includes(r.driveJob.status)).forEach(r=>enqueue(r.id))).catch(()=>{});},90000);t.unref();return t;}
-  return {syncOnce,enqueue,kick,start,enabled};
+  return {syncOnce,enqueue,kick,start,enabled,async originalFolder(o){const rootId=env.ALOHA_DRIVE_ROOT_ID || await syncStore.getRoot() || (await drive.ensureFolder('root','ALOHA')).id;await syncStore.setRoot(rootId);const parent=(await drive.ensureFolder(rootId,o.code)).id;await syncStore.setFolder(o.id,parent);return (await drive.ensureFolder(parent,'GOC')).id;}};
 }
 function syncHandler(service,env=process.env) {return async(req,res)=>{const key=req.get('x-sync-key')||'';if(!env.DRIVE_SYNC_KEY||Buffer.byteLength(key)!==Buffer.byteLength(env.DRIVE_SYNC_KEY)||!crypto.timingSafeEqual(Buffer.from(key),Buffer.from(env.DRIVE_SYNC_KEY)))return res.status(401).json({error:'unauthorized'});try{res.json(await service.syncOnce());}catch(_){res.status(503).json({error:'drive_sync_failed'});}};}
 module.exports={createService,instruction,syncHandler};

@@ -1,0 +1,36 @@
+﻿const assert=require('assert/strict'),crypto=require('crypto'),{Readable}=require('stream');
+process.env.AUTH_SECRET='dot4-test';process.env.EDIT_REQUESTS_MONGODB_URI='';process.env.MONGODB_URI='';
+const express=require('../server/node_modules/express'),{memoryStore}=require('../server/edit-requests-store'),{createEditRequestsRouter}=require('../server/edit-requests');
+let count=0;function check(v,label){assert.ok(v,label);count++;}
+(async()=>{const store=memoryStore();const id='ER-transfer-1234abcd';await store.insert({id,rev:1,orderCode:'AB-123',round:2,editorPhone:'0912345678',photos:[{id:'a',name:'A.jpg'}],status:'Đang thực hiện',messages:[],driveJob:{inputFolderId:'input',outputFolderId:'output'}});
+let trashed='',uploads=[],exported=false,kicks=0;let output=[{id:'edited',name:'A.jpg',mimeType:'image/jpeg',size:'3'},{id:'odd',name:'odd.jpg',mimeType:'image/jpeg',size:'3'}];
+const drive={listFiles:async folder=>folder==='input'?[{id:'a',name:'A.jpg',mimeType:'image/jpeg'},{id:'doc',name:'YEU-CAU-CHINH',mimeType:'application/vnd.google-apps.document'}]:output,openFile:async(id,pdf)=>{if(pdf)exported=true;return Readable.from([Buffer.from(pdf?'%PDF-fake':'abc')]);},trash:async id=>{trashed=id;output=output.filter(f=>f.id!==id);},uploadSession:async(...args)=>{uploads.push(args);return 'https://www.googleapis.com/upload/fake';},uploadStream:async(folder,name,size,mime,stream)=>{let n=0;for await(const b of stream)n+=b.length;uploads.push([folder,name,n,mime]);return {id:'new'};}};
+const workflow={attachRequestsStore(){},sourceOrder:async(user,id)=>{if(user.phone!=='0912345678'||id!=='order')throw Error();return {id};}};
+const sync={kick(){},enabled:()=>true,originalFolder:async()=> 'GOC',syncOnce:async()=>{kicks++;}};
+const app=express();app.use(express.json());app.use('/api/edit-requests',createEditRequestsRouter(store,{workflowService:workflow,driveSync:sync,drive}));const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+function token(role='tho-anh',phone='0912345678'){const b=Buffer.from(JSON.stringify({role,phone,exp:Date.now()+60000})).toString('base64url');return b+'.'+crypto.createHmac('sha256',process.env.AUTH_SECRET).update(b).digest('base64url');}
+const base='http://127.0.0.1:'+server.address().port+'/api/edit-requests';
+async function call(path,method='GET',body,who=token(),headers={}){return fetch(base+path,{method,headers:{authorization:'Bearer '+who,...(body&&typeof body!=='string'?{'content-type':'application/json'}:{}),...headers},body:body?(typeof body==='string'?body:JSON.stringify(body)):undefined});}
+try{
+let r=await call('/'+id+'/download.zip');const zip=Buffer.from(await r.arrayBuffer());check(r.status===200,'zip success');check(r.headers.get('content-disposition').includes('ALOHA_AB-123_LUOT-2.zip'),'zip name');check(exported,'PDF export');
+let pos=0,entries=[];while(zip.readUInt32LE(pos)===0x04034b50){const n=zip.readUInt16LE(pos+26),name=zip.subarray(pos+30,pos+30+n).toString();const start=pos+30+n;const descriptor=zip.indexOf(Buffer.from([0x50,0x4b,0x07,0x08]),start);const data=zip.subarray(start,descriptor);let crc=0xffffffff;for(const byte of data){crc^=byte;for(let j=0;j<8;j++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}check(zip.readUInt32LE(descriptor+4)===((crc^0xffffffff)>>>0),'independent CRC');check(zip.readUInt32LE(descriptor+8)===data.length,'zip size');entries.push([name,data.toString()]);pos=descriptor+16;}
+check(JSON.stringify(entries)===JSON.stringify([['A.jpg','abc'],['YEU-CAU-CHINH.pdf','%PDF-fake']]),'exact ZIP entries');check(zip.readUInt32LE(pos)===0x02014b50&&zip.readUInt32LE(zip.length-22)===0x06054b50,'central directory');
+for(const path of ['/download.zip','/output-files'])check((await call('/'+id+path,'GET',null,token('tho-anh','0999999999'))).status===403,'wrong editor');check((await call('/'+id+'/download.zip','GET',null,token('sep'))).status===403,'boss cannot download');
+for(const b of [{name:'a.txt',size:1,mime:'text/plain'},{name:'a.jpg',size:60*1024*1024+1,mime:'image/jpeg'},{name:'../a.jpg',size:1,mime:'image/jpeg'}])check((await call('/'+id+'/upload-session','POST',b)).status===400,'invalid session');
+r=await call('/'+id+'/upload-session','POST',{name:'a.jpg',size:3,mime:'image/jpeg'},token(),{Origin:'https://example.com'});check(r.status===200,'session');check(uploads[0][0]==='output'&&uploads[0][4]==='https://example.com','output folder and origin');
+r=await call('/'+id+'/output-files');const grid=await r.json();check(grid.files.length===2&&grid.files[0].matchedPhotos[0]==='A.jpg'&&grid.files[1].matchedPhotos.length===0,'grid matches and unknown');
+check((await call('/'+id+'/output-files/foreign','DELETE')).status===404,'foreign file protected');check((await call('/'+id+'/output-files/odd','DELETE')).status===200&&trashed==='odd','trash only');
+r=await call('/orders/order/upload-session','POST',{name:'goc.jpg',size:3,mime:'image/jpeg'});check(r.status===200&&uploads.at(-1)[0]==='GOC','original GOC');check((await call('/orders/order/upload-session','POST',{name:'goc.jpg',size:3,mime:'image/jpeg'},token('tho-anh','0999999999'))).status===403,'wrong shooter');
+r=await call('/orders/order/upload?name=goc.jpg','PUT','abc',token(),{'content-type':'image/jpeg'});check(r.status===200&&uploads.at(-1)[0]==='GOC'&&uploads.at(-1)[2]===3,'stream original');
+check((await call('/'+id+'/upload?name=a.txt','PUT','abc',token(),{'content-type':'text/plain'})).status===400,'fallback rejects text');
+await call('/orders/order/upload-complete','POST',{});check(kicks>=3,'immediate scans');
+const current=await store.get(id);await store.updateIfRev(id,current.rev,{status:'Hoàn thành'});check((await call('/'+id+'/output-files/edited','DELETE')).status===409,'completed cannot trash');check((await call('/'+id+'/upload-session','POST',{name:'a.jpg',size:3,mime:'image/jpeg'})).status===409,'completed cannot upload');
+const {createWriter}=require('../server/drive');let google=[];
+const writer=createWriter({auth:{getAccessToken:async()=> 'secret'},fetch:async(url,init)=>{google.push([url,init]);return new Response(url.includes('uploadType=resumable')?'{}':'abc',{status:200,headers:{location:'https://google.fake/session'}});}});
+await writer.uploadSession('output','a.jpg',3,'image/jpeg','https://studio.test');check(google[0][1].headers.Origin==='https://studio.test'&&JSON.parse(google[0][1].body).parents[0]==='output','Google resumable Origin and parent');
+let bytes='';for await(const b of await writer.openFile('doc',true))bytes+=Buffer.from(b);check(bytes==='abc'&&google.at(-1)[0].includes('/export?mimeType=application%2Fpdf'),'Google PDF stream');
+const folders=[];const folderSync=require('../server/drive-sync').createService({store,workflow,syncStore:{getRoot:async()=> 'ALOHA',setRoot:async()=>{},setFolder:async()=>{}},drive:{ensureFolder:async(parent,name)=>{folders.push([parent,name]);return {id:name};}},enabled:()=>true,env:{}});
+const goc=await folderSync.originalFolder({id:'order',code:'AB-123'});check(goc==='GOC'&&JSON.stringify(folders)===JSON.stringify([['ALOHA','AB-123'],['AB-123','GOC']]),'original folder hierarchy without sharing');
+console.log(`${count}/${count} PASS Drive web transfers (offline)`);
+}finally{server.closeAllConnections();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1;});
+
