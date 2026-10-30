@@ -89,7 +89,7 @@ let defaultDriveSync;
 function createEditRequestsRouter(store, opts) {
   const workflow = opts && opts.workflowService || require('./workflow').service;
   workflow.attachRequestsStore(store);
-  const driveSync = opts?.driveSync || require('./drive-sync').createService({store,workflow,syncStore:require('./drive-sync-store').createStoreFromEnv()});
+  const driveSync = opts?.driveSync || require('./drive-sync').createService({store,workflow,syncStore:driveSyncStore()});
 
   if(!opts?.driveSync) { driveSync.start(); defaultDriveSync=driveSync; }
   const allowPublicDemoStaff = !!(opts && opts.allowPublicDemoStaff);
@@ -445,8 +445,23 @@ async function resetCustomer(reqStore, workflowService, phone) {
   await reqStore.removeRequestsByPhone(phone);
   const orderIds = albums.map((a) => a.workflowOrderId).filter(Boolean);
   if (orderIds.length) await workflowService.resetDemoOrders(orderIds);
+  return orderIds;
 }
-const resetDemoCustomer = (phone) => resetCustomer(store, require('./workflow').service, phone);
+let sharedSyncStore=null;
+function driveSyncStore(){return sharedSyncStore||(sharedSyncStore=require('./drive-sync-store').createStoreFromEnv());}
+// Demo: bỏ các thư mục LUOT-* cũ trên Drive để lượt trình diễn mới không lẫn ảnh của lần trước.
+async function trashDemoRounds(orderIds) {
+  if (!require('./drive-auth').isConnected()) return;
+  const drive = require('./drive'), syncStore = driveSyncStore();
+  for (const id of orderIds) {
+    const folderId = await syncStore.getFolder(id); if (!folderId) continue;
+    for (const f of await drive.listFiles(folderId)) if (/^LUOT-\d+$/.test(f.name)) await drive.trash(f.id);
+  }
+}
+const resetDemoCustomer = async (phone) => {
+  const ids = await resetCustomer(store, require('./workflow').service, phone);
+  try { await trashDemoRounds(ids); } catch (e) { console.error('reset demo drive:', e.message); }
+};
 
 module.exports = { router: createEditRequestsRouter(store, { allowPublicDemoStaff: ALLOW_PUBLIC_DEMO_STAFF }), storeKind: store.kind, createEditRequestsRouter, resetDemoCustomer, resetCustomer };
 

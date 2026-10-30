@@ -78,6 +78,7 @@ function createWriter(options = {}) {
       do { const data=await request('/drive/v3/files?'+new URLSearchParams({q:`'${escape(parentId)}' in parents and trashed = false`,fields:'nextPageToken,files(id,name,mimeType,size,modifiedTime,resourceKey,appProperties)',pageSize:'1000',pageToken})); files.push(...(data.files||[])); pageToken=data.nextPageToken||''; } while(pageToken);
       return files;
     },
+    trash: id => request('/drive/v3/files/'+encodeURIComponent(id)+'?supportsAllDrives=true',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({trashed:true})}),
     shareFolder: id => request('/drive/v3/files/'+encodeURIComponent(id)+'/permissions',json({type:'anyone',role:'reader'})),
     async ensureFolder(parentId, name) {
       const q = new URLSearchParams({q:`'${escape(parentId)}' in parents and name = '${escape(name)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`, fields:'files(id,name)', supportsAllDrives:'true', includeItemsFromAllDrives:'true'});
