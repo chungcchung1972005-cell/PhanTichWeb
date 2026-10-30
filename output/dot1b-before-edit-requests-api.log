@@ -1,0 +1,25 @@
+✓ server/edit-requests.js không tự nạp mongodb, không đọc MONGODB_URI của chat
+✓ Router yêu cầu chỉnh ảnh báo kho RAM
+✓ Server test không nối MongoDB (chat Sale cũng ở chế độ memory)
+✓ Lấy được token giả cho 6 tài khoản
+✓ Không token: GET / -> 401
+✓ Không token: GET /me -> 401
+✓ Không token: POST / -> 401
+✓ Token giả mạo -> 401
+✓ Sale: GET / -> 403
+✓ Sale: GET /me -> 403
+✓ Sale: POST / -> 403
+✓ Khách vãng lai: GET /me -> 403
+✓ Khách vãng lai: POST / -> 403
+✓ Khách: GET / (danh sách nhân viên) -> 403
+✗ Khách tạo yêu cầu -> 201 → 400
+✗ Lỗi khi chạy test: Cannot read properties of undefined (reading 'phone')
+--- log server ---
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).
+CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.
+ALOHA Baby chat server đang chạy tại http://localhost:3001
+CẢNH BÁO: chưa có GEMINI_API_KEY trong .env — chatbot AI sẽ không trả lời được.
+
+
+14/16 PASS

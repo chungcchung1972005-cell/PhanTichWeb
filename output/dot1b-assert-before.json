@@ -1,0 +1,46 @@
+{
+  "edit-requests-api": {
+    "check": 114,
+    "assert": 0
+  },
+  "edit-requests-store": {
+    "check": 59,
+    "assert": 0
+  },
+  "edit-demo-accounts": {
+    "check": 68,
+    "assert": 0
+  },
+  "edit-sync": {
+    "check": 64,
+    "assert": 0
+  },
+  "edit-sync-optin": {
+    "check": 27,
+    "assert": 0
+  },
+  "edited-photos": {
+    "check": 47,
+    "assert": 0
+  },
+  "tho-anh": {
+    "check": 41,
+    "assert": 0
+  },
+  "customer-edit-sync": {
+    "check": 39,
+    "assert": 0
+  },
+  "tho-anh-edit-sync": {
+    "check": 34,
+    "assert": 0
+  },
+  "sep-edit-sync": {
+    "check": 29,
+    "assert": 0
+  },
+  "e2e-edit-sync": {
+    "check": 35,
+    "assert": 0
+  }
+}

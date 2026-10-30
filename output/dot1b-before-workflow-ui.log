@@ -1,0 +1,3 @@
+Sale booking persists and feeds calendar
+Worker chooses existing shot customer, sends only Drive link; shooting/edit earnings separated
+PASS: Sale booking → retained order → assigned shoot → original delivery → edit completion → separate commissions → boss payout; desktop/mobile

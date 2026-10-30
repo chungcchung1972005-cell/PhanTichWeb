@@ -1,0 +1,42 @@
+✓ Thợ ảnh 0900000003 tự chọn ô "Thợ chỉnh 1" (nhận diện theo SĐT)
+✓ Nút "Xem thêm" chỉ hiện khi hàng còn đơn ẩn, không bao giờ "-N đơn"
+✓ Ô Thợ chỉnh 1: chỉ đơn của Thợ chỉnh 1 hoặc "Chưa phân công"
+✓ Yêu cầu thật (chưa phân công) hiện ở ô Thợ chỉnh 1
+✓ Số đơn trên ô Thợ chỉnh 1 = số thẻ đang hiện
+✓ Ô "Tất cả": có yêu cầu chưa phân công, số đơn = số thẻ
+✓ Đơn minh hoạ đã Hoàn thành (#AB240703) không ở 3 hàng, nằm ở bảng Đã hoàn tất
+✓ Mọi mã đơn minh hoạ thuộc dải #AB240701..#AB240713
+✓ Thẻ yêu cầu thật ghi "Chưa phân công" + nhãn "Mới"
+✓ Thẻ có nút "Gửi link Drive"
+✓ Cửa sổ Drive mở, chưa có nút Hoàn tất
+✓ Gợi ý: thư mục ảnh gốc để Hạn chế, KHÔNG hướng dẫn công khai ảnh gốc
+✓ Chỉ link ảnh gốc: lưu được, cửa sổ vẫn mở, chưa hiện Hoàn tất
+✓ Link không https bị báo lỗi
+✓ Có link ảnh đã chỉnh: hiện nút Hoàn tất
+✓ Lưu đủ 2 link vào aloha_demo_db
+✓ Modal chi tiết hiện link ảnh gốc (nội bộ) + ảnh đã chỉnh
+✓ Modal chi tiết không còn form 1 link cũ
+✓ Mở lại: nút thẻ đổi thành "Cập nhật link Drive"
+✓ Bấm Hoàn tất: trạng thái Hoàn thành
+✓ Hoàn tất tự đánh dấu xong hết ảnh
+✓ Link ảnh gốc vẫn còn sau Hoàn tất
+✓ Cửa sổ Drive đã đóng
+✓ Đơn vừa Hoàn tất rời khỏi 3 hàng
+✓ Đơn vừa Hoàn tất có trong bảng Đã hoàn tất
+✓ Chi tiết: không còn nút "Đánh dấu đã xong" / "Chuyển sang bước tiếp theo"; tiến độ chỉ xem + có giải thích
+✓ Chi tiết: giữ 5 ảnh + mã ảnh + nút tải xuống
+✓ Chi tiết: form gửi link Drive hiện sẵn ngay dưới ảnh
+✓ Form dưới ảnh: link không https bị báo lỗi
+✓ Form dưới ảnh: chỉ link ảnh gốc -> chưa có nút Hoàn tất
+✓ Form dưới ảnh: thêm link ảnh đã chỉnh -> hiện 2 link + nút Hoàn tất
+✓ Hoàn tất từ form dưới ảnh -> #AB240702 sang bảng Đã hoàn tất
+✓ Mobile 390px không cuộn ngang
+✓ Khách thấy link ảnh đã chỉnh, KHÔNG thấy link ảnh gốc
+✓ Sếp không thấy nút Gửi link Drive trên thẻ
+✓ Sếp thấy đơn đã Hoàn tất trong bảng
+✓ Bảng Đã hoàn tất: yêu cầu thật ghi "Chưa phân công"
+✓ Đã hoàn tất: đơn demo #AB240703 hiện đủ 2 link Drive demo
+✓ Không còn chữ "Khách đang thấy" trên trang
+✓ Không có lỗi JS
+
+40/40 PASS

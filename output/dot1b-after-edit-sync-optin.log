@@ -1,0 +1,31 @@
+✓ Default editSync ON
+✓ A1 khách thường mở index.html: editSync TẮT sau opt-out, key 0
+✓ A1 khách thường mở login.html: editSync TẮT sau opt-out, key 0
+✓ A1 khách thường mở index.html#/chon-anh: editSync TẮT sau opt-out, key 0
+✓ A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập
+✓ A3 khách demo chưa có album: chờ thợ gửi ảnh gốc
+✓ A4 không gọi /api/edit-requests lần nào khi TẮT
+✓ A5 ?editSync=abc (giá trị lạ) không bật
+✓ B1 login.html?editSync=1: cờ bật + xóa lựa chọn tắt
+✓ B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT mặc định
+✓ B3 khách thử nghiệm có hồ sơ buổi chụp GIẢ riêng (#ABTN0103), không phải #AB240915
+✓ B4 có lưới ảnh để chọn
+✓ B5 hồ sơ giả KHÔNG ghi vào aloha_demo_db
+✓ B6 gửi yêu cầu qua server thành công (server có 1 yêu cầu và 2 album gốc)
+✓ B7 yêu cầu KHÔNG ghi localStorage
+✓ B8 khách thử nghiệm 2 không thấy yêu cầu của khách 1 (GET /me = 0, nút gửi chưa khoá)
+✓ B9 khách thử nghiệm 2 có hồ sơ riêng #ABTN0104
+✓ B10 khách thử nghiệm 2 mở thẳng id yêu cầu của khách 1 -> bị từ chối (404)
+✓ B11 đăng ký khách giả thường (200)
+✓ B12 khách thường (không scope) vẫn "Chưa có buổi chụp", không nhận hồ sơ giả
+✓ B13 tự sửa token thêm scope -> server từ chối (401), không đọc được gì
+✓ C1 Thợ thử nghiệm (crm/admin.html, bật bằng key) thấy yêu cầu #ABTN0103
+✓ C2 Sếp thử nghiệm thấy yêu cầu #ABTN0103
+✓ C3 Thợ ảnh demo công khai bật editSync: báo không có quyền, KHÔNG thấy yêu cầu thử nghiệm
+✓ D1 ?editSync=0: ghi key 0, TẮT
+✓ D2 mở lại không tham số: vẫn TẮT
+✓ D3 máy khác (Thợ thử nghiệm) không bị ảnh hưởng: vẫn BẬT
+✓ E1 không có lỗi JavaScript trên trang
+✓ E2 log server không chứa mật khẩu thử nghiệm
+
+29/29 PASS

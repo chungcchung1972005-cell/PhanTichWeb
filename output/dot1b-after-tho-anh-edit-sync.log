@@ -1,0 +1,36 @@
+✓ Dữ liệu giả: khách tạo 2 yêu cầu trên server RAM
+✓ Cờ tắt: trang Thợ ảnh không gọi /api/edit-requests
+✓ Cờ tắt: yêu cầu trên server KHÔNG hiện (đọc localStorage như cũ), không tự sinh thẻ minh họa
+✓ Cờ bật: trang gọi GET /api/edit-requests/
+✓ Yêu cầu từ server hiện ở 3 hàng: "Thợ ảnh demo", "Mới", tên khách, 2 ảnh
+✓ Không tự sinh thẻ minh họa
+✓ Không ghi yêu cầu nào vào localStorage
+✓ Mở chi tiết -> server lưu staffSeen
+✓ Chi tiết: 2 ảnh + ghi chú riêng của khách, có form link, chưa có Hoàn tất
+✓ Lưu link -> server có 2 link, rev tăng
+✓ Chi tiết hiện 2 link (link gốc ghi rõ nội bộ) + nút Hoàn tất
+✓ Phản hồi API cho khách KHÔNG có link ảnh gốc
+✓ Nhắn khách -> server lưu tin "staff", tên Thợ ảnh từ token
+✓ Khách đọc được tin của thợ qua API
+✓ Phiên Thợ ảnh khác lưu link mới (rev tăng)
+✓ 409: báo dữ liệu đã đổi + đã tải bản mới nhất, kèm link hiện có trên server
+✓ 409: KHÔNG ghi đè - server giữ link của phiên khác
+✓ 409: giữ nguyên chữ thợ đã gõ, khung link hiện bản mới nhất của server
+✓ 409: trang KHÔNG tự gửi lại thao tác
+✓ Sau khi kiểm tra, thợ lưu lại -> thành công với rev mới
+✓ Mất mạng: báo không kết nối được, giữ chữ đã gõ, không hiện Hoàn tất
+✓ Mất mạng: server không có link, localStorage không có yêu cầu
+✓ Mất mạng khi nhắn: báo "Tin nhắn CHƯA được gửi", giữ chữ đã gõ
+✓ Phiên khác gỡ link ảnh đã chỉnh của yêu cầu 2
+✓ Hoàn tất khi server không còn link ảnh đã chỉnh -> báo lỗi, chi tiết vẫn mở, KHÔNG Hoàn thành
+✓ Cửa sổ Drive: điền sẵn link hiện có trên server, có nút Hoàn tất
+✓ Hoàn tất -> server Hoàn thành, mọi ảnh xong; cửa sổ chỉ đóng sau khi server xác nhận
+✓ Đơn rời 3 hàng, có trong bảng Đã hoàn tất
+✓ Khách thấy Hoàn thành qua API, vẫn không có link gốc
+✓ Khách gửi yêu cầu mới -> trang Thợ ảnh tự hiện trong vài giây
+✓ Toàn bộ quá trình không ghi yêu cầu nào vào localStorage
+✓ Sếp (cờ bật): chỉ ĐỌC qua API (GET), không có lệnh ghi, thấy yêu cầu trên server
+✓ Sếp: Khách hàng / Lịch hẹn / Phễu vẫn dựng như cũ
+✓ Không có lỗi JS / hộp thoại trên các trang
+
+34/34 PASS

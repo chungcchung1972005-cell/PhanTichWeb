@@ -1,0 +1,88 @@
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+✓ Không có biến nào -> RAM
+✓ CHỈ có MONGODB_URI của chat -> vẫn RAM (không bao giờ dùng kết nối chat)
+✓ Có EDIT_REQUESTS_MONGODB_URI -> MongoDB riêng, mặc định aloha_edit_demo / edit_requests (chưa kết nối khi khởi tạo)
+✓ EDIT_REQUESTS_DB trùng database chat (aloha_baby) -> từ chối, dùng RAM + báo lỗi
+✓ EDIT_REQUESTS_DB trùng MONGODB_DB tuỳ chỉnh của chat -> từ chối
+✓ Collection "chats" (của chat) -> từ chối, dùng RAM
+✓ Collection "users" (của chat) -> từ chối, dùng RAM
+✓ Tên collection không hợp lệ -> từ chối
+✓ Mã nguồn kho + router KHÔNG đọc biến MONGODB_URI của chat (bỏ chú thích)
+✓ Router không tự nạp driver mongodb (chỉ kho MongoDB nạp khi được chọn)
+✓ safeError che chuỗi kết nối + mật khẩu trong log
+✓ Mặc định module (không biến) -> storeKind = memory
+✓ [RAM] count = 3
+✓ [RAM] get trả bản ghi, không có _id
+✓ [RAM] get trả bản SAO (sửa bản sao không đổi kho)
+✓ [RAM] get id không có -> null
+✓ [RAM] listByPhone: đúng khách, theo createdAt tăng dần
+✓ [RAM] listAll: tất cả theo createdAt
+✓ [RAM] addMessage: lưu tin, rev KHÔNG đổi, updatedAt đổi
+✓ [RAM] addMessage: giữ 3 tin GẦN NHẤT đúng thứ tự
+✓ [RAM] addMessage id không có -> null
+✓ [RAM] markSeen: lưu cờ, rev KHÔNG đổi, updatedAt đổi
+✓ [RAM] markSeen không đổi gì -> updatedAt giữ nguyên
+✓ [RAM] listAll(since) lấy được thay đổi
+✓ [RAM] setPhotoDone true: thêm ảnh, rev 2
+✓ [RAM] setPhotoDone lặp lại: không trùng ảnh, rev vẫn tăng (như trước)
+✓ [RAM] setPhotoDone false: bỏ ảnh, rev 4
+✓ [RAM] updateIfRev đúng rev: ghi, rev 5
+✓ [RAM] updateIfRev rev cũ: conflict kèm bản mới nhất, KHÔNG ghi
+✓ [RAM] updateIfRev id không có -> null
+✓ [RAM] 2 lệnh cùng rev chạy song song: đúng 1 thắng, 1 conflict
+✓ [RAM] giá trị giữ lại là của lệnh thắng
+✓ [RAM] Hoàn tất có điều kiện: status Hoàn thành, đủ ảnh, rev 7
+✓ [RAM] Hoàn tất lần 2 (đúng rev nhưng đã xong) -> conflict, không ghi
+✓ [RAM] setPhotoDone sau Hoàn thành -> completed, không đổi
+✓ [RAM] setPhotoDone id không có -> null
+✓ [RAM] yêu cầu khác không bị ảnh hưởng
+✓ [MongoDB giả lập] count = 3
+✓ [MongoDB giả lập] get trả bản ghi, không có _id
+✓ [MongoDB giả lập] get trả bản SAO (sửa bản sao không đổi kho)
+✓ [MongoDB giả lập] get id không có -> null
+✓ [MongoDB giả lập] listByPhone: đúng khách, theo createdAt tăng dần
+✓ [MongoDB giả lập] listAll: tất cả theo createdAt
+✓ [MongoDB giả lập] addMessage: lưu tin, rev KHÔNG đổi, updatedAt đổi
+✓ [MongoDB giả lập] addMessage: giữ 3 tin GẦN NHẤT đúng thứ tự
+✓ [MongoDB giả lập] addMessage id không có -> null
+✓ [MongoDB giả lập] markSeen: lưu cờ, rev KHÔNG đổi, updatedAt đổi
+✓ [MongoDB giả lập] markSeen không đổi gì -> updatedAt giữ nguyên
+✓ [MongoDB giả lập] listAll(since) lấy được thay đổi
+✓ [MongoDB giả lập] setPhotoDone true: thêm ảnh, rev 2
+✓ [MongoDB giả lập] setPhotoDone lặp lại: không trùng ảnh, rev vẫn tăng (như trước)
+✓ [MongoDB giả lập] setPhotoDone false: bỏ ảnh, rev 4
+✓ [MongoDB giả lập] updateIfRev đúng rev: ghi, rev 5
+✓ [MongoDB giả lập] updateIfRev rev cũ: conflict kèm bản mới nhất, KHÔNG ghi
+✓ [MongoDB giả lập] updateIfRev id không có -> null
+✓ [MongoDB giả lập] 2 lệnh cùng rev chạy song song: đúng 1 thắng, 1 conflict
+✓ [MongoDB giả lập] giá trị giữ lại là của lệnh thắng
+✓ [MongoDB giả lập] Hoàn tất có điều kiện: status Hoàn thành, đủ ảnh, rev 7
+✓ [MongoDB giả lập] Hoàn tất lần 2 (đúng rev nhưng đã xong) -> conflict, không ghi
+✓ [MongoDB giả lập] setPhotoDone sau Hoàn thành -> completed, không đổi
+✓ [MongoDB giả lập] setPhotoDone id không có -> null
+✓ [MongoDB giả lập] yêu cầu khác không bị ảnh hưởng
+✓ [MongoDB giả lập] mọi thay đổi đi qua lệnh ghi của collection (insertOne / findOneAndUpdate)
+✓ Collection lưu đủ: tin nhắn, 2 link, trạng thái Hoàn thành, ảnh xong, cờ đã xem, rev
+✓ Kho mới trên cùng collection (giả lập khởi động lại) đọc lại đủ dữ liệu
+✓ API health báo store "mongodb" khi dùng kho MongoDB
+✓ Khách tạo yêu cầu -> 201, ghi vào collection
+✓ Sale -> 403 (phân quyền giữ nguyên)
+✓ Khách /me đọc từ kho MongoDB
+✓ Tin nhắn ghi vào collection, from "ai" bị bỏ qua, rev không đổi
+✓ Thợ ảnh đã xem -> staffSeen lưu trong collection, rev không đổi
+✓ Đánh dấu ảnh xong -> collection doneIds, rev 2
+✓ Hoàn tất khi chưa có link ảnh đã chỉnh -> 422, collection không đổi
+✓ Lưu 2 link -> collection có 2 link, rev 3
+✓ Lưu link với rev cũ -> 409 kèm bản mới nhất, collection không đổi
+✓ 2 phiên cùng lưu link cùng rev -> 1 phiên 200, 1 phiên 409
+✓ Khách đọc yêu cầu: KHÔNG có link ảnh gốc
+✓ Sếp đọc được link ảnh gốc (nội bộ)
+✓ Sếp lưu link -> 403
+✓ Hoàn tất đúng rev -> collection Hoàn thành, đủ ảnh
+✓ Hoàn tất lần 2 -> 409 already_completed
+✓ Khách xem thông báo Hoàn thành -> collection customerSeenDone
+✓ Danh sách nhân viên (?since) đọc từ kho MongoDB
+✓ Kho MongoDB lỗi -> 503 store_unavailable (không sập server)
+✓ Log lỗi KHÔNG chứa chuỗi kết nối / mật khẩu
+
+85/85 PASS

@@ -1,0 +1,87 @@
+[
+  {
+    "name": "edit-requests-api",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "edit-requests-store",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "edit-demo-accounts",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "edit-sync",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "edit-sync-optin",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "edited-photos",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "tho-anh",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "customer-edit-sync",
+    "code": 1,
+    "timeout": false
+  },
+  {
+    "name": "tho-anh-edit-sync",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "sep-edit-sync",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "e2e-edit-sync",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "workflow",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "workflow-api",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "workflow-regressions",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "workflow-ui",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "drive-api",
+    "code": 0,
+    "timeout": false
+  },
+  {
+    "name": "multidevice-demo",
+    "code": 0,
+    "timeout": false
+  }
+]

@@ -1,0 +1,41 @@
+✓ Cờ tắt: đăng nhập vào "Ảnh của tôi", AlohaEditSync tắt
+✓ Cờ tắt: yêu cầu lưu localStorage như cũ (2 ảnh, ghi chú riêng + chung)
+✓ Cờ tắt: banner "đã gửi" + nút khoá như cũ
+✓ Cờ tắt: KHÔNG gọi /api/edit-requests lần nào
+✓ Cờ tắt: server không nhận yêu cầu nào
+✓ Cờ bật: mở trang gọi GET /me trước, có token server
+✓ Mất mạng: báo "CHƯA được gửi", không báo thành công
+✓ Mất mạng: nút gửi mở lại, ảnh đã chọn + ghi chú giữ nguyên, lưới không bị khoá
+✓ Mất mạng: KHÔNG ghi yêu cầu vào localStorage
+✓ Mất mạng: server không có yêu cầu nào
+✓ 401: báo phiên hết hạn / đăng nhập lại, không báo đã gửi
+✓ 401: vẫn không ghi localStorage
+✓ Server xác nhận -> mới báo "đã gửi" + khoá lưới
+✓ POST / gửi đúng cấu trúc: 2 ảnh có ghi chú riêng, ghi chú chung, mã đơn, phí 0
+✓ POST / không gửi phone / customerName / from (server lấy từ token)
+✓ Thành công vẫn KHÔNG ghi localStorage (chỉ server lưu)
+✓ Server lưu đúng 1 yêu cầu của 0900000001, 2 ghi chú riêng
+✓ Máy Y (localStorage khác): khôi phục từ server đúng 2 ảnh đã gửi, ghi chú chung, lưới khoá
+✓ Máy Y: không có yêu cầu nào trong localStorage của máy này
+✓ Tin nhắn khách lưu trên server (from customer), ô nhập được xoá
+✓ Chế độ đồng bộ: không tự sinh tin trợ lý "ai" (không bịa trả lời)
+✓ Không gửi lời gọi /api/edit-chat ở chế độ đồng bộ
+✓ Gửi tin lỗi: giữ nguyên chữ đã gõ + hiện báo lỗi
+✓ Gửi tin lỗi: server không có tin đó, localStorage cũng không
+✓ Thợ ảnh lưu 2 link qua API
+✓ Máy Y tự hiện link ảnh đã chỉnh (vòng hỏi server)
+✓ Máy Y tự hiện tin trả lời của thợ
+✓ Trang khách KHÔNG chứa link ảnh gốc
+✓ Mọi phản hồi /api/edit-requests gửi cho khách KHÔNG chứa link ảnh gốc
+✓ Đã xem tab Ảnh đã chỉnh -> lưu "đã xem" lên server (customerSeenEditedSig)
+✓ Thợ ảnh Hoàn tất qua API
+✓ Chuông: hiện "Ảnh đã sửa xong" từ server
+✓ Mở chuông -> server lưu customerSeenDone
+✓ Khách B (đã đăng ký giả): mine() = 0 yêu cầu, get(yêu cầu của A) = not_found
+✓ Khách B không có hồ sơ buổi chụp -> trang "Ảnh của tôi" không hiện ảnh (như cũ)
+✗ Không tải được dữ liệu: khoá nút gửi + báo lỗi, không đoán theo localStorage → {"text":"Gửi ảnh đã chọn cho thợ chỉnh","disabled":true}
+✓ Kết nối lại: tự khôi phục trạng thái "đã gửi" từ server, bỏ banner lỗi
+✓ Không có lỗi JS trên các trang
+✓ Server test chỉ dùng kho RAM
+
+38/39 PASS

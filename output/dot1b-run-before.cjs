@@ -1,0 +1,3 @@
+﻿const fs=require('fs'),{spawn}=require('child_process');
+const names=['edit-requests-api','edit-requests-store','edit-demo-accounts','edit-sync','edit-sync-optin','edited-photos','tho-anh','customer-edit-sync','tho-anh-edit-sync','sep-edit-sync','e2e-edit-sync','workflow','workflow-api','workflow-regressions','workflow-ui','drive-api','multidevice-demo'];
+(async()=>{for(const n of names){const out=fs.openSync('output/dot1b-before-'+n+'.log','w');const p=spawn(process.execPath,['_screenshots/test-'+n+'.js'],{stdio:['ignore',out,out]});const timer=setTimeout(()=>p.kill(),120000);const code=await new Promise(r=>p.on('exit',r));clearTimeout(timer);fs.closeSync(out);console.log(n,code);}})();

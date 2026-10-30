@@ -1,0 +1,50 @@
+✓ Có tab "Ảnh đã chỉnh" ngay cạnh "Yêu thích"
+✓ Mở tab: hiện khung Ảnh đã chỉnh, ẩn lưới ảnh và nút gửi yêu cầu
+✓ Chưa gửi: giao diện chờ gửi ảnh (3 bước + nút chọn ảnh), chưa hiện khung chat
+✓ Tab "all": KHÔNG hiện khung Ảnh đã chỉnh / chat
+✓ Tab "original": KHÔNG hiện khung Ảnh đã chỉnh / chat
+✓ Tab "liked": KHÔNG hiện khung Ảnh đã chỉnh / chat
+✓ Đã chọn ảnh nhưng chưa gửi: bước 1 xong "(đã chọn 2)", nút "Xem ảnh đã chọn & gửi cho thợ"
+✓ Bấm nút -> chuyển sang tab Yêu thích để gửi
+✓ Đã gửi: báo "Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh", mã đơn + giờ gửi, tiến độ bước 1 xong
+✓ Đã gửi: hiện khung chat, nhắn được
+✓ Có 4 nút câu hỏi nhanh, bấm được
+✓ Đang chờ trả lời: hiện "Thợ chỉnh ảnh ALOHA" đang gõ, không nhắc AI
+✓ Khách gửi tin (Enter và nút gửi) -> hiện bong bóng bên phải, ô nhập được xoá
+✓ Tin nhắn có mã HTML được hiện dạng chữ, không chạy mã
+✓ Tiêu đề "Chat với thợ chỉnh ảnh"; tin trả lời ngay mang tên "Thợ chỉnh ảnh ALOHA"
+✓ Khung chat phía khách không có chữ "AI" / "trợ lý"
+✓ Yêu cầu chỉnh sửa cụ thể -> đánh dấu cần thợ; câu thường thì không
+✓ AI nhận đúng thông tin đơn (mã đơn, trạng thái, chưa có link)
+✓ Thẻ yêu cầu thật có nhãn "Mới" + "Khách cần thợ trả lời" + "Thợ ảnh demo"
+✓ Modal thợ: ảnh khách chọn (Google Photos) tải được
+✓ Modal thợ: có ô gửi link + khung chat, thấy đủ tin của khách (dạng chữ)
+✓ Thợ thấy cả câu trả lời của Trợ lý AI + nhãn "Cần thợ trả lời" đúng tin cần xử lý
+✓ Chưa có link: không có nút đánh dấu/chuyển bước, chưa hiện Hoàn tất, có giải thích tiến độ
+✓ Link không phải http(s) (vd javascript:) bị chặn, báo lỗi
+✓ Chỉ có link ảnh gốc: lưu nội bộ, chưa hiện nút Hoàn tất
+✓ Gửi link ảnh đã chỉnh -> modal hiện 2 link (ghi rõ link gốc là nội bộ) + nút Hoàn tất
+✓ Thợ trả lời khách (Enter) -> hiện bong bóng của thợ
+✓ Modal thợ đang mở tự hiện tin khách vừa nhắn + AI trả lời (không cần tải lại)
+✓ Khách thấy nút mở link ảnh đã chỉnh (mở tab mới, an toàn)
+✓ Khách KHÔNG thấy link ảnh gốc ở bất kỳ đâu trên trang
+✓ Có link: tiêu đề "Ảnh đã chỉnh của bé đã sẵn sàng", đủ 3 bước tiến độ
+✓ Bấm câu hỏi nhanh "Cách tải ảnh" -> gửi câu hỏi tương ứng
+✓ Khách thấy tin trả lời của thợ
+✓ Thợ nhắn khi khách ở tab khác -> tab "Ảnh đã chỉnh" hiện chấm báo
+✓ Mở tab xem -> tắt chấm báo
+✓ Tải lại trang vẫn ở "Ảnh của tôi"
+✓ Tải lại trang: đã xem rồi thì không hiện lại chấm báo
+✓ Tải lại trang sau khi đã gửi: đánh dấu lại đúng ảnh đã gửi, khoá lưới + nút gửi + nút chọn nhanh
+✓ Tải lại trang: báo "Bạn đã gửi 2 ảnh cho thợ chỉnh ảnh lúc ..."
+✓ Nút "Xem tiến độ" mở tab Ảnh đã chỉnh
+✓ Sếp xem được 2 link + toàn bộ tin nhắn, không có ô gửi link/trả lời/Hoàn tất
+✓ Thẻ fixture thay thẻ minh họa đã bỏ: chat trống chỉ đọc; Sếp không có ô link
+✓ Tên/ghi chú khách chứa mã HTML hiện dạng chữ trên thẻ + modal, không chạy mã
+✓ Dữ liệu: yêu cầu chưa có link không chuyển được sang "Hoàn thành"
+✓ Điện thoại: ô link + chat không tràn ngang
+✓ Tab Ảnh đã chỉnh: ô Đã chọn không nổi che khung link
+✓ Không kết nối được trợ lý -> báo đã nhận tin (không nhắc AI), tin chuyển cho thợ, ô chat mở lại
+✓ Không có lỗi JS, không bật hộp thoại do mã chèn
+
+48 pass, 0 fail

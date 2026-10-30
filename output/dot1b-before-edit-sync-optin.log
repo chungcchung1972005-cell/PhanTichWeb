@@ -1,0 +1,17 @@
+✓ Default editSync ON
+✓ A1 khách thường mở index.html: editSync TẮT sau opt-out, key 0
+✓ A1 khách thường mở login.html: editSync TẮT sau opt-out, key 0
+✓ A1 khách thường mở index.html#/chon-anh: editSync TẮT sau opt-out, key 0
+✓ A2 khách demo không có ?editSync: vẫn TẮT sau đăng nhập
+✗ A3 khách demo vẫn có hồ sơ cũ #AB240915 (không bị đổi) → Chờ thợ gửi ảnh gốc của buổi chụp.
+✓ A4 không gọi /api/edit-requests lần nào khi TẮT
+✓ A5 ?editSync=abc (giá trị lạ) không bật
+✓ B1 login.html?editSync=1: cờ bật + xóa lựa chọn tắt
+✓ B2 sau đăng nhập (địa chỉ không còn tham số) vẫn BẬT mặc định
+✗ B3 khách thử nghiệm có hồ sơ buổi chụp GIẢ riêng (#ABTN0103), không phải #AB240915 → Chờ thợ gửi ảnh gốc của buổi chụp.
+✗ B4 có lưới ảnh để chọn 
+✓ B5 hồ sơ giả KHÔNG ghi vào aloha_demo_db
+✗ LỖI: No element found for selector: .ps-photo[data-id="ph-1"] .ps-heart
+✓ E2 log server không chứa mật khẩu thử nghiệm
+
+11/15 PASS

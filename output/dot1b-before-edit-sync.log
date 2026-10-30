@@ -1,0 +1,48 @@
+✓ features.js: editSync mặc định true
+✓ editSync=0 persists browser opt-out
+✓ browser opt-out survives reload
+✓ editSync=1 clears opt-out
+✓ preset feature override has priority
+✓ features.js: 3 cờ cũ giữ nguyên giá trị mặc định
+✓ features.js: cờ editSync không gắn class mới lên <html>
+✓ Test cũ đặt sẵn 3 cờ (launchAllFeatures) -> editSync vẫn false
+✓ edit-sync.js không dùng AlohaData / localStorage / sessionStorage / indexedDB
+✓ edit-sync.js không có hạn 7 ngày
+✓ AlohaData giữ nguyên 14 hàm/hằng sau khi nạp edit-sync.js
+✓ Cờ tắt: cả 10 hàm trả ok:false, error "disabled"
+✓ Cờ tắt: không gọi AlohaAuth.api lần nào
+✓ Cờ tắt: không ghi thêm gì vào localStorage
+✓ AlohaData.createEditRequest + setResultLink vẫn lưu localStorage như cũ
+✓ AlohaData.advanceRequestStatus vẫn chạy như cũ
+✓ Thiếu cờ editSync (vd trang không nạp features.js, hoặc features.js bản cũ trong bộ nhớ đệm) -> coi là TẮT
+✓ Cờ bật: enabled() = true
+✓ AlohaEditSync bị đóng băng (không ghi đè được hàm)
+✓ 13 lời gọi đúng phương thức + đường dẫn router
+✓ health gọi không kèm token (auth:false), các hàm khác kèm token
+✓ create: chỉ gửi trường cho phép (không gửi phone/from, ảnh bỏ trường lạ, isExtra thành boolean)
+✓ addMessage: chỉ gửi { text } (không có "from")
+✓ markSeen: { done, editedSig } / {} 
+✓ setPhotoDone: { photoId, done }
+✓ setLinks: gửi rev + link đã cắt khoảng trắng; chỉ gửi trường có
+✓ complete: { rev }
+✓ Tham số sai (id, tin rỗng, thiếu rev, không có link...) -> invalid, không gọi mạng
+✓ Quy đổi lỗi: 0/401/403/404/409/409/422/413/429/503/500/ngoại lệ
+✓ 409 kèm bản mới nhất (latest) để trang tải lại
+✓ Mọi lỗi đều ok:false và có câu báo tiếng Việt
+✓ Câu báo riêng: thiếu link ảnh đã chỉnh / đã Hoàn thành / khách vãng lai
+✓ Không có token -> unauthorized (no_token), không gọi mạng
+✓ health() không cần token vẫn gọi được
+✓ Thiếu AlohaAuth -> unavailable
+✓ js/auth.js thật trỏ API_BASE tới server local cổng 3001
+✓ health(): server báo kho RAM
+✗ Khách create() -> 201 qua API thật → {"ok":false,"status":400,"error":"invalid","message":"Cần chọn bộ ảnh gốc do thợ gửi cho đúng buổi chụp.","code":"source_album_required"}
+✗ Lỗi khi chạy test: Cannot read properties of undefined (reading 'request')
+--- log server ---
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).
+CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.
+ALOHA Baby chat server đang chạy tại http://localhost:3001
+CẢNH BÁO: chưa có GEMINI_API_KEY trong .env — chatbot AI sẽ không trả lời được.
+
+
+37/39 PASS

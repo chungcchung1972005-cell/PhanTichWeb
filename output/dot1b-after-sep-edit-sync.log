@@ -1,0 +1,31 @@
+✓ Dữ liệu giả: 1 yêu cầu có 2 link + 2 tin nhắn trên server RAM
+✓ Cờ tắt: Sếp không gọi /api/edit-requests
+✓ Cờ tắt: đọc localStorage như cũ (thấy yêu cầu local), không thấy yêu cầu server
+✓ Cờ bật: Sếp gọi GET /api/edit-requests/, thấy yêu cầu trên server
+✓ Cờ bật: KHÔNG hiện yêu cầu trong localStorage như dữ liệu server
+✓ Không tự sinh thẻ minh họa; Sếp không có nút gửi link trên thẻ
+✓ Thẻ: tên khách, 2 ảnh, "Thợ ảnh demo", "Mới" (thợ chưa xem), "Khách cần thợ trả lời"? (thợ đã trả lời -> không)
+✓ Bộ lọc Thợ ảnh demo: vẫn thấy yêu cầu chưa phân công từ server
+✓ Chi tiết từ API: 2 link (link gốc ghi rõ nội bộ), 2 ảnh + ghi chú, 2 tin nhắn
+✓ Chi tiết của Sếp: không có form link, không nút Hoàn tất, không ô trả lời
+✓ Sếp mở chi tiết KHÔNG gửi "đã xem" (server cấm Sếp) -> staffSeen vẫn false
+✓ Từ đầu tới giờ Sếp không gửi lệnh ghi nào (không có POST)
+✓ Khách nhắn thêm -> khung chat Sếp đang mở tự cập nhật sau vòng làm mới
+✓ Sếp gọi thẳng setLinks/complete/addMessage/markSeen/setPhotoDone/create -> đều "forbidden"
+✓ Server không đổi sau các lệnh ghi bị từ chối
+✓ Khách gửi yêu cầu mới -> hiện ở trang Sếp sau vòng làm mới
+✓ Thợ ảnh Hoàn tất yêu cầu 1 qua API
+✓ Trạng thái Hoàn thành từ Thợ ảnh -> yêu cầu 1 sang bảng Đã hoàn tất của Sếp (2 link, "Thợ ảnh demo")
+✓ Yêu cầu 1 rời 3 hàng của Sếp
+✓ Badge "chưa xem" trên menu Ảnh & chỉnh sửa đếm yêu cầu thợ chưa mở (2)
+✓ Không có dòng báo lỗi kết nối khi server chạy bình thường
+✓ Mất mạng: hiện "Chưa cập nhật được... dữ liệu là lần tải gần nhất" ở cả 2 mục (Ảnh & chỉnh sửa + Đã hoàn tất)
+✓ Mất mạng: yêu cầu mới trên server KHÔNG hiện (không giả vờ đã đồng bộ), giữ dữ liệu lần tải trước
+✓ Kết nối lại: tự tải yêu cầu mới, ẩn dòng báo lỗi
+✓ Mở trang lúc mất mạng: báo lỗi, KHÔNG hiện yêu cầu server, KHÔNG lấy localStorage thay thế
+✓ Sếp: menu đủ mục; Khách hàng, Lịch hẹn, Phễu, Doanh thu, Cài đặt vẫn dựng như cũ
+✓ Sale (cờ bật) ở admin.html: không có khu ảnh, không gọi API ảnh, Khách hàng vẫn dựng
+✓ Sale (cờ bật): Không gian Sale mở bình thường, không gọi API ảnh
+✓ Không có lỗi JS / hộp thoại trên các trang
+
+29/29 PASS

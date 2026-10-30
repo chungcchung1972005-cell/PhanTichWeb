@@ -1,0 +1,5 @@
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).
+PASS Sale roster includes demo worker; editor follows shooter and preserves manual choice
+PASS machine A booking -> machine B assigned shoot and server Drive import
+PASS machine C public photos + edit options -> machine B file identity, labels, note and clipboard

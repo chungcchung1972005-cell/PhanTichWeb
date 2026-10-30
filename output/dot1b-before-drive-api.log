@@ -1,0 +1,15 @@
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+PASS two pages and public manifest
+PASS key, resource key, query and pagination
+PASS Sale denied preview
+PASS boss allowed preview
+PASS POST ignores browser photos
+PASS authoritative filename, individual note and five allowed options persisted
+PASS 403
+PASS 404
+PASS empty
+PASS missing key
+PASS 10s timeout
+PASS browser-local mode reports offline server
+PASS Picker hidden without complete browser config
+13 PASS / 0 FAIL

@@ -1,0 +1,116 @@
+✓ server/edit-requests.js không tự nạp mongodb, không đọc MONGODB_URI của chat
+✓ Router yêu cầu chỉnh ảnh báo kho RAM
+✓ Server test không nối MongoDB (chat Sale cũng ở chế độ memory)
+✓ Lấy được token giả cho 6 tài khoản
+✓ Không token: GET / -> 401
+✓ Không token: GET /me -> 401
+✓ Không token: POST / -> 401
+✓ Token giả mạo -> 401
+✓ Sale: GET / -> 403
+✓ Sale: GET /me -> 403
+✓ Sale: POST / -> 403
+✓ Khách vãng lai: GET /me -> 403
+✓ Khách vãng lai: POST / -> 403
+✓ Khách: GET / (danh sách nhân viên) -> 403
+✓ Khách tạo yêu cầu -> 201
+✓ SĐT + tên lấy từ token, bỏ qua phone/customerName gửi lên
+✓ Yêu cầu mới: Chờ xử lý, rev 1, chưa phân công, 3 ảnh, 1 ghi chú riêng
+✓ Phản hồi tạo cho khách không có resultLinkOriginal / photographer
+✓ Khách B tạo yêu cầu riêng -> 201
+✓ Khách A: GET /me chỉ có yêu cầu của A
+✓ Khách A đọc yêu cầu của B -> 404
+✓ Khách A nhắn vào yêu cầu của B -> 404
+✓ Khách A đánh dấu đã xem yêu cầu của B -> 404
+✓ Mã yêu cầu không tồn tại -> 404
+✓ Mã yêu cầu sai định dạng -> 404
+✓ Thợ ảnh: thấy cả 2 yêu cầu
+✓ Sếp: đọc được danh sách
+✓ Sếp lưu link -> 403
+✓ Sếp Hoàn tất -> 403
+✓ Sếp nhắn khách -> 403
+✓ Sếp đánh dấu ảnh -> 403
+✓ Sale lưu link -> 403
+✓ Khách tự lưu link -> 403
+✓ Khách tự Hoàn tất -> 403
+✓ Lưu link thiếu rev -> 400
+✓ Link javascript: -> 400
+✓ Link http (không s) -> 400
+✓ Thợ ảnh lưu 2 link với rev đúng -> 200, rev tăng
+✓ Lưu link với rev cũ -> 409 kèm bản mới nhất
+✓ Khách GET /me: thấy link ảnh đã chỉnh
+✓ Khách GET /me: KHÔNG có resultLinkOriginal (kể cả trong chuỗi JSON thô)
+✓ Khách GET /:id: KHÔNG có resultLinkOriginal
+✓ Sếp đọc được link ảnh gốc (nội bộ)
+✓ Yêu cầu B: chỉ lưu link ảnh gốc -> 200
+✓ Hoàn tất khi chưa có link ảnh đã chỉnh -> 422, vẫn Chờ xử lý
+✓ Yêu cầu B vẫn "Chờ xử lý"
+✓ Hoàn tất với rev cũ -> 409
+✓ Hoàn tất thiếu rev -> 400
+✓ Hoàn tất đúng -> Hoàn thành, mọi ảnh tính là xong
+✓ Hoàn tất lần 2 -> 409 already_completed
+✓ Không gỡ được link ảnh đã chỉnh sau Hoàn tất -> 409
+✓ Không bỏ đánh dấu ảnh sau Hoàn tất -> 409
+✓ Khách gửi from:"ai" -> lưu là "customer", tên từ token
+✓ Tin trả cho khách không có cờ nội bộ needsStaff
+✓ Thợ ảnh gửi from:"ai" -> lưu là "staff"
+✓ Không có tin "ai" nào trong yêu cầu
+✓ Tin của khách có needsStaff=true phía nhân viên
+✓ Ảnh src javascript: -> 400
+✓ Ảnh src đường dẫn lạ -> 400
+✓ Mã ảnh chứa ký tự lạ -> 400
+✓ Không có ảnh -> 400
+✓ Quá 200 ảnh -> 400
+✓ Mã ảnh trùng -> 400
+✓ Mã đơn có ký tự lạ -> 400
+✓ Phí âm -> 400
+✓ JSON hỏng -> 400
+✓ Dữ liệu quá 200kb -> 413
+✓ Tin quá 1500 ký tự -> 400
+✓ Tin rỗng -> 400
+✓ Tin không phải chuỗi -> 400
+✓ Thân là mảng -> 400
+✓ HTML lưu dạng chữ thuần (trả nguyên văn), ký tự điều khiển bị bỏ
+✓ Gửi __proto__/constructor không làm nhiễm đối tượng chung
+✓ 2 người lưu link cùng lúc với cùng rev -> 1 người 200, 1 người 409
+✓ Link được giữ là của người thắng, không bị đè ngầm
+✓ 4 lượt đánh dấu 4 ảnh khác nhau cùng lúc -> đủ 4 ảnh
+✓ 10 tin nhắn gửi cùng lúc -> đủ 10 tin, không mất
+✓ Sau loạt thao tác, rev cũ hơn 1 bậc vẫn bị 409
+✓ Thợ ảnh đánh dấu đã xem -> staffSeen
+✓ GET /?since=<mốc> chỉ trả yêu cầu đổi sau mốc
+✓ Khách đánh dấu đã xem thông báo Hoàn thành
+✓ Phản hồi đánh dấu đã xem của khách vẫn không có link gốc
+✓ Khách đánh dấu đã xem -> 200, rev KHÔNG đổi
+✓ Cờ đã xem của khách được lưu trên server, updatedAt có đổi
+✓ Thợ ảnh đánh dấu đã xem -> staffSeen lưu, rev KHÔNG đổi
+✓ Đã xem lại lần nữa (không có gì đổi) -> updatedAt giữ nguyên
+✓ Khách A đánh dấu đã xem yêu cầu của khách B -> 404, cờ của B không đổi
+✓ Cờ đã xem của B vẫn là của B
+✓ Lưu link với rev đọc TRƯỚC lúc đánh dấu đã xem -> 200, không 409 giả
+✓ Khách xem link mới -> rev vẫn R+1
+✓ Phiên Thợ ảnh khác còn giữ rev cũ (trước lần lưu link) -> 409
+✓ 2 phiên cùng lưu link (cùng rev, có "đã xem" xen giữa) -> 1 phiên 200, 1 phiên 409
+✓ Hoàn tất với rev đọc trước lúc khách đánh dấu đã xem -> 200
+✓ Khách xem thông báo Hoàn thành -> customerSeenDone lưu, rev không đổi
+✓ Khách nhắn -> 200, rev KHÔNG đổi
+✓ Thợ ảnh nhắn -> 200, rev KHÔNG đổi
+✓ Khách gửi from:"ai" -> vẫn lưu là "customer", tên từ token, rev không đổi
+✓ 3 tin lưu đúng thứ tự gửi, đúng người gửi
+✓ Có tin mới -> updatedAt đổi, rev giữ nguyên
+✓ GET /?since= lấy được yêu cầu vừa có tin mới
+✓ Lưu link bằng rev đọc TRƯỚC khi có tin nhắn -> 200, không 409 giả
+✓ Phiên giữ rev cũ hơn lần lưu link -> 409 như trước
+✓ 2 phiên cùng lưu link (có tin nhắn xen giữa) -> 1 phiên 200, 1 phiên 409; tin nhắn vẫn 200
+✓ Tin xen giữa được lưu, rev chỉ tăng 1 (từ lần lưu link thắng)
+✓ Nhắn không token -> 401
+✓ Sale nhắn -> 403
+✓ Sếp nhắn -> 403
+✓ Khách vãng lai nhắn -> 403
+✓ Khách B nhắn vào yêu cầu của khách A -> 404
+✓ Tin quá dài -> 400
+✓ Các lượt bị từ chối không thêm tin, không đổi rev
+✓ Nhắn dồn dập -> 429 (giới hạn 30 tin/phút vẫn còn), rev vẫn không đổi
+✓ Tạo yêu cầu dồn dập -> bị chặn 429
+✓ API chat Sale vẫn chạy (Sale đọc hộp thư -> 200)
+
+114/114 PASS

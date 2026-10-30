@@ -1,0 +1,16 @@
+✗ Thợ ảnh 0900000003 tự chọn ô "Thợ chỉnh 1" (nhận diện theo SĐT) → 0900000003
+✓ Nút "Xem thêm" chỉ hiện khi hàng còn đơn ẩn, không bao giờ "-N đơn"
+✗ Ô Thợ chỉnh 1: chỉ đơn của Thợ chỉnh 1 hoặc "Chưa phân công" → 
+✗ Yêu cầu thật (chưa phân công) hiện ở ô Thợ chỉnh 1 → 
+ERROR: Access denied
+file:///D:/Claude%20Projects/PhanTichWeb/_screenshots/node_modules/puppeteer-core/lib/puppeteer/api/ElementHandle.js:495
+                    throw new Error(`Error: failed to find element matching selector "${selector}"`);
+                          ^
+
+Error: Error: failed to find element matching selector "#workerCount-tho1"
+    at CdpElementHandle.$eval (file:///D:/Claude%20Projects/PhanTichWeb/_screenshots/node_modules/puppeteer-core/lib/puppeteer/api/ElementHandle.js:495:27)
+    at async CdpFrame.$eval (file:///D:/Claude%20Projects/PhanTichWeb/_screenshots/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:469:20)
+    at async CdpPage.$eval (file:///D:/Claude%20Projects/PhanTichWeb/_screenshots/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:462:20)
+    at async D:\Claude Projects\PhanTichWeb\_screenshots\test-tho-anh.js:82:59
+
+Node.js v24.19.0

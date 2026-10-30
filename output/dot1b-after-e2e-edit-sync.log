@@ -1,0 +1,37 @@
+✓ Server test: kho chỉnh ảnh RAM, chat Sale memory (không MongoDB)
+✓ Cờ tắt: khách gửi yêu cầu -> lưu localStorage CỦA TRÌNH DUYỆT KHÁCH như cũ
+✓ Cờ tắt: không vai trò nào gọi /api/edit-requests, server không nhận gì
+✓ Cờ tắt: Thợ ảnh ở trình duyệt khác KHÔNG thấy yêu cầu đó (luồng cũ chỉ trong 1 trình duyệt - đúng giới hạn cũ)
+✓ Khách gửi yêu cầu qua giao diện -> server xác nhận mới báo "đã gửi"
+✓ Khách: yêu cầu KHÔNG nằm trong localStorage (chỉ trên server)
+✓ Thợ ảnh (trình duyệt khác) thấy yêu cầu mới sau vòng polling
+✓ Sếp (trình duyệt khác) thấy yêu cầu mới sau vòng polling
+✓ Thẻ ở Thợ ảnh: tên khách, 2 ảnh, 1 ảnh có ghi chú riêng, "Mới", "Thợ ảnh demo"
+✓ Chi tiết Thợ ảnh: đúng 2 ảnh, ghi chú riêng + ghi chú chung của khách
+✓ Thợ ảnh lưu 2 link -> server xác nhận (hiện nút Hoàn tất)
+✓ Thợ ảnh nhắn khách -> server xác nhận (ô nhập được xoá)
+✓ Khách thấy link ảnh đã chỉnh sau vòng polling
+✓ Khách thấy tin nhắn của thợ
+✓ Khách nhắn lại -> server xác nhận
+✓ Sếp thấy link ảnh đã chỉnh + link ảnh gốc (ghi rõ nội bộ), không có form ghi
+✓ Sếp thấy tin của thợ và tin khách vừa trả lời (khung chat tự làm mới)
+✓ 409 giữa 2 trình duyệt Thợ ảnh: báo dữ liệu đã đổi, giữ chữ đã gõ, hiện link của phiên kia
+✓ 409: không ghi đè, không tự gửi lại (server vẫn giữ link của Thợ 2)
+✓ Khách mất mạng khi nhắn: báo "Tin nhắn CHƯA được gửi", giữ chữ
+✓ Sếp mất mạng: hiện "Chưa cập nhật được... lần tải được gần nhất"
+✓ Sếp có mạng lại: dòng báo lỗi tự ẩn
+✓ Thợ ảnh Hoàn tất -> cửa sổ đóng sau khi server xác nhận
+✓ Thợ ảnh: đơn sang bảng Đã hoàn tất
+✓ Sếp: đơn sang bảng Đã hoàn tất sau vòng polling
+✓ Khách: chuông báo "Ảnh đã sửa xong" sau vòng polling
+✓ Khách: tiến độ đủ 3 bước, link ảnh đã chỉnh mới nhất (của Thợ 2)
+✓ Khách: HTML không chứa link ảnh gốc
+✓ Khách: mọi phản hồi /api/edit-requests không chứa link ảnh gốc
+✓ Nhân viên: phản hồi API cho Thợ ảnh / Sếp có link ảnh gốc
+✓ Khách gọi list/setLinks/complete -> "forbidden"
+✓ Sếp gọi addMessage/markSeen -> "forbidden"
+✓ Khách khác (đăng ký giả): không thấy yêu cầu của khách A, get -> not_found
+✓ Toàn bộ quá trình bật cờ: không yêu cầu nào trong localStorage của 3 vai trò
+✓ Không có lỗi JS / hộp thoại trên mọi trang
+
+35/35 PASS

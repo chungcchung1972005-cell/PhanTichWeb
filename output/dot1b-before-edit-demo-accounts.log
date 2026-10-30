@@ -1,0 +1,51 @@
+✓ A1 không đặt EDIT_DEMO_ACCOUNTS: SĐT thử nghiệm không đăng nhập được
+✓ A2 không đặt biến: đăng ký SĐT đó vẫn được như cũ
+✓ A3 không có log tài khoản thử nghiệm khi không đặt biến
+✓ B1 EDIT_DEMO_ACCOUNTS hỏng: server vẫn chạy, không cấp tài khoản nào
+✓ B2 log báo JSON không hợp lệ
+✓ C0 log: đúng 4 tài khoản hợp lệ
+✓ C0 log: 4 mục sai bị bỏ qua có lý do
+✓ C1 Thợ thử nghiệm đăng nhập: role tho-anh, scope edit-demo
+✓ C2 Sếp thử nghiệm đăng nhập: role sep, scope edit-demo
+✓ C3 Khách thử nghiệm đăng nhập được
+✓ C4 sai mật khẩu -> 401
+✓ C5 mục vai trò sale (bị bỏ qua) không đăng nhập được
+✓ C6 mục hash sai (bị bỏ qua) không đăng nhập được
+✓ C7 mục trùng Sếp demo không chiếm được tài khoản demo (mật khẩu thử nghiệm bị từ chối)
+✓ C8 Sale demo đăng nhập như cũ, không có scope
+✓ C9 Sếp demo đăng nhập như cũ, không có scope
+✓ D0 khách demo vẫn nhắn Sale được (200)
+✓ D0 Sale demo vẫn trả lời được (200)
+✓ D1 Sếp thử nghiệm GET /inbox -> 403
+✓ D1 Sếp thử nghiệm GET /inbox/:phone -> 403
+✓ D1 Sếp thử nghiệm POST /inbox/:phone/messages -> 403
+✓ D1 Sếp thử nghiệm POST /inbox/:phone/read -> 403
+✓ D1 Thợ thử nghiệm GET /inbox -> 403
+✓ D1 Thợ thử nghiệm GET /inbox/:phone -> 403
+✓ D1 Thợ thử nghiệm POST /inbox/:phone/messages -> 403
+✓ D1 Khách thử nghiệm GET /me -> 403
+✓ D1 Khách thử nghiệm POST /me/messages -> 403
+✓ D1 Khách thử nghiệm POST /me/handoff -> 403
+✓ D1 Khách thử nghiệm POST /me/read -> 403
+✓ D1 Khách thử nghiệm GET /inbox -> 403
+✓ D2 chat Sale không bị đổi bởi tài khoản thử nghiệm (số tin, chưa đọc giữ nguyên)
+✓ D3 không có cuộc trò chuyện nào của SĐT thử nghiệm trong hộp thư Sale
+✓ D4 tự xoá scope khỏi token (không có khoá ký) -> 401
+✓ E1 đăng ký bằng SĐT thử nghiệm -> 409 phone_taken
+✓ E2 đăng ký SĐT thường vẫn được (200)
+✓ F1 Sale demo đọc hộp thư (200)
+✓ F2 Sếp demo vẫn xem hộp thư (200)
+✓ F3 Sếp demo vẫn KHÔNG trả lời được (403)
+✓ F4 Thợ ảnh demo vẫn không vào hộp thư (403)
+✓ F5 Khách demo đọc chat của mình (200)
+✓ F6 Khách vãng lai vẫn chat Sale được (200)
+✓ F7 Sale demo vẫn bị chặn ở API chỉnh ảnh (403)
+✓ F8 Khách vãng lai vẫn bị chặn ở API chỉnh ảnh (403)
+✓ F9 Thợ ảnh demo GET / -> 403 public_demo_staff_blocked
+✓ F9 Sếp demo GET / -> 403 public_demo_staff_blocked
+✓ F9 Thợ ảnh demo GET /health không cần token (200, không lộ dữ liệu)
+✓ F10 Khách demo 0900000001 KHÔNG bị chặn ở API chỉnh ảnh (200)
+✗ G1 Khách thử nghiệm tạo yêu cầu (201), SĐT lấy từ token → [400,"source_album_required"]
+✗ LỖI: Cannot read properties of undefined (reading 'id')
+
+47/49 PASS

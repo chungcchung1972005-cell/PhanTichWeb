@@ -1,0 +1,2 @@
+PASS: linked order transitions, room/crew ownership, deposit gate, frozen package splits, idempotent earnings, extra rounds, debt gate, approvals and payouts, staff privacy
+PASS: Sale package 5%, extra fee 5%, retry idempotence and own-role ledger privacy

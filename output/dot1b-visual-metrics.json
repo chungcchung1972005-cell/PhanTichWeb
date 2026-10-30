@@ -1,0 +1,116 @@
+[
+  {
+    "view": "customer",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "floating": true,
+    "selected": 3,
+    "hearts": [
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      }
+    ]
+  },
+  {
+    "view": "customer",
+    "width": 390,
+    "scrollWidth": 390,
+    "floating": true,
+    "selected": 3,
+    "hearts": [
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      },
+      {
+        "width": 44,
+        "height": 44,
+        "hit": true
+      }
+    ]
+  },
+  {
+    "view": "worker",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "copyHeight": 47.59375,
+    "drive": [
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      },
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      },
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      }
+    ],
+    "filenames": [
+      "IMG_0001.JPG",
+      "IMG_0002.JPG",
+      "IMG_0003.JPG"
+    ]
+  },
+  {
+    "view": "worker",
+    "width": 390,
+    "scrollWidth": 390,
+    "copyHeight": 47.59375,
+    "drive": [
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      },
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      },
+      {
+        "text": "Mở trên Drive",
+        "height": 44,
+        "width": 113.34375
+      }
+    ],
+    "filenames": [
+      "IMG_0001.JPG",
+      "IMG_0002.JPG",
+      "IMG_0003.JPG"
+    ]
+  }
+]

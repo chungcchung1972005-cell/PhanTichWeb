@@ -1,0 +1,11 @@
+✓ Cờ tắt: đăng nhập vào "Ảnh của tôi", AlohaEditSync tắt
+✗ Lỗi khi chạy test: No element found for selector: .ps-photo[data-id="ph-1"] .ps-heart
+--- log server ---
+CẢNH BÁO: chưa đặt MONGODB_URI - tin nhắn chat lưu trong bộ nhớ, server khởi động lại là MẤT HẾT. Chỉ dùng để chạy thử local.
+edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).
+CẢNH BÁO: chưa đặt ALLOWED_ORIGINS, CORS đang mở cho MỌI website gọi vào - chỉ chấp nhận được khi test local.
+ALOHA Baby chat server đang chạy tại http://localhost:3001
+CẢNH BÁO: chưa có GEMINI_API_KEY trong .env — chatbot AI sẽ không trả lời được.
+
+
+1/2 PASS

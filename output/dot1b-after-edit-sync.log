@@ -1,0 +1,66 @@
+✓ features.js: editSync mặc định true
+✓ editSync=0 persists browser opt-out
+✓ browser opt-out survives reload
+✓ editSync=1 clears opt-out
+✓ preset feature override has priority
+✓ features.js: 3 cờ cũ giữ nguyên giá trị mặc định
+✓ features.js: cờ editSync không gắn class mới lên <html>
+✓ Test cũ đặt sẵn 3 cờ (launchAllFeatures) -> editSync vẫn false
+✓ edit-sync.js không dùng AlohaData / localStorage / sessionStorage / indexedDB
+✓ edit-sync.js không có hạn 7 ngày
+✓ AlohaData giữ nguyên 14 hàm/hằng sau khi nạp edit-sync.js
+✓ Cờ tắt: cả 10 hàm trả ok:false, error "disabled"
+✓ Cờ tắt: không gọi AlohaAuth.api lần nào
+✓ Cờ tắt: không ghi thêm gì vào localStorage
+✓ AlohaData.createEditRequest + setResultLink vẫn lưu localStorage như cũ
+✓ AlohaData.advanceRequestStatus vẫn chạy như cũ
+✓ Thiếu cờ editSync (vd trang không nạp features.js, hoặc features.js bản cũ trong bộ nhớ đệm) -> coi là TẮT
+✓ Cờ bật: enabled() = true
+✓ AlohaEditSync bị đóng băng (không ghi đè được hàm)
+✓ 13 lời gọi đúng phương thức + đường dẫn router
+✓ health gọi không kèm token (auth:false), các hàm khác kèm token
+✓ create: chỉ gửi trường cho phép (không gửi phone/from, ảnh bỏ trường lạ, isExtra thành boolean)
+✓ addMessage: chỉ gửi { text } (không có "from")
+✓ markSeen: { done, editedSig } / {} 
+✓ setPhotoDone: { photoId, done }
+✓ setLinks: gửi rev + link đã cắt khoảng trắng; chỉ gửi trường có
+✓ complete: { rev }
+✓ Tham số sai (id, tin rỗng, thiếu rev, không có link...) -> invalid, không gọi mạng
+✓ Quy đổi lỗi: 0/401/403/404/409/409/422/413/429/503/500/ngoại lệ
+✓ 409 kèm bản mới nhất (latest) để trang tải lại
+✓ Mọi lỗi đều ok:false và có câu báo tiếng Việt
+✓ Câu báo riêng: thiếu link ảnh đã chỉnh / đã Hoàn thành / khách vãng lai
+✓ Không có token -> unauthorized (no_token), không gọi mạng
+✓ health() không cần token vẫn gọi được
+✓ Thiếu AlohaAuth -> unavailable
+✓ js/auth.js thật trỏ API_BASE tới server local cổng 3001
+✓ health(): server báo kho RAM
+✓ Khách create() -> 201 qua API thật
+✓ Khách mine() -> 2 yêu cầu của mình
+✓ Thợ ảnh list() -> thấy yêu cầu
+✓ Sếp list() đọc được
+✓ Sale list() -> forbidden
+✓ Sếp setLinks() -> forbidden
+✓ Thợ ảnh markSeen()
+✓ Thợ ảnh setPhotoDone()
+✓ Thợ ảnh setLinks() với rev đúng -> ok, rev tăng
+✓ setLinks() với rev cũ -> conflict 409 kèm latest
+✓ complete() khi chưa có link ảnh đã chỉnh -> invalid edited_link_required
+✓ complete() đúng -> Hoàn thành, mọi ảnh xong
+✓ complete() lần 2 -> conflict already_completed
+✓ Khách get(): có link ảnh đã chỉnh, KHÔNG có resultLinkOriginal
+✓ Khách addMessage() -> tin "customer"
+✓ Khách markSeen() -> customerSeenDone + editedSig
+✓ list(since) chỉ trả yêu cầu đổi sau mốc
+✓ Token giả mạo -> unauthorized 401
+✓ Gọi API không ghi thêm khoá mới nào vào localStorage
+✓ Server tắt -> offline (status 0), không báo thành công
+✓ Server tắt: AlohaEditSync không tự ghi localStorage
+✓ index.html: có AlohaEditSync, cờ editSync=false, enabled()=false
+✓ index.html: AlohaData vẫn đủ 14 hàm/hằng
+✓ index.html: gọi thử khi cờ tắt -> "disabled"
+✓ crm/admin.html: có AlohaEditSync, enabled()=false (đã nạp features.js, cờ mặc định tắt)
+✓ crm/admin.html: không tự sinh đơn ảnh minh họa; Khách hàng vẫn dựng từ AlohaData
+✓ Không có lỗi JS trên 2 trang
+
+64/64 PASS
