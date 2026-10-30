@@ -136,7 +136,7 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     await k1.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
     await k1.page.click('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart');
     await k1.page.click('#psSubmitBtn');
-    await k1.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 10000 });
+    await k1.page.waitForFunction(() => document.querySelectorAll('.ps-sent-label').length===2 && document.getElementById('selectedCount').textContent==='0', {timeout:10000});
     const h1 = await health();
     check('B6 gửi yêu cầu qua server thành công (server có 1 yêu cầu và 2 album gốc)', h1.count === 3, h1);
     db = await localDb(k1.page);
@@ -145,7 +145,7 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     // Khách thử nghiệm 2: không thấy yêu cầu của khách 1
     const k2 = await machine();
     await login(k2, K2.entry.phone, K2.pw, '?editSync=1');
-    await k2.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi yêu cầu chỉnh sửa', { timeout: 10000 });
+    await k2.page.waitForFunction(() => /^G/.test(document.getElementById('psSubmitBtn').textContent.trim()), {timeout:10000});
     const mine2 = await k2.page.evaluate(async () => (await window.AlohaEditSync.mine()).data.requests.length);
     check('B8 khách thử nghiệm 2 không thấy yêu cầu của khách 1 (GET /me = 0, nút gửi chưa khoá)', mine2 === 0, mine2);
     check('B9 khách thử nghiệm 2 thấy album riêng #ABTN0104', /#ABTN0104/.test(await orderInfo(k2.page)));

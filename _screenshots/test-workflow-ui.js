@@ -52,7 +52,7 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
   assert.match(await page.$eval('#custView',e=>e.textContent),/Khách liên kết/);
   await page.evaluate(async()=>{
    const o=AlohaWorkflow.get().orders[0];await AlohaWorkflow.command('payment',{id:o.id,amount:750000,reference:'balance-ui'});
-   const shoot=AlohaWorkflow.get().entries.find(e=>e.kind==='shoot');await AlohaWorkflow.command('approve-entry',{id:shoot.id});await AlohaWorkflow.command('pay-entry',{id:shoot.id,reference:'payout-ui'});
+   const request=AlohaData.getEditRequests().find(r=>r.workflowOrderId===o.id);AlohaWorkflow.progress(AlohaData.setCustomerFeedback(request.id,'satisfied'),'delivered');await AlohaWorkflow.refresh();const shoot=AlohaWorkflow.get().entries.find(e=>e.kind==='shoot');await AlohaWorkflow.command('pay-month',{phone:shoot.phone,month:shoot.confirmedMonth,reference:'payout-ui'});
   });
   assert.match(await page.$eval('#quy-trinh',e=>e.textContent),/payout-ui/);
   assert.equal(await page.evaluate(()=>AlohaWorkflow.get().entries.find(e=>e.kind==='sale').amount),75000);

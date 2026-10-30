@@ -130,7 +130,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
     offWin.AlohaAuth = mockAuth('tok');
     load(offWin, 'js/edit-sync.js');
     const S = offWin.AlohaEditSync;
-    check('AlohaData giữ nguyên 14 hàm/hằng sau khi nạp edit-sync.js', Object.keys(offWin.AlohaData).sort().join(',') === dataKeysBefore && Object.keys(offWin.AlohaData).length === 14, Object.keys(offWin.AlohaData));
+    check('AlohaData giữ nguyên 15 hàm/hằng sau khi nạp edit-sync.js', Object.keys(offWin.AlohaData).sort().join(',') === dataKeysBefore && Object.keys(offWin.AlohaData).length === 15, Object.keys(offWin.AlohaData));
     const writesBefore = offWin.localStorage.writes;
     const offResults = await Promise.all([S.health(), S.mine(), S.list(), S.get(ID), S.create({ photos: [] }), S.addMessage(ID, 'x'), S.markSeen(ID), S.setPhotoDone(ID, 'ph-1', true), S.setLinks(ID, { resultLink: 'https://a.b' }, 1), S.complete(ID, 1)]);
     check('Cờ tắt: cả 10 hàm trả ok:false, error "disabled"', offResults.every((r) => r.ok === false && r.error === 'disabled' && r.message), offResults.map((r) => r.error));
@@ -293,7 +293,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
       dataKeys: window.AlohaData ? Object.keys(window.AlohaData).length : -1, ls: Object.keys(localStorage)
     }));
     check('index.html: có AlohaEditSync, cờ editSync=false, enabled()=false', v.has && v.enabled === false && v.flag === false, v);
-    check('index.html: AlohaData vẫn đủ 14 hàm/hằng', v.dataKeys === 14, v.dataKeys);
+    check('index.html: AlohaData vẫn đủ 15 hàm/hằng', v.dataKeys === 15, v.dataKeys);
     v = await page.evaluate(async () => (await window.AlohaEditSync.mine()).error);
     check('index.html: gọi thử khi cờ tắt -> "disabled"', v === 'disabled', v);
     // Trang quản trị (đăng nhập Sếp giả, không cần server)
@@ -306,7 +306,7 @@ process.on('SIGINT', () => { stopServer(); process.exit(1); });
       rows: document.querySelectorAll('#photoRows .photo-row-card').length, cust: document.getElementById('custView') ? document.getElementById('custView').children.length : -1
     }));
     check('crm/admin.html: có AlohaEditSync, enabled()=false (đã nạp features.js, cờ mặc định tắt)', v.has && v.enabled === false, v);
-    check('crm/admin.html: không tự sinh đơn ảnh minh họa; Khách hàng vẫn dựng từ AlohaData', v.rows === 0 && v.cust > 0 && v.dataKeys === 14, v);
+    check('crm/admin.html: không tự sinh đơn ảnh minh họa; Khách hàng vẫn dựng từ AlohaData', v.rows === 0 && v.cust > 0 && v.dataKeys === 15, v);
     check('Không có lỗi JS trên 2 trang', errors.length === 0, errors);
   } catch (e) {
     fail++;

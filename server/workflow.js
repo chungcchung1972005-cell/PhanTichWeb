@@ -14,7 +14,7 @@ function createService(store) {
     const run=queue.then(async () => {
       for(let i=0;i<5;i++) {
         const s=await read(), next=fn(s);
-        const result=await store.updateIfRev(s.id,s.rev,{orders:next.orders,rules:next.rules,entries:next.entries,employees:next.employees,audit:next.audit});
+        const result=await store.updateIfRev(s.id,s.rev,{orders:next.orders,rules:next.rules,entries:next.entries,employees:next.employees,audit:next.audit,settings:next.settings || {}});
         if(result && result.doc) return result.doc;
       }
       throw new Error('Dữ liệu vừa thay đổi. Vui lòng tải lại và thử lại.');
@@ -28,21 +28,21 @@ function createService(store) {
     progress(request,event) { return update(s=>core.progress(s,request,event)); },
     async sourceOrder(user,id) {
       const order=(await read()).orders.find(o=>o.id===id);
-      if(!order || user.role!=='tho-anh' || order.shooterPhone!==user.phone || !['shot','choosing'].includes(order.status)) throw new Error('Chọn buổi chụp đã hoàn tất do bạn phụ trách.');
+      if(!order || user.role!=='tho-anh' || order.shooterPhone!==user.phone || !order.shotAt) throw new Error('Chọn buổi chụp đã hoàn tất do bạn phụ trách.');
       return order;
     },
     async originalDelivered(id,albumId) {
       return update(s=>{const next=JSON.parse(JSON.stringify(s)),o=next.orders.find(o=>o.id===id); if(o && ['shot','choosing'].includes(o.status)) {o.status='choosing';o.sourceAlbumId=albumId;o.updatedAt=Date.now();} return next;});
     },
     async reconcile() {
-      if(!requestsStore) return update(s=>core.expire(s));
+      if(!requestsStore) return update(s=>core.reconcile(s));
       const records=(await requestsStore.listAll()).filter(r=>r.workflowOrderId).sort((a,b)=>a.createdAt-b.createdAt);
       return update(s=>{
         let next=core.expire(s);
         records.forEach(r=>{ if(!next.orders.some(o=>o.id===r.workflowOrderId)) return;
           if(r.kind==='source-album') { const o=next.orders.find(o=>o.id===r.workflowOrderId); if(['shot','choosing'].includes(o.status)) {o.status='choosing';o.sourceAlbumId=r.id;} }
           else {next=core.progress(next,r,'selected');if(r.status==='Hoàn thành') next=core.progress(next,r,'delivered');}
-        }); return next;
+        }); return core.reconcile(next);
       });
     }
   };

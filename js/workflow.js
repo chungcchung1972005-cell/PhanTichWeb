@@ -13,7 +13,7 @@
   }
   async function refresh() {
     if(loading) return loading;
-    loading=(enabled()?call(''):Promise.resolve().then(()=>{const raw=local(),s=core.expire(raw);if(s!==raw)localStorage.setItem(KEY,JSON.stringify(s));return changed(core.view(s,user()),'local');})).finally(()=>{loading=null;});
+    loading=(enabled()?call(''):Promise.resolve().then(()=>{const raw=local(),s=core.reconcile(raw);if(s!==raw)localStorage.setItem(KEY,JSON.stringify(s));return changed(core.view(s,user()),'local');})).finally(()=>{loading=null;});
     return loading;
   }
   async function command(command,data) {

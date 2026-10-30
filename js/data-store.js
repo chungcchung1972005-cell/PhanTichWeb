@@ -130,6 +130,7 @@
     if (idx >= 0 && idx < STATUS_FLOW.length - 1) {
       req.status = STATUS_FLOW[idx + 1];
       writeDb(db);
+      if(req.status==='Hoàn thành') req.completedAt=Date.now();
       if(req.status === 'Hoàn thành' && window.AlohaWorkflow && req.workflowOrderId) AlohaWorkflow.progress(req,'delivered');
     }
     return req;
@@ -234,13 +235,18 @@
   readDb();
 
   window.AlohaData = {
+    setCustomerFeedback(id,feedback) {
+      const db=readDb(),req=db.editRequests.find(r=>r.id===id);
+      if(!req || req.status!=='Hoàn thành' || !['satisfied','revision'].includes(feedback)) return null;
+      req.customerFeedback=feedback;req.customerFeedbackAt=Date.now();writeDb(db);return req;
+    },
     getSourceAlbums(phone) { return (readDb().sourceAlbums || []).filter(a => !phone || a.phone === phone); },
     deliverSourceAlbum(data) {
       const s = window.AlohaAuth && AlohaAuth.getSession();
       if (!s || s.role !== 'tho-anh') throw new Error('Chỉ thợ ảnh được gửi ảnh gốc.');
       const db = readDb();
       const order=window.AlohaWorkflow && AlohaWorkflow.localOrder(data.workflowOrderId);
-      if(!order || order.shooterPhone!==s.phone || !['shot','choosing'].includes(order.status)) throw new Error('Chọn buổi chụp đã hoàn tất do bạn phụ trách.');
+      if(!order || order.shooterPhone!==s.phone || !order.shotAt) throw new Error('Chọn buổi chụp đã hoàn tất do bạn phụ trách.');
       const album = Object.assign({}, data, {phone:order.phone,orderCode:order.code,customerName:order.customerName,serviceLabel:order.service,editorPhone:order.editorPhone,shooterPhone:order.shooterPhone,id:'AL-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), createdAt:Date.now(), staffName:s.name});
       db.sourceAlbums = (db.sourceAlbums || []).concat([album]); writeDb(db);
       AlohaWorkflow.originalDelivered(order.id,album.id);return album;

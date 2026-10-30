@@ -39,6 +39,24 @@
     const s=copy(input);
     s.orders.filter(o=>o.status==='booked' && o.collected===0 && o.createdAt+3600000<=now).forEach(o=>{o.status='cancelled';o.updatedAt=now;log(s,{phone:'system',name:'Hết giờ giữ lịch'},'expired',o.id,now);});return s;
   }
+  const monthOf = t => new Date(t).toLocaleDateString('sv-SE',{timeZone:'Asia/Ho_Chi_Minh'}).slice(0,7);
+  function reconcile(input,now=Date.now()) {
+    const s=copy(expire(input,now));
+    s.orders.forEach(o=>{
+      const settled=r=>r && r.deliveredAt && r.customerFeedback!=='revision' && (r.customerFeedback==='satisfied' || now>=r.deliveredAt+(s.settings?.satisfactionDays ?? 3)*86400000);
+      const done=o.status==='delivered' && o.deliveredAt && o.customerFeedback!=='revision' && (o.customerFeedback==='satisfied' || now>=o.deliveredAt+(s.settings?.satisfactionDays ?? 3)*86400000);
+      o.completed=o.rounds ? Object.values(o.rounds).every(settled) : !!done;
+      s.entries.filter(e=>e.orderId===o.id && e.status!=='paid').forEach(e=>{
+        const roundId=e.requestId || (o.rounds && Object.keys(o.rounds).find(id=>e.id.startsWith(id+':')));
+        const r=o.rounds && o.rounds[roundId || o.firstRequestId];
+        const ready=r ? settled(r) : done;
+        const funded=o.collected>=o.price+(o.extraFees||0) || (r && o.collected-(o.extraFees||0)>=o.price && r.paid);
+        const eligible=ready && funded && e.amount!==null;
+        if(eligible && e.status==='pending') {e.status='approved';e.approvedAt=now;e.confirmedMonth=monthOf(now);}
+        e.waitReason=ready && !funded?'Chờ khách thanh toán đủ':'Chờ khách xác nhận';
+      });
+    });return s;
+  }
   function amounts(policy,price) { return policy ? {sale:cut(policy.sale,price),shoot:cut(policy.shoot,price),edit:cut(policy.edit,price)} : null; }
   function log(s,u,action,id,now) { s.audit.push({id,action,by:u.phone,name:u.name || '',at:now}); }
   function accrue(s,o,kind,person,id,quantity,now) {
@@ -49,7 +67,7 @@
   }
   function apply(input,user,command,data,now=Date.now()) {
     assert(user && internal.includes(user.role), 'Không có quyền quản lý quy trình.');
-    const s = copy(expire(input || empty(),now)); const d = data || {};
+    const s = copy(reconcile(input || empty(),now)); const d = data || {};
     if (command === 'employee') {
       assert(user.role === 'sep','Chỉ Sếp được quản lý nhân sự.');
       assert(phone(d.phone) && text(d.name) && ['sale','tho-anh'].includes(d.role),'Nhân sự cần tên, SĐT đăng nhập và vai trò hợp lệ.');
@@ -78,13 +96,15 @@
       assert(!s.orders.some(o => o.status !== 'cancelled' && o.date === d.date && (o.shooterPhone === d.shooterPhone || (d.room && d.room!=='Ngoài' && o.room===d.room)) && minutes(o.time) < minutes(d.time)+duration && minutes(o.time)+o.duration > minutes(d.time)), 'Thợ hoặc phòng đã có lịch trùng giờ.');
       const o = {id:text(d.id,80),code:d.code,phone:d.phone,customerName:text(d.customerName),customerId:existing && existing.customerId || text(d.customerId,80),service:text(d.service),pkg:text(d.pkg),price:d.price,date:d.date,time:d.time,duration,room:text(d.room),salePhone,shooterPhone:d.shooterPhone,editorPhone:d.editorPhone,status:'booked',collected:0,payments:[],createdAt:now,updatedAt:now,policy:null};
       s.orders.push(o);
-    } else if (command === 'approve-entry' || command === 'pay-entry') {
-      assert(user.role === 'sep','Chỉ Sếp được duyệt và chi tiền công.');
-      const entry = s.entries.find(e => e.id === d.id); assert(entry,'Không tìm thấy khoản tiền công.');
-      const order = s.orders.find(o => o.id === entry.orderId);
-      assert(entry.amount !== null && order && order.collected >= order.price + (order.extraFees || 0),'Chưa thể duyệt/chi: thiếu cấu hình tiền công hoặc khách chưa thanh toán đủ.');
-      if (command === 'approve-entry') { assert(entry.status === 'pending','Khoản này đã được xử lý.'); entry.status='approved'; entry.approvedAt=now; entry.approvedBy=user.phone; }
-      else { assert(entry.status === 'approved' && text(d.reference,150),'Cần khoản đã duyệt và mã chuyển khoản/phiếu chi.'); entry.status='paid'; entry.paidAt=now; entry.reference=text(d.reference,150); entry.paidBy=user.phone; }
+    } else if(command==='settings') {
+      assert(user.role==='sep' && Number.isInteger(d.satisfactionDays) && d.satisfactionDays>=1 && d.satisfactionDays<=365,'Số ngày phải từ 1 đến 365.');
+      s.settings={...s.settings,satisfactionDays:d.satisfactionDays};
+    } else if(command==='pay-month') {
+      assert(user.role==='sep' && /^\d{4}-\d{2}$/.test(d.month||'') && text(d.reference,150),'Cần tháng và mã chuyển khoản/phiếu chi.');
+      assert(!s.entries.some(e=>e.reference===text(d.reference,150)),'Mã chi đã được sử dụng.');
+      const entries=s.entries.filter(e=>e.phone===d.phone && e.status==='approved' && (e.confirmedMonth||monthOf(e.approvedAt))===d.month);
+      assert(entries.length,'Không còn khoản đã chốt cần trả trong tháng.');
+      entries.forEach(e=>{e.status='paid';e.paidAt=now;e.reference=text(d.reference,150);e.paidBy=user.phone;});
     } else {
       const o = s.orders.find(o => o.id === d.id); assert(o && allowedOrder(user,o),'Không tìm thấy đơn thuộc quyền phụ trách.');
       if (command === 'payment') {
@@ -114,16 +134,20 @@
     }
     s.orders.forEach(o => { const a=amounts(o.policy,o.price); if(a) assert(a.sale+a.shoot+a.edit<=o.price,'Tổng tiền Sale + công chụp + công chỉnh vượt giá gói.'); });
     if(command==='rule') {const p=s.rules.at(-1),a=amounts(p,p.price);assert(a.sale+a.shoot+a.edit<=p.price,'Tổng chia tiền không được vượt giá gói.');}
-    log(s,user,command,d.id || '',now); return s;
+    log(s,user,command,d.id || '',now); return reconcile(s,now);
   }
   // Server / local store use these hooks with authoritative edit-request data only.
   function progress(input,request,event,now=Date.now()) {
     const s=copy(input), o=s.orders.find(o => o.id===request.workflowOrderId);
     assert(o,'Không tìm thấy đơn liên kết.');
+    if(!o.rounds) o.rounds={};
+    if(!o.firstRequestId || (request.round||1)===1) o.firstRequestId=request.id;
+    const previous=o.rounds[request.id] || {};
+    o.rounds[request.id]={...previous,paid:!!request.verifiedPayment || !(request.extraFee>0)};
     if(event==='selected') {
       const tag='request:'+request.id;
       if(!o.requestIds) o.requestIds=[];
-      if(!o.requestIds.includes(tag)) { o.requestIds.push(tag); o.extraFees=(o.extraFees||0)+(request.extraFee||0); o.status='editing'; }
+      if(!o.requestIds.includes(tag)) { o.requestIds.push(tag); o.extraFees=(o.extraFees||0)+(request.extraFee||0); o.status='editing'; o.customerFeedback=null; o.deliveredAt=null; }
       if(request.extraFee>0) accrue(s,o,'sale-extra',o.salePhone,request.id+':sale-extra',request.extraFee,now);
       const receipt=request.verifiedPayment;
       if(receipt && money(receipt.amount) && receipt.amount===(request.extraFee||0) && !s.orders.some(order=>order.payments.some(p=>p.reference===receipt.reference))) {
@@ -134,9 +158,12 @@
       if(round===1) accrue(s,o,'edit',o.editorPhone,request.id+':edit',1,now);
       const count=round===1 ? request.extraCount||0 : request.photoCount;
       if(count) accrue(s,o,'extra-edit',o.editorPhone,request.id+':extra-edit',count,now);
-      if(o.requestIds && o.requestIds.at(-1)==='request:'+request.id) o.status='delivered';
+      Object.assign(o.rounds[request.id],{deliveredAt:request.completedAt || previous.deliveredAt || request.updatedAt || now,customerFeedback:Object.prototype.hasOwnProperty.call(request,'customerFeedback')?request.customerFeedback:previous.customerFeedback || null});
+      if(request.id===o.firstRequestId) {o.deliveredAt=o.rounds[request.id].deliveredAt;o.customerFeedback=request.customerFeedback || null;}
+
     }
-    o.updatedAt=now; return s;
+    o.status=Object.values(o.rounds).every(r=>r.deliveredAt)?'delivered':'editing';
+    o.updatedAt=now; return reconcile(s,now);
   }
-  return {empty,seed,expire,apply,view,progress,amounts,cut,allowedOrder};
+  return {empty,seed,expire,reconcile,apply,view,progress,amounts,cut,allowedOrder};
 });

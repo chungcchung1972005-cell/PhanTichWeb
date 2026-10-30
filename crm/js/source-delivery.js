@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const select=document.getElementById('sourceOrderSelect');
     if(select) {
       const selected=select.value;
-      const orders=state.orders.filter(o=>o.shooterPhone===session.phone && ['shot','choosing'].includes(o.status));
+      const orders=state.orders.filter(o=>o.shooterPhone===session.phone && o.shotAt && o.status!=='cancelled');
       select.innerHTML='<option value="">Chọn khách đã chụp...</option>'+orders.map(o=>`<option value="${esc(o.id)}">${esc(o.customerName)} · ${esc(o.code)} · ${esc(o.date)} · ${esc(o.pkg)}</option>`).join('');
       if(orders.some(o=>o.id===selected))select.value=selected;
       const o=orders.find(o=>o.id===select.value);
@@ -46,12 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
       loading = true; send.disabled = true; form.elements.workflowOrderId.disabled=true;form.elements.folderUrl.disabled=true;
       try {
         status.textContent='Đang đọc ảnh từ Drive và gửi cho khách...';
-        const imported=await AlohaDrive.readFolder(folderUrl);
+        const imported=sync ? {folderUrl} : await AlohaDrive.readFolder(folderUrl);
         const data=Object.assign({workflowOrderId:orderId},imported);
         const result = sync ? await AlohaEditSync.deliverSourceAlbum(data) : {ok:true, data:{album:AlohaData.deliverSourceAlbum(data)}};
         if (!result.ok) throw new Error(result.message);
         const album=result.data.album;
-        status.textContent = `Đã gửi ${data.photos.length} ảnh gốc cho ${album.customerName}. Khách có thể chọn ảnh trong mục Ảnh của tôi.`;
+        status.textContent = `Đã gửi ${album.photos.length} ảnh gốc cho ${album.customerName}. Khách có thể chọn ảnh trong mục Ảnh của tôi.`;
         form.elements.folderUrl.value='';document.getElementById('sourceDeliveryPreview').replaceChildren(); await refresh();
       } catch (e) { status.textContent = e.message; send.disabled = false; }
       finally { loading = false; form.elements.workflowOrderId.disabled=false;form.elements.folderUrl.disabled=false;send.disabled=!form.elements.workflowOrderId.value; }

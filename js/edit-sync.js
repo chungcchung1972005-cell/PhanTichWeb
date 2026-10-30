@@ -118,7 +118,8 @@
 
     // Khách: GET /me -> { requests, at }
     mine() { return request('/me'); },
-    sourceAlbums() { return request('/albums/me'); },
+    sourceAlbums(force=false) { return request('/albums/me'+(force?'?force=1':'')); },
+    feedback(id,feedback) { return request('/'+encodeURIComponent(id)+'/feedback',{method:'POST',body:{feedback}}); },
     listSourceAlbums() { return request('/albums'); },
     deliverSourceAlbum(data) { return request('/albums', {method:'POST', body:data}); },
 
