@@ -1789,6 +1789,7 @@ body.lightbox-open { overflow: hidden; }
 #psSummaryCard { display:none !important; }
 .ps-photo.ps-extra-photo:has(.ps-sent-label)::after { top:42px; }
 .ps-cart-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.ps-cart-toolbar[hidden] { display:none; }
 .ps-cart-toolbar > .ps-bulk-btn { flex:0 0 auto; width:auto; }
 #psCart[hidden], #psCart [hidden] { display:none !important; }
 #psCart { position:fixed; bottom:0; left:0; right:0; z-index:900; margin:0; border-radius:0; background:var(--white); box-shadow:0 -4px 24px rgba(25,35,60,.12); padding:14px max(20px, calc((100vw - 1160px)/2)) calc(14px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:24px; color:var(--navy-900); font-family:var(--font-body); font-size:14px; }

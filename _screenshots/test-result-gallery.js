@@ -25,6 +25,8 @@ const env = require('./test-env');
       check(await page.$eval('#psJourney [aria-current]',e=>e.textContent.startsWith('3')),'completed journey');
       await page.$eval('.ps-tab[data-filter="edited"]',e=>e.click());
       check(await page.$$eval('.ps-result-gallery .ps-photo',e=>e.length===1),'result preview');
+      check(await page.$eval('#psSelectAllBtn',e=>e.offsetParent===null),'select-all hidden on edited tab');
+      await page.screenshot({path:__dirname+'/result-gallery-'+width+'.png',fullPage:true});
       await page.click('.ps-revise');
       await page.click('.ps-result-gallery .ps-heart');
       check(await page.$eval('#psCart',e=>!e.hidden&&e.textContent.includes('50.000')),'paid shared cart');
