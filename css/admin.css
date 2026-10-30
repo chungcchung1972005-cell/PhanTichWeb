@@ -1986,3 +1986,6 @@
 .drive-output-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;min-width:0}
 .drive-output-grid article{min-width:0;overflow-wrap:anywhere}.drive-output-grid img{width:100%;height:120px;object-fit:cover;border-radius:8px}
 .drive-small-link{font-size:13px;align-self:flex-start;padding:8px 0}.kanban-modal-body{min-width:0;overflow-wrap:anywhere}
+
+.drive-upload progress{accent-color:var(--pink-600,#e0417a);height:8px}
+.drive-output-grid article p{font-size:13px;margin:6px 0}
