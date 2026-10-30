@@ -381,16 +381,14 @@ app.post('/api/edit-chat', async (req, res) => {
 });
 
 // ===== Thanh toán tự động qua SePay =====
-// Giao dịch tiền VÀO lưu trong bộ nhớ (không có database): đủ cho luồng
-// "khách chuyển khoản -> trang tự nhận ra trong vài giây", nhưng server khởi
-// động lại (vd Render free ngủ sau 15 phút không có request) là mất lịch sử.
-const MAX_TX = 500;
-const {incomingTx,normalize} = require('./payment-receipts');
+// Receipts persist in the dedicated Mongo collection when configured, otherwise RAM.
+const receipts = require('./payment-receipts');
+const {normalize} = receipts;
 
 // Bỏ dấu cách/ký tự lạ, viết hoa: ngân hàng hay tự chèn tiền tố/đổi định dạng
 // nội dung chuyển khoản, chỉ cần mã thanh toán nằm đâu đó trong nội dung là khớp.
 
-app.post('/api/sepay-webhook', (req, res) => {
+app.post('/api/sepay-webhook', async (req, res) => {
   if (!SEPAY_WEBHOOK_KEY) {
     console.error('SePay webhook bị từ chối: chưa đặt SEPAY_WEBHOOK_KEY.');
     return res.status(503).json({ success: false, error: 'webhook_not_configured' });
@@ -403,22 +401,21 @@ app.post('/api/sepay-webhook', (req, res) => {
   const amount = Number(tx.transferAmount);
   if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ success: false, error: 'bad_amount' });
   // SePay có thể gửi lại cùng giao dịch khi thử lại: bỏ qua bản trùng id.
-  if (tx.id != null && incomingTx.some(t => t.id === tx.id)) return res.json({ success: true, duplicate: true });
-
-  incomingTx.push({ id: tx.id, content: normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at: Date.now() });
-  if (incomingTx.length > MAX_TX) incomingTx.splice(0, incomingTx.length - MAX_TX);
-  console.log(`SePay: nhận ${amount}đ, nội dung "${tx.content}"`);
-  return res.json({ success: true });
+  if (tx.id == null || !String(tx.id).trim()) return res.status(400).json({success:false,error:'bad_transaction_id'});
+  try {
+    const added = await receipts.add({id:tx.id, content:normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at:Date.now()});
+    return res.json(added ? {success:true} : {success:true,duplicate:true});
+  } catch (_) { return res.status(503).json({success:false,error:'store_unavailable'}); }
 });
 
-app.get('/api/payment-status', (req, res) => {
+app.get('/api/payment-status', async (req, res) => {
   const code = normalize(req.query.code);
   const amount = Number(req.query.amount);
   if (code.length < 8 || code.length > 40 || !Number.isFinite(amount) || amount <= 0) {
     return res.status(400).json({ error: 'bad_request' });
   }
-  const paid = incomingTx.some(t => t.content.includes(code) && t.amount >= amount);
-  return res.json({ paid });
+  try { return res.json({paid:!!(await receipts.find(code,amount))}); }
+  catch (_) { return res.status(503).json({error:'store_unavailable'}); }
 });
 
 // ===== Chat thật Khách <-> Sale (xem sale-chat.js) =====
@@ -430,7 +427,7 @@ app.use('/api/sale-chat', saleChat.router);
 app.use('/api/edit-requests', editRequests.router);
 app.use('/api/workflow', require('./workflow').router);
 
-app.get('/api/health', (req, res) => res.json({ ok: true, hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
+app.get('/api/health', (req, res) => res.json({ ok: true, driveWrite: require('./drive-auth').isConnected(), hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
 
 app.listen(PORT, () => {
   console.log(`ALOHA Baby chat server đang chạy tại http://localhost:${PORT}`);

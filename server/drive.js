@@ -47,4 +47,45 @@ async function readFolder(value) {
     return {folderId,folderUrl:folder.href,photos};
   } finally {clearTimeout(timer);}
 }
-module.exports={readFolder,folderId};
+function createWriter(options = {}) {
+  const auth = options.auth || require('./drive-auth');
+  const base = (options.base || process.env.GOOGLE_DRIVE_API_BASE || 'https://www.googleapis.com').replace(/\/$/, '');
+  const sleep = options.sleep || (ms => new Promise(r => setTimeout(r, ms)));
+  async function request(path, init = {}) {
+    let refreshed = false;
+    for (let attempt = 0; ; attempt++) {
+      const token = await auth.getAccessToken();
+      const response = await (options.fetch || fetch)(base + path, {...init, headers:{...init.headers, authorization:'Bearer ' + token}, signal:AbortSignal.timeout(20000)});
+      if (response.status === 401 && !refreshed) {
+        await response.text(); await auth.getAccessToken(true); refreshed = true; continue;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) return data;
+      const rate403 = response.status === 403 && (data.error?.errors || []).some(e => ['rateLimitExceeded','userRateLimitExceeded'].includes(e.reason));
+      if (attempt < 4 && (rate403 || response.status === 429 || response.status >= 500)) {
+        const retry = response.headers.get('retry-after');
+        const delay = retry ? (/^\d+(\.\d+)?$/.test(retry) ? Number(retry)*1000 : Date.parse(retry)-Date.now()) : 0;
+        await sleep(Math.min(60000, Math.max(delay || 0, 250 * 2 ** attempt + Math.random()*100))); continue;
+      }
+      throw Object.assign(new Error('drive_request_failed'), {status:response.status});
+    }
+  }
+  const json = data => ({method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(data)});
+  const escape = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return {
+    async ensureFolder(parentId, name) {
+      const q = new URLSearchParams({q:`'${escape(parentId)}' in parents and name = '${escape(name)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`, fields:'files(id,name)', supportsAllDrives:'true', includeItemsFromAllDrives:'true'});
+      const found = await request('/drive/v3/files?' + q);
+      return found.files?.[0] || request('/drive/v3/files?supportsAllDrives=true', json({name, parents:[parentId], mimeType:'application/vnd.google-apps.folder'}));
+    },
+    copyFile: (fileId, parentId, name) => request('/drive/v3/files/' + encodeURIComponent(fileId) + '/copy?supportsAllDrives=true', json({name, parents:[parentId]})),
+    uploadText(parentId, name, mime, text) {
+      const boundary = 'aloha_' + require('crypto').randomBytes(16).toString('hex');
+      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[parentId],mimeType:mime})}\r\n--${boundary}\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`;
+      return request('/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {method:'POST', headers:{'content-type':'multipart/related; boundary='+boundary}, body});
+    },
+    getStartPageToken: () => request('/drive/v3/changes/startPageToken?supportsAllDrives=true'),
+    listChanges: pageToken => request('/drive/v3/changes?' + new URLSearchParams({pageToken, supportsAllDrives:'true', includeItemsFromAllDrives:'true', fields:'nextPageToken,newStartPageToken,changes(fileId,removed,file(id,name,parents,mimeType,trashed))'}))
+  };
+}
+module.exports={readFolder,folderId,createWriter,...createWriter()};
