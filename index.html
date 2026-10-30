@@ -1020,11 +1020,10 @@
                 placeholder="Ví dụ: làm da sáng tự nhiên, giữ tông màu ấm cho cả bộ ảnh..."></textarea>
             </div>
 
-            <div class="ps-submit-bar reveal">
-              <!-- Luồng trạng thái sau khi gửi: xem .claude/rules/workflow.md -->
-              <p>Sau khi gửi, danh sách ảnh đã chọn sẽ bị khóa, tạo yêu cầu chuyển cho đội ngũ Thợ ảnh xử lý (trạng thái
-                "Chờ xử lý").</p>
-              <button class="btn btn-primary" id="psSubmitBtn" disabled>Gửi yêu cầu chỉnh sửa</button>
+            <div class="ps-submit-bar ps-cart" id="psCart" hidden aria-label="Giỏ ảnh">
+              <div class="ps-cart-selection"><strong id="psCartCount">Đã chọn 0 ảnh</strong><small id="psCartDetail"></small></div>
+              <div class="ps-cart-total"><span>Tổng</span><strong id="psCartTotal">Miễn phí</strong></div>
+              <div class="ps-cart-actions"><button type="button" class="btn btn-primary" id="psSubmitBtn" disabled>Gửi cho thợ</button><button type="button" class="btn btn-primary" id="psCartQr" hidden>Xem mã QR</button></div>
             </div>
           </div>
 

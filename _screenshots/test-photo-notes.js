@@ -4,9 +4,13 @@ const { CHROME_PATH, ROOT_URL } = require('./test-env');
 // sách ghi chú riêng dưới lưới ảnh) + ghi chú chung được lưu đúng vào request
 // gửi sang Thợ ảnh.
 const puppeteer = require('puppeteer-core');
+const fixture = require('./workflow-fixture');
 const BASE = ROOT_URL;
 
 (async () => {
+  const fixtureProcess = await fixture.fixtureServer();
+  const token = await fixture.login('http://localhost:3001', '0900000001', 'khach123');
+  const album = await fixture.sourceAlbum('http://localhost:3001', {customer:token,code:'#NOTES01'});
   const browser = await require('./test-env').launchAllFeatures(puppeteer, {
     executablePath: CHROME_PATH,
     headless: 'new', args: ['--no-sandbox']
@@ -18,6 +22,9 @@ const BASE = ROOT_URL;
   }
 
   const page = await browser.newPage();
+  await fixture.installLocalAlbum(page, album);
+  await page.setRequestInterception(true);
+  page.on('request',async r=>{if(!await fixture.thumbnail(page,r))await r.continue();});
   await page.setViewport({ width: 1440, height: 1200 });
   await page.goto(BASE + 'login.html', { waitUntil: 'networkidle0' });
   await page.type('#loginPhone', '0900000001');
@@ -28,11 +35,11 @@ const BASE = ROOT_URL;
   //    Google Photos (js/google-photos-data.js), hoặc bộ ảnh demo local nếu không có album
   const imgCheck = await page.evaluate(() => {
     const imgs = Array.from(document.querySelectorAll('.ps-photo img'));
-    const expected = typeof GOOGLE_PHOTOS_DATA !== 'undefined' ? GOOGLE_PHOTOS_DATA.length : 16;
+    const expected = 24;
     return {
       count: imgs.length,
       expected,
-      allHaveRealSrc: imgs.every(img => /googleusercontent\.com\/|images\/my-photos\/photo-\d+\.jpg$/.test(img.getAttribute('src'))),
+      allHaveRealSrc: imgs.every(img => /drive.google.com\/thumbnail/.test(img.getAttribute('src'))),
       noPlaceholderDiv: document.querySelectorAll('.ps-photo-ph').length === 0
     };
   });
@@ -43,8 +50,7 @@ const BASE = ROOT_URL;
   log('đã bỏ khung danh sách ghi chú riêng từng ảnh', noNotesList);
 
   // 3) Chọn 2 ảnh, ghi chú riêng từng ảnh ngay trong lightbox
-  await page.click('.ps-photo[data-id="ph-1"] .ps-heart');
-  await page.click('.ps-photo[data-id="ph-5"] .ps-heart');
+  await page.evaluate(()=>['drive-fixture-file-1','drive-fixture-file-5'].forEach(id=>document.querySelector(`.ps-photo[data-id="${id}"] .ps-heart`).click()));
   async function noteInLightbox(id, text) {
     await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);
     await page.waitForFunction(() => !document.getElementById('psLbNoteWrap').hidden, { timeout: 3000 });
@@ -52,8 +58,8 @@ const BASE = ROOT_URL;
     await page.type('#psLbNote', text);
     await page.keyboard.press('Escape');
   }
-  await noteInLightbox('ph-1', 'Xoa vet do tren ma');
-  await noteInLightbox('ph-5', 'Lam sang vung mat');
+  await noteInLightbox('drive-fixture-file-1', 'Xoa vet do tren ma');
+  await noteInLightbox('drive-fixture-file-5', 'Lam sang vung mat');
   log('ảnh đã chọn -> lightbox hiện ô ghi chú riêng cho ảnh đó', true);
 
   // 4) Ghi chú chung (hiện ở tab Yêu thích), gửi yêu cầu
@@ -66,8 +72,8 @@ const BASE = ROOT_URL;
   const req = db.editRequests[db.editRequests.length - 1];
   const hasGeneralNote = req.note === 'Giu tong mau am cho ca bo';
   const hasPerPhotoNotes = req.photoNotes && req.photoNotes.length === 2 &&
-    req.photoNotes.some(n => n.id === 'ph-1' && n.note === 'Xoa vet do tren ma') &&
-    req.photoNotes.some(n => n.id === 'ph-5' && n.note === 'Lam sang vung mat');
+    req.photoNotes.some(n => n.id === 'drive-fixture-file-1' && n.note === 'Xoa vet do tren ma') &&
+    req.photoNotes.some(n => n.id === 'drive-fixture-file-5' && n.note === 'Lam sang vung mat');
   log('request lưu đúng cả ghi chú chung lẫn ghi chú riêng từng ảnh', hasGeneralNote && hasPerPhotoNotes, JSON.stringify(req));
 
   // 5) Thợ ảnh thấy gợi ý "+2 ảnh có ghi chú riêng" trên thẻ yêu cầu thật (3 hàng ưu tiên
@@ -84,6 +90,7 @@ const BASE = ROOT_URL;
   log('Thợ ảnh thấy gợi ý số ảnh có ghi chú riêng trên thẻ yêu cầu', kanbanText.includes('2 ảnh có ghi chú riêng'), kanbanText.replace(/\s+/g, ' ').trim());
 
   await browser.close();
+  fixtureProcess.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (failed.length === 0 ? 'TẤT CẢ TEST PASS' : failed.length + ' TEST FAIL'));
   process.exit(failed.length === 0 ? 0 : 1);

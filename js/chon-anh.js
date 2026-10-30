@@ -366,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
       qr = null;
       stopPaymentWatch();
       lockSelection(false);
+      renderCart();
       if (!qrOverlay.classList.contains('show')) showUnpaidBanner();
       return;
     }
@@ -396,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
     lockSelection(true);
+    renderCart();
     setPayStatus('Đang chờ tiền về. Chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh.');
     renderQrCountdown();
     if (!qrTicker) {
@@ -487,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = !sourceAlbum || n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
     syncLightbox();
     syncBulkButtons();
+    renderCart();
   }
 
   // ===== Xử lý click: tim = chọn ảnh, bấm vào ảnh = mở xem ảnh lớn =====
@@ -684,7 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFilter(currentFilter);
       if (clearAllBtn) clearAllBtn.focus();
     });
-    undoBtn.focus();
+    undoBtn.focus({ preventScroll: true });
+    bulkUndo.scrollIntoView({ block: 'center', behavior: 'instant' });
     undoTimer = setTimeout(hideUndo, 8000);
   }
 
@@ -1445,55 +1449,40 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => { restoreSentRequest(); updateSummary(); renderEdited(false); }, 4000);
   }
 
-  // ===== Ô "Đã chọn" nổi theo khi cuộn xem ảnh =====
-  // Ô gốc ở đầu trang cuộn khuất thì chính ô đó chuyển sang position: fixed ngay dưới thanh
-  // menu (giữ nguyên số liệu + nút chọn nhanh); ô giữ chỗ cùng kích thước để trang không giật.
-  const summaryCard = document.getElementById('psSummaryCard');
-  const siteHeader = document.querySelector('.site-header');
-  if (summaryCard) {
-    const slot = document.createElement('div');
-    slot.className = 'ps-summary-slot';
-    summaryCard.parentNode.insertBefore(slot, summaryCard);
-    slot.appendChild(summaryCard);
-    let floating = false, ticking = false;
-
-    function setFloating(on, slotRect) {
-      floating = on;
-      summaryCard.classList.toggle('is-floating', on);
-      slot.style.width = on ? slotRect.width + 'px' : '';
-      slot.style.height = on ? slotRect.height + 'px' : '';
-      if (!on) summaryCard.style.top = summaryCard.style.left = summaryCard.style.width = '';
-    }
-    function placeSummary() {
-      ticking = false;
-      const view = document.getElementById('view-chon-anh');
-      const active = !!view && !view.hidden && currentFilter !== 'edited';
-      const headerBottom = siteHeader ? Math.max(0, siteHeader.getBoundingClientRect().bottom) : 0;
-      const slotRect = slot.getBoundingClientRect();
-      const shouldFloat = active && slotRect.height > 0 && slotRect.bottom < headerBottom + 8;
-      if (shouldFloat !== floating) setFloating(shouldFloat, slotRect);
-      if (!floating) { grid.style.setProperty('--ps-grid-clip', '0px'); return; }
-      summaryCard.style.top = headerBottom + 10 + 'px';
-      // Màn rộng: nổi đúng cột bên phải như vị trí gốc; màn hẹp: trải ngang (xem CSS)
-      const wide = window.innerWidth > 768;
-      summaryCard.style.left = wide ? slotRect.left + 'px' : '';
-      summaryCard.style.width = wide ? slotRect.width + 'px' : '';
-      const safeTop = summaryCard.getBoundingClientRect().bottom + 12;
-      document.documentElement.style.setProperty('--ps-sticky-bottom', safeTop + 'px');
-      // Chỉ cắt lưới khi khối đếm trải ngang (điện thoại); máy tính khối đếm chỉ nằm cột phải
-      grid.style.setProperty('--ps-grid-clip', wide ? '0px' : Math.max(0, safeTop - grid.getBoundingClientRect().top) + 'px');
-    }
-    const requestPlace = () => { if (!ticking) { ticking = true; requestAnimationFrame(placeSummary); } };
-    window.addEventListener('scroll', requestPlace, { passive: true });
-    window.addEventListener('resize', () => { if (floating) setFloating(false); requestPlace(); });
-    window.addEventListener('hashchange', requestPlace);
-    window.addEventListener('ps:filterchange', requestPlace);
-    requestPlace();
+  // Giỏ ảnh dính đáy; giữ ID của ô đếm cũ cho logic và tích hợp hiện có.
+  const cart = document.getElementById('psCart');
+  const toolbar = document.createElement('div');
+  toolbar.className = 'ps-cart-toolbar';
+  toolbar.appendChild(selectAllBtn);
+  toolbar.appendChild(document.getElementById('psBulkUndo'));
+  cart.querySelector('.ps-cart-actions').prepend(clearAllBtn);
+  clearAllBtn.querySelector('span').textContent = 'Bỏ chọn';
+  document.getElementById('psCartQr').addEventListener('click', () => {
+    if (qr) openQrPaymentModal(qr.count, qr.fee);
+  });
+  function renderCart() {
+    const waiting = !!qr && Date.now() < qr.deadline;
+    const active = !document.getElementById('view-chon-anh').hidden && currentFilter !== 'edited' && selected.size > 0;
+    cart.hidden = !active;
+    document.body.classList.toggle('ps-cart-open', active);
+    const feeCount = Math.max(0, selected.size - PACKAGE_COUNT);
+    document.getElementById('psCartCount').textContent = 'Đã chọn ' + selected.size + ' ảnh';
+    document.getElementById('psCartDetail').textContent = waiting ? 'Đang chờ thanh toán…' : feeCount ? feeCount + ' × 50.000đ' : '10 ảnh miễn phí lượt đầu';
+    document.getElementById('psCartTotal').textContent = feeCount ? (feeCount * EXTRA_PRICE).toLocaleString('vi-VN') + 'đ' : 'Miễn phí';
+    document.getElementById('psCartQr').hidden = !waiting;
+    submitBtn.hidden = waiting;
+    clearAllBtn.hidden = waiting;
+    submitBtn.textContent = submitting ? 'Đang gửi…' : paidPending ? 'Gửi lại cho thợ' : feeCount ? 'Thanh toán' : 'Gửi cho thợ';
+    document.documentElement.style.setProperty('--ps-cart-height', active ? cart.getBoundingClientRect().height + 'px' : '0px');
   }
+  window.addEventListener('hashchange', renderCart);
+  window.addEventListener('ps:filterchange', renderCart);
+  window.addEventListener('resize', renderCart);
 
   const drivePanel = document.createElement('section'); drivePanel.id = 'psDrivePanel';
   drivePanel.innerHTML = '<strong>Ảnh gốc thợ gửi cho bạn</strong><p>Chọn bộ ảnh của buổi chụp, thả tim những ảnh muốn sửa và ghi yêu cầu cho từng ảnh. Sau đó bấm gửi lại cho thợ.</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
   grid.before(drivePanel);
+  grid.before(toolbar);
   function addDrivePhoto(doc) {
     const id = doc.id;
     if (photoById[id]) return;

@@ -270,13 +270,15 @@ async function openReq(page, which) {
     locked: [...document.querySelectorAll('.ps-heart')].every(b => b.disabled),
     submitDisabled: document.getElementById('psSubmitBtn').disabled, submitText: document.getElementById('psSubmitBtn').textContent.trim(),
     bulkLocked: document.getElementById('psSelectAllBtn').disabled && document.getElementById('psClearAllBtn').disabled,
+    sent: document.querySelectorAll('.ps-sent-label').length,
+    cartHidden: document.getElementById('psCart').hidden,
     count: document.getElementById('selectedCount').textContent
   }));
-  check('Tải lại trang sau khi đã gửi: đánh dấu lại đúng ảnh đã gửi, khoá lưới + nút gửi + nút chọn nhanh',
-    v.selected === 'drive-fixture-file-1,drive-fixture-file-2' && v.count === '2' && v.locked && v.submitDisabled && v.submitText === 'Đã gửi yêu cầu' && v.bulkLocked, JSON.stringify(v));
-  check('Tải lại trang: báo "Bạn đã gửi 2 ảnh cho thợ chỉnh ảnh lúc ..."', v.bannerShown && v.banner.includes('Bạn đã gửi 2 ảnh cho thợ chỉnh ảnh lúc'), v.banner);
+  check('Tải lại trang sau khi đã gửi: không giữ lựa chọn cũ, còn chọn ảnh khác, giỏ ẩn và nút gửi tắt',
+    v.selected === '' && v.count === '0' && !v.locked && v.submitDisabled && v.submitText === 'Gửi cho thợ' && !v.bulkLocked && v.cartHidden, JSON.stringify(v));
+  check('Tải lại trang: giữ đúng lượt 2 ảnh đã gửi và link kết quả, không bật banner thanh toán mới', !v.bannerShown && await cust.evaluate(link=>AlohaData.getEditRequests().some(r=>r.phone==='0900000001'&&r.photoCount===2&&r.resultLink===link),LINK), v.banner);
   await cust.screenshot({ path: path.resolve(__dirname, '../output/dot1b-edited-customer-restored.png') });
-  await cust.evaluate(() => document.getElementById('psGoEdited').click()); await wait(300);
+  await cust.evaluate(() => document.querySelector('.ps-tab[data-filter="edited"]').click()); await wait(300);
   v = await cust.evaluate(() => document.querySelector('.ps-tab.active').dataset.filter);
   check('Nút "Xem tiến độ" mở tab Ảnh đã chỉnh', v === 'edited', v);
 

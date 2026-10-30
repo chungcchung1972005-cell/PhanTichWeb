@@ -31,6 +31,7 @@ const K1 = acc('09000000103', 'khach-hang', 'Khách thử nghiệm 1');
 const K2 = acc('09000000104', 'khach-hang', 'Khách thử nghiệm 2');
 const THO = acc('09000000101', 'tho-anh', 'Thợ thử nghiệm');
 const SEP = acc('09000000102', 'sep', 'Sếp thử nghiệm');
+const SALE = acc('09000000105', 'sale', 'Sale thử nghiệm');
 
 // ---------------------------------------------------------------- Server RAM (KHÔNG bật ngoại lệ demo công khai)
 let server = null, serverLog = '';
@@ -41,7 +42,7 @@ async function startServer() {
     cwd: path.join(ROOT, 'server'),
     env: { ...process.env, PORT: '3001', AUTH_SECRET: 'test-secret', MONGODB_URI: '', GEMINI_API_KEY: '', ALLOWED_ORIGINS: '',
       EDIT_REQUESTS_MONGODB_URI: '', EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF: '',
-      EDIT_DEMO_ACCOUNTS: JSON.stringify([K1.entry, K2.entry, THO.entry, SEP.entry]) },
+      EDIT_DEMO_ACCOUNTS: JSON.stringify([K1.entry, K2.entry, THO.entry, SEP.entry, SALE.entry]) },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   server.stdout.on('data', (d) => { serverLog += d; });
@@ -65,8 +66,9 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     await startServer();
     const worker=await fixture.login(API,THO.entry.phone,THO.pw),boss=await fixture.login(API,SEP.entry.phone,SEP.pw);
     const customer1=await fixture.login(API,K1.entry.phone,K1.pw),customer2=await fixture.login(API,K2.entry.phone,K2.pw);
-    await fixture.sourceAlbum(API,{customer:customer1,worker,boss,code:'#ABTN0103'});
-    await fixture.sourceAlbum(API,{customer:customer2,worker,boss,code:'#ABTN0104'});
+    const sale=await fixture.login(API,SALE.entry.phone,SALE.pw);
+    await fixture.sourceAlbum(API,{customer:customer1,worker,boss,sale,code:'#ABTN0103'});
+    await fixture.sourceAlbum(API,{customer:customer2,worker,boss,sale,code:'#ABTN0104'});
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
 
     // 1 "máy" = 1 ngữ cảnh ẩn danh (localStorage riêng). KHÔNG đặt window.ALOHA_FEATURES.
@@ -132,7 +134,7 @@ const health = async () => (await (await fetch(API + '/api/edit-requests/health'
     check('B4 có lưới ảnh để chọn', (await k1.page.$$('.ps-photo')).length > 0);
     let db = await localDb(k1.page);
     check('B5 hồ sơ giả KHÔNG ghi vào aloha_demo_db', !(db.customers || {})[K1.entry.phone], db.customers);
-    await k1.page.waitForFunction(() => /^Gửi (ảnh|yêu cầu)/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 10000 });
+    await k1.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Gửi cho thợ' && document.querySelectorAll('.ps-heart').length > 0, { timeout: 10000 });
     await k1.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
     await k1.page.click('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart');
     await k1.page.click('#psSubmitBtn');
