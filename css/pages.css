@@ -1811,3 +1811,19 @@ body.ps-cart-open .fab-chat { bottom:calc(var(--ps-cart-height) + 16px); }
  .ps-cart-actions { width:100%; justify-content:flex-end; }
  .ps-cart-actions .btn-primary { flex:1; padding:10px 16px; }
 }
+
+/* Compact per-photo editing, shared by grid and lightbox. */
+.ps-grid { align-items:start; }
+.ps-photo:has(.ps-drive-file-link) { padding-bottom:0; background:var(--white); }
+.ps-photo:has(.ps-drive-file-link) .ps-photo-badge { position:relative; display:block; bottom:auto; left:auto; right:auto; margin:8px 8px 0; }
+.ps-photo .ps-drive-file-link { position:relative; bottom:auto; left:auto; right:auto; margin:0 8px 6px; }
+.ps-grid-editor { padding:0 8px 10px; }
+.ps-grid-editor[hidden], .ps-lb-note[hidden] { display:none; }
+.ps-edit-chips, #psEditOptions { display:flex; flex-wrap:wrap; gap:5px; padding:0; margin:0 0 7px; border:0; }
+.ps-edit-chip { min-height:36px; max-width:100%; padding:5px 10px; white-space:nowrap; border:1px solid #e5d8dd; border-radius:12px; background:#fff; color:#614550; font:inherit; font-size:13px; line-height:1.3; cursor:pointer; overflow-wrap:anywhere; }
+.ps-edit-chip[aria-pressed="true"] { background:#fff0f5; border-color:#d66b94; color:#a93866; }
+.ps-edit-chip[aria-pressed="true"]::before { content:'✓ '; }
+.ps-edit-chip:focus-visible, .ps-edit-note:focus-visible { outline:2px solid #bc4b79; outline-offset:2px; }
+.ps-edit-note { display:block; box-sizing:border-box; width:100%; min-width:0; min-height:36px; padding:8px; border:1px solid #e5d8dd; border-radius:8px; background:#fff; color:#614550; font:inherit; font-size:13px; }
+#psCartMissing { color:#a93866; }
+.ps-edit-note[hidden] { display:none; }

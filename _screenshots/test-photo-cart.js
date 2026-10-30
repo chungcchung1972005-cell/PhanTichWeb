@@ -14,6 +14,7 @@ function check(name, ok) { assert.ok(ok, name); checks++; console.log('PASS ' + 
     const album = await fixture.sourceAlbum('http://localhost:3001',{customer:token,code:'#CART01'});
     const errors = [];
     fs.mkdirSync(path.join(env.ROOT,'output/gio'),{recursive:true});
+    fs.mkdirSync(path.join(env.ROOT,'output/ghichu'),{recursive:true});
     for (const width of [390,1440,360]) {
       const context = await browser.createBrowserContext();
       const page = await context.newPage();
@@ -39,6 +40,31 @@ function check(name, ok) { assert.ok(ok, name); checks++; console.log('PASS ' + 
       check(width+' empty cart hidden',await page.$eval('#psCart',e=>e.hidden));
       const select = ids=>page.evaluate(ids=>ids.forEach(i=>document.querySelectorAll('.ps-heart')[i].click()),ids);
       await select([0,1]);
+      check(width+' hearts reveal editors immediately',await page.evaluate(()=>[...document.querySelectorAll('.ps-photo')].slice(0,2).every(c=>!c.querySelector('.ps-grid-editor').hidden&&c.querySelectorAll('.ps-edit-chip').length===5)));
+      check(width+' cart reminds without blocking submit',await page.evaluate(()=>document.getElementById('psCartMissing').textContent==='2 ảnh chưa ghi cách sửa'&&!document.getElementById('psSubmitBtn').disabled));
+      await page.click('.ps-photo .ps-edit-chip');
+      check(width+' chip keeps selection and does not open lightbox',await page.evaluate(()=>!document.getElementById('psLightbox').classList.contains('show')&&document.getElementById('selectedCount').textContent==='2'&&document.querySelector('.ps-edit-chip').getAttribute('aria-pressed')==='true'));
+      // "Khác" là ô ghi chú: bật Khác mới gõ được
+      await page.click('.ps-photo .ps-edit-chip[value="Khác"]');
+      await page.type('.ps-grid-editor input','Giữ nét tự nhiên');
+      await page.click('.ps-photo img');
+      check(width+' grid note and chip shared with lightbox; first quota retained',await page.evaluate(()=>document.getElementById('psLbNote').value==='Giữ nét tự nhiên'&&document.querySelector('#psEditOptions button[value="Chỉnh da"]').getAttribute('aria-pressed')==='true'&&document.getElementById('psLbFavInfo').textContent==='Đã chọn 2/10 ảnh trong gói'));
+      await page.waitForFunction(()=>{const i=document.getElementById('psLbImg');return i.complete&&i.naturalWidth>0;});
+      await new Promise(r=>setTimeout(r,350));
+      if(width===390) await page.screenshot({path:path.join(env.ROOT,'output/ghichu/lightbox-390.png')});
+      await page.click('#psEditOptions button[value="Chỉnh màu"]');
+      await page.type('#psLbNote',' nhé');
+      await page.click('#psLbClose');
+      check(width+' lightbox changes shared back to grid',await page.evaluate(()=>document.querySelector('.ps-grid-editor input').value==='Giữ nét tự nhiên nhé'&&document.querySelector('.ps-grid-editor button[value="Chỉnh màu"]').getAttribute('aria-pressed')==='true'));
+      await page.click('.ps-grid-editor button[value="Chỉnh màu"]');
+      await page.evaluate(()=>document.querySelector('.ps-heart').click());
+      check(width+' unheart hides editor retaining session data',await page.$eval('.ps-grid-editor',e=>e.hidden));
+      await page.evaluate(()=>document.querySelector('.ps-heart').click());
+      check(width+' reheart restores chip and note',await page.evaluate(()=>!document.querySelector('.ps-grid-editor').hidden&&document.querySelector('.ps-grid-editor input').value==='Giữ nét tự nhiên nhé'&&document.querySelector('.ps-edit-chip').getAttribute('aria-pressed')==='true'));
+      check(width+' chip targets at least 36px and font 13px',await page.$$eval('.ps-grid-editor:not([hidden]) .ps-edit-chip',bs=>bs.every(b=>b.getBoundingClientRect().height>=36&&getComputedStyle(b).fontSize==='13px')));
+      await page.$eval('#psGrid',e=>e.scrollIntoView({behavior:'instant',block:'start'}));
+      await new Promise(r=>setTimeout(r,350));
+      if(width!==360) await page.screenshot({path:path.join(env.ROOT,'output/ghichu/grid-'+width+'.png')});
       check(width+' first round free',await page.$eval('#psCartTotal',e=>e.textContent==='Miễn phí'));
       check(width+' free submit label',await page.$eval('#psSubmitBtn',e=>e.textContent==='Gửi cho thợ'&&!e.disabled));
       await select([2,3,4,5,6,7,8,9]);
@@ -63,6 +89,8 @@ function check(name, ok) { assert.ok(ok, name); checks++; console.log('PASS ' + 
       check(width+' undo restores count',await page.$eval('#selectedCount',e=>e.textContent==='2'));
       await page.click('#psSubmitBtn');
       check(width+' free submit hides cart and labels sent',await page.evaluate(()=>document.getElementById('psCart').hidden&&document.querySelectorAll('.ps-sent-label').length===2));
+      check(width+' request persists grid editOptions and note',await page.evaluate(()=>AlohaData.getEditRequests().some(r=>r.photos.some(p=>p.editOptions?.join()==='Chỉnh da,Khác'&&p.note==='Giữ nét tự nhiên nhé'))));
+      check(width+' submitted editors hidden',await page.$$eval('.ps-photo:has(.ps-sent-label) .ps-grid-editor',es=>es.every(e=>e.hidden)));
       await select([2,3]);
       check(width+' second round total 100.000đ',await page.$eval('#psCartTotal',e=>e.textContent==='100.000đ'));
       check(width+' paid action label',await page.$eval('#psSubmitBtn',e=>e.textContent==='Thanh toán'));
@@ -75,6 +103,7 @@ function check(name, ok) { assert.ok(ok, name); checks++; console.log('PASS ' + 
       const spot=await page.$eval('.ps-extra-photo',e=>{const r=e.getBoundingClientRect();return {x:r.left+20,y:r.top+16};});
       await page.mouse.click(spot.x,spot.y);
       check(width+' badge click opens photo, never original link',!originalOpened&&await page.$eval('#psLightbox',e=>e.classList.contains('show')));
+      check(width+' second round lightbox has price without /0',await page.$eval('#psLbFavInfo',e=>e.textContent==='Đã chọn 2 ảnh · 50.000đ/ảnh'&&!/\/\s*0/.test(e.textContent)));
       await page.click('#psLbClose');
       if(width!==360) await page.screenshot({path:path.join(env.ROOT,'output/gio',width+'-luot-2.png')});
       check(width+' no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

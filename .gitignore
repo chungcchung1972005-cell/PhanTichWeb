@@ -2,3 +2,5 @@
 # Rác do test sinh ra
 output/
 _screenshots/*.log
+# Quyết định riêng của Chung, không đẩy lên
+.claude/quyet-dinh-cua-chung.md

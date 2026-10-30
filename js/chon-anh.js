@@ -63,7 +63,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const lead=document.getElementById('psExtraLead'),note=document.getElementById('psExtraNote');
     if(lead) lead.textContent=PACKAGE_COUNT===0?'Lượt chỉnh thêm:':'Vượt';
     if(note) note.textContent=PACKAGE_COUNT===0?'(Từ lượt thứ 2, mỗi ảnh chỉnh 50.000đ)':'(Đơn giá: 50.000đ / ảnh chỉnh sửa thêm ngoài gói 10 ảnh)'; }
-  function combinedNote(id) { return [...(photoOptions.get(id) || []), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
+  function combinedNote(id) { return [...(photoOptions.get(id) || []).filter(o => o !== 'Khác'), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
+  // Nhãn ngắn cho vừa ô ảnh trên điện thoại; giá trị gửi thợ vẫn là tên đầy đủ
+  const CHIP_SHORT = { 'Chỉnh da': 'Da', 'Chỉnh màu': 'Màu', 'Ánh sáng': 'Ánh sáng', 'Xóa chi tiết thừa': 'Xoá vật thừa', 'Khác': 'Khác' };
+  function editChips() {
+    return editOptions.map(label => `<button type="button" class="ps-edit-chip" value="${label}" aria-pressed="false" title="${label}">${CHIP_SHORT[label] || label}</button>`).join('');
+  }
+  function syncEditor(editor, id, locked) {
+    editor.querySelectorAll('.ps-edit-chip').forEach(button => {
+      button.setAttribute('aria-pressed', String((photoOptions.get(id) || []).includes(button.value)));
+      button.disabled = locked;
+    });
+    const note = editor.querySelector('input');
+    if (document.activeElement !== note) note.value = photoNotes.get(id) || '';
+    note.readOnly = locked;
+    note.hidden = !(photoOptions.get(id) || []).includes('Khác');
+  }
+  function bindEditor(editor, getId) {
+    editor.addEventListener('click', e => {
+      e.stopPropagation();
+      const button = e.target.closest('.ps-edit-chip'), id = getId();
+      if (!button || button.disabled || sentPhotoIds.has(id) || isSelectionLocked()) return;
+      const options = new Set(photoOptions.get(id) || []);
+      if (options.has(button.value)) options.delete(button.value); else options.add(button.value);
+      photoOptions.set(id, editOptions.filter(option => options.has(option)));
+      const note = editor.querySelector('input');
+      if (button.value === 'Khác') {
+        if (options.has('Khác')) setTimeout(() => note.focus(), 0);
+        else photoNotes.delete(id); // tắt Khác thì bỏ luôn ghi chú
+      }
+      updateSummary();
+    });
+    editor.querySelector('input').addEventListener('input', e => {
+      const id = getId();
+      if (sentPhotoIds.has(id) || isSelectionLocked()) return;
+      photoNotes.set(id, e.target.value);
+      updateSummary();
+    });
+  }
+  function syncGridEditors() {
+    grid.querySelectorAll('.ps-photo').forEach(card => {
+      const id = card.dataset.id, editor = card.querySelector('.ps-grid-editor');
+      if (!editor) return;
+      editor.hidden = !selected.has(id) || sentPhotoIds.has(id);
+      if (!editor.hidden) syncEditor(editor, id, isSelectionLocked());
+    });
+  }
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
   const countEl = document.getElementById('selectedCount');
   const packageEl = document.getElementById('packageCount');
@@ -487,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Chế độ đồng bộ: chưa tải xong dữ liệu server (chưa biết đã gửi chưa) hoặc đang gửi -> khoá nút
     submitBtn.disabled = !sourceAlbum || n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
+    syncGridEditors();
     syncLightbox();
     syncBulkButtons();
     renderCart();
@@ -722,9 +768,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="ps-lb-favinfo" id="psLbFavInfo"></span>
         </div>
         <div class="ps-lb-note" id="psLbNoteWrap" hidden>
-          <label for="psLbNote">Ghi chú chỉnh sửa cho ảnh này <span class="ps-lb-extra" id="psLbExtra" hidden>Ảnh chọn thêm +50K</span></label>
-          <fieldset id="psEditOptions"><legend>Bạn muốn chỉnh gì?</legend>${editOptions.map((label, i) => `<label><input type="checkbox" value="${label}" data-option="${i}"> ${label}</label>`).join('')}</fieldset>
-          <textarea id="psLbNote" rows="2" placeholder="Vd: làm sáng da, xoá vết đỏ trên má, chỉnh màu ấm hơn..."></textarea>
+          <span class="ps-lb-extra" id="psLbExtra" hidden>Ảnh chọn thêm +50K</span>
+          <div class="ps-edit-chips" id="psEditOptions" role="group" aria-label="Cách chỉnh sửa">${editChips()}</div>
+          <input id="psLbNote" class="ps-edit-note" type="text" aria-label="Ghi chú thêm cho ảnh" placeholder="Bạn muốn chỉnh gì khác?">
         </div>
       </div>
     </div>
@@ -805,12 +851,12 @@ document.addEventListener('DOMContentLoaded', () => {
     lb.querySelector('#psLbFavText').textContent = isSel ? 'Đã chọn yêu thích' : 'Chọn làm yêu thích';
     lb.querySelector('#psLbFavInfo').textContent = locked && !isSel
       ? 'Danh sách ảnh đang khoá'
-      : `Đã chọn ${selected.size}/${PACKAGE_COUNT} ảnh trong gói`;
-    lb.querySelector('#psLbNoteWrap').hidden = !isSel;
+      : PACKAGE_COUNT === 0 ? `Đã chọn ${selected.size} ảnh · 50.000đ/ảnh` : `Đã chọn ${selected.size}/${PACKAGE_COUNT} ảnh trong gói`;
+    lb.querySelector('#psLbNoteWrap').hidden = !isSel || sentPhotoIds.has(id);
     lb.querySelector('#psLbExtra').hidden = !extraPhotos.has(id);
     if (document.activeElement !== lbNote) lbNote.value = photoNotes.get(id) || '';
     lbNote.readOnly = locked;
-    lb.querySelectorAll('#psEditOptions input').forEach(input => { input.checked = (photoOptions.get(id) || []).includes(input.value); input.disabled = locked; });
+    syncEditor(lb.querySelector('#psLbNoteWrap'), id, locked);
   }
 
   function openLightbox(id) {
@@ -839,8 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lb.querySelector('#psLbZoomOut').addEventListener('click', () => setZoom(lbScale / 1.5));
   lb.querySelector('#psLbZoomReset').addEventListener('click', () => setZoom(1));
   lb.querySelector('#psLbFav').addEventListener('click', () => toggleSelect(lbIds[lbIndex]));
-  lb.querySelector('#psEditOptions').addEventListener('change', () => { photoOptions.set(lbIds[lbIndex], [...lb.querySelectorAll('#psEditOptions input:checked')].map(input => input.value)); });
-  lbNote.addEventListener('input', () => photoNotes.set(lbIds[lbIndex], lbNote.value));
+  bindEditor(lb.querySelector('#psLbNoteWrap'), () => lbIds[lbIndex]);
 
   lbStage.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -1469,6 +1514,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('psCartCount').textContent = 'Đã chọn ' + selected.size + ' ảnh';
     document.getElementById('psCartDetail').textContent = waiting ? 'Đang chờ thanh toán…' : feeCount ? feeCount + ' × 50.000đ' : '10 ảnh miễn phí lượt đầu';
     document.getElementById('psCartTotal').textContent = feeCount ? (feeCount * EXTRA_PRICE).toLocaleString('vi-VN') + 'đ' : 'Miễn phí';
+    const missing = [...selected].filter(id => !(photoOptions.get(id) || []).length && !(photoNotes.get(id) || '').trim()).length;
+    const reminder = document.getElementById('psCartMissing');
+    reminder.hidden = missing === 0;
+    reminder.textContent = missing + ' ảnh chưa ghi cách sửa';
     document.getElementById('psCartQr').hidden = !waiting;
     submitBtn.hidden = waiting;
     clearAllBtn.hidden = waiting;
@@ -1494,6 +1543,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const link = document.createElement('a'); link.className = 'ps-drive-file-link'; link.href = doc.driveUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Mở file gốc'; card.appendChild(link);
     const heart = document.createElement('button'); heart.type = 'button'; heart.className = 'ps-heart'; heart.setAttribute('aria-label', 'Chọn ảnh từ Drive'); heart.setAttribute('aria-pressed', 'false'); heart.innerHTML = heartIcon; card.appendChild(heart);
     image.onerror = () => { driveStatus.textContent = 'Không tải được ảnh. Thử tải lại hoặc mở thư mục Drive.'; };
+    const editor = document.createElement('div'); editor.className = 'ps-grid-editor'; editor.hidden = true;
+    editor.innerHTML = `<div class="ps-edit-chips" role="group" aria-label="Cách chỉnh sửa">${editChips()}</div><input type="text" class="ps-edit-note" aria-label="Ghi chú thêm cho ảnh" placeholder="Bạn muốn chỉnh gì khác?">`;
+    bindEditor(editor, () => id); card.appendChild(editor);
     grid.appendChild(card);
   }
   const driveStatus = drivePanel.querySelector('[role=status]');

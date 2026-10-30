@@ -41,12 +41,13 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   const photo=await customer.$eval('.ps-photo img',img=>img.src);assert.match(photo,/thumbnail.*sz=w1000/);
   await customer.click('.ps-photo .ps-heart');
   await customer.click('.ps-photo img');await customer.waitForSelector('#psEditOptions');
-  await customer.click('#psEditOptions input[value="Chỉnh da"]');
+  await customer.click('#psEditOptions button[value="Chỉnh da"]');
+  await customer.click('#psEditOptions button[value="Khác"]');
   await customer.type('#psLbNote','Giữ nét bé');
   assert.match(await customer.$eval('#psLbImg',e=>e.src),/sz=w2000/);
   await customer.click('#psLbClose');await customer.click('#psSubmitBtn');
   await customer.waitForFunction(async()=>{const r=await AlohaEditSync.mine();return r.ok && r.data.requests.length===1;});
-  const created=await customer.evaluate(async()=>(await AlohaEditSync.mine()).data.requests[0]);assert.deepEqual(created.photos[0].editOptions,['Chỉnh da']);
+  const created=await customer.evaluate(async()=>(await AlohaEditSync.mine()).data.requests[0]);assert.deepEqual(created.photos[0].editOptions,['Chỉnh da','Khác']);
   await customer.waitForFunction(()=>document.querySelectorAll('.ps-sent-label').length===1 && document.getElementById('selectedCount').textContent==='0');
   assert.equal(await customer.$eval('#psSelectAllBtn',e=>e.disabled),false);
   await customer.reload({waitUntil:'domcontentloaded'});
@@ -67,7 +68,10 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   console.log('PASS reload locks only submitted images; lightbox opens; other image selectable, count and fee only new selection');
   const newer=await worker.evaluate(()=>AlohaAuth.api('/api/edit-requests/albums',{method:'POST',body:{workflowOrderId:'multi-1',folderUrl:'https://drive.google.com/drive/folders/test-folder-12345'}}));
   assert.equal(newer.status,201);
-  await customer.click('#psReloadAlbums');await customer.waitForFunction(()=>document.querySelector('#psSourceAlbum').options.length===2);
+  // Cuộn nút ra giữa màn hình trước khi bấm: nằm dưới thanh đầu trang thì cú bấm trúng logo (về Trang chủ)
+  await customer.$eval('#psReloadAlbums',e=>e.scrollIntoView({block:'center'}));await new Promise(r=>setTimeout(r,300));
+  assert.ok(await customer.$eval('#psReloadAlbums',e=>{const r=e.getBoundingClientRect();const t=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return e===t||e.contains(t);}),'nút Tải lại bộ ảnh bị che');
+  await customer.click('#psReloadAlbums');assert.equal(await customer.evaluate(()=>location.hash),'#/chon-anh');await customer.waitForFunction(()=>document.querySelector('#psSourceAlbum').options.length===2);
   await customer.select('#psSourceAlbum',newer.data.album.id);
   // Ảnh đã gửi: nút không tắt hẳn (để bấm vào hiện lời nhắc), chỉ đánh dấu khoá
   assert.equal(await customer.$eval('.ps-heart',e=>e.getAttribute('aria-disabled')),'true');
