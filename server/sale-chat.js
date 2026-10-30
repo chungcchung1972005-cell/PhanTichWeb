@@ -312,6 +312,9 @@ router.post('/auth/login', wrap(async (req, res) => {
   const demo = DEMO_ACCOUNTS[phone];
   if (demo) {
     if (!samePassword(password, demo.password)) return res.status(401).json({ error: 'wrong_credentials' });
+    if (demo.role === 'khach-hang') {
+      try { await require('./edit-requests').resetDemoCustomer(phone); } catch (e) { console.error('reset demo:', e.message); }
+    }
     return issue(res, { phone, role: demo.role, name: demo.name });
   }
   const user = isPhone(phone) ? await store.getUser(phone) : null;

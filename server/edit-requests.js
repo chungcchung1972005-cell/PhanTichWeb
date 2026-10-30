@@ -423,4 +423,14 @@ if (configError) console.error('edit-requests: cấu hình MongoDB riêng KHÔNG
 if (store.kind === 'mongodb') console.log('edit-requests: lưu MongoDB riêng (database "' + store.dbName + '", collection "' + store.collectionName + '").');
 
 if (ALLOW_PUBLIC_DEMO_STAFF) console.warn('edit-requests: EDIT_REQUESTS_ALLOW_PUBLIC_DEMO_STAFF=1 -> Thợ ảnh/Sếp demo công khai VẪN dùng được API này (bản demo nhiều máy; khi studio dùng thật thì bỏ).');
-module.exports = { router: createEditRequestsRouter(store, { allowPublicDemoStaff: ALLOW_PUBLIC_DEMO_STAFF }), storeKind: store.kind, createEditRequestsRouter };
+// Tài khoản khách demo công khai: mỗi lần đăng nhập quay về bước 1 "vừa nhận ảnh gốc" để trình diễn
+// (xoá yêu cầu chỉnh cũ, giữ bộ ảnh gốc, đơn liên kết về "đang chọn ảnh"). Khách thật không bị đụng.
+async function resetCustomer(reqStore, workflowService, phone) {
+  const albums = (await reqStore.listByPhone(phone)).filter((r) => r.kind === 'source-album');
+  await reqStore.removeRequestsByPhone(phone);
+  const orderIds = albums.map((a) => a.workflowOrderId).filter(Boolean);
+  if (orderIds.length) await workflowService.resetDemoOrders(orderIds);
+}
+const resetDemoCustomer = (phone) => resetCustomer(store, require('./workflow').service, phone);
+
+module.exports = { router: createEditRequestsRouter(store, { allowPublicDemoStaff: ALLOW_PUBLIC_DEMO_STAFF }), storeKind: store.kind, createEditRequestsRouter, resetDemoCustomer, resetCustomer };

@@ -23,6 +23,11 @@ function createService(store) {
   }
   return {
     read, storeKind:store.kind,
+    // Làm mới đơn của khách demo: về "đang chọn ảnh", bỏ các lượt chỉnh + tiền công chỉnh chưa trả
+    resetDemoOrders(ids) { return update(s=>{const next=JSON.parse(JSON.stringify(s));
+      next.orders.filter(o=>ids.includes(o.id)).forEach(o=>{Object.assign(o,{status:'choosing',rounds:{},requestIds:[],firstRequestId:null,extraFees:0,deliveredAt:null,customerFeedback:null,updatedAt:Date.now()});});
+      next.entries=next.entries.filter(e=>!(ids.includes(e.orderId) && ['edit','extra-edit','sale-extra'].includes(e.kind) && e.status!=='paid'));
+      return next;}); },
     attachRequestsStore(s) { requestsStore=s; },
     change(user,command,data) { return update(s => core.apply(s,user,command,data)); },
     progress(request,event) { return update(s=>core.progress(s,request,event)); },
