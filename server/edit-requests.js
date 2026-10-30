@@ -165,7 +165,14 @@ function createEditRequestsRouter(store, opts) {
 
   // Delivery happens before the customer can create an editing request.
   router.get('/albums/me', auth(['khach-hang']), wrap(async (req, res) => {
-    res.json({albums:(await store.listByPhone(req.user.phone)).filter(r => r.kind === 'source-album')});
+    const albums=(await store.listByPhone(req.user.phone)).filter(r=>r.kind==='source-album');
+    if(req.query.force==='1') for(let i=0;i<albums.length;i++) {
+      const a=albums[i],manifest=await require('./drive').readFolder(a.folderUrl);
+      const result=await store.updateIfRev(a.id,a.rev,{photos:manifest.photos});
+      if(!result?.doc) return res.status(409).json({error:'conflict'});
+      albums[i]=result.doc;
+    }
+    res.json({albums});
   }));
   router.get('/albums', auth(['tho-anh', 'sep']), wrap(async (req, res) => {
     res.json({albums:(await store.listAll()).filter(r => r.kind === 'source-album' && (req.user.role==='sep' || !r.shooterPhone || [r.shooterPhone,r.editorPhone].includes(req.user.phone)))});
@@ -224,20 +231,19 @@ function createEditRequestsRouter(store, opts) {
     const history = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode).sort((a, b) => b.createdAt - a.createdAt);
     const previous = history[0];
     const parentRequestId = cleanStr(b.parentRequestId, 80);
-    if (previous && (!parentRequestId || parentRequestId !== previous.id || previous.status !== STATUS_FLOW[2])) {
-      return res.status(409).json({ error: 'previous_round_not_completed' });
-    }
-    if (!previous && parentRequestId) return res.status(400).json({ error: 'bad_parent_request' });
-    const round = previous ? (previous.round || 1) + 1 : 1;
+    const openIds = new Set(history.filter(r => r.status !== STATUS_FLOW[2]).flatMap(r => r.photos.map(p => p.id)));
+    if (photos.some(p => openIds.has(p.id))) return res.status(409).json({error:'photo_already_submitted'});
+    const round = previous ? Math.max(...history.map(r => r.round || 1)) + 1 : 1;
     const freeCount = round === 1 ? 10 : 0;
     photos.forEach((p, i) => { p.isExtra = i >= freeCount; });
     const extraFee = Math.max(0, photos.length - freeCount) * 50000;
     if (b.extraFee !== extraFee) return res.status(400).json({ error: 'bad_extra_fee' });
+    if(extraFee>0 && !b.paymentCode) return res.status(402).json({error:'payment_required'});
     let verifiedPayment=null;
     if(extraFee>0 && b.paymentCode) {
       const receipts=require('./payment-receipts'),code=receipts.normalize(b.paymentCode);
       const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && receipts.find(code,extraFee);
-      if(!tx) return res.status(400).json({error:'payment_not_verified'});
+      if(!tx) return res.status(402).json({error:'payment_required'});
       const reference='sepay:'+tx.id;
       if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return res.status(400).json({error:'payment_already_used'});
       verifiedPayment={reference,amount:extraFee};
@@ -295,6 +301,14 @@ function createEditRequestsRouter(store, opts) {
   }));
 
   // ---- 1 yêu cầu: khách (của mình) / Thợ ảnh / Sếp
+  router.post('/:id/feedback', auth(['khach-hang']), loadRequest, wrap(async(req,res)=>{
+    const r=req.editRequest, feedback=body(req).feedback;
+    if(r.status!==STATUS_FLOW[2] || !['satisfied','revision'].includes(feedback)) return res.status(400).json({error:'bad_feedback'});
+    const result=await store.updateIfRev(r.id,r.rev,{customerFeedback:feedback,customerFeedbackAt:Date.now()});
+    if(!result?.doc) return res.status(409).json({error:'conflict'});
+    if(r.workflowOrderId) await workflow.progress(result.doc,'delivered');
+    res.json({request:customerView(result.doc)});
+  }));
   router.get('/:id', auth(['khach-hang', 'tho-anh', 'sep']), loadRequest, (req, res) => {
     res.json({ request: viewFor(req.user, req.editRequest) });
   });
@@ -381,7 +395,7 @@ function createEditRequestsRouter(store, opts) {
     if (!checkRev(req, res)) return;
     // Điều kiện rev (+ chưa Hoàn thành) kiểm lại khi ghi: link bị gỡ / đơn bị Hoàn tất ở phiên khác
     // trong lúc này đều làm rev đổi -> 409, không Hoàn tất nhầm.
-    const result=await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành' }, { notDone: true });
+    const result=await store.updateIfRev(r.id, req.body.rev, { doneIds: r.photos.map((p) => p.id), status: 'Hoàn thành', completedAt:Date.now() }, { notDone: true });
     if(result && result.doc && result.doc.workflowOrderId) await workflow.progress(result.doc,'delivered');
     sendConditional(req, res, result);
   }));
