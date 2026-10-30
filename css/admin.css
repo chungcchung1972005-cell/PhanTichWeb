@@ -1972,3 +1972,9 @@
 .kanban-photo-tile .badge { background:var(--pink-100); border:1px solid var(--pink-200); border-radius:var(--radius-pill); }
 
 .kanban-modal-close { width:44px; height:44px; min-width:44px; min-height:44px; }
+
+/* Nút thư mục Drive của yêu cầu chỉnh (đợt 2 tự động) */
+.drive-folder-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0 16px; }
+.drive-folder-actions .btn { min-height:44px; }
+.drive-folder-note { font-size:13px; color:var(--navy-500, #6b6f86); }
+.drive-folder-error { font-size:13px; color:#c0392b; }

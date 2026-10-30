@@ -73,12 +73,18 @@ function createWriter(options = {}) {
   const json = data => ({method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(data)});
   const escape = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   return {
+    async listFiles(parentId) {
+      const files=[]; let pageToken='';
+      do { const data=await request('/drive/v3/files?'+new URLSearchParams({q:`'${escape(parentId)}' in parents and trashed = false`,fields:'nextPageToken,files(id,name,mimeType,size,modifiedTime,resourceKey,appProperties)',pageSize:'1000',pageToken})); files.push(...(data.files||[])); pageToken=data.nextPageToken||''; } while(pageToken);
+      return files;
+    },
+    shareFolder: id => request('/drive/v3/files/'+encodeURIComponent(id)+'/permissions',json({type:'anyone',role:'reader'})),
     async ensureFolder(parentId, name) {
       const q = new URLSearchParams({q:`'${escape(parentId)}' in parents and name = '${escape(name)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`, fields:'files(id,name)', supportsAllDrives:'true', includeItemsFromAllDrives:'true'});
       const found = await request('/drive/v3/files?' + q);
       return found.files?.[0] || request('/drive/v3/files?supportsAllDrives=true', json({name, parents:[parentId], mimeType:'application/vnd.google-apps.folder'}));
     },
-    copyFile: (fileId, parentId, name) => request('/drive/v3/files/' + encodeURIComponent(fileId) + '/copy?supportsAllDrives=true', json({name, parents:[parentId]})),
+    copyFile: (fileId, parentId, name, appProperties) => request('/drive/v3/files/' + encodeURIComponent(fileId) + '/copy?supportsAllDrives=true', json({name, parents:[parentId], appProperties})),
     uploadText(parentId, name, mime, text) {
       const boundary = 'aloha_' + require('crypto').randomBytes(16).toString('hex');
       const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[parentId],mimeType:mime})}\r\n--${boundary}\r\nContent-Type: ${mime}\r\n\r\n${text}\r\n--${boundary}--\r\n`;

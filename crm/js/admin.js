@@ -2046,6 +2046,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="kanban-modal-meta">Gửi yêu cầu ${formatRelativeTime(req.createdAt)}</p>
       ${req.extraCount > 0 ? `<p class="kanban-modal-note" style="background:#fff0f6;border-left:3px solid #e91e8c;color:#c41d7f;margin-bottom:12px;">📸 <strong>Chỉnh sửa thêm ngoài gói:</strong> +${req.extraCount} ảnh · Phí thêm: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ · Trạng thái: ${escHtml(req.paymentStatus || 'Chờ chuyển khoản')}</p>` : ''}
       ${req.note ? `<p class="kanban-modal-note">Ghi chú chung: "${escHtml(req.note)}"</p>` : ''}
+      ${req.driveJob ? `<div class="drive-folder-actions">
+        ${req.driveJob.inputFolderId ? `<a class="btn btn-primary btn-sm" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.inputFolderId)}" target="_blank" rel="noopener noreferrer">Mở ảnh cần chỉnh</a>` : ''}
+        ${req.driveJob.outputFolderId ? `<a class="btn btn-outline btn-sm" href="https://drive.google.com/drive/folders/${encodeURIComponent(req.driveJob.outputFolderId)}" target="_blank" rel="noopener noreferrer">Mở thư mục lưu ảnh đã chỉnh</a>` : ''}
+        ${['pending','copying'].includes(req.driveJob.status) ? '<span class="drive-folder-note">Đang chép ảnh khách chọn lên Drive…</span>' : ''}
+        ${req.driveJob.status === 'error' ? `<span class="drive-folder-error">${escHtml(req.driveJob.message)}</span> ${role === 'tho-anh' ? `<button type="button" class="btn btn-outline btn-sm" data-drive-retry="${escHtml(req.id)}">Thử lại</button>` : ''}` : ''}
+      </div>` : ''}
       ${/^https:\/\/drive\.google\.com\//.test(req.sourceFolderUrl || '') ? `<p class="kanban-modal-meta">Khách đã chọn từ bộ ảnh gốc được giao: <a href="${escHtml(req.sourceFolderUrl)}" target="_blank" rel="noopener noreferrer">Mở thư mục Drive</a> · Lượt ${req.round || 1}</p>` : ''}
       ${total > 0 ? `
       <div class="kanban-modal-progress" style="--col-accent:${STATUS_ACCENT[req.status] || 'var(--pink-600)'}">
@@ -3446,4 +3452,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#funnelChart .funnel-row').forEach((row,i)=>{const pct=Math.round(counts[i]/(counts[0]||1)*100),val=row.querySelector('.val'),bar=row.querySelector('.funnel-bar');if(val){val.dataset.val=counts[i];val.dataset.pct=pct;val.textContent=counts[i]+' ('+pct+'%)';}if(bar){bar.dataset.w=pct;bar.style.width=pct+'%';}});
     window.dispatchEvent(new Event('aloha:crm-projection'));
   });
+});
+
+document.addEventListener('click', async (e) => {
+  const b=e.target.closest('[data-drive-retry]'); if(!b || !window.AlohaEditSync)return;
+  b.disabled=true; const r=await AlohaEditSync.retryDrive(b.dataset.driveRetry);
+  b.textContent=r.ok ? 'Đang chép ảnh…' : 'Thử lại'; b.disabled=!!r.ok;
 });
