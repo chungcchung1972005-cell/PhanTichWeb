@@ -2061,6 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="kanban-photo-tile" data-photo-id="${escHtml(p.id)}">
             <img src="${escHtml(p.src)}" alt="Ảnh ${escHtml(fname)} trong yêu cầu ${escHtml(req.orderCode || req.id)}" loading="lazy">
             ${(p.editOptions || []).map(x=>`<small class="badge badge-dat-lich">${escHtml(x)}</small>`).join(' ')}
+            ${p.fromEdited ? '<p class="note">Ảnh đã chỉnh, khách muốn chỉnh tiếp</p>' : ''}
             ${p.note ? `<p class="note">"${escHtml(p.note)}"</p>` : ''}
             <div class="photo-file-row">
               <span class="photo-filename">${escHtml(fname)}</span>

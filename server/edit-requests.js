@@ -222,13 +222,15 @@ function createEditRequestsRouter(store, opts) {
     if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return res.status(400).json({ error: 'bad_order_code' });
     const sourceAlbum = typeof b.sourceAlbumId === 'string' ? await store.get(b.sourceAlbumId) : null;
     if (!sourceAlbum || sourceAlbum.kind !== 'source-album' || sourceAlbum.phone !== req.user.phone || sourceAlbum.orderCode !== orderCode) return res.status(400).json({error:'source_album_required'});
+    const history = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode && r.workflowOrderId === sourceAlbum.workflowOrderId).sort((a, b) => b.createdAt - a.createdAt);
     const sourcePhotos = new Map(sourceAlbum.photos.map(p => [p.id, p]));
+    const editedPhotos = new Map(history.filter(r => r.status === STATUS_FLOW[2]).flatMap(r => r.resultPhotos || []).map(p => [p.id, p]));
     for (const p of photos) {
-      const source = sourcePhotos.get(p.id);
+      const edited = editedPhotos.get(p.id), source = edited || sourcePhotos.get(p.id);
       if (!source) return res.status(400).json({error:'photo_not_in_album'});
-      Object.assign(p, source); // authoritative file identity and filename, never a client-supplied image URL
+      Object.assign(p, {id:source.id,src:source.src,name:source.name,driveUrl:source.driveUrl,driveFileId:source.driveFileId});
+      if (edited) p.fromEdited = true;
     }
-    const history = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode).sort((a, b) => b.createdAt - a.createdAt);
     const previous = history[0];
     const parentRequestId = cleanStr(b.parentRequestId, 80);
     const openIds = new Set(history.filter(r => r.status !== STATUS_FLOW[2]).flatMap(r => r.photos.map(p => p.id)));
@@ -379,6 +381,16 @@ function createEditRequestsRouter(store, opts) {
     if (!checkRev(req, res)) return;
     const set = {};
     if (has('resultLink')) {
+      const drive = require('./drive');
+      const album = await store.get(r.sourceAlbumId);
+      const id = drive.folderId(b.resultLink);
+      if (id && album && id === (album.folderId || drive.folderId(album.folderUrl))) return res.status(400).json({error:'result_is_original'});
+      set.resultPhotos = [];
+      set.resultPreviewUnavailable = false;
+      if (b.resultLink) {
+        try { set.resultPhotos = (await drive.readFolder(b.resultLink)).photos; }
+        catch (_) { set.resultPreviewUnavailable = true; }
+      }
       set.resultLink = b.resultLink;
       set.resultLinkAt = b.resultLink ? Date.now() : null;
     }

@@ -1,4 +1,7 @@
 // Public, link-shared source folders; credentials stay on the server.
+function folderId(value) {
+  try { const u = new URL(value); return u.protocol === "https:" && ["drive.google.com", "docs.google.com"].includes(u.hostname) ? (u.pathname.match(/\/folders\/([\w-]{10,200})(?:\/|$)/) || [])[1] || "" : ""; } catch (_) { return ""; }
+}
 async function readFolder(value) {
   let folder;
   try { folder = new URL(value); } catch (_) {}
@@ -44,4 +47,4 @@ async function readFolder(value) {
     return {folderId,folderUrl:folder.href,photos};
   } finally {clearTimeout(timer);}
 }
-module.exports={readFolder};
+module.exports={readFolder,folderId};

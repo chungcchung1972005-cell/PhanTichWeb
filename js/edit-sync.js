@@ -46,6 +46,7 @@
     bad_text: 'Tin nhắn trống hoặc quá dài (tối đa 1500 ký tự).',
     bad_photos: 'Danh sách ảnh chưa hợp lệ.',
     source_album_required: 'Cần chọn bộ ảnh gốc do thợ gửi cho đúng buổi chụp.',
+    result_is_original: 'Đây là thư mục ảnh gốc, hãy gửi thư mục ảnh đã chỉnh',
     photo_not_in_album: 'Có ảnh không thuộc bộ ảnh gốc thợ đã giao.',
     bad_source_album: 'Thông tin bộ ảnh gốc chưa hợp lệ. Kiểm tra khách, mã đơn và thư mục Drive.',
     shoot_order_required: 'Chọn khách đã chụp trong danh sách buổi chụp được giao cho bạn.',

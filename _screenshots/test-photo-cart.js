@@ -79,7 +79,7 @@ function check(name, ok) { assert.ok(ok, name); checks++; console.log('PASS ' + 
       await page.$eval('#psGrid',e=>e.scrollIntoView({behavior:'instant',block:'start'}));
       check(width+' cart remains fixed when scrolled, old counter hidden',await page.evaluate(()=>getComputedStyle(document.getElementById('psSummaryCard')).display==='none'&&Math.abs(document.getElementById('psCart').getBoundingClientRect().bottom-innerHeight)<1));
       await page.evaluate(()=>document.querySelector('.ps-tab[data-filter="edited"]').click());
-      check(width+' edited tab hides cart and restores chat',await page.evaluate(()=>document.getElementById('psCart').hidden&&!document.body.classList.contains('ps-cart-open')));
+      check(width+' edited tab keeps shared cart available',await page.evaluate(()=>!document.getElementById('psCart').hidden&&document.body.classList.contains('ps-cart-open')));
       await page.evaluate(()=>document.querySelector('.ps-tab[data-filter="all"]').click());
       check(width+' return to grid restores cart, select all stays in toolbar',await page.evaluate(()=>!document.getElementById('psCart').hidden&&document.getElementById('psSelectAllBtn').parentElement.classList.contains('ps-cart-toolbar')));
       if(width!==360) await page.screenshot({path:path.join(env.ROOT,'output/gio',width+'-luot-1.png')});

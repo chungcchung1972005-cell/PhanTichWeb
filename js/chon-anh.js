@@ -102,11 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   function syncGridEditors() {
-    grid.querySelectorAll('.ps-photo').forEach(card => {
+    document.querySelectorAll('.ps-photo').forEach(card => {
       const id = card.dataset.id, editor = card.querySelector('.ps-grid-editor');
       if (!editor) return;
       editor.hidden = !selected.has(id) || sentPhotoIds.has(id);
-      if (!editor.hidden) syncEditor(editor, id, isSelectionLocked());
+      if (!editor.hidden) syncEditor(editor, id, isSelectionLocked() || photoById[id]?.previewOnly);
     });
   }
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
       extraModeActive = true;
       extraPhotos.add(pendingExtraId);
       selected.add(pendingExtraId);
-      const card = grid.querySelector(`[data-id="${pendingExtraId}"]`);
+      const card = document.querySelector(`[data-id="${pendingExtraId}"]`);
       if (card) {
         card.classList.add('selected', 'ps-extra-photo');
         card.querySelector('.ps-heart').setAttribute('aria-pressed', 'true');
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.classList.remove('show');
     if (pendingExtraId) {
       // Bỏ chọn ảnh vừa bấm
-      const card = grid.querySelector(`[data-id="${pendingExtraId}"]`);
+      const card = document.querySelector(`[data-id="${pendingExtraId}"]`);
       if (card) {
         card.classList.remove('selected');
         card.querySelector('.ps-heart').setAttribute('aria-pressed', 'false');
@@ -539,7 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ===== Xử lý click: tim = chọn ảnh, bấm vào ảnh = mở xem ảnh lớn =====
-  grid.addEventListener('click', (e) => {
+  document.getElementById('view-chon-anh').addEventListener('click', (e) => {
+    if (e.target.closest('.ps-grid-editor')) return;
     if (e.target.closest('a')) return;
     const heart = e.target.closest('.ps-heart');
     if (heart) { toggleSelect(heart.closest('.ps-photo').dataset.id); return; }
@@ -549,14 +550,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Chọn/bỏ chọn 1 ảnh (dùng chung cho nút tim trên lưới và trong lightbox)
   function toggleSelect(id) {
-    const card = grid.querySelector(`.ps-photo[data-id="${id}"]`);
+    const card = document.querySelector(`.ps-photo[data-id="${id}"]`);
     const heartBtn = card && card.querySelector('.ps-heart');
     if(sentPhotoIds.has(id)) {
       const target=lb.classList.contains('show') ? lb.querySelector('#psLbFav') : heartBtn;
       let hint=document.getElementById('psLockedHint');if(!hint){hint=document.createElement('span');hint.id='psLockedHint';hint.setAttribute('role','status');}
       hint.textContent='Đã gửi thợ; bạn vẫn có thể chọn ảnh khác.';target?.after(hint);setTimeout(()=>hint.remove(),4000);return;
     }
-    if (!heartBtn || heartBtn.disabled) return;
+    if (!heartBtn || heartBtn.disabled || photoById[id]?.previewOnly) return;
     hideUndo(); // đã tự chọn/bỏ chọn tiếp thì không Hoàn tác "Bỏ chọn tất cả" được nữa
 
     // Nếu đang bỏ chọn
@@ -645,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearAllBtn.disabled = locked || selected.size === 0;
   }
   function setCardSelected(id, on, extra) {
-    const card = grid.querySelector(`.ps-photo[data-id="${id}"]`);
+    const card = document.querySelector(`.ps-photo[data-id="${id}"]`);
     if (!card) return;
     card.classList.toggle('selected', on);
     card.classList.toggle('ps-extra-photo', on && extra);
@@ -842,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isLightboxOpen()) return;
     const id = lbIds[lbIndex];
     const isSel = selected.has(id);
-    const heart = grid.querySelector(`.ps-photo[data-id="${id}"] .ps-heart`);
+    const heart = document.querySelector(`.ps-photo[data-id="${id}"] .ps-heart`);
     const locked = sentPhotoIds.has(id) || !heart || heart.disabled;
     const favBtn = lb.querySelector('#psLbFav');
     favBtn.classList.toggle('active', isSel);
@@ -860,7 +861,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openLightbox(id) {
-    const visible = Array.from(grid.querySelectorAll('.ps-photo:not(.hidden-by-filter)')).map(c => c.dataset.id);
+    const host = document.querySelector(`.ps-photo[data-id="${id}"]`)?.parentElement || grid;
+    const visible = Array.from(host.querySelectorAll('.ps-photo:not(.hidden-by-filter)')).map(c => c.dataset.id);
     lbIds = visible.includes(id) ? visible : photos.map(p => p.id);
     lb.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -977,7 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const existingAdd = grid.querySelector('.ps-add-photo');
     if (existingAdd) existingAdd.remove();
 
-    document.querySelectorAll('.ps-photo').forEach((card) => {
+    grid.querySelectorAll('.ps-photo').forEach((card) => {
       let show;
       if (filter === 'all' || filter === 'original') {
         show = true;
@@ -1001,6 +1003,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab "Ảnh đã chỉnh": ẩn lưới ảnh + nút gửi yêu cầu, hiện ô link + chat với thợ
     const editedMode = filter === 'edited';
     grid.style.display = editedMode ? 'none' : '';
+    const drv = document.getElementById('psDrivePanel'); if (drv) drv.hidden = editedMode;
+    try { toolbar.hidden = editedMode; } catch (e) {}
     const submitBar = document.querySelector('.ps-submit-bar');
     if (submitBar) submitBar.style.display = editedMode ? 'none' : '';
     const panel = document.getElementById('psEditedPanel');
@@ -1071,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     banner.classList.add('show');
     selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear(); lastPaidCode='';
-    grid.querySelectorAll('.ps-photo').forEach(c=>setCardSelected(c.dataset.id,false,false));
+    document.querySelectorAll('.ps-photo').forEach(c=>setCardSelected(c.dataset.id,false,false));
     document.getElementById('psNote').value='';
     restoreSentRequest(); updateSummary();
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1191,11 +1195,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = document.createElement('p');
     label.textContent = `Lượt ${req.round || 1} · Phí chỉnh: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ. Lượt đầu miễn phí 10 ảnh; thêm ảnh 50.000đ/ảnh. Từ lượt 2: 50.000đ/ảnh.`;
     tools.appendChild(label);
-    if (req.resultLink && window.AlohaDrive) {
-      const preview = document.createElement('div'); preview.innerHTML = AlohaDrive.render(req.resultLink); tools.appendChild(preview);
-    }
     const history = (SYNC ? syncRequests : AlohaData.getEditRequests().filter(r => r.phone === session.phone)).filter(r => r.orderCode === record.orderCode && r.id !== req.id).sort((a,b) => a.createdAt-b.createdAt);
-    history.forEach(old => { const line = document.createElement('details'); const title = document.createElement('summary'); title.textContent = `Lượt ${old.round || 1} · ${old.photoCount} ảnh · ${old.status}`; line.appendChild(title); const body = document.createElement('div'); body.innerHTML = escHtml(old.note || '') + (old.resultLink && window.AlohaDrive ? AlohaDrive.render(old.resultLink) : ''); line.appendChild(body);
+    history.forEach(old => { const line = document.createElement('details'); const title = document.createElement('summary'); title.textContent = `Lượt ${old.round || 1} · ${old.photoCount} ảnh · ${old.status}`; line.appendChild(title); const body = document.createElement('div'); body.innerHTML = escHtml(old.note || '') + (old.resultLink ? '<a target="_blank" rel="noopener noreferrer" href="'+escHtml(old.resultLink)+'">Mở trên Google Drive</a>' : ''); line.appendChild(body);
       if(old.status==='Hoàn thành') {
         const happy=document.createElement('button');happy.type='button';happy.textContent=old.customerFeedback==='satisfied'?'Đã hài lòng':'Hài lòng lượt '+(old.round||1);
         happy.onclick=async()=>{if(SYNC){const res=await AlohaEditSync.feedback(old.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(old.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};body.appendChild(happy);
@@ -1206,6 +1207,38 @@ document.addEventListener('DOMContentLoaded', () => {
       happy.onclick=async()=>{if(SYNC){const res=await AlohaEditSync.feedback(req.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(req.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};tools.appendChild(happy);
     }
     resultBody.appendChild(tools);
+  }
+
+  function renderJourney(req) {
+    const step = !req ? 1 : req.resultLink ? 3 : 2;
+    document.querySelectorAll('#psJourney li').forEach((el, i) => {
+      el.classList.toggle('current', i + 1 === step);
+      if (i + 1 === step) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
+    });
+  }
+  function renderResultPhotos(req) {
+    const completed = (SYNC ? syncRequests : AlohaData.getEditRequests().filter(r => r.phone === session.phone))
+      .filter(r => r.orderCode === record.orderCode && r.resultLink);
+    const gallery = document.createElement('div'); gallery.className = 'ps-result-gallery';
+    const seen = new Set();
+    completed.forEach(r => (r.resultPhotos || []).forEach(p => {
+      if (seen.has(p.id)) return; seen.add(p.id);
+      const card = addDrivePhoto(Object.assign({}, p, {fromEdited:true,previewOnly:r.status !== 'Hoàn thành'}), gallery);
+      if (card) {
+        card.classList.toggle('selected', selected.has(p.id));
+        card.querySelector('.ps-heart').disabled = r.status !== 'Hoàn thành' || isSelectionLocked();
+        card.querySelector('.ps-grid-editor').hidden = !selected.has(p.id);
+        syncEditor(card.querySelector('.ps-grid-editor'), p.id, sentPhotoIds.has(p.id) || r.status !== 'Hoàn thành');
+      }
+    }));
+    resultBody.appendChild(gallery);
+    if (gallery.children.length) {
+      const again = document.createElement('button'); again.type = 'button'; again.className = 'ps-revise'; again.textContent = 'Tôi muốn chỉnh tiếp';
+      again.onclick = () => { gallery.classList.add('is-revising'); gallery.querySelector('.ps-heart')?.focus(); };
+      resultBody.appendChild(again);
+    } else if (req?.resultLink) {
+      const hint = document.createElement('p'); hint.textContent = 'Chưa xem trước được, mở trên Drive'; resultBody.appendChild(hint);
+    }
   }
 
   function latestRequest() {
@@ -1299,6 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const open = !!editedPanel && !editedPanel.hidden;
     if (open && req) markEditedSeen(req);
     updateEditedDot(req);
+    renderJourney(req);
     if (!open) return;
     const msgs = req && Array.isArray(req.messages) ? req.messages : [];
     const sig = req ? [req.id, req.status, req.resultLink || '', msgs.length, aiPending || ''].join('|') : 'none';
@@ -1329,17 +1363,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       const safeLink = /^https:\/\//i.test(req.resultLink || '') ? req.resultLink : '';
       resultIcon.innerHTML = safeLink ? RESULT_ICONS.done : RESULT_ICONS.sent;
-      resultTitle.textContent = safeLink ? 'Ảnh đã chỉnh của bé đã sẵn sàng' : 'Yêu cầu chỉnh sửa đã được gửi đến thợ ảnh';
+      resultTitle.textContent = 'Ảnh đã chỉnh';
       resultMeta.innerHTML = `Mã đơn <strong>${escHtml(req.orderCode || req.id)}</strong> · ${escHtml(req.photoCount || (req.photos || []).length)} ảnh · gửi lúc ${escHtml(fmtTime(req.createdAt))}`;
       // Tiến độ: số bước đã xong (1 = đã gửi, 2 = thợ chỉnh xong, 3 = đã có link)
-      const doneSteps = safeLink ? 3 : req.status === 'Hoàn thành' ? 2 : 1;
-      const stepper = `<ol class="ps-progress-steps" aria-label="Tiến độ chỉnh sửa">${['Đã gửi cho thợ', 'Thợ đang chỉnh ảnh', 'Nhận ảnh đã chỉnh']
-        .map((t, i) => `<li class="${i < doneSteps ? 'done' : i === doneSteps ? 'current' : ''}"><span></span>${t}</li>`).join('')}</ol>`;
+      const stepper = '';
       if (safeLink) {
         resultBody.innerHTML = stepper + `
           <a class="ps-result-link" id="psResultLink" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
-            <span>Mở thư mục ảnh đã chỉnh</span>
+            <span>Mở trên Google Drive</span>
           </a>
           <div class="ps-result-url"><span id="psResultUrl"></span><button type="button" class="ps-result-copy" id="psResultCopy">Sao chép link</button></div>
           <p class="ps-result-time">Thợ gửi lúc ${escHtml(fmtTime(req.resultLinkAt || req.createdAt))}</p>`;
@@ -1362,6 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    renderResultPhotos(req);
     renderRevisionTools(req);
     // --- Chat với thợ chỉnh ảnh. Người dùng chốt (2026-09-27): tin của trợ lý tự động hiện
     // như tin của thợ chỉnh ảnh, giao diện khách không nhắc tới AI. Trang quản trị vẫn ghi rõ
@@ -1507,7 +1540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   function renderCart() {
     const waiting = !!qr && Date.now() < qr.deadline;
-    const active = !document.getElementById('view-chon-anh').hidden && currentFilter !== 'edited' && selected.size > 0;
+    const active = !document.getElementById('view-chon-anh').hidden && selected.size > 0;
     cart.hidden = !active;
     document.body.classList.toggle('ps-cart-open', active);
     const feeCount = Math.max(0, selected.size - PACKAGE_COUNT);
@@ -1529,14 +1562,17 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', renderCart);
 
   const drivePanel = document.createElement('section'); drivePanel.id = 'psDrivePanel';
-  drivePanel.innerHTML = '<strong>Ảnh gốc thợ gửi cho bạn</strong><p>Chọn bộ ảnh của buổi chụp, thả tim những ảnh muốn sửa và ghi yêu cầu cho từng ảnh. Sau đó bấm gửi lại cho thợ.</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
+  drivePanel.innerHTML = '<h2>Chọn ảnh để chỉnh sửa</h2><p>Thả tim ảnh muốn sửa, chọn cách sửa, rồi bấm Gửi cho thợ</p><label for="psSourceAlbum">Bộ ảnh / buổi chụp</label><select id="psSourceAlbum" aria-label="Bộ ảnh thợ đã gửi"></select><p role="status">Đang tải bộ ảnh...</p><div id="psSourceFolder"></div><button type="button" id="psReloadAlbums">Tải lại bộ ảnh</button>';
   grid.before(drivePanel);
+  document.querySelector('#view-chon-anh .ps-head-row')?.after(document.getElementById('psJourney'));
   grid.before(toolbar);
-  function addDrivePhoto(doc) {
+  function addDrivePhoto(doc, target = grid) {
     const id = doc.id;
-    if (photoById[id]) return;
+    if (target.querySelector(`[data-id="${id}"]`)) return;
     const src = doc.src;
-    const photo = Object.assign({}, doc, {src, large:src.replace('sz=w1000','sz=w2000'), full:src.replace('sz=w1000','sz=w2000')}); photos.push(photo); photoById[id] = photo;
+    const photo = Object.assign({}, doc, {src, large:src.replace('sz=w1000','sz=w2000'), full:src.replace('sz=w1000','sz=w2000')});
+    if (!photoById[id]) photos.push(photo);
+    photoById[id] = photo;
     const card = document.createElement('div'); card.className = 'ps-photo'; card.dataset.id = id;
     const image = document.createElement('img'); image.src = src; image.alt = doc.name || 'Ảnh từ Drive'; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; card.appendChild(image);
     const badge = document.createElement('span'); badge.className = 'ps-photo-badge'; badge.textContent = doc.name; card.appendChild(badge);
@@ -1546,7 +1582,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editor = document.createElement('div'); editor.className = 'ps-grid-editor'; editor.hidden = true;
     editor.innerHTML = `<div class="ps-edit-chips" role="group" aria-label="Cách chỉnh sửa">${editChips()}</div><input type="text" class="ps-edit-note" aria-label="Ghi chú thêm cho ảnh" placeholder="Bạn muốn chỉnh gì khác?">`;
     bindEditor(editor, () => id); card.appendChild(editor);
-    grid.appendChild(card);
+    target.appendChild(card);
+    return card;
   }
   const driveStatus = drivePanel.querySelector('[role=status]');
   let sourceAlbums = [], sourceSignature = '';
@@ -1572,13 +1609,13 @@ document.addEventListener('DOMContentLoaded', () => {
       record.orderCode = album.orderCode; record.serviceLabel = album.serviceLabel || '';
       document.getElementById('psOrderInfo').textContent = `Mã đơn ${album.orderCode} · ${album.serviceLabel || 'Buổi chụp'} · ${album.photos.length} ảnh gốc`;
       driveStatus.textContent = `${album.staffName || 'Thợ ảnh'} đã gửi ${album.photos.length} ảnh. Chọn ảnh bên dưới để yêu cầu chỉnh sửa.`;
-      document.getElementById('psSourceFolder').innerHTML = AlohaDrive.render(album.folderUrl);
-      album.photos.forEach(addDrivePhoto);
+      document.getElementById('psSourceFolder').replaceChildren();
+      album.photos.forEach(p => addDrivePhoto(p));
       const prior=(SYNC?syncRequests:AlohaData.getEditRequests()).filter(r=>r.orderCode===album.orderCode).sort((a,b)=>b.createdAt-a.createdAt)[0];
       if(prior && prior.sourceAlbumId!==album.id){round=(prior.round||1)+1;PACKAGE_COUNT=0;extraModeActive=true;parentRequestId=prior.id;packageEl.textContent='0';showQuota();}
       restoreSentRequest();
     }
-    updateSummary(); applyFilter('all');
+    editedSig = ''; updateSummary(); applyFilter('all'); renderEdited(true);
   }
   async function loadSourceAlbums(force = false) {
     const result = SYNC ? await AlohaEditSync.sourceAlbums(force) : {ok:true, data:{albums:AlohaData.getSourceAlbums(session.phone)}};
@@ -1590,6 +1627,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = document.getElementById('psSourceAlbum'); select.replaceChildren();
     albums.forEach(a => { const option = document.createElement('option'); option.value = a.id; option.textContent = `${a.orderCode} · ${a.serviceLabel || 'Buổi chụp'} · ${a.photos.length} ảnh · ${fmtTime(a.createdAt)}`; select.appendChild(option); });
     select.disabled = !albums.length;
+    select.hidden = albums.length <= 1;
+    drivePanel.querySelector("label").hidden = albums.length <= 1;
     const album = albums.find(a => sourceAlbum && a.id === sourceAlbum.id) || albums[0];
     if (album) select.value = album.id;
     if (!sourceAlbum || !album || sourceAlbum.id !== album.id || force) showSourceAlbum(album);
@@ -1613,7 +1652,7 @@ document.addEventListener('DOMContentLoaded', () => {
     packageEl.textContent=String(PACKAGE_COUNT);showQuota();
     sentPhotoIds.clear();
     history.filter(r=>r.status!=='Hoàn thành').forEach(r=>(r.photos||[]).forEach(p=>sentPhotoIds.add(p.id)));
-    grid.querySelectorAll('.ps-photo').forEach(card=>{
+    document.querySelectorAll('.ps-photo').forEach(card=>{
       const locked=sentPhotoIds.has(card.dataset.id),btn=card.querySelector('.ps-heart');
       btn.disabled=submitting || !!paidPending || !!(qr && Date.now()<qr.deadline);
       btn.setAttribute('aria-disabled',String(locked || btn.disabled));btn.style.opacity=locked?'0.35':'';

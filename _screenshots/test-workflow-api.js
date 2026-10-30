@@ -27,9 +27,23 @@ const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,nam
   const source=r.body.album;
   r=await call('/edit',customer,{orderCode:order.code,sourceAlbumId:source.id,photos:[{id:source.photos[0].id,src:source.photos[0].src,note:'Chỉnh da'}],extraFee:0});assert.equal(r.status,201);
   let req=r.body.request;
+  const duplicate=await call('/edit/'+req.id+'/links',worker,{rev:req.rev,resultLink:album.folderUrl+'?usp=sharing'});
+  assert.equal(duplicate.status,400);assert.equal(duplicate.body.error,'result_is_original');
+  assert.equal((await store.get(req.id)).rev,req.rev);
+
   assert.equal((await call('/edit/'+req.id+'/links',stranger,{rev:req.rev,resultLink:'https://drive.google.com/drive/folders/edited-folder-123'})).status,403);
   r=await call('/edit/'+req.id+'/links',worker,{rev:req.rev,resultLink:'https://drive.google.com/drive/folders/edited-folder-123'});assert.equal(r.status,200);req=r.body.request;
+  assert.equal(req.resultPhotos.length,2);
+  const customerResults=await call('/edit/me',customer);
+  assert.deepEqual(customerResults.body.requests[0].resultPhotos,req.resultPhotos);
   assert.equal((await call('/edit/'+req.id+'/complete',worker,{rev:req.rev})).status,200);
+  const edited={id:'drive-edited-file-0001',name:'EDITED.JPG',src:'https://drive.google.com/thumbnail?id=edited-file-0001&sz=w1000',driveUrl:'https://drive.google.com/file/d/edited-file-0001/view'};
+  const current=await store.get(req.id);await store.updateIfRev(req.id,current.rev,{resultPhotos:[edited]});
+  const revise={orderCode:order.code,sourceAlbumId:source.id,photos:[{id:edited.id,src:'https://example.com/forged.jpg',fromEdited:false}],extraFee:50000};
+  assert.equal((await call('/edit',customer,revise)).status,402);
+  const foreign=await call('/edit',customer,{...revise,photos:[{id:'unknown-file',src:edited.src}]});
+  assert.equal(foreign.status,400);assert.equal(foreign.body.error,'photo_not_in_album');
+
   r=await call('/workflow',worker);assert.equal(r.body.state.entries.length,2);assert.equal(r.body.state.entries.find(e=>e.kind==='edit').amount,150000);
   assert.deepEqual(r.body.state.rules,[]);assert.equal(r.body.state.orders.some(o=>o.policy),false);
   const saleView=await call('/workflow',sale);assert.equal(saleView.body.state.rules.some(r=>r.sale||r.shoot||r.edit||r.extraEditPerPhoto),false);
@@ -44,7 +58,18 @@ const token=(role,phone)=>{const body=Buffer.from(JSON.stringify({role,phone,nam
   assert.equal((await call('/edit',customer,{orderCode:order.code,sourceAlbumId:source.id,parentRequestId:req.id,photos:[{id:source.photos[0].id,src:source.photos[0].src}],extraFee:50000})).status,402);
   const paymentCode=order.code+'CS1ABCD';
   require('../server/payment-receipts').incomingTx.push({id:'extra-bank-tx',content:paymentCode,amount:50000,at:Date.now()});
-  r=await call('/edit',customer,{orderCode:order.code,sourceAlbumId:source.id,parentRequestId:req.id,photos:[{id:source.photos[0].id,src:source.photos[0].src}],extraFee:50000,paymentCode});assert.equal(r.status,201);
+  r=await call('/edit',customer,{...revise,parentRequestId:req.id,paymentCode});assert.equal(r.status,201);
+  assert.equal(r.body.request.extraFee,50000);assert.equal(r.body.request.photos[0].fromEdited,true);
+  assert.equal(r.body.request.photos[0].src,edited.src);assert.equal(r.body.request.photos[0].name,edited.name);
+  // A failed Drive read must retain the usable result link and clear the old preview.
+  const driveModule=require('../server/drive'),readFolder=driveModule.readFolder;
+  driveModule.readFolder=async()=>{throw new Error('fixture failure');};
+  let fallback;
+  try { fallback=await call('/edit/'+req.id+'/links',worker,{rev:(await store.get(req.id)).rev,resultLink:'https://drive.google.com/drive/folders/unavailable-folder'}); }
+  finally { driveModule.readFolder=readFolder; }
+  assert.equal(fallback.status,200);assert.equal(fallback.body.request.resultPreviewUnavailable,true);
+  assert.deepEqual(fallback.body.request.resultPhotos,[]);assert.match(fallback.body.request.resultLink,/unavailable-folder/);
+
   assert.equal((await service.read()).orders[0].collected,1550000);assert.equal((await service.read()).orders[0].extraFees,50000);
   await call('/workflow',boss);assert.equal((await service.read()).orders[0].collected,1550000);
   // Independent order exercises two rounds in flight, without a parent request.

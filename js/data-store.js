@@ -96,6 +96,7 @@
       // Link thư mục ảnh đã chỉnh Thợ ảnh gửi khách + tin nhắn 2 bên (tab "Ảnh đã chỉnh").
       // Bản ghi cũ không có 2 trường này: nơi đọc tự coi như '' và [].
       resultLink: '',
+      resultPhotos: [],
       // Link thư mục ảnh GỐC: chỉ dùng nội bộ (Thợ ảnh/Sếp), KHÔNG hiện cho khách vì ảnh gốc
       // không được để link công khai (trưởng nhóm chốt 2026-10-15). Bản ghi cũ thiếu = ''.
       resultLinkOriginal: '',
