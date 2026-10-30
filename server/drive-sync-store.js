@@ -2,6 +2,10 @@ const {createStoreFromEnv} = require('./edit-requests-store');
 function createSyncStore(store) {
   return {
     kind: store.kind,
+    getState: async id => await store.get(id),
+    setState: put,
+    getRoot: async () => (await store.get('root'))?.folderId || null,
+    setRoot: folderId => put('root',{folderId}),
     getCursor: async () => (await store.get('cursor'))?.pageToken || null,
     getFolder: async orderId => (await store.get('order:' + orderId))?.folderId || null,
     async setCursor(pageToken) { return put('cursor', {pageToken}); },

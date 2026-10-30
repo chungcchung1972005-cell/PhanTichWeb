@@ -112,6 +112,7 @@
 
   const api = {
     enabled,
+    retryDrive(id) { return request('/'+encodeURIComponent(id)+'/drive-retry',{method:'POST',body:{}}); },
     ERRORS: Object.freeze(Object.assign({}, ERRORS)),
 
     // GET /health (không cần đăng nhập): { ok, store: 'memory', count }

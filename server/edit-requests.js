@@ -70,6 +70,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 function customerView(req) {
   const v = clone(req);
   delete v.resultLinkOriginal;
+  delete v.driveJob;
   delete v.photographer;
   delete v.priority;
   delete v.staffSeen;
@@ -83,9 +84,13 @@ const body = (req) => (req.body && typeof req.body === 'object' && !Array.isArra
 // Tạo router dùng 1 kho cho trước (test truyền kho giả lập vào; server dùng kho chọn theo biến môi trường).
 // opts.allowPublicDemoStaff: true = vẫn cho Thợ ảnh/Sếp demo CÔNG KHAI (0900000003/0900000004, mật khẩu in
 // trên login.html) dùng API này - chỉ để chạy test/phát triển local. Mặc định false = chặn (403).
+let defaultDriveSync;
 function createEditRequestsRouter(store, opts) {
   const workflow = opts && opts.workflowService || require('./workflow').service;
   workflow.attachRequestsStore(store);
+  const driveSync = opts?.driveSync || require('./drive-sync').createService({store,workflow,syncStore:require('./drive-sync-store').createStoreFromEnv()});
+
+  if(!opts?.driveSync) { driveSync.start(); defaultDriveSync=driveSync; }
   const allowPublicDemoStaff = !!(opts && opts.allowPublicDemoStaff);
   // ---------------------------------------------------------------- Giới hạn tần suất
   const hits = new Map(); // key -> [thời điểm]
@@ -155,6 +160,7 @@ function createEditRequestsRouter(store, opts) {
 
   // ---------------------------------------------------------------- API
   // Không cần đăng nhập: cho test/giám sát biết router này lưu ở đâu.
+  router.use((req,res,next)=>{if(req.method==='GET')driveSync.kick();next();});
   router.get('/health', wrap(async (req, res) => res.json({ ok: true, store: store.kind, count: await store.count() })));
 
   // ---- Khách
@@ -167,7 +173,9 @@ function createEditRequestsRouter(store, opts) {
   router.get('/albums/me', auth(['khach-hang']), wrap(async (req, res) => {
     const albums=(await store.listByPhone(req.user.phone)).filter(r=>r.kind==='source-album');
     if(req.query.force==='1') for(let i=0;i<albums.length;i++) {
-      const a=albums[i],manifest=await require('./drive').readFolder(a.folderUrl);
+      const a=albums[i];
+      if(a.driveManaged)continue;
+      const manifest=await require('./drive').readFolder(a.folderUrl);
       const result=await store.updateIfRev(a.id,a.rev,{photos:manifest.photos});
       if(!result?.doc) return res.status(409).json({error:'conflict'});
       albums[i]=result.doc;
@@ -198,6 +206,12 @@ function createEditRequestsRouter(store, opts) {
       staffName:req.user.name || 'Thợ ảnh', createdAt:now, updatedAt:now, rev:1});
     await workflow.originalDelivered(order.id,album.id);
     res.status(201).json({album});
+  }));
+
+  router.post('/:id/drive-retry', auth(['tho-anh']), loadRequest, wrap(async(req,res)=>{
+    if(!driveSync.enabled())return res.status(503).json({error:'drive_disabled'});
+    driveSync.enqueue(req.editRequest.id);
+    res.status(202).json({request:staffView(req.editRequest)});
   }));
 
   const creatingForPhone = new Set();
@@ -286,6 +300,7 @@ function createEditRequestsRouter(store, opts) {
       staffSeen: false,
       customerSeenDone: false,
       customerSeenEditedSig: '',
+      ...(driveSync.enabled() ? {driveJob:{status:'pending'}} : {}),
       rev: 1,
       createdAt: now,
       updatedAt: now
@@ -293,6 +308,7 @@ function createEditRequestsRouter(store, opts) {
     const saved = await store.insert(rec);
     if(saved.workflowOrderId) await workflow.progress(saved,'selected');
     res.status(201).json({ request: customerView(saved) });
+    driveSync.enqueue(saved.id);
   }));
 
   // ---- Nhân viên: danh sách (Thợ ảnh + Sếp). ?since=<ms> chỉ trả yêu cầu đổi sau mốc đó.
@@ -434,3 +450,5 @@ async function resetCustomer(reqStore, workflowService, phone) {
 const resetDemoCustomer = (phone) => resetCustomer(store, require('./workflow').service, phone);
 
 module.exports = { router: createEditRequestsRouter(store, { allowPublicDemoStaff: ALLOW_PUBLIC_DEMO_STAFF }), storeKind: store.kind, createEditRequestsRouter, resetDemoCustomer, resetCustomer };
+
+module.exports.driveSync = defaultDriveSync;

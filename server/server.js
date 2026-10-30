@@ -425,6 +425,7 @@ app.use('/api/sale-chat', saleChat.router);
 // CHỈ lưu trong RAM, không dùng MongoDB. Frontend (khách, Thợ ảnh, Sếp) chỉ gọi tới khi bật cờ
 // editSync trong js/features.js (mặc định TẮT).
 app.use('/api/edit-requests', editRequests.router);
+app.post('/api/drive/sync', require('./drive-sync').syncHandler(editRequests.driveSync));
 app.use('/api/workflow', require('./workflow').router);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, driveWrite: require('./drive-auth').isConnected(), hasKey: !!API_KEY, hasSepayKey: !!SEPAY_WEBHOOK_KEY, chatStore: saleChat.storeKind }));
