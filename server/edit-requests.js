@@ -244,7 +244,7 @@ function createEditRequestsRouter(store, opts) {
     let verifiedPayment=null;
     if(extraFee>0 && b.paymentCode) {
       const receipts=require('./payment-receipts'),code=receipts.normalize(b.paymentCode);
-      const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && receipts.find(code,extraFee);
+      const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && await receipts.find(code,extraFee);
       if(!tx) return res.status(402).json({error:'payment_required'});
       const reference='sepay:'+tx.id;
       if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return res.status(400).json({error:'payment_already_used'});

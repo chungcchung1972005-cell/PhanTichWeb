@@ -256,3 +256,47 @@ mở bất kỳ trang nào với `?editSync=0`. Máy khác không bị ảnh hư
 **Quyền:** tài khoản thử nghiệm Thợ ảnh ghi được, Sếp chỉ đọc, khách chỉ thấy yêu cầu của chính
 mình (có 1 buổi chụp GIẢ để chọn ảnh). Thợ ảnh/Sếp demo công khai (`0900000003`/`0900000004`)
 bị server chặn ở API này (báo "không có quyền"). Tài khoản thử nghiệm KHÔNG vào được chat Sale.
+# Kết nối Drive ghi tự động — đợt nền móng
+
+Ảnh vẫn để **Bất kỳ ai có đường liên kết đều xem được**. Thợ dùng Drive for desktop như cũ.
+API key chỉ đọc không đủ quyền tạo/copy file; OAuth là việc chủ Drive cho máy chủ làm thay mình.
+Chưa có ba biến OAuth thì `driveWrite:false`; phần đọc bằng `GOOGLE_DRIVE_API_KEY` vẫn chạy.
+
+1. Đăng nhập Google Cloud Console bằng `chungcchung1972005@gmail.com`, tạo/chọn một project.
+   Project là chỗ gom cấu hình; không cần chuyển ảnh vào project.
+2. Vào APIs & Services → Library → Google Drive API → Enable: bật cổng để máy chủ gọi Drive.
+3. Vào Google Auth Platform (hoặc OAuth consent screen): điền tên ALOHA Baby và email hỗ trợ/liên hệ.
+   Chọn Audience External cho Gmail cá nhân; lúc Testing thêm email trên vào Test users để thử đăng nhập.
+4. Data Access → thêm scope `https://www.googleapis.com/auth/drive`.
+   Cần quyền này để copy ảnh/thư mục vốn có do thợ đưa lên Drive desktop; `drive.file` chỉ giới hạn file app được cấp riêng.
+5. Audience → Publish app → **In production**, làm trước khi lấy token dùng lâu dài.
+   Để Testing thì refresh token có quyền Drive hết hạn sau 7 ngày.
+   Production không đồng nghĩa đã Google xác minh; app riêng có thể còn màn cảnh báo chưa xác minh,
+   và vẫn chịu giới hạn/chính sách của Google. Chỉ tiếp tục khi đúng project mình vừa tạo.
+6. Clients → Create client → chọn **Desktop app**, đặt tên “ALOHA Drive local connect”.
+   Desktop app cho phép nhận mã qua localhost cổng tạm; không chọn Web application hay client đăng nhập website.
+   Sao chép Client ID và Client secret: hai giá trị này nhận diện app khi xin token.
+7. Mở PowerShell tại thư mục dự án, đặt biến cho phiên terminal (không sửa `.env`):
+
+   ```powershell
+   $env:GOOGLE_DRIVE_CLIENT_ID='CLIENT_ID_VUA_TAO'
+   $env:GOOGLE_DRIVE_CLIENT_SECRET='CLIENT_SECRET_VUA_TAO'
+   node server/scripts/drive-connect.js
+   ```
+
+   Trình duyệt mở Google, chọn đúng `chungcchung1972005@gmail.com`, xem và cấp quyền.
+   Script dùng state + PKCE và nhận code ở `127.0.0.1`; tự dừng sau 5 phút nếu chưa xong.
+   Khi thành công terminal in refresh token **một lần để sao chép**, không ghi file.
+8. Trong Render → Environment, đặt `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`,
+   `GOOGLE_DRIVE_REFRESH_TOKEN` rồi deploy lại. Không đưa chúng vào frontend, Git hoặc ảnh chụp gửi người khác.
+   Refresh token giúp server tự xin access token mới khi hết hạn, không cần chủ Drive ngồi đăng nhập mỗi giờ.
+9. `/api/health` có `driveWrite:true` khi đủ biến; đây là kiểm tra cấu hình, chưa chứng minh token/quyền Drive còn hợp lệ.
+   Nếu token bị thu hồi/hết hạn, chạy lại bước 7 và cập nhật token trên Render.
+10. Để biên lai và cursor/map đơn còn sau restart, cấu hình `EDIT_REQUESTS_MONGODB_URI` và `EDIT_REQUESTS_DB`
+    giống kho yêu cầu chỉnh ảnh, dùng database riêng với chat. Collection cố định `payment_receipts` và `drive_sync_state`;
+    không dùng `MONGODB_URI` của chat. Thiếu URI dùng RAM; Mongo lỗi trả lỗi, không âm thầm chuyển RAM.
+    Mã giao dịch là `_id` Mongo (unique sẵn), webhook gửi lại không tạo biên lai mới.
+
+Đợt này chỉ có hàm nền móng, chưa tự tạo GOC/CAN-CHINH/DA-CHINH hay chạy vòng đồng bộ.
+Nguồn Google: [OAuth desktop/localhost](https://developers.google.com/identity/protocols/oauth2/native-app),
+[vòng đời refresh token và giới hạn Testing 7 ngày](https://developers.google.com/identity/protocols/oauth2#expiration).
