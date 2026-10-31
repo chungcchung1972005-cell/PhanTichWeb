@@ -125,6 +125,8 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     check('Không tự sinh thẻ minh họa; Sếp không có nút gửi link trên thẻ', !codes.includes('#AB240701') && (await sp.page.$$('.photo-row-drive-btn')).length === 0);
     let card = await sp.page.evaluate(() => { const el = [...document.querySelectorAll('#photoRows .photo-row-card')].find((x) => x.querySelector('.photo-row-card-code').textContent.trim() === '#ABSEP01'); return el.textContent.replace(/\s+/g, ' '); });
     check('Thẻ: tên khách, 2 ảnh, "Thợ ảnh demo", "Mới" (thợ chưa xem), "Khách cần thợ trả lời"? (thợ đã trả lời -> không)', /Khách demo/.test(card) && /2 ảnh/.test(card) && /Thợ ảnh demo/.test(card) && /Mới/.test(card) && !/Khách cần thợ trả lời/.test(card) && /Đã gửi link ảnh/.test(card), card);
+    // Khu quản trị hiện mỗi lúc 1 mục (31/10/2026): mở mục "Ảnh & chỉnh sửa" trước khi bấm nút trong đó
+    await sp.page.click('#adminTabs a[href="#anh"]');
     // Bộ lọc thợ: Thợ ảnh demo vẫn thấy yêu cầu chưa phân công
     await sp.page.click('#workerBtn-0900000003');
     await wait(200);

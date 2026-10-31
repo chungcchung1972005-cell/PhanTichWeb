@@ -2070,3 +2070,6 @@
 .tho-detail-back,.tho-detail-tabs button{white-space:nowrap}
 .tho-detail .kanban-modal-progress+.kanban-modal-meta{display:none}
 @media (max-width:900px){.tho-detail-back{padding:0 14px}.tho-detail-tabs button{font-size:14px}}
+
+/* Khu quản trị mỗi lúc 1 mục (crm/js/admin-pages.js, 31/10/2026) */
+.admin-pages-on .admin-section[hidden]{display:none!important}
