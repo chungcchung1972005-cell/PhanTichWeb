@@ -72,5 +72,42 @@ let checks=0;function check(v,label){assert.ok(v,label);checks++;}
  const eventCount=events.length;release();await scanning;
  check((await store.get(current.id)).resultLink==='https://example.com/manual-race','manual completion during scan wins');
  check(events.length===eventCount,'losing automatic writer never calls workflow');
+ // Khớp tay: thợ đổi tên khác hẳn, tự chỉ file nào là bản sửa của ảnh nào.
+ const P=[{id:'p1',name:'A.CR3'},{id:'p2',name:'B.JPG'}];
+ let mm=matchPhotos(P,[file('z','IMG_9999.jpg'),file('b','B_final.jpg')],undefined,{z:'p1'});
+ check(mm.matches[0][0]?.id==='z'&&mm.matches[1][0]?.id==='b'&&!mm.unknown.length&&!mm.errors.length,'manual match fills photo, name match still works');
+ mm=matchPhotos(P,[file('z','IMG_9999.jpg'),file('a','A_edit.jpg')],undefined,{z:'p1'});
+ check(mm.matches[0].length===1&&mm.matches[0][0].id==='z'&&mm.unknown[0]==='A_edit.jpg','manual match wins over name match');
+ mm=matchPhotos(P,[file('z','IMG_9999.jpg')],undefined,{z:'nope'});
+ check(mm.unknown[0]==='IMG_9999.jpg','manual to unknown photo ignored');
+ mm=matchPhotos(P,[file('z','x.jpg'),file('y','y.jpg')],undefined,{z:'p1',y:'p1'});
+ check(mm.errors.some(e=>e.includes('Nhiều file khớp')),'two manual files to one photo blocks');
+ // Route + tự giao sau khi khớp tay
+ const mreq={...req,id:'ER-matchtay-1234abcd',editorPhone:'0911000003',status:'Đang thực hiện',driveJob:{status:'done',outputFolderId:'match-folder'}};
+ await store.insert(mreq);
+ files=[file('z','IMG_9999.jpg'),file('w','DSC_1.jpg')];
+ const app2=express();app2.use(express.json());app2.use('/edit',createEditRequestsRouter(store,{workflowService:workflow,driveSync:sync,drive}));
+ const srv2=app2.listen(0,'127.0.0.1');await new Promise(r2=>srv2.once('listening',r2));
+ const tok=(role,phone)=>{const x=Buffer.from(JSON.stringify({role,phone,exp:Date.now()+60000})).toString('base64url');return x+'.'+crypto.createHmac('sha256',process.env.AUTH_SECRET).update(x).digest('base64url');};
+ const call=(path,role,phone,body)=>fetch('http://127.0.0.1:'+srv2.address().port+'/edit/'+path,{method:body?'POST':'GET',headers:{authorization:'Bearer '+tok(role,phone),'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
+ try{
+  let res=await call(mreq.id+'/output-files/z/match','khach-hang',mreq.phone,{photoId:'p1'});check(res.status===403||res.status===404,'customer cannot match');
+  res=await call(mreq.id+'/output-files/z/match','tho-anh','0911000099',{photoId:'p1'});check(res.status===403,'other editor cannot match');
+  res=await call(mreq.id+'/output-files/z/match','tho-anh','0911000003',{photoId:'evil'});check(res.status===422,'photo outside request rejected');
+  res=await call(mreq.id+'/output-files/ghost/match','tho-anh','0911000003',{photoId:'p1'});check(res.status===404,'file outside folder rejected');
+  res=await call(mreq.id+'/output-files/z/match','tho-anh','0911000003',{photoId:'p1'});check(res.status===200,'editor matches');
+  res=await call(mreq.id+'/output-files/w/match','tho-anh','0911000003',{photoId:'p2'});check(res.status===200,'editor matches second');
+  let list=await (await call(mreq.id+'/output-files','tho-anh','0911000003')).json();
+  check(list.matched===2&&list.files.every(f=>f.manual)&&list.photos.every(p=>p.matched),'output list shows manual matches');
+  res=await call(mreq.id+'/output-files/w/match','tho-anh','0911000003',{photoId:null});check(res.status===200,'unmatch ok');
+  list=await (await call(mreq.id+'/output-files','tho-anh','0911000003')).json();
+  check(list.matched===1&&list.files.find(f=>f.id==='w').manual===false,'unmatch removes manual');
+  res=await call(mreq.id+'/output-files/w/match','tho-anh','0911000003',{photoId:'p1'});check(res.status===200,'re-point to p1');
+  r=await store.get(mreq.id);check(r.driveJob.manualMatches.w==='p1'&&!('z' in r.driveJob.manualMatches),'one file per photo kept');
+  await call(mreq.id+'/output-files/z/match','tho-anh','0911000003',{photoId:'p2'});
+  clock+=200000;await sync.syncOnce();clock+=70000;await sync.syncOnce();
+  r=await store.get(mreq.id);check(r.status==='Hoàn thành'&&r.resultPhotos.map(p=>p.driveFileId).join(',')==='w,z','manual matches auto-deliver');
+  res=await call(mreq.id+'/output-files/z/match','tho-anh','0911000003',{photoId:null});check(res.status===409,'completed request locked');
+ }finally{srv2.closeAllConnections();await new Promise(r2=>srv2.close(r2));}
  console.log(`${checks}/${checks} PASS drive delivery (offline)`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

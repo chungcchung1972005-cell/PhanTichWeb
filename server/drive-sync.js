@@ -14,7 +14,7 @@ function instruction(r) {
 }
 
 function createService({store,workflow,syncStore,drive=require('./drive'),enabled=()=>require('./drive-auth').isConnected(),env=process.env,now=Date.now}) {
-  let running=false,lastKick=-Infinity,folderQueue=Promise.resolve(); const jobs=new Map();
+  let running=false,lastKick=-Infinity,folderQueue=Promise.resolve(),originalQueue=Promise.resolve(),originalCache=new Map(); const jobs=new Map();
   async function patch(id,set) {for(let i=0;i<20;i++){const r=await store.get(id);if(!r)throw Error('request_missing');const out=await store.updateIfRev(id,r.rev,set);if(out?.doc)return out.doc;}throw Error('drive_state_conflict');}
   function folder(parent,name) {
     const result=folderQueue.then(async()=>{const f=await drive.ensureFolder(parent,name);await drive.shareFolder(f.id);return f.id;});
@@ -85,7 +85,12 @@ function createService({store,workflow,syncStore,drive=require('./drive'),enable
   function enqueue(id) {if(!enabled()||jobs.has(id))return jobs.get(id);const pending=new Promise(resolve=>setImmediate(resolve)).then(()=>runJob(id)).finally(()=>jobs.delete(id));jobs.set(id,pending);pending.catch(()=>console.error('drive job: state unavailable'));return pending;}
   function kick(){if(enabled()&&now()-lastKick>=30000){lastKick=now();syncOnce().catch(()=>console.error('drive sync failed'));}}
   function start(){if(!enabled())return;const t=setInterval(()=>{syncOnce().catch(()=>console.error('drive sync failed'));store.listAll().then(rs=>rs.filter(r=>r.driveJob&&['pending','copying'].includes(r.driveJob.status)).forEach(r=>enqueue(r.id))).catch(()=>{});},90000);t.unref();return t;}
-  return {syncOnce,enqueue,kick,start,enabled,async originalFolder(o){const rootId=env.ALOHA_DRIVE_ROOT_ID || await syncStore.getRoot() || (await drive.ensureFolder('root','ALOHA')).id;await syncStore.setRoot(rootId);const parent=(await drive.ensureFolder(rootId,o.code)).id;await syncStore.setFolder(o.id,parent);return (await drive.ensureFolder(parent,'GOC')).id;}};
+  return {syncOnce,enqueue,kick,start,enabled,originalFolder(o){
+    // Xếp hàng: thợ kéo nhiều ảnh cùng lúc → nhiều lệnh gọi song song; chạy lần lượt để ensureFolder
+    // thấy thư mục lần trước vừa tạo, không đẻ trùng thư mục đơn / GOC (lỗi thấy trên web thật 31/10/2026).
+    if(originalCache.has(o.id))return originalCache.get(o.id);
+    const result=originalQueue.then(async()=>{const rootId=env.ALOHA_DRIVE_ROOT_ID || await syncStore.getRoot() || (await drive.ensureFolder('root','ALOHA')).id;await syncStore.setRoot(rootId);const parent=(await drive.ensureFolder(rootId,o.code)).id;await syncStore.setFolder(o.id,parent);return (await drive.ensureFolder(parent,'GOC')).id;});
+    originalQueue=result.catch(()=>{});originalCache.set(o.id,result);result.catch(()=>originalCache.delete(o.id));return result;}};
 }
 function syncHandler(service,env=process.env) {return async(req,res)=>{const key=req.get('x-sync-key')||'';if(!env.DRIVE_SYNC_KEY||Buffer.byteLength(key)!==Buffer.byteLength(env.DRIVE_SYNC_KEY)||!crypto.timingSafeEqual(Buffer.from(key),Buffer.from(env.DRIVE_SYNC_KEY)))return res.status(401).json({error:'unauthorized'});try{res.json(await service.syncOnce());}catch(_){res.status(503).json({error:'drive_sync_failed'});}};}
 module.exports={createService,instruction,syncHandler};

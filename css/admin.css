@@ -1989,6 +1989,8 @@
 
 .drive-upload progress{accent-color:var(--pink-600,#e0417a);height:8px}
 .drive-output-grid article p{font-size:13px;margin:6px 0}
+.drive-match-select{width:100%;min-height:44px;font-size:16px;margin-bottom:6px;border:1px solid var(--pink-200,#f5c6cd);border-radius:var(--radius-sm,8px);padding:0 8px;background:#fff;color:var(--navy-900)}
+.drive-output-grid article button+button{margin-left:6px}
 
 /* Tiền chưa khớp (Sếp, 2026-10-31) - crm/js/unmatched-payments.js */
 .unmatched-list { display: grid; gap: 10px; }
