@@ -30,8 +30,12 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   console.log('PASS Sale roster includes demo worker; editor follows shooter and preserves manual choice');
   await sale.evaluate(()=>AlohaWorkflow.command('book',{id:'multi-1',code:'MULTI01',phone:'0912222222',customerName:'Multi customer',service:'Newborn',pkg:'Cơ bản',price:1500000,date:'2026-12-01',time:'09:00',shooterPhone:'0900000003',editorPhone:'0900000003'}));
   await sale.evaluate(()=>AlohaWorkflow.command('payment',{id:'multi-1',amount:750000,reference:'multi-deposit'}));
-  const worker=await machine('tho-anh','0900000003','crm/admin.html#quy-trinh');
-  await worker.waitForSelector('[data-wf=checkin]');await worker.click('[data-wf=checkin]');await worker.waitForSelector('[data-wf=shot]');await worker.click('[data-wf=shot]');
+  // Màn thợ "Khách của tôi" (31/10/2026): bấm khách → tab Ảnh gốc có nút Check-in / Đã chụp xong
+  const worker=await machine('tho-anh','0900000003','crm/admin.html');
+  const openCust=async(name)=>{await worker.waitForFunction(n=>[...document.querySelectorAll('.tho-cust')].some(c=>c.textContent.includes(n)),{},name);await worker.evaluate(n=>[...document.querySelectorAll('.tho-cust')].find(c=>c.textContent.includes(n)).click(),name);};
+  await openCust('Multi customer');
+  await worker.waitForSelector('[data-cmd=checkin]',{visible:true});await worker.click('[data-cmd=checkin]');await worker.waitForSelector('[data-cmd=shot]',{visible:true});await worker.click('[data-cmd=shot]');
+  await worker.waitForSelector('[data-pane=goc] .drive-upload',{visible:true});
   await worker.waitForSelector('#sourceOrderSelect option[value="multi-1"]');
   const imported=await worker.evaluate(async()=>{const manifest=await AlohaDrive.readFolder('https://drive.google.com/drive/folders/test-folder-12345');return AlohaAuth.api('/api/edit-requests/albums',{method:'POST',body:{workflowOrderId:'multi-1',folderUrl:manifest.folderUrl,photos:[{id:'forged'}]}});});assert.equal(imported.status,201);
   console.log('PASS machine A booking -> machine B assigned shoot and server Drive import');
@@ -79,8 +83,8 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   await customer.waitForSelector('.ps-photo[data-id="drive-test-file-0002"] .ps-heart',{visible:true});await new Promise(r=>setTimeout(r,500));
   await customer.click('.ps-photo[data-id="drive-test-file-0002"] .ps-heart');assert.equal(await customer.$eval('.ps-photo[data-id="drive-test-file-0002"] .ps-heart',e=>e.getAttribute('aria-pressed')),'true');
   console.log('PASS new source album in same order permits selection; force reload refreshes server manifests');
-  await worker.goto(env.ROOT_URL+'crm/admin.html#anh',{waitUntil:'domcontentloaded'});
-  await worker.waitForSelector('.photo-row-card');await worker.click('.photo-row-card');await worker.waitForSelector('#copyPhotoNames');
+  await worker.goto(env.ROOT_URL+'crm/admin.html',{waitUntil:'domcontentloaded'});
+  await openCust('Multi customer');await worker.waitForSelector('.tho-detail[data-tab="chinh"] #copyPhotoNames',{visible:true});
   const detail=await worker.$eval('#kanbanModalBody',e=>e.textContent);assert.match(detail,/IMG_0001.JPG/);assert.match(detail,/Chỉnh da/);assert.match(detail,/Giữ nét bé/);
   assert.match(await worker.$eval('#kanbanModalBody .photo-download-btn',e=>e.href),/file\/d\/test-file-0001\/view/);
   await worker.click('#copyPhotoNames');await worker.waitForFunction(()=>window.copiedNames==='IMG_0001.JPG');assert.match(await worker.$eval('#copyPhotoStatus',e=>e.textContent),/Đã chép 1 tên file/);

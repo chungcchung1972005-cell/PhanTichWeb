@@ -61,3 +61,18 @@
 .wf-panel td form{min-width:0;flex:1}
 .wf-panel td small{margin-left:6px}
 }
+
+/* Thu nhập: tách màu theo trạng thái tiền (31/10/2026, Chung: "đều màu, không biết cái nào nhận rồi, cái nào dự kiến").
+   Dự kiến = xám nét đứt (chưa chắc), Đã chốt = vàng hổ phách (chắc chắn, chờ trả), Đã nhận = xanh lá (tiền đã về). */
+.wf-kpis article.wf-money-pending{background:#f6f7f9;border:1px dashed #b9c0cc}
+.wf-kpis article.wf-money-pending strong{color:#6b7484}
+.wf-kpis article.wf-money-approved{background:#fff7e8;border-color:#f2cf8a}
+.wf-kpis article.wf-money-approved strong{color:#9a5b00}
+.wf-kpis article.wf-money-paid{background:#eaf7ef;border-color:#9fd8b4}
+.wf-kpis article.wf-money-paid strong{color:#16794a}
+.wf-money-tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+tr.wf-money-pending .wf-money-tag{background:#f1f2f5;color:#5f6878;border:1px dashed #b9c0cc}
+tr.wf-money-approved .wf-money-tag{background:#fff1d6;color:#8a5200}
+tr.wf-money-paid .wf-money-tag{background:#dff3e7;color:#146c42}
+tr.wf-money-pending td:nth-child(3),tr.wf-money-pending td:nth-child(4){color:#7d8795}
+.tho-ws-on #quy-trinh .wf-tabs{display:none}
