@@ -416,7 +416,7 @@ button.sw-pill-select { cursor: pointer; color: var(--s-text); }
 /* ---------- Đặt cọc ---------- */
 .dp-unmatched { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--s-amber-soft); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
 .dp-unmatched strong { display: block; color: var(--s-amber); font-size: 13.5px; }
-.dp-unmatched small { font-size: 13px; }
+.dp-unmatched small { display: block; font-size: 13px; }
 .dp-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 290px 220px; gap: 20px; align-items: center; padding: 16px 12px; border-bottom: 1px solid var(--s-line-2); border-radius: 10px; }
 .dp-row:last-child { border-bottom: 0; }
 .dp-row:hover, .dp-row.on { background: #FFF8F8; }

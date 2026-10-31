@@ -60,7 +60,7 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
       const header = document.querySelector('.site-header').getBoundingClientRect();
       const r = first.getBoundingClientRect();
       const collage = document.querySelector('.svc-collage').getBoundingClientRect();
-      return { id: first.id, cls: first.className, gap: Math.round(r.top - header.bottom), h1: document.querySelector('#view-home h1').textContent.trim(), h1Count: document.querySelectorAll('#view-home h1').length, visibleCollage: collage.top < window.innerHeight, height: r.height };
+      return { id: first.id, cls: first.className, gap: Math.round(r.top - header.bottom), h1: document.querySelector('#view-home h1').textContent.trim(), h1Count: [...document.querySelectorAll('#view-home h1')].filter((h) => h.offsetParent).length /* Báo giá, Khuyến mại có h1 riêng nhưng ẩn ở trang chủ */, visibleCollage: collage.top < window.innerHeight, height: r.height };
     });
     log(`[${vp.name}] Hero Banner 5 dịch vụ là section đầu tiên, ngay dưới navbar`, hero.id === 'dich-vu' && hero.cls.includes('svc-hero') && hero.gap === 0, `gap ${hero.gap}px`);
     log(`[${vp.name}] Tiêu đề h1 là "Dịch vụ", duy nhất 1 h1 trong Trang chủ, lưới ảnh lộ ngay màn đầu`, hero.h1 === 'Dịch vụ' && hero.h1Count === 1 && hero.visibleCollage);
@@ -206,7 +206,7 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
       order: Array.from(document.querySelectorAll('#view-home > section')).map((s) => s.id || s.className)
     }));
     log(`[${vp.name}] Trang chủ không tràn ngang, đủ section theo thứ tự mới`, !home.overflow &&
-      home.order.join(',') === 'dich-vu,hero,album,concept,gioi-thieu,video,process,tin-tuc,cta-final', home.order.join(','));
+      home.order.join(',') === 'dich-vu,hero,album,concept,gioi-thieu,video,process,tin-tuc,bao-gia,khuyen-mai,cta-final', home.order.join(','));
 
     if (vp.name === 'mobile') {
       // Menu hamburger đang ĐÓNG: danh sách con "Dịch vụ" không được đè lên trang và cướp cú chạm

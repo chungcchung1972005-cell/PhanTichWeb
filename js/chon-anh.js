@@ -272,13 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="ps-bank-row">
           <div class="ps-bank-label">Số tài khoản:</div>
           <div class="ps-bank-val">
-            <strong id="psBankAccNum">0967237146</strong>
-            <button type="button" class="ps-copy-btn" data-copy="0967237146">Sao chép</button>
+            <strong id="psBankAccNum">0382071708</strong>
+            <button type="button" class="ps-copy-btn" data-copy="0382071708">Sao chép</button>
           </div>
         </div>
         <div class="ps-bank-row">
           <div class="ps-bank-label">Chủ tài khoản:</div>
-          <div class="ps-bank-val"><strong>ALOHA BABY STUDIO</strong></div>
+          <div class="ps-bank-val"><strong>NGUYEN QUANG CHUNG</strong></div>
         </div>
         <div class="ps-bank-row">
           <div class="ps-bank-label">Số tiền:</div>
@@ -440,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fee: extraFee,
         deadline: Date.now() + QR_VALID_MS
       };
+      sendPendingDraft(qr.code, extraFee);
     }
     lockSelection(true);
     renderCart();
@@ -454,8 +455,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // để server đối chiếu chính xác, không nhầm với giao dịch khác.
     const qrDescription = qr.code;
     const bankId = 'MB';
-    const accountNo = '0967237146';
-    const accountName = 'ALOHA BABY STUDIO';
+    const accountNo = '0382071708';
+    const accountName = 'NGUYEN QUANG CHUNG';
     const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${extraFee}&addInfo=${encodeURIComponent(qrDescription)}&accountName=${encodeURIComponent(accountName)}`;
 
     document.getElementById('psQrCustCode').textContent = record.orderCode || '#AB240915';
@@ -1098,6 +1099,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // Chế độ đồng bộ: gửi yêu cầu lên server, CHỈ khoá + báo "đã gửi" khi server xác nhận.
   // Lỗi (mất mạng, 401/403, 409, dữ liệu sai...) -> báo lỗi, giữ nguyên ảnh đã chọn + ghi chú để gửi lại,
   // không ghi gì vào localStorage. SĐT + tên khách server lấy từ token, không gửi từ trang.
+  function requestPayload(extraFee, paymentStatus, paymentCode) {
+    return {
+      orderCode: record.orderCode, parentRequestId, sourceAlbumId: sourceAlbum.id, round,
+      serviceLabel: record.serviceLabel,
+      note: document.getElementById('psNote').value.trim(),
+      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra: extraPhotos.has(id) })),
+      extraFee, paymentStatus, paymentCode
+    };
+  }
+
+  // Mở mã QR (chế độ đồng bộ): gửi bản nháp lên máy chủ để tiền về là máy chủ tự gửi ảnh cho thợ,
+  // khách tắt trang cũng không mất. Lỗi mạng thì QR vẫn dùng được như cũ (trang tự gửi khi thấy tiền).
+  async function sendPendingDraft(code, extraFee) {
+    if (!SYNC || !sourceAlbum || !window.AlohaEditSync || !AlohaEditSync.createPending) return;
+    const res = await AlohaEditSync.createPending(requestPayload(extraFee, '', code));
+    if (!res.ok) { console.warn('Chưa lưu được bản nháp chờ thanh toán:', res.message || res.error); return; }
+    // Tiền đã về trước đó và máy chủ vừa tạo xong yêu cầu
+    if (res.data && res.data.request && qr && qr.code === code) {
+      lastPaidCode = code; qr = null; stopPaymentWatch(); qrOverlay.classList.remove('show');
+      syncRequests = syncRequests.filter((r) => r.id !== res.data.request.id).concat([res.data.request]);
+      showSubmittedUi(Math.max(0, selected.size - PACKAGE_COUNT), extraFee);
+      renderEdited(true);
+    }
+  }
+
   async function submitToServer(extraCount, extraFee, paymentStatus) {
     if (submitting || requestSent) return;
     submitting = true;
@@ -1108,18 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncBulkButtons();
     submitBtn.disabled = true;
     submitBtn.textContent = 'Đang gửi yêu cầu...';
-    const res = await AlohaEditSync.create({
-      orderCode: record.orderCode,
-        parentRequestId,
-        sourceAlbumId:sourceAlbum.id,
-        round,
-      serviceLabel: record.serviceLabel,
-      note: document.getElementById('psNote').value.trim(),
-      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra: extraPhotos.has(id) })),
-      extraFee: extraFee,
-      paymentStatus: paymentStatus,
-      paymentCode:lastPaidCode
-    });
+    const res = await AlohaEditSync.create(requestPayload(extraFee, paymentStatus, lastPaidCode));
     submitting = false;
     if (res.ok && res.data && res.data.request) {
       paidPending = null;

@@ -18,6 +18,7 @@ function createReceiptStore(store, incomingTx = []) {
       catch (e) { if (e.code === 11000) return false; throw e; }
       return true;
     },
+    async listAll() { return store.kind === 'memory' ? incomingTx.map(t => ({...t})) : store.listAll(); },
     async find(code, amount) {
       const c = normalize(code);
       if (c.length < 8 || c.length > 60) return null;

@@ -87,6 +87,18 @@
     return fail(error, extra);
   }
 
+  // Dữ liệu tạo yêu cầu chỉnh (dùng chung cho tạo thật + bản nháp chờ thanh toán)
+  // data: { orderCode, serviceLabel, note, photos: [{ id, src, note, isExtra }], extraFee, paymentStatus, paymentCode }
+  function createBody(data) {
+    const d = data || {};
+    return {
+      orderCode: d.orderCode, serviceLabel: d.serviceLabel, note: d.note,
+      sourceAlbumId: d.sourceAlbumId, parentRequestId: d.parentRequestId,
+      photos: Array.isArray(d.photos) ? d.photos.map((p) => ({ id: p && p.id, src: p && p.src, note: (p && p.note) || '', editOptions: (p && p.editOptions) || [], isExtra: !!(p && p.isExtra) })) : d.photos,
+      extraFee: d.extraFee, paymentStatus: d.paymentStatus, paymentCode: d.paymentCode
+    };
+  }
+
   // Gọi API qua AlohaAuth.api() (tự gắn token của phiên hiện tại). Kiểm cờ + đăng nhập trước,
   // không gửi request vô ích.
   async function request(path, opts) {
@@ -160,14 +172,13 @@
     // Khách: POST / -> { request } (201). SĐT + tên lấy từ token ở server.
     // data: { orderCode, serviceLabel, note, photos: [{ id, src, note, isExtra }], extraFee, paymentStatus }
     create(data) {
-      const d = data || {};
-      const body = {
-        orderCode: d.orderCode, serviceLabel: d.serviceLabel, note: d.note,
-        sourceAlbumId: d.sourceAlbumId, parentRequestId: d.parentRequestId,
-        photos: Array.isArray(d.photos) ? d.photos.map((p) => ({ id: p && p.id, src: p && p.src, note: (p && p.note) || '', editOptions: (p && p.editOptions) || [], isExtra: !!(p && p.isExtra) })) : d.photos,
-        extraFee: d.extraFee, paymentStatus: d.paymentStatus, paymentCode:d.paymentCode
-      };
-      return request('/', { method: 'POST', body });
+      return request('/', { method: 'POST', body: createBody(data) });
+    },
+
+    // Khách: POST /pending -> { pending: { status, requestId }, request? }. Gửi lúc mở mã QR: tiền về thì
+    // máy chủ tự tạo yêu cầu cho thợ, kể cả khi khách đã tắt trang (2026-10-31).
+    createPending(data) {
+      return request('/pending', { method: 'POST', body: createBody(data) });
     },
 
     // Khách / Thợ ảnh: POST /:id/messages { text } -> { request }. Người gửi do server suy ra

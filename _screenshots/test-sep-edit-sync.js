@@ -233,7 +233,9 @@ const newReq = (code) => ({ orderCode: code, serviceLabel: 'Newborn', note: 'Ghi
     check('Sale (cờ bật) ở admin.html: không có khu ảnh, không gọi API ảnh, Khách hàng vẫn dựng', !v.anh && v.cust > 0 && sl.calls.length === 0, { v, calls: sl.calls });
     await sl.page.goto(ROOT_URL + 'crm/sale.html', { waitUntil: 'networkidle0' });
     await wait(800);
-    check('Sale (cờ bật): Không gian Sale mở bình thường, không gọi API ảnh', await sl.page.evaluate(() => document.body.textContent.length > 500) && sl.calls.length === 0);
+    // Từ 2026-10-31 Sale chỉ được đọc đúng mục "Tiền chưa khớp" (trang Đặt cọc), không gọi API ảnh nào khác
+    const saleCalls = sl.calls.filter((c) => !/\/api\/edit-requests\/unmatched-payments$/.test(c));
+    check('Sale (cờ bật): Không gian Sale mở bình thường, chỉ đọc Tiền chưa khớp, không gọi API ảnh khác', await sl.page.evaluate(() => document.body.textContent.length > 500) && saleCalls.length === 0 && sl.calls.some((c) => /^GET .*unmatched-payments$/.test(c)), sl.calls);
     check('Không có lỗi JS / hộp thoại trên các trang', errors.length === 0, errors);
   } catch (e) {
     fail++;

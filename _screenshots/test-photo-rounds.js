@@ -76,7 +76,8 @@ const env = require('./test-env');
       document.querySelector('.ps-tab[data-filter="edited"]').click();
     });
     await page.waitForSelector('#psRoundTools button');
-    assert.equal(await page.$eval('#psRoundTools iframe', el => el.src.includes('embeddedfolderview')), true);
+    // 30/10/2026: bỏ khung nhúng Drive, ảnh đã chỉnh hiện lưới trên web + nút phụ mở Drive
+    assert.equal(await page.evaluate(() => !!document.querySelector('#view-chon-anh a[href*="test-folder-12345"]')), true);
     await page.$eval('#psRoundTools button',el=>el.click());
     await page.evaluate(()=>window.dispatchEvent(new StorageEvent('storage',{key:'aloha_demo_db'})));
     await page.click('.ps-tab[data-filter="all"]');

@@ -30,7 +30,7 @@
   position: relative;
 }
 .admin-tabs a svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--navy-300); transition: color 0.2s; }
-.admin-tabs a span { flex: 1; }
+.admin-tabs a span:not(.admin-tab-badge) { flex: 1; }
 .admin-tabs a:hover { background: var(--pink-50); color: var(--pink-700); }
 .admin-tabs a:hover svg { color: var(--pink-500); }
 .admin-tabs a.active { background: var(--pink-50); color: var(--pink-700); }
@@ -43,7 +43,7 @@
 /* Badge số yêu cầu thật Thợ ảnh chưa mở xem - xem updateTabBadge() trong admin.js */
 .admin-tab-badge {
   display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
-  padding: 0 5px; border-radius: var(--radius-pill); flex-shrink: 0;
+  padding: 0 5px; border-radius: var(--radius-pill); flex: 0 0 auto;
   background: var(--pink-600); color: var(--white); font-size: 10.5px; font-weight: 700;
 }
 
@@ -1989,3 +1989,14 @@
 
 .drive-upload progress{accent-color:var(--pink-600,#e0417a);height:8px}
 .drive-output-grid article p{font-size:13px;margin:6px 0}
+
+/* Tiền chưa khớp (Sếp, 2026-10-31) - crm/js/unmatched-payments.js */
+.unmatched-list { display: grid; gap: 10px; }
+.unmatched-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; background: #fff7e8; border: 1px solid #f6dfb3; border-radius: var(--radius-md); }
+.unmatched-info { min-width: 0; }
+.unmatched-info strong { display: block; color: #8a5300; font-size: 14px; }
+.unmatched-info small { display: block; margin-top: 4px; color: var(--navy-500); font-size: 12.5px; overflow-wrap: anywhere; }
+.unmatched-amount { white-space: nowrap; }
+.unmatched-row .btn { flex-shrink: 0; min-height: 44px; }
+.unmatched-empty { padding: 16px; background: var(--white); border: 1px dashed var(--pink-100); border-radius: var(--radius-md); color: var(--navy-500); font-size: 13.5px; }
+@media (max-width: 640px) { .unmatched-row { flex-direction: column; align-items: stretch; } }
