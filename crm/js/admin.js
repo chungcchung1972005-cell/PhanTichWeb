@@ -1427,7 +1427,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEditRequests() {
     renderPhotoRows();
     renderCompletedTable();
+    thoHooks.forEach(h => h.onChange && h.onChange());
   }
+  // Màn "Khách của tôi" của Thợ ảnh (crm/js/tho-workspace.js) dùng lại đúng phần chi tiết yêu cầu:
+  // chuyển #kanbanModalBody vào khung chi tiết bên phải thay vì mở hộp thoại.
+  const thoHooks = [];
+  window.AlohaThoDesk = {
+    requests: () => getAllRequests(),
+    awaitingReply: (req) => awaitingReply(req),
+    subscribe: (hook) => { thoHooks.push(hook); },
+    render(id, host) {
+      const req = freshRequest(id);
+      if (!req || !modalBody) return false;
+      if (modalBody.parentElement !== host) host.append(modalBody);
+      if (EDIT_SYNC && role === 'tho-anh' && !req.staffSeen) {
+        AlohaEditSync.markSeen(req.id).then((res) => { if (res.ok && res.data) { keepServerCopy(res.data.request); renderEditRequests(); } });
+      }
+      modalChatCount = -1;
+      renderModalBody(req);
+      return true;
+    }
+  };
 
   // ------------------------------- 3 hàng ngang: Gấp / Trung bình / Chưa gấp -------------------------------
   // Lấy từ nhánh Thợ ảnh (7ee735d). Mỗi hàng hiện tối đa CARDS_PER_ROW thẻ, "Xem thêm" mở phần còn lại.
@@ -1813,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.remove('open');
     modalOverlay.setAttribute('aria-hidden', 'true');
     modalReqId = null;
+    thoHooks.forEach(h => h.onClose && h.onClose());
   }
   if (modalClose) modalClose.addEventListener('click', closeModal);
   if (modalOverlay) modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -1878,13 +1899,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ${canComplete(req) ? '<button type="button" class="drive-modal-complete-btn kanban-link-complete" id="kanbanLinkComplete">Hoàn tất, chuyển sang mục Đã hoàn tất</button>' : ''}
         <p class="kanban-result-hint">Có link ảnh đã chỉnh thì bấm "Hoàn tất": mọi ảnh được tính là xong và đơn chuyển sang Hoàn thành. Thư mục ảnh đã chỉnh theo thiết kế hiện tại để "Bất kỳ ai có đường liên kết" để khách gửi người thân; cần studio xác nhận trước khi dùng với ảnh thật.</p>` : ''}
         ${req.isStatic ? '<p class="kanban-modal-meta">Thẻ minh hoạ: link chỉ lưu tạm tới khi tải lại trang; trao đổi với khách chỉ có ở yêu cầu thật của khách.</p>' : `
+        <div class="kanban-chat-block">
         <h4>Trao đổi với khách</h4>
         <div class="kanban-chat-list" id="kanbanChatList"></div>
         ${canEditProgress ? `
         <form class="kanban-chat-form" id="kanbanChatForm">
           <textarea id="kanbanChatInput" rows="2" maxlength="1000" placeholder="Trả lời khách..." aria-label="Trả lời khách"></textarea>
           <button type="submit" class="btn btn-primary">Gửi</button>
-        </form>` : '<p class="kanban-modal-meta">Sếp xem được nội dung trao đổi, Thợ ảnh là người trả lời khách.</p>'}`}
+        </form>` : '<p class="kanban-modal-meta">Sếp xem được nội dung trao đổi, Thợ ảnh là người trả lời khách.</p>'}
+        </div>`}
       </section>`;
   }
 
@@ -2031,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Khách nhắn thêm khi modal đang mở -> chỉ làm mới khung chat (không đụng ô đang gõ)
   function refreshModalChat() {
-    if (!modalReqId || !modalOverlay || !modalOverlay.classList.contains('open')) return;
+    if (!modalReqId || !modalOverlay || !(modalOverlay.classList.contains('open') || modalBody.closest('.tho-detail'))) return;
     const fresh = freshRequest(modalReqId);
     if (fresh && (fresh.messages || []).length !== modalChatCount) renderModalChat(fresh);
   }

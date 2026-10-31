@@ -2002,3 +2002,71 @@
 .unmatched-row .btn { flex-shrink: 0; min-height: 44px; }
 .unmatched-empty { padding: 16px; background: var(--white); border: 1px dashed var(--pink-100); border-radius: var(--radius-md); color: var(--navy-500); font-size: 13.5px; }
 @media (max-width: 640px) { .unmatched-row { flex-direction: column; align-items: stretch; } }
+
+/* ===== Màn làm việc Thợ ảnh: Khách của tôi (crm/js/tho-workspace.js, 31/10/2026) ===== */
+.tho-ws-on .admin-section[hidden]{display:none!important}
+.tho-ws-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.tho-ws-head h2{margin:0}
+.tho-ws-filter{display:flex;gap:6px;flex-wrap:wrap}
+.tho-ws-filter button{min-height:40px;padding:0 14px;border:1px solid var(--pink-200);border-radius:999px;background:#fff;color:var(--navy-700);font-weight:600;cursor:pointer}
+.tho-ws-filter button[aria-selected="true"]{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+.tho-ws-filter b{font-weight:700;margin-left:4px;opacity:.75}
+.tho-ws-body{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:18px;align-items:start}
+.tho-ws-list{display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 170px);overflow:auto;padding:2px}
+.tho-cust{position:relative;display:grid;gap:2px;width:100%;text-align:left;padding:12px 14px;min-height:64px;border:1px solid #ece4e8;border-radius:var(--radius-md,14px);background:#fff;cursor:pointer;font:inherit;color:var(--navy-900);transition:border-color .15s,background .15s}
+.tho-cust:hover{border-color:var(--pink-200)}
+.tho-cust.is-open{border-color:var(--pink-500);background:var(--pink-50);box-shadow:0 0 0 2px var(--pink-100)}
+.tho-cust-name{font-weight:700;font-size:15px;padding-right:56px}
+.tho-cust-code{font-size:12px;color:#7d8795}
+.tho-cust-line{font-size:13px;color:#5f6878}
+.tho-cust.is-todo .tho-cust-line{color:var(--pink-700);font-weight:600}
+.tho-cust-chat{position:absolute;top:10px;right:12px;font-size:12px;font-weight:700;background:var(--pink-600);color:#fff;border-radius:999px;padding:2px 8px}
+.tho-new{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#1a9d5c;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+.tho-empty{color:#7d8795;padding:18px;text-align:center;background:#fff;border:1px dashed #e3d6dc;border-radius:var(--radius-md,14px);margin:0}
+.tho-ws-pick{margin:0;padding:48px 24px;text-align:center;color:#7d8795;background:#fff;border:1px dashed #e3d6dc;border-radius:var(--radius-lg,18px)}
+.tho-ws.has-detail .tho-ws-pick{display:none}
+.tho-detail{background:#fff;border:1px solid #ece4e8;border-radius:var(--radius-lg,18px);padding:18px 20px;min-width:0}
+.tho-detail-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.tho-detail-back{display:none;min-height:44px;padding:0 12px;border:1px solid var(--pink-200);border-radius:999px;background:#fff;color:var(--navy-700);font-weight:600;cursor:pointer}
+.tho-detail-title strong{display:block;font-size:19px;color:var(--navy-900)}
+.tho-detail-title span{font-size:13px;color:#7d8795}
+.tho-detail-tabs{display:flex;gap:4px;border-bottom:1px solid #eee3e8;margin-bottom:16px}
+.tho-detail-tabs button{position:relative;min-height:44px;padding:0 16px;border:0;background:none;color:#6b7484;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tho-detail-tabs button[aria-selected="true"]{color:var(--navy-900);border-bottom-color:var(--pink-600)}
+.tho-tab-dot,.tho-tab-n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;font-size:11px;line-height:18px;text-align:center;background:var(--pink-600);color:#fff}
+.tho-tab-n{background:var(--pink-100);color:var(--pink-700)}
+.tho-step{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;background:var(--pink-50);border-radius:var(--radius-md,14px);margin-bottom:14px}
+.tho-step-label{font-size:12px;color:#7d8795}
+.tho-step .btn{margin-left:auto;min-height:44px}
+.tho-sub{font-size:16px;margin:18px 0 4px}
+.tho-hint{font-size:13px;color:#7d8795;margin:0 0 10px}
+.tho-albums{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}
+.tho-albums li{padding:10px 14px;border:1px solid #eee3e8;border-radius:var(--radius-sm,10px);font-size:14px}
+.tho-msg{color:#9b3131;font-size:13px;margin:8px 0 0}
+.tho-rounds{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tho-rounds:empty{display:none}
+.tho-rounds button{min-height:40px;padding:0 12px;border:1px solid var(--pink-200);border-radius:999px;background:#fff;cursor:pointer;font:inherit;font-size:13px}
+.tho-rounds button[aria-pressed="true"]{background:var(--pink-600);border-color:var(--pink-600);color:#fff}
+/* Khung chi tiết yêu cầu dùng lại từ hộp thoại: tab "Ảnh cần chỉnh" ẩn chat, tab "Chat" chỉ hiện chat */
+.tho-detail #kanbanModalBody #kanbanModalTitle{display:none}
+.tho-detail[data-tab="chinh"] .kanban-chat-block{display:none}
+.tho-detail[data-tab="chat"] #kanbanModalBody>:not(.kanban-result),
+.tho-detail[data-tab="chat"] .kanban-result>:not(.kanban-chat-block){display:none}
+.tho-detail[data-tab="chat"] .kanban-result{border:0;padding:0;margin:0;background:none}
+.tho-detail[data-tab="chat"] .kanban-chat-block>h4{display:none}
+.tho-detail[data-tab="chat"] .kanban-chat-list{max-height:calc(100vh - 360px);min-height:240px}
+@media (max-width:900px){
+  .tho-ws-body{grid-template-columns:1fr}
+  .tho-ws-list{max-height:none;overflow:visible}
+  .tho-ws-pick{display:none}
+  .tho-detail{position:fixed;inset:0;z-index:60;border-radius:0;border:0;overflow:auto;padding:12px 14px 24px}
+  .tho-detail-top{position:sticky;top:-12px;background:#fff;padding:8px 0;z-index:1}
+  .tho-detail-back{display:inline-flex;align-items:center}
+  .tho-detail-tabs{position:sticky;top:48px;background:#fff;z-index:1}
+  .tho-detail-tabs button{flex:1;padding:0 6px}
+  body.tho-detail-open{overflow:hidden}
+  .tho-step .btn{margin-left:0;width:100%}
+}
+.tho-detail-back,.tho-detail-tabs button{white-space:nowrap}
+.tho-detail .kanban-modal-progress+.kanban-modal-meta{display:none}
+@media (max-width:900px){.tho-detail-back{padding:0 14px}.tho-detail-tabs button{font-size:14px}}
