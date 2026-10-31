@@ -1983,7 +1983,7 @@
 .drive-upload .btn,.drive-folder-actions button,.drive-output-grid button{min-height:44px;white-space:normal}
 .drive-upload input{max-width:100%}.drive-upload-list>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;overflow-wrap:anywhere}
 .drive-upload-list span{max-width:100%;overflow-wrap:anywhere}.drive-upload progress{max-width:100%}
-.drive-output-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;min-width:0}
+.drive-output-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;min-width:0}
 .drive-output-grid article{min-width:0;overflow-wrap:anywhere}.drive-output-grid img{width:100%;height:120px;object-fit:cover;border-radius:8px}
 .drive-small-link{font-size:13px;align-self:flex-start;padding:8px 0}.kanban-modal-body{min-width:0;overflow-wrap:anywhere}
 
