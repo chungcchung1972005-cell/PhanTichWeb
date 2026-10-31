@@ -30,7 +30,7 @@ const crypto = require('crypto');
 const delivery = require('./edit-delivery');
 const express = require('express');
 const { requireAuth, EDIT_DEMO_SCOPE, isPublicDemoPhone } = require('./sale-chat');
-const { createStoreFromEnv, safeError } = require('./edit-requests-store');
+const { createStoreFromEnv, memoryStore, safeError } = require('./edit-requests-store');
 
 // ---------------------------------------------------------------- Cấu hình / giới hạn
 const STATUS_FLOW = ['Chờ xử lý', 'Đang thực hiện', 'Hoàn thành']; // khớp js/data-store.js
@@ -40,7 +40,7 @@ const MAX_NOTE = 500;               // ghi chú chung / ghi chú từng ảnh
 const MAX_MESSAGE = 1500;           // khớp addRequestMessage trong js/data-store.js
 const MAX_MESSAGES = 500;           // mỗi yêu cầu giữ tối đa bấy nhiêu tin gần nhất
 const MAX_URL = 2048;
-const RATE = { windowMs: 60 * 1000, create: 5, message: 30 }; // theo tài khoản
+const RATE = { windowMs: 60 * 1000, create: 5, message: 30, pending: 20 }; // theo tài khoản
 
 // ---------------------------------------------------------------- Làm sạch đầu vào
 // Lưu dạng CHỮ THUẦN (bỏ ký tự điều khiển, cắt độ dài). Không tự "escape" HTML ở đây: trang hiển
@@ -259,57 +259,83 @@ function createEditRequestsRouter(store, opts) {
     res.once('close', () => creatingForPhone.delete(req.user.phone));
     next();
   }
-  router.post('/', auth(['khach-hang']), serializeCreate, wrap(async (req, res) => {
-    const b = body(req);
-    if (!Array.isArray(b.photos) || !b.photos.length || b.photos.length > MAX_PHOTOS) return res.status(400).json({ error: 'bad_photos' });
+  // Trang khách và báo tiền về của SePay có thể cùng tạo yêu cầu cho 1 khách: chạy lần lượt theo SĐT.
+  const phoneLocks = new Map();
+  function withPhoneLock(phone, fn) {
+    const run = (phoneLocks.get(phone) || Promise.resolve()).then(fn);
+    const tail = run.catch(() => {});
+    phoneLocks.set(phone, tail);
+    tail.then(() => { if (phoneLocks.get(phone) === tail) phoneLocks.delete(phone); });
+    return run;
+  }
+  const receipts = opts?.receipts || require('./payment-receipts');
+  // Kho phụ: bản nháp chờ thanh toán + biên lai Sale/Sếp đã xử lý tay. Cùng loại kho với yêu cầu chỉnh.
+  const sideStore = (name) => store.kind === 'memory' ? memoryStore() : createStoreFromEnv({ ...process.env, EDIT_REQUESTS_COLLECTION: name }).store;
+  const pendingStore = opts?.pendingStore || sideStore('payment_pending');
+  const resolvedStore = opts?.resolvedStore || sideStore('payment_resolved');
+
+  // Kiểm + tạo 1 yêu cầu chỉnh. Trả { status, body, saved? }.
+  // dryRun: chỉ kiểm dữ liệu (dùng khi lưu bản nháp chờ thanh toán, chưa cần biên lai).
+  // fromPayment: do SePay báo tiền về (không tính giới hạn tần suất của khách).
+  async function createFromBody(user, b, mode = {}) {
+    const fail = (status, error) => ({ status, body: { error } });
+    if (!Array.isArray(b.photos) || !b.photos.length || b.photos.length > MAX_PHOTOS) return fail(400, 'bad_photos');
     const seen = new Set();
     const photos = [];
     for (const p of b.photos) {
-      if (!p || typeof p !== 'object' || !isPhotoId(p.id) || !isPhotoSrc(p.src) || seen.has(p.id)) return res.status(400).json({ error: 'bad_photos' });
+      if (!p || typeof p !== 'object' || !isPhotoId(p.id) || !isPhotoSrc(p.src) || seen.has(p.id)) return fail(400, 'bad_photos');
       seen.add(p.id);
       photos.push({ id: p.id, src: p.src, note: cleanStr(p.note, MAX_NOTE), editOptions: [...new Set((Array.isArray(p.editOptions)?p.editOptions:[]).filter(x=>['Chỉnh da','Chỉnh màu','Ánh sáng','Xóa chi tiết thừa','Khác'].includes(x)))], isExtra: p.isExtra === true });
     }
     const orderCode = cleanStr(b.orderCode, 30);
-    if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return res.status(400).json({ error: 'bad_order_code' });
+    if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return fail(400, 'bad_order_code');
+    const paymentCode = receipts.normalize(b.paymentCode);
+    // Cùng mã thanh toán đã thành yêu cầu (máy chủ tự tạo khi tiền về): trả lại đúng yêu cầu đó, không tạo trùng.
+    if (paymentCode && !mode.dryRun) {
+      const existing = (await store.listByPhone(user.phone)).find(r => r.kind !== 'source-album' && r.paymentCode === paymentCode);
+      if (existing) return { status: 200, body: { request: customerView(existing), existing: true } };
+    }
     const sourceAlbum = typeof b.sourceAlbumId === 'string' ? await store.get(b.sourceAlbumId) : null;
-    if (!sourceAlbum || sourceAlbum.kind !== 'source-album' || sourceAlbum.phone !== req.user.phone || sourceAlbum.orderCode !== orderCode) return res.status(400).json({error:'source_album_required'});
-    const history = (await store.listByPhone(req.user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode && r.workflowOrderId === sourceAlbum.workflowOrderId).sort((a, b) => b.createdAt - a.createdAt);
+    if (!sourceAlbum || sourceAlbum.kind !== 'source-album' || sourceAlbum.phone !== user.phone || sourceAlbum.orderCode !== orderCode) return fail(400, 'source_album_required');
+    const history = (await store.listByPhone(user.phone)).filter(r => r.kind !== 'source-album' && r.orderCode === orderCode && r.workflowOrderId === sourceAlbum.workflowOrderId).sort((a, b) => b.createdAt - a.createdAt);
     const sourcePhotos = new Map(sourceAlbum.photos.map(p => [p.id, p]));
     const editedPhotos = new Map(history.filter(r => r.status === STATUS_FLOW[2]).flatMap(r => r.resultPhotos || []).map(p => [p.id, p]));
     for (const p of photos) {
       const edited = editedPhotos.get(p.id), source = edited || sourcePhotos.get(p.id);
-      if (!source) return res.status(400).json({error:'photo_not_in_album'});
+      if (!source) return fail(400, 'photo_not_in_album');
       Object.assign(p, {id:source.id,src:source.src,name:source.name,driveUrl:source.driveUrl,driveFileId:source.driveFileId});
       if (edited) p.fromEdited = true;
     }
     const previous = history[0];
     const parentRequestId = cleanStr(b.parentRequestId, 80);
     const openIds = new Set(history.filter(r => r.status !== STATUS_FLOW[2]).flatMap(r => r.photos.map(p => p.id)));
-    if (photos.some(p => openIds.has(p.id))) return res.status(409).json({error:'photo_already_submitted'});
+    if (photos.some(p => openIds.has(p.id))) return fail(409, 'photo_already_submitted');
     const round = previous ? Math.max(...history.map(r => r.round || 1)) + 1 : 1;
     const freeCount = round === 1 ? 10 : 0;
     photos.forEach((p, i) => { p.isExtra = i >= freeCount; });
-    const extraFee = Math.max(0, photos.length - freeCount) * 50000;
-    if (b.extraFee !== extraFee) return res.status(400).json({ error: 'bad_extra_fee' });
-    if(extraFee>0 && !b.paymentCode) return res.status(402).json({error:'payment_required'});
+    const extraCount = Math.max(0, photos.length - freeCount);
+    const extraFee = extraCount * 50000;
+    if (b.extraFee !== extraFee) return fail(400, 'bad_extra_fee');
+    if (extraFee > 0 && !paymentCode) return fail(402, 'payment_required');
+    if (extraFee > 0 && !paymentCode.startsWith(receipts.normalize(orderCode) + 'CS' + extraCount)) return fail(402, 'payment_required');
+    if (mode.dryRun) return { status: 200, body: { ok: true }, extraFee };
     let verifiedPayment=null;
-    if(extraFee>0 && b.paymentCode) {
-      const receipts=require('./payment-receipts'),code=receipts.normalize(b.paymentCode);
-      const tx=code.startsWith(receipts.normalize(orderCode)+'CS'+Math.max(0,photos.length-freeCount)) && await receipts.find(code,extraFee);
-      if(!tx) return res.status(402).json({error:'payment_required'});
+    if(extraFee>0) {
+      const tx=await receipts.find(paymentCode,extraFee);
+      if(!tx) return fail(402, 'payment_required');
       const reference='sepay:'+tx.id;
-      if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return res.status(400).json({error:'payment_already_used'});
+      if((await workflow.read()).orders.some(o=>o.payments.some(p=>p.reference===reference))) return fail(400, 'payment_already_used');
       verifiedPayment={reference,amount:extraFee};
     }
     // Chỉ đếm lượt tạo hợp lệ (lượt gửi sai đã bị từ chối ở trên, không ghi gì vào kho)
-    if (limited('create:' + req.user.phone, RATE.create)) return res.status(429).json({ error: 'too_many_requests' });
-    if ((await store.count()) >= MAX_REQUESTS) return res.status(503).json({ error: 'store_full' });
+    if (!mode.fromPayment && limited('create:' + user.phone, RATE.create)) return fail(429, 'too_many_requests');
+    if ((await store.count()) >= MAX_REQUESTS) return fail(503, 'store_full');
 
     const now = Date.now();
     const rec = {
       id: newId(),
-      phone: req.user.phone,               // từ token, KHÔNG từ dữ liệu gửi lên
-      customerName: req.user.name || 'Khách hàng',
+      phone: user.phone,                   // từ token, KHÔNG từ dữ liệu gửi lên
+      customerName: user.name || 'Khách hàng',
       orderCode,
       parentRequestId,
       sourceAlbumId:sourceAlbum.id,
@@ -325,6 +351,7 @@ function createEditRequestsRouter(store, opts) {
       extraCount: photos.filter((p) => p.isExtra).length,
       extraFee,
       paymentStatus: cleanStr(b.paymentStatus, 60),
+      paymentCode: verifiedPayment ? paymentCode : '',
       verifiedPayment,
       status: STATUS_FLOW[0],
       doneIds: [],
@@ -344,9 +371,124 @@ function createEditRequestsRouter(store, opts) {
     };
     const saved = await store.insert(rec);
     if(saved.workflowOrderId) await workflow.progress(saved,'selected');
-    res.status(201).json({ request: customerView(saved) });
-    driveSync.enqueue(saved.id);
+    return { status: 201, body: { request: customerView(saved) }, saved };
+  }
+
+  router.post('/', auth(['khach-hang']), serializeCreate, wrap(async (req, res) => {
+    const result = await withPhoneLock(req.user.phone, () => createFromBody(req.user, body(req)));
+    res.status(result.status).json(result.body);
+    if (result.saved) driveSync.enqueue(result.saved.id);
   }));
+
+  // ---- Bản nháp chờ thanh toán (2026-10-31): khách bấm Thanh toán thì trang gửi đúng dữ liệu sẽ tạo
+  // yêu cầu lên đây. SePay báo tiền về khớp mã -> máy chủ tự tạo yêu cầu cho thợ, kể cả khi khách đã tắt trang.
+  const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
+  const draftBody = (b) => ({ orderCode: b.orderCode, serviceLabel: b.serviceLabel, note: b.note, sourceAlbumId: b.sourceAlbumId,
+    parentRequestId: b.parentRequestId, photos: b.photos, extraFee: b.extraFee, paymentCode: b.paymentCode,
+    paymentStatus: 'Đã thanh toán (máy chủ tự xác nhận qua SePay)' });
+  async function settleDraft(draft) {
+    const claim = await pendingStore.updateIfRev(draft.id, draft.rev, { status: 'processing' });
+    if (!claim?.doc) return null;
+    let result;
+    try { result = await withPhoneLock(draft.phone, () => createFromBody({ phone: draft.phone, name: draft.name }, draft.body, { fromPayment: true })); }
+    catch (e) { console.error('edit-requests: tạo yêu cầu từ tiền về lỗi:', safeError(e)); result = { status: 503, body: { error: 'store_unavailable' } }; }
+    const request = result.status < 300 && result.body.request;
+    await pendingStore.updateIfRev(draft.id, claim.doc.rev, request ? { status: 'done', requestId: request.id } : { status: 'failed', error: result.body.error });
+    if (result.saved) driveSync.enqueue(result.saved.id);
+    return result;
+  }
+  // Gọi từ webhook SePay (server.js) sau khi đã lưu biên lai. Không ném lỗi.
+  async function onPaymentReceived(tx) {
+    try {
+      const content = receipts.normalize(tx.content), amount = Number(tx.amount), now = Date.now();
+      const drafts = (await pendingStore.listAll()).filter(d => d.status === 'waiting' && d.expiresAt > now && content.includes(d.id) && amount >= d.fee);
+      for (const d of drafts) await settleDraft(d);
+    } catch (e) { console.error('edit-requests: xử lý tiền về lỗi:', safeError(e)); }
+  }
+  router.post('/pending', auth(['khach-hang']), wrap(async (req, res) => {
+    const b = body(req), phone = req.user.phone;
+    // Mã này máy chủ đã xử lý (ảnh đã thành yêu cầu): báo lại kết quả, không kiểm ảnh nữa
+    const known = await pendingStore.get(receipts.normalize(b.paymentCode));
+    if (known && known.phone === phone && ['done', 'processing'].includes(known.status)) return res.json({ pending: { status: known.status, requestId: known.requestId || null } });
+    const check = await createFromBody(req.user, b, { dryRun: true });
+    if (check.status >= 300) return res.status(check.status).json(check.body);
+    if (!check.extraFee) return res.status(400).json({ error: 'no_payment_needed' });
+    if (limited('pending:' + phone, RATE.pending)) return res.status(429).json({ error: 'too_many_requests' });
+    const code = receipts.normalize(b.paymentCode), now = Date.now();
+    const fields = { phone, name: cleanStr(req.user.name, 60), body: draftBody(b), fee: check.extraFee, status: 'waiting', expiresAt: now + PENDING_TTL_MS };
+    // Mỗi khách chỉ 1 bản nháp đang chờ: mở QR mới thì bản cũ thôi chờ
+    for (const d of await pendingStore.listByPhone(phone)) if (d.status === 'waiting' && d.id !== code) await pendingStore.updateIfRev(d.id, d.rev, { status: 'replaced' });
+    let draft = await pendingStore.get(code);
+    if (draft && draft.phone !== phone) return res.status(409).json({ error: 'payment_code_taken' });
+    if (draft && !['waiting', 'replaced'].includes(draft.status)) return res.json({ pending: { status: draft.status, requestId: draft.requestId || null } });
+    if (draft) {
+      const r = await pendingStore.updateIfRev(draft.id, draft.rev, fields);
+      if (!r?.doc) return res.status(409).json({ error: 'conflict' });
+      draft = r.doc;
+    } else {
+      draft = await pendingStore.insert({ id: code, ...fields, rev: 1, createdAt: now, updatedAt: now });
+    }
+    // Tiền có thể đã về trước khi bản nháp tới máy chủ
+    const result = (await receipts.find(code, draft.fee)) ? await settleDraft(draft) : null;
+    const latest = await pendingStore.get(code);
+    res.status(201).json({ pending: { status: latest.status, requestId: latest.requestId || null, expiresAt: latest.expiresAt },
+      ...(result?.body?.request ? { request: result.body.request } : {}) });
+  }));
+
+  // ---- Tiền chưa khớp (Sale + Sếp): biên lai SePay không tự dùng được, cần người xử lý tay.
+  const vnd = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+  async function unmatchedPayments() {
+    const requests = (await store.listAll()).filter(r => r.kind !== 'source-album');
+    const usedBy = new Map(requests.filter(r => r.verifiedPayment).map(r => [r.verifiedPayment.reference, r]));
+    const paidCodes = requests.filter(r => r.paymentCode).map(r => r);
+    const workflowRefs = new Set((await workflow.read()).orders.flatMap(o => o.payments.map(p => p.reference)));
+    const drafts = await pendingStore.listAll();
+    const resolved = new Map((await resolvedStore.listAll()).map(x => [x.id, x]));
+    const list = [];
+    for (const tx of (await receipts.listAll()).slice().sort((a, b) => (b.at || b.createdAt || 0) - (a.at || a.createdAt || 0))) {
+      const ref = 'sepay:' + tx.id, at = tx.at || tx.createdAt || 0, amount = Number(tx.amount) || 0;
+      if (workflowRefs.has(ref) && !usedBy.has(ref)) continue;
+      let reason = '', who = null;
+      const used = usedBy.get(ref);
+      if (used) {
+        if (amount <= used.extraFee) continue;
+        reason = 'Chuyển thừa ' + vnd(amount - used.extraFee) + ' (phí ảnh ' + vnd(used.extraFee) + ')'; who = used;
+      } else {
+        const draft = drafts.filter(d => tx.content.includes(d.id)).sort((a, b) => b.createdAt - a.createdAt)[0];
+        const paidBefore = paidCodes.find(r => tx.content.includes(r.paymentCode));
+        const fee = draft ? draft.fee : paidBefore?.extraFee;
+        if (!draft && !paidBefore) reason = 'Nội dung chuyển khoản không khớp mã thanh toán nào';
+        else if (amount < fee) {
+          reason = 'Chuyển thiếu ' + vnd(fee - amount) + ' (cần ' + vnd(fee) + ')';
+          who = paidBefore || { phone: draft.phone, customerName: draft.name, orderCode: draft.body?.orderCode };
+        }
+        else if (paidBefore) { reason = 'Chuyển trùng: mã này đã thanh toán trước đó'; who = paidBefore; }
+        else {
+          who = { phone: draft.phone, customerName: draft.name, orderCode: draft.body?.orderCode };
+          if (draft.expiresAt <= at) reason = 'Mã thanh toán đã hết hạn khi tiền về';
+          else if (draft.status === 'failed') reason = 'Đã nhận tiền nhưng chưa tạo được yêu cầu chỉnh ảnh';
+          else if (draft.status === 'replaced') reason = 'Khách đã đổi sang mã thanh toán khác';
+          else if (draft.status === 'done') reason = 'Chuyển trùng: mã này đã thanh toán trước đó';
+          else continue; // đang chờ xử lý
+        }
+      }
+      const r = resolved.get(String(tx.id));
+      list.push({ id: String(tx.id), at, amount, content: tx.content, reason, phone: who?.phone || '', customerName: who?.customerName || '',
+        orderCode: who?.orderCode || '', resolved: r ? { by: r.by, at: r.at } : null });
+    }
+    return list;
+  }
+  router.get('/unmatched-payments', auth(['sale', 'sep']), wrap(async (req, res) => {
+    const list = await unmatchedPayments();
+    res.json({ payments: req.query.all === '1' ? list : list.filter(p => !p.resolved), open: list.filter(p => !p.resolved).length });
+  }));
+  router.post('/unmatched-payments/:txId/resolve', auth(['sale', 'sep']), wrap(async (req, res) => {
+    const id = String(req.params.txId || '');
+    if (!(await unmatchedPayments()).some(p => p.id === id)) return res.status(404).json({ error: 'not_found' });
+    if (!(await resolvedStore.get(id))) await resolvedStore.insert({ id, by: cleanStr(req.user.name, 60) || req.user.phone, byPhone: req.user.phone, at: Date.now(), rev: 1, createdAt: Date.now(), updatedAt: Date.now() });
+    res.json({ ok: true });
+  }));
+  router.onPaymentReceived = onPaymentReceived;
 
   // ---- Nhân viên: danh sách (Thợ ảnh + Sếp). ?since=<ms> chỉ trả yêu cầu đổi sau mốc đó.
   router.get('/', auth(['tho-anh', 'sep']), wrap(async (req, res) => {

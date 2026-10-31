@@ -93,7 +93,7 @@ hỏi `GET /api/payment-status` mỗi 4 giây, thấy đủ tiền là **tự g�
 
 1. Đăng ký tại <https://my.sepay.vn>, vào **Ngân hàng → Kết nối tài khoản**, liên
    kết đúng tài khoản nhận tiền của studio (trong code đang để MB Bank
-   `0967237146`, tên `ALOHA BABY STUDIO`; đổi ở `js/chon-anh.js`, hàm
+   `0382071708`, tên `NGUYEN QUANG CHUNG` (tài khoản demo của Chung, nối SePay 31/10/2026); đổi ở `js/chon-anh.js`, hàm
    `openQrPaymentModal`, nếu tài khoản thật khác).
 2. Vào **Tích hợp WebHooks → Thêm webhook**:
    - URL: `https://phantichweb.onrender.com/api/sepay-webhook`

@@ -35,7 +35,7 @@
 .wf-done{margin-top:16px}
 .wf-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .wf-kpis article{background:var(--pink-50,var(--s-soft));border-color:var(--pink-100,var(--s-line));padding:12px;min-width:0}
-.wf-kpis strong{font-size:18px;overflow-wrap:anywhere}
+.wf-kpis strong{font-size:18px;white-space:nowrap}
 .wf-kpis span,.wf-panel label,.wf-panel table,.wf-estimate{font-size:12px}
 .wf-panel table{white-space:normal;table-layout:fixed}
 .wf-panel th,.wf-panel td{overflow-wrap:anywhere;padding:10px 6px}
@@ -45,8 +45,9 @@
 @media(max-width:760px){
 .wf-panel,.sw-main>.wf-panel{padding:14px;margin:12px 0;border-radius:14px}
 .wf-head h2{font-size:18px;flex:1}
-.wf-kpis article{padding:10px 8px}
-.wf-kpis strong{font-size:18px}
+.wf-kpis{grid-template-columns:1fr;gap:6px}
+.wf-kpis article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px}
+.wf-kpis strong{font-size:17px}
 .wf-order{grid-template-columns:minmax(0,1fr);padding:12px}
 .wf-order>.wf-actions{grid-column:1;grid-row:3}
 .wf-order-detail[open]{grid-row:4}

@@ -231,7 +231,7 @@
     dep: { filter: 'all', selected: null, fresh: {} },
     ord: { filter: 'all' },
     cus: { mode: 'bang' },
-    tr: { tab: 'tao', step: 1, filter: 'all', selected: {}, to: null, reason: 'Nghỉ phép', mode: 'tam-thoi', until: endOfMonth(TODAY), revenue: 'giu', note: '', noteTouched: false },
+    tr: { tab: 'tao', step: 1, filter: 'all', selected: {}, to: null, reason: 'Nghỉ phép', mode: 'tam-thoi', until: endOfMonth(dateKey(addDays(parseKey(TODAY), 1))) /* ngày cuối tháng thì sang cuối tháng sau, để luôn sau hôm nay */, revenue: 'giu', note: '', noteTouched: false },
     done: {} // task key -> true
   };
 
@@ -1192,7 +1192,12 @@
 
     return '<section class="sw-card sw-pad">' +
           '<div class="kb-toolbar dp-toolbar"><div class="cu-seg dp-seg" role="tablist" aria-label="Lọc yêu cầu đặt cọc">' + chip('all', 'Tất cả') + chip('cho-coc', 'Chờ cọc') + chip('kiem-tra', 'Cần kiểm tra') + chip('da-khop', 'Đã khớp') + '</div>' + ownerSelect() + '</div>' +
-          db.unmatched.map(tx => '<div class="dp-unmatched"><div><strong>Chưa khớp mã · ' + money(tx.amount) + '</strong><small>' + tx.time + ' · "' + esc(tx.content) + '"</small></div>' +
+          db.unmatched.map(tx => tx.server
+            // Tiền phí ảnh chọn thêm SePay báo về nhưng máy chủ không tự khớp được (2026-10-31)
+            ? '<div class="dp-unmatched"><div><strong>Tiền chưa khớp · ' + money(tx.amount) + '</strong><small>' + esc(tx.reason) + '</small>' +
+                '<small>' + tx.time + ' · "' + esc(tx.content) + '"' + (tx.customerName ? ' · ' + esc(tx.customerName) : '') + (tx.phone ? ' ' + esc(tx.phone) : '') + (tx.orderCode ? ' · ' + esc(tx.orderCode) : '') + '</small></div>' +
+                '<button type="button" class="sw-btn" data-act="resolve-tx" data-id="' + esc(tx.id) + '">' + icon('check') + 'Đã xử lý</button></div>'
+            : '<div class="dp-unmatched"><div><strong>Chưa khớp mã · ' + money(tx.amount) + '</strong><small>' + tx.time + ' · "' + esc(tx.content) + '"</small></div>' +
             '<button type="button" class="sw-btn" data-act="assign-tx" data-id="' + tx.id + '">' + icon('userPlus') + 'Gán cho khách</button></div>').join('') +
           (shown.length ? shown.map(d => {
             const c = customer(d.customerId); const ap = appointmentOf(d);
@@ -1778,6 +1783,14 @@
         const d = myDeposits().find(x => x.code === code); if (!d) return;
         return toast('Chưa gửi tin nhắc. Mở hội thoại để trao đổi trực tiếp với khách.');
       }
+      case 'resolve-tx': {
+        const tx = db.unmatched.find(t => t.id === id && t.server); if (!tx) return;
+        window.AlohaAuth.api('/api/edit-requests/unmatched-payments/' + encodeURIComponent(id) + '/resolve', { method: 'POST' }).then((r) => {
+          if (!r.ok) return toast('Chưa lưu được, thử lại sau ít phút.');
+          db.unmatched = db.unmatched.filter(t => t.id !== id); toast('Đã đánh dấu xử lý khoản ' + money(tx.amount) + '.'); render();
+        });
+        return;
+      }
       case 'assign-tx': {
         const tx = db.unmatched.find(t => t.id === id); if (!tx) return;
         const cands = myDeposits().filter(d => ['sent', 'opened'].includes(d.state));
@@ -2065,6 +2078,26 @@
   // chuyện nào có tin mới (updatedAt đổi) thì tải đủ tin để cập nhật hội thoại + suy ra sale
   // phụ trách. Hồ sơ khách tạo 1 lần khi khách nhắn lần đầu; giai đoạn, ghi chú Sale đổi trên
   // trang chỉ sống trong bộ nhớ (chưa có backend CRM), tin nhắn thì luôn lấy từ server.
+  // Tiền chưa khớp (phí ảnh chọn thêm SePay báo về mà máy chủ không tự khớp): hỏi 20 giây/lần, đổ vào db.unmatched.
+  let payBusy = false;
+  async function pollUnmatchedPayments() {
+    if (payBusy || !window.AlohaAuth || !window.AlohaAuth.api || !window.AlohaEditSync || !window.AlohaEditSync.enabled()) return;
+    payBusy = true;
+    try {
+      const r = await window.AlohaAuth.api('/api/edit-requests/unmatched-payments');
+      if (!r.ok) return;
+      const list = (r.data.payments || []).map(p => ({ server: true, id: p.id, amount: p.amount, content: p.content, reason: p.reason,
+        customerName: p.customerName, phone: p.phone, orderCode: p.orderCode, time: msgTime(p.at) }));
+      const sig = (a) => a.map(t => t.id).join(',');
+      const old = db.unmatched.filter(t => t.server);
+      if (sig(old) === sig(list)) return;
+      db.unmatched = db.unmatched.filter(t => !t.server).concat(list);
+      liveRerender();
+    } catch (_) { /* mất mạng: thử lại lượt sau */ } finally { payBusy = false; }
+  }
+  setTimeout(pollUnmatchedPayments, 1500);
+  setInterval(pollUnmatchedPayments, 20000);
+
   const liveState = { status: 'loading', busy: false, seen: {} }; // seen: phone -> updatedAt đã tải đủ tin
   const LIVE_ID = (phone) => 'web-' + phone;
 

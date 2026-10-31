@@ -475,20 +475,23 @@ h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; color: var(
   width: max-content; /* left:50% chỉ chừa nửa ô, không có dòng này nhãn bị bóp còn nửa ô rộng */
   max-width: calc(100% - 32px);
   padding: 10px 16px;
-  background: rgba(44, 42, 61, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  /* Trắng mờ chữ navy (người dùng chọn 2026-10-31, thay nền xám đậm nặng trên ảnh sáng) */
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--navy-900);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(20, 15, 25, 0.12);
   border-radius: var(--radius-sm); /* bo góc như mọi khối khác (người dùng yêu cầu bỏ góc vuông, 2026-09-28) */
   font-family: var(--font-heading);
   font-size: 17px; font-weight: 600; line-height: 1.3;
   text-transform: uppercase; text-align: center;
   white-space: nowrap;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .svc-tile--bau .svc-tile-name { top: 84%; }
 .svc-note { margin-top: 12px; text-align: center; font-size: 12.5px; color: var(--navy-500); }
 .svc-tile:hover img, .svc-tile:focus-visible img { transform: scale(1.06); }
 .svc-tile:hover::after, .svc-tile:focus-visible::after { background: rgba(20, 15, 25, 0.22); }
-.svc-tile:hover .svc-tile-name, .svc-tile:focus-visible .svc-tile-name { background: var(--pink-600); border-color: var(--pink-600); }
+.svc-tile:hover .svc-tile-name, .svc-tile:focus-visible .svc-tile-name { background: var(--pink-600); border-color: var(--pink-600); color: var(--white); }
 
 /* Tablet: vẫn 3 cột, ô thấp và chữ nhỏ lại. */
 @media (max-width: 900px) {

@@ -18,6 +18,8 @@ const assert=require('assert/strict'),puppeteer=require('puppeteer-core'),env=re
   assert.equal(await page.evaluate(()=>AlohaWorkflow.get().orders[0].price),1500000);
   await page.evaluate(()=>AlohaWorkflow.command('payment',{id:AlohaWorkflow.get().orders[0].id,amount:750000,reference:'deposit-ui'}));
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>AlohaWorkflow.get()&&AlohaWorkflow.get().orders.length===1);
+  // Lịch nhanh mặc định "hôm nay + 2 ngày": chạy vào thứ Bảy/Chủ nhật thì rơi sang tuần sau -> lật lịch tới tuần đó
+  for(let i=0;i<2&&!/Khách liên kết/.test(await page.$eval('#swView',e=>e.textContent));i++){await page.$eval('[data-act=cal-next]',e=>e.click());await new Promise(r=>setTimeout(r,200));}
   assert.match(await page.$eval('#swView',e=>e.textContent),/Khách liên kết/);
   console.log('Sale booking persists and feeds calendar');
   await page.evaluate(()=>sessionStorage.setItem('test-role','worker'));

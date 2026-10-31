@@ -403,7 +403,11 @@ app.post('/api/sepay-webhook', async (req, res) => {
   // SePay có thể gửi lại cùng giao dịch khi thử lại: bỏ qua bản trùng id.
   if (tx.id == null || !String(tx.id).trim()) return res.status(400).json({success:false,error:'bad_transaction_id'});
   try {
-    const added = await receipts.add({id:tx.id, content:normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at:Date.now()});
+    const receipt = {id:tx.id, content:normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at:Date.now()};
+    const added = await receipts.add(receipt);
+    // Tiền về khớp bản nháp chờ thanh toán -> máy chủ tự gửi ảnh cho thợ (khách tắt trang vẫn nhận).
+    // Lỗi ở bước này chỉ ghi log: biên lai đã lưu, Sale/Sếp thấy trong "Tiền chưa khớp".
+    if (added) await editRequests.router.onPaymentReceived(receipt);
     return res.json(added ? {success:true} : {success:true,duplicate:true});
   } catch (_) { return res.status(503).json({success:false,error:'store_unavailable'}); }
 });

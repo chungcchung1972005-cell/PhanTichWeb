@@ -129,6 +129,8 @@ const waitText = (page, sel, needle, ms = 9000) => page.waitForFunction((s, n) =
     await a.click('[data-act="tr-next"]'); await wait(200);
     await a.click('[data-act="tr-to"][data-id="thu-ha"]'); await wait(200);
     await a.click('[data-act="tr-submit"]'); await wait(300);
+    const trErr = await a.$eval('#trError', (el) => el.hidden ? '' : el.textContent).catch(() => '');
+    if (trErr) console.log('   (form chuyển giao báo: ' + trErr + ')');
     await a.click('[data-act="tr-tab"][data-id="gui"]'); await wait(300);
     const sent = await text(a, '#swView');
     log('Yêu cầu chuyển giao ở trạng thái Chờ quản lý duyệt', sent.includes('Lan Phương') && sent.includes('Chờ quản lý duyệt'));
