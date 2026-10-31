@@ -111,7 +111,7 @@
     }
     let res;
     try {
-      res = await auth.api(BASE + path, { method: (opts && opts.method) || 'GET', body: opts && opts.body, auth: !(opts && opts.public) });
+      res = await auth.api(BASE + path, { method: (opts && opts.method) || 'GET', body: opts && opts.body, auth: !(opts && opts.public), timeout: opts && opts.timeout });
     } catch (e) {
       return fail('offline');
     }
@@ -131,7 +131,9 @@
     if(!result.ok)throw Error(result.message);
     try{await putFile(result.data.uploadUrl,file,onProgress);}
     catch(e){if(file.size>25*1024*1024)throw Error('Drive không cho tải trực tiếp. Đường lui chỉ nhận ảnh tối đa 25MB. Hãy thử lại.');await putFile(transferUrl(path+'/upload?name='+encodeURIComponent(file.name)),file,onProgress,authHeaders());}
-    const done=await request(path+'/upload-complete',{method:'POST',body:{}});if(!done.ok)throw Error(done.message);
+    // Ảnh đã nằm trên Drive: báo máy chủ quét ngay cho nhanh. Lỗi / quá giờ ở bước này KHÔNG phải lỗi tải
+    // (vòng quét định kỳ vẫn nhận ảnh), nên không báo thợ tải lại (thấy trên web thật 31/10/2026).
+    await request(path+'/upload-complete',{method:'POST',body:{},timeout:60000});
   }
   function mountUpload(host,path,after){
     host.classList.add('drive-upload');host.innerHTML='<p>Kéo thả ảnh vào đây</p><label class="btn btn-outline">Chọn ảnh<input type="file" accept="image/*" multiple hidden></label><div class="drive-upload-list" role="status"></div>';
