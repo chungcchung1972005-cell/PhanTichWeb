@@ -228,8 +228,24 @@ function createEditRequestsRouter(store, opts) {
   router.post('/:id/upload-complete',auth(['tho-anh']),loadRequest,wrap(async(req,res)=>{await driveSync.syncOnce();res.json({ok:true});}));
   router.get('/:id/output-files',auth(['tho-anh','sep']),loadRequest,wrap(async(req,res)=>{
     const r=req.editRequest, files=r.driveJob?.outputFolderId?await driveFiles.listFiles(r.driveJob.outputFolderId):[];
-    const m=require('./drive-delivery').matchPhotos(r.photos,files);
-    res.json({files:files.filter(f=>f.mimeType?.startsWith('image/')).map(f=>({...f,matchedPhotos:r.photos.filter((p,i)=>m.matches[i].some(x=>x.id===f.id)).map(p=>p.name)})),matched:m.matches.filter(x=>x.length===1).length,total:r.photos.length});
+    const dd=require('./drive-delivery'), manual=r.driveJob?.manualMatches||{};
+    let suffixes;try{suffixes=dd.envSuffixes(process.env);}catch(_){suffixes=dd.DEFAULT_SUFFIXES;}
+    const m=dd.matchPhotos(r.photos,files,suffixes,manual);
+    res.json({files:files.filter(f=>f.mimeType?.startsWith('image/')).map(f=>({...f,manual:Object.prototype.hasOwnProperty.call(manual,f.id),matchedPhotos:r.photos.filter((p,i)=>m.matches[i].some(x=>x.id===f.id)).map(p=>p.name)})),
+      photos:r.photos.map((p,i)=>({id:p.id,name:p.name,matched:m.matches[i].length>0})),matched:m.matches.filter(x=>x.length===1).length,total:r.photos.length});
+  }));
+  // Thợ khớp tay: file trong DA-CHINH là bản sửa của ảnh nào (photoId null = bỏ khớp)
+  router.post('/:id/output-files/:fileId/match',auth(['tho-anh']),loadRequest,outputTarget,wrap(async(req,res)=>{
+    const r=req.editRequest, b=req.body||{}, photoId=b.photoId==null||b.photoId===''?null:String(b.photoId);
+    if(photoId!==null&&!r.photos.some(p=>p.id===photoId))return res.status(422).json({error:'invalid_photo'});
+    const files=await driveFiles.listFiles(req.uploadFolder);
+    if(!files.some(f=>f.id===req.params.fileId))return res.status(404).json({error:'not_found'});
+    const manual={...(r.driveJob.manualMatches||{})};
+    delete manual[req.params.fileId];
+    if(photoId!==null){for(const k of Object.keys(manual))if(manual[k]===photoId)delete manual[k];manual[req.params.fileId]=photoId;}
+    const saved=await store.updateIfRev(r.id,r.rev,{driveJob:{...r.driveJob,manualMatches:manual}},{notDone:true});
+    if(!saved||saved.conflict)return res.status(409).json({error:'conflict'});
+    await driveSync.syncOnce();res.json({ok:true});
   }));
   router.delete('/:id/output-files/:fileId',auth(['tho-anh']),loadRequest,outputTarget,wrap(async(req,res)=>{
     const files=await driveFiles.listFiles(req.uploadFolder);

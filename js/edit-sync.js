@@ -142,6 +142,7 @@
   const api = {
     enabled, mountUpload,
     outputFiles(id){return request('/'+encodeURIComponent(id)+'/output-files');},
+    matchOutput(id,fileId,photoId){return request('/'+encodeURIComponent(id)+'/output-files/'+encodeURIComponent(fileId)+'/match',{method:'POST',body:{photoId:photoId||null}});},
     deleteOutput(id,fileId){return request('/'+encodeURIComponent(id)+'/output-files/'+encodeURIComponent(fileId),{method:'DELETE'});},
     async downloadZip(id){const r=await fetch(transferUrl('/'+encodeURIComponent(id)+'/download.zip'),{headers:authHeaders()});if(!r.ok)throw Error('Không tải được ảnh. Vui lòng thử lại.');const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download=(r.headers.get('content-disposition')||'').match(/filename="([^"]+)"/)?.[1]||'ALOHA.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);},
     retryDrive(id) { return request('/'+encodeURIComponent(id)+'/drive-retry',{method:'POST',body:{}}); },

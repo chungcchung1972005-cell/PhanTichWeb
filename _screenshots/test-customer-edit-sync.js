@@ -58,7 +58,9 @@ async function api(p, token, body) {
   try {
     if (await portBusy()) throw new Error('Cổng 3001 đang có server khác chạy (có thể nối MongoDB thật) - tắt nó rồi chạy lại test.');
     await startServer();
-    const sourceCustomer=await fixture.login(API,'0900000001','khach123');
+    // Khách THƯỜNG (đăng ký thật): khách demo 0900000001 bị xoá yêu cầu cũ mỗi lần đăng nhập (resetDemoCustomer),
+    // nên không dùng được cho kiểm tra "máy khác thấy yêu cầu đã gửi".
+    const sourceCustomer = (await (await fetch(API + '/api/sale-chat/auth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone: '0922222222', name: 'Khach TEST A', password: 'matkhau123' }) })).json()).token;
     const album=await fixture.sourceAlbum(API,{customer:sourceCustomer,code:'#ABFIXTURE01'});
     const tho = await apiLogin('0900000003', 'anh123');
     browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
@@ -100,7 +102,7 @@ async function api(p, token, body) {
       debugMachine=m;
       return m;
     }
-    async function loginCustomer(m, phone = '0900000001', pw = 'khach123') {
+    async function loginCustomer(m, phone = '0922222222', pw = 'matkhau123') {
       await m.page.goto(ROOT_URL + 'login.html', { waitUntil: 'networkidle0' });
       await m.page.type('#loginPhone', phone);
       await m.page.type('#loginPassword', pw);
@@ -111,6 +113,7 @@ async function api(p, token, body) {
       await page.evaluate((i) => document.querySelector(`.ps-photo[data-id="${i}"] img`).click(), id);
       await page.waitForFunction(() => !document.getElementById('psLbNoteWrap').hidden, { timeout: 3000 });
       await wait(300);
+      if (await page.$eval('#psLbNote', (el) => el.hidden)) await page.click('#psEditOptions button[value="Khác"]');
       await page.type('#psLbNote', text);
       await page.keyboard.press('Escape');
       await wait(200);
@@ -123,6 +126,8 @@ async function api(p, token, body) {
     }
     const localReqs = (page) => page.evaluate(() => { try { return (JSON.parse(localStorage.getItem('aloha_demo_db')) || {}).editRequests || []; } catch (e) { return []; } });
     const btn = (page) => page.$eval('#psSubmitBtn', (b) => ({ text: b.textContent.trim(), disabled: b.disabled }));
+    // Từ 30/10 khách gửi liên tục: gửi xong thì bỏ chọn, ảnh đã gửi gắn nhãn "Đã gửi thợ" + khoá tim từng ảnh
+    const sentIds = (page) => page.evaluate(() => [...document.querySelectorAll('.ps-photo')].filter((c) => c.querySelector('.ps-sent-label') && c.querySelector('.ps-heart').getAttribute('aria-disabled') === 'true').map((c) => c.dataset.id).join(','));
     const bannerText = (page) => page.$eval('#psSubmittedBanner', (b) => (b.classList.contains('show') ? b.textContent.replace(/\s+/g, ' ').trim() : ''));
     const serverCount = async () => (await (await fetch(API + '/api/edit-requests/health')).json()).count - 1;
 
@@ -139,7 +144,7 @@ async function api(p, token, body) {
     await wait(400);
     let lr = await localReqs(w.page);
     check('Cờ tắt: yêu cầu lưu localStorage như cũ (2 ảnh, ghi chú riêng + chung)', lr.length === 1 && lr[0].photos.length === 2 && lr[0].photoNotes.length === 1 && lr[0].note === 'Ghi chu chung luong cu', lr.length);
-    check('Cờ tắt: banner "đã gửi" + nút khoá như cũ', /Đã gửi yêu cầu chỉnh sửa/.test(await bannerText(w.page)) && (await btn(w.page)).text === 'Đã gửi yêu cầu');
+    check('Cờ tắt: banner "đã gửi", 2 ảnh gắn "Đã gửi thợ" + khoá, nút gửi tắt tới khi chọn ảnh mới', /Đã gửi yêu cầu chỉnh sửa/.test(await bannerText(w.page)) && (await sentIds(w.page)) === 'drive-fixture-file-1,drive-fixture-file-2' && (await btn(w.page)).disabled);
     check('Cờ tắt: KHÔNG gọi /api/edit-requests lần nào', w.calls.length === 0, w.calls);
     check('Cờ tắt: server không nhận yêu cầu nào', (await serverCount()) === 0);
     await w.ctx.close();
@@ -147,7 +152,7 @@ async function api(p, token, body) {
     // =============================================================== 2. Cờ BẬT, máy X: lỗi trước, gửi thành công sau
     const x = await machine(true);
     await loginCustomer(x);
-    await x.page.waitForFunction(() => /^Gửi (ảnh|yêu cầu)/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 8000 });
+    await x.page.waitForFunction(() => /^Gửi/.test(document.getElementById('psSubmitBtn').textContent.trim()) && document.querySelectorAll('.ps-heart').length > 0, { timeout: 8000 });
     check('Cờ bật: mở trang gọi GET /me trước, có token server', x.calls.some((c) => c.startsWith('GET /api/edit-requests/me')), x.calls);
     await x.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
     await x.page.click('.ps-photo[data-id="drive-fixture-file-3"] .ps-heart');
@@ -163,7 +168,7 @@ async function api(p, token, body) {
     let b = await btn(x.page);
     let st = await x.page.evaluate(() => ({ sel: document.querySelectorAll('.ps-photo.selected').length, hearts: [...document.querySelectorAll('.ps-heart')].every((h) => !h.disabled), note: document.getElementById('psNote').value }));
     check('Mất mạng: báo "CHƯA được gửi", không báo thành công', /CHƯA được gửi/.test(await bannerText(x.page)) && !/Đã gửi yêu cầu chỉnh sửa cho/.test(await bannerText(x.page)), await bannerText(x.page));
-    check('Mất mạng: nút gửi mở lại, ảnh đã chọn + ghi chú giữ nguyên, lưới không bị khoá', !b.disabled && b.text === 'Gửi yêu cầu chỉnh sửa' && st.sel === 2 && st.hearts && st.note === 'Giu tong mau am', { b, st });
+    check('Mất mạng: nút gửi mở lại, ảnh đã chọn + ghi chú giữ nguyên, lưới không bị khoá', !b.disabled && b.text === 'Gửi cho thợ' && st.sel === 2 && st.hearts && st.note === 'Giu tong mau am', { b, st });
     check('Mất mạng: KHÔNG ghi yêu cầu vào localStorage', (await localReqs(x.page)).length === 0);
     check('Mất mạng: server không có yêu cầu nào', (await serverCount()) === 0);
 
@@ -178,22 +183,22 @@ async function api(p, token, body) {
     x.intercept.mode = null;
     x.bodies.length = 0;
     await clickSubmit(x.page);
-    await x.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 8000 });
-    check('Server xác nhận -> mới báo "đã gửi" + khoá lưới', /Đã gửi yêu cầu chỉnh sửa/.test(await bannerText(x.page)) && await x.page.evaluate(() => [...document.querySelectorAll('.ps-heart')].every((h) => h.disabled)));
+    await x.page.waitForFunction(() => document.querySelectorAll('.ps-sent-label').length === 2, { timeout: 8000 });
+    check('Server xác nhận -> mới báo "đã gửi" + khoá đúng 2 ảnh đã gửi, ảnh khác vẫn chọn được', /Đã gửi yêu cầu chỉnh sửa/.test(await bannerText(x.page)) && (await sentIds(x.page)) === 'drive-fixture-file-1,drive-fixture-file-3' && await x.page.evaluate(() => document.querySelector('.ps-photo[data-id="drive-fixture-file-2"] .ps-heart').getAttribute('aria-disabled') === 'false'));
     const sent = JSON.parse(x.bodies[0] || '{}');
     check('POST / gửi đúng cấu trúc: 2 ảnh có ghi chú riêng, ghi chú chung, mã đơn, phí 0', JSON.stringify(sent.photos.map((p) => [p.id, p.note, p.isExtra])) === JSON.stringify([['drive-fixture-file-1', 'Xoa vet do tren ma', false], ['drive-fixture-file-3', 'Lam sang vung mat', false]]) && sent.note === 'Giu tong mau am' && sent.orderCode === '#ABFIXTURE01' && sent.extraFee === 0, sent);
     check('POST / không gửi phone / customerName / from (server lấy từ token)', !('phone' in sent) && !('customerName' in sent) && !('from' in sent));
     check('Thành công vẫn KHÔNG ghi localStorage (chỉ server lưu)', (await localReqs(x.page)).length === 0);
     let [s, d] = await api('/', tho);
     const reqA = d.requests[0];
-    check('Server lưu đúng 1 yêu cầu của 0900000001, 2 ghi chú riêng', s === 200 && d.requests.length === 1 && reqA.phone === '0900000001' && reqA.photoNotes.length === 2, d.requests.length);
+    check('Server lưu đúng 1 yêu cầu của khách A, 2 ghi chú riêng', s === 200 && d.requests.length === 1 && reqA.phone === '0922222222' && reqA.photoNotes.length === 2, d.requests.length);
 
     // =============================================================== 3. Máy Y (khác máy X): thấy yêu cầu đã gửi
     const y = await machine(true);
     await loginCustomer(y);
-    await y.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 8000 });
-    st = await y.page.evaluate(() => ({ sel: [...document.querySelectorAll('.ps-photo.selected')].map((c) => c.dataset.id).join(','), locked: [...document.querySelectorAll('.ps-heart')].every((h) => h.disabled), note: document.getElementById('psNote').value, banner: document.getElementById('psSubmittedBanner').textContent }));
-    check('Máy Y (localStorage khác): khôi phục từ server đúng 2 ảnh đã gửi, ghi chú chung, lưới khoá', st.sel === 'drive-fixture-file-1,drive-fixture-file-3' && st.locked && st.note === 'Giu tong mau am' && /Bạn đã gửi 2 ảnh/.test(st.banner), st);
+    await y.page.waitForFunction(() => document.querySelectorAll('.ps-sent-label').length === 2, { timeout: 8000 });
+    st = { sent: await sentIds(y.page), sel: await y.page.evaluate(() => document.querySelectorAll('.ps-photo.selected').length) };
+    check('Máy Y (localStorage khác): khôi phục từ server đúng 2 ảnh "Đã gửi thợ", không tự chọn lại', st.sent === 'drive-fixture-file-1,drive-fixture-file-3' && st.sel === 0, st);
     check('Máy Y: không có yêu cầu nào trong localStorage của máy này', (await localReqs(y.page)).length === 0);
 
     // Tin nhắn qua server
@@ -264,11 +269,13 @@ async function api(p, token, body) {
     await loginCustomer(v);
     await v.page.waitForFunction(() => document.getElementById('psSubmitBtn').disabled && /CHƯA được gửi/.test(document.getElementById('psSubmittedBanner').textContent), { timeout: 8000 });
     b = await btn(v.page);
-    check('Không tải được dữ liệu: khoá nút gửi + báo lỗi, không đoán theo localStorage', b.disabled && /CHƯA được gửi/.test(await bannerText(v.page)), b);
+    check('Không tải được dữ liệu: khoá nút gửi + báo lỗi, không đoán theo localStorage', b.disabled && /CHƯA được gửi/.test(await bannerText(v.page)) && (await localReqs(v.page)).length === 0, b);
     v.intercept.mode = null;
-    await v.page.waitForFunction(() => document.getElementById('psSubmitBtn').textContent.trim() === 'Đã gửi yêu cầu', { timeout: 10000 });
-    check('Kết nối lại: tự khôi phục trạng thái "đã gửi" từ server, bỏ banner lỗi', !/CHƯA được gửi/.test(await bannerText(v.page)) && /Bạn đã gửi 2 ảnh/.test(await bannerText(v.page)));
-
+    await v.page.waitForFunction(() => { const e = document.getElementById('psSubmittedBanner'); return !(e.classList.contains('show') && /CHƯA được gửi/.test(e.textContent)); }, { timeout: 15000 });
+    // Yêu cầu đã Hoàn thành ở bước 3 -> ảnh mở lại, khách gửi lượt mới được
+    await v.page.click('.ps-photo[data-id="drive-fixture-file-1"] .ps-heart');
+    b = await btn(v.page);
+    check('Kết nối lại: tự bỏ banner lỗi, ảnh của yêu cầu đã xong mở lại, chọn ảnh là gửi được', (await sentIds(v.page)) === '' && !b.disabled, b);
     check('Không có lỗi JS trên các trang', errors.length === 0, errors);
     check('Server test chỉ dùng kho RAM', (await (await fetch(API + '/api/health')).json()).chatStore === 'memory');
   } catch (e) {

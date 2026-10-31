@@ -1,17 +1,27 @@
 const delivery = require('./edit-delivery');
 const DEFAULT_SUFFIXES = ['_edit','-edit','_final','-final','_retouch',' (1)'];
 const stem = name => String(name || '').replace(/\.[^.]+$/, '').toLowerCase();
-function matchPhotos(photos, files, suffixes = DEFAULT_SUFFIXES) {
-  const groups = new Map(), matches = photos.map(() => []), unknown = [], errors = [];
+// manual = {fileId: photoId}: thợ tự chỉ file nào là bản sửa của ảnh nào (khi đổi tên khác hẳn).
+// File khớp tay gán thẳng; ảnh đã khớp tay không nhận thêm file khớp theo tên (file đó coi như tên lạ).
+function matchPhotos(photos, files, suffixes = DEFAULT_SUFFIXES, manual = {}) {
+  const groups = new Map(), matches = photos.map(() => []), unknown = [], errors = [], manualIdx = new Set();
   photos.forEach((p,i) => { const key=stem(p.name); groups.set(key,[...(groups.get(key)||[]),i]); });
   for (const [key,ids] of groups) if(ids.length>1) errors.push('Trùng tên gốc: '+photos[ids[0]].name);
-  for (const f of files.filter(f=>f.mimeType?.startsWith('image/') && Number(f.size)>0)) {
+  const images=files.filter(f=>f.mimeType?.startsWith('image/') && Number(f.size)>0), byName=[];
+  for (const f of images) {
+    const i=Object.prototype.hasOwnProperty.call(manual||{},f.id) ? photos.findIndex(p=>p.id===manual[f.id]) : -1;
+    if(i<0){byName.push(f);continue;}
+    if(manualIdx.has(i))errors.push('Nhiều file khớp: '+photos[i].name);
+    manualIdx.add(i);matches[i].push(f);
+  }
+  for (const f of byName) {
     const pending=[stem(f.name)], seen=new Set(), ids=new Set();
     while(pending.length) {
       const key=pending.pop();if(seen.has(key))continue;seen.add(key);
       (groups.get(key)||[]).forEach(i=>ids.add(i));
       for(const suffix of suffixes) if(suffix && key.endsWith(suffix.toLowerCase()))pending.push(key.slice(0,-suffix.length));
     }
+    manualIdx.forEach(i=>ids.delete(i));
     if(!ids.size)unknown.push(f.name); else ids.forEach(i=>matches[i].push(f));
     if(ids.size>1)errors.push('File khớp nhiều ảnh yêu cầu: '+f.name);
   }
@@ -29,7 +39,7 @@ async function scan({store,workflow,syncStore,drive,request:r,now,env}) {
   // Optional JSON array of literal suffixes, e.g. ["_edit","-final"].
   const suffixes=env.DRIVE_DELIVERY_SUFFIXES === undefined ? DEFAULT_SUFFIXES : JSON.parse(env.DRIVE_DELIVERY_SUFFIXES);
   if(!Array.isArray(suffixes)||suffixes.some(s=>typeof s!=='string'))throw Error('invalid_delivery_suffixes');
-  const m=matchPhotos(r.photos,files,suffixes), matched=m.matches.filter(fs=>fs.length===1).length;
+  const m=matchPhotos(r.photos,files,suffixes,r.driveJob.manualMatches||{}), matched=m.matches.filter(fs=>fs.length===1).length;
   const stateKey='delivery:'+r.id, previous=await syncStore.getState(stateKey);
   const signature=JSON.stringify(m.matches.map(fs=>fs.map(f=>[f.id,String(f.size),f.modifiedTime]).sort((a,b)=>a[0].localeCompare(b[0]))));
   const at=now(), same=previous?.signature===signature && previous.folderId===r.driveJob.outputFolderId;
@@ -48,4 +58,5 @@ async function scan({store,workflow,syncStore,drive,request:r,now,env}) {
   if(JSON.stringify(r.driveJob.delivery)!==JSON.stringify(status))
     return store.updateIfRev(r.id,r.rev,{driveJob:{...r.driveJob,delivery:status}},{notDone:true});
 }
-module.exports={scan,matchPhotos,DEFAULT_SUFFIXES};
+function envSuffixes(env){return env.DRIVE_DELIVERY_SUFFIXES === undefined ? DEFAULT_SUFFIXES : JSON.parse(env.DRIVE_DELIVERY_SUFFIXES);}
+module.exports={scan,matchPhotos,envSuffixes,DEFAULT_SUFFIXES};

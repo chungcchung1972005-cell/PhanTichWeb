@@ -34,3 +34,12 @@ const goc=await folderSync.originalFolder({id:'order',code:'AB-123'});check(goc=
 console.log(`${count}/${count} PASS Drive web transfers (offline)`);
 }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1;});
 
+// 31/10/2026: thợ kéo nhiều ảnh gốc cùng lúc → không được đẻ trùng thư mục đơn / GOC
+(async()=>{
+  const made=[];const live={};
+  const drive={ensureFolder:async(parent,name)=>{const k=parent+'/'+name;await new Promise(r=>setTimeout(r,20));if(live[k])return live[k];await new Promise(r=>setTimeout(r,20));made.push(k);return live[k]={id:'id-'+made.length};}};
+  const svc=require('../server/drive-sync').createService({store:require('../server/edit-requests-store').memoryStore(),workflow:{read:async()=>({orders:[]})},syncStore:{getRoot:async()=>'ALOHA',setRoot:async()=>{},setFolder:async()=>{}},drive,enabled:()=>true,env:{}});
+  const ids=await Promise.all([1,2,3].map(()=>svc.originalFolder({id:'o1',code:'TEST-1'})));
+  require('assert').ok(new Set(ids).size===1&&made.filter(k=>k.endsWith('/GOC')).length===1&&made.filter(k=>k.endsWith('/TEST-1')).length===1,'concurrent original uploads share one GOC folder: '+JSON.stringify(made));
+  console.log('PASS concurrent originalFolder creates one folder');
+})().catch(e=>{console.error(e);process.exitCode=1;});
