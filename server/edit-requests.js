@@ -40,6 +40,13 @@ const MAX_NOTE = 500;               // ghi chú chung / ghi chú từng ảnh
 const MAX_MESSAGE = 1500;           // khớp addRequestMessage trong js/data-store.js
 const MAX_MESSAGES = 500;           // mỗi yêu cầu giữ tối đa bấy nhiêu tin gần nhất
 const MAX_URL = 2048;
+// Cách sửa khách tích được (khớp EDIT_GROUPS trong js/chon-anh.js). Giữ 5 nhãn cũ để yêu cầu cũ vẫn hợp lệ.
+const EDIT_OPTIONS = new Set([
+  "Mịn da", "Xoá mụn, sẹo, chàm", "Xoá vết đỏ, bong da",
+  "Sáng hơn", "Màu ấm hơn", "Màu trong, tươi hơn",
+  "Trắng răng", "Mắt rõ hơn", "Gọn tóc rối", "Xoá vật thừa", "Khác",
+  "Chỉnh da", "Chỉnh màu", "Ánh sáng", "Xóa chi tiết thừa",
+]);
 const RATE = { windowMs: 60 * 1000, create: 5, message: 30, pending: 20 }; // theo tài khoản
 
 // ---------------------------------------------------------------- Làm sạch đầu vào
@@ -301,7 +308,7 @@ function createEditRequestsRouter(store, opts) {
     for (const p of b.photos) {
       if (!p || typeof p !== 'object' || !isPhotoId(p.id) || !isPhotoSrc(p.src) || seen.has(p.id)) return fail(400, 'bad_photos');
       seen.add(p.id);
-      photos.push({ id: p.id, src: p.src, note: cleanStr(p.note, MAX_NOTE), editOptions: [...new Set((Array.isArray(p.editOptions)?p.editOptions:[]).filter(x=>['Chỉnh da','Chỉnh màu','Ánh sáng','Xóa chi tiết thừa','Khác'].includes(x)))], isExtra: p.isExtra === true });
+      photos.push({ id: p.id, src: p.src, note: cleanStr(p.note, MAX_NOTE), editOptions: [...new Set((Array.isArray(p.editOptions)?p.editOptions:[]).filter(x=>EDIT_OPTIONS.has(x)).slice(0,15))], isExtra: p.isExtra === true });
     }
     const orderCode = cleanStr(b.orderCode, 30);
     if (orderCode && !/^#?[A-Za-z0-9-]{3,29}$/.test(orderCode)) return fail(400, 'bad_order_code');

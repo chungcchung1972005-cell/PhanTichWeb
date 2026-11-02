@@ -55,7 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let paidPending = null;          // đã thanh toán ảnh chọn thêm nhưng gửi lỗi -> cho gửi lại, không bắt trả lại tiền
   const photoNotes = new Map();
   const photoOptions = new Map();
-  const editOptions = ['Chỉnh da', 'Chỉnh màu', 'Ánh sáng', 'Xóa chi tiết thừa', 'Khác'];
+  // Cách sửa khách tích được, chia nhóm theo chuyên môn thợ chỉnh ảnh (02/11/2026).
+  // [tên đầy đủ gửi thợ, nhãn ngắn trên nút]. Sửa chữ ở đây thì sửa cả EDIT_OPTIONS trong server/edit-requests.js.
+  const EDIT_GROUPS = [
+    { name: 'Da', items: [['Mịn da', 'Mịn da'], ['Xoá mụn, sẹo, chàm', 'Mụn, sẹo, chàm'], ['Xoá vết đỏ, bong da', 'Vết đỏ, bong da']] },
+    { name: 'Màu & sáng', items: [['Sáng hơn', 'Sáng hơn'], ['Màu ấm hơn', 'Ấm hơn'], ['Màu trong, tươi hơn', 'Trong, tươi hơn']] },
+    { name: 'Chi tiết', items: [['Trắng răng', 'Trắng răng'], ['Mắt rõ hơn', 'Mắt rõ hơn'], ['Gọn tóc rối', 'Gọn tóc rối'], ['Xoá vật thừa', 'Xoá vật thừa']] },
+  ];
+  const editOptions = [...EDIT_GROUPS.flatMap(g => g.items.map(i => i[0])), 'Khác'];
   let parentRequestId = '';
   let round = 1;
   // Lượt sau không có ảnh miễn phí: ẩn "/ 0", ghi rõ giá mỗi ảnh
@@ -65,14 +72,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if(note) note.textContent=PACKAGE_COUNT===0?'(Từ lượt thứ 2, mỗi ảnh chỉnh 50.000đ)':'(Đơn giá: 50.000đ / ảnh chỉnh sửa thêm ngoài gói 10 ảnh)'; }
   function combinedNote(id) { return [...(photoOptions.get(id) || []).filter(o => o !== 'Khác'), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
   // Nhãn ngắn cho vừa ô ảnh trên điện thoại; giá trị gửi thợ vẫn là tên đầy đủ
-  const CHIP_SHORT = { 'Chỉnh da': 'Da', 'Chỉnh màu': 'Màu', 'Ánh sáng': 'Ánh sáng', 'Xóa chi tiết thừa': 'Xoá vật thừa', 'Khác': 'Khác' };
+  const chip = ([value, label]) => `<button type="button" class="ps-edit-chip" value="${value}" aria-pressed="false" title="${value}">${label}</button>`;
+  // Dưới ảnh nhỏ: 3 nút nhóm + Khác, bấm nhóm mới xổ ra các mục (mỗi lúc 1 nhóm). Ảnh phóng to: hiện đủ.
   function editChips() {
-    return editOptions.map(label => `<button type="button" class="ps-edit-chip" value="${label}" aria-pressed="false" title="${label}">${CHIP_SHORT[label] || label}</button>`).join('');
+    return EDIT_GROUPS.map((g, i) => `<div class="ps-edit-group" data-group="${i}"><button type="button" class="ps-edit-group-toggle" aria-expanded="false"><span>${g.name}</span><b class="ps-edit-count" hidden></b></button><span class="ps-edit-group-label">${g.name}</span><div class="ps-edit-group-items">${g.items.map(chip).join('')}</div></div>`).join('')
+      + `<div class="ps-edit-group ps-edit-other">${chip(['Khác', 'Khác'])}</div>`;
   }
   function syncEditor(editor, id, locked) {
+    const chosen = photoOptions.get(id) || [];
     editor.querySelectorAll('.ps-edit-chip').forEach(button => {
-      button.setAttribute('aria-pressed', String((photoOptions.get(id) || []).includes(button.value)));
+      button.setAttribute('aria-pressed', String(chosen.includes(button.value)));
       button.disabled = locked;
+    });
+    editor.querySelectorAll('.ps-edit-group[data-group]').forEach(group => {
+      const n = [...group.querySelectorAll('.ps-edit-group-items .ps-edit-chip')].filter(b => chosen.includes(b.value)).length;
+      const count = group.querySelector('.ps-edit-count'); count.hidden = !n; count.textContent = n;
     });
     const note = editor.querySelector('input');
     if (document.activeElement !== note) note.value = photoNotes.get(id) || '';
@@ -82,6 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function bindEditor(editor, getId) {
     editor.addEventListener('click', e => {
       e.stopPropagation();
+      const toggle = e.target.closest('.ps-edit-group-toggle');
+      if (toggle) {
+        const group = toggle.parentElement, open = !group.classList.contains('open');
+        editor.querySelectorAll('.ps-edit-group.open').forEach(g => { g.classList.remove('open'); g.querySelector('.ps-edit-group-toggle').setAttribute('aria-expanded', 'false'); });
+        group.classList.toggle('open', open); toggle.setAttribute('aria-expanded', String(open));
+        return;
+      }
       const button = e.target.closest('.ps-edit-chip'), id = getId();
       if (!button || button.disabled || sentPhotoIds.has(id) || isSelectionLocked()) return;
       const options = new Set(photoOptions.get(id) || []);

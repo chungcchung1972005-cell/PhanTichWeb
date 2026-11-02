@@ -1846,3 +1846,20 @@ body.ps-cart-open .fab-chat { bottom:calc(var(--ps-cart-height) + 16px); }
 #psDrivePanel[hidden],#psDrivePanel [hidden]{display:none}
 #view-chon-anh .ps-head-row + #psJourney{padding:12px 0 0}
 #psRoundTools button{min-height:44px;margin:8px 8px 0 0;padding:10px 18px;border:0;border-radius:12px;background:#dc4f80;color:#fff;font-weight:700;cursor:pointer}
+
+/* Cách sửa chia nhóm (02/11/2026). Dưới ảnh nhỏ: nút nhóm, bấm mới xổ mục. Ảnh phóng to: hiện đủ theo nhóm. */
+.ps-edit-group{display:contents}
+.ps-edit-group-label{display:none}
+.ps-edit-group-toggle{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:5px 10px;border:1px solid #e5d8dd;border-radius:12px;background:#fff;color:#614550;font:inherit;font-size:13px;cursor:pointer}
+.ps-edit-group-toggle::after{content:'▾';font-size:11px;opacity:.7}
+.ps-edit-group.open>.ps-edit-group-toggle{border-color:#d66b94;color:#a93866;background:#fff0f5}
+.ps-edit-group.open>.ps-edit-group-toggle::after{content:'▴'}
+.ps-edit-count{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#d66b94;color:#fff;font-size:11px;line-height:18px;text-align:center}
+.ps-edit-count[hidden]{display:none}
+.ps-edit-group-items{display:none;order:10;flex-basis:100%;flex-wrap:wrap;gap:5px;padding:6px;border-radius:12px;background:#fdf3f6}
+.ps-edit-group.open>.ps-edit-group-items{display:flex}
+#psEditOptions{display:block}
+#psEditOptions .ps-edit-group{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 6px}
+#psEditOptions .ps-edit-group-toggle{display:none}
+#psEditOptions .ps-edit-group-label{display:block;flex-basis:100%;font-size:12px;font-weight:600;color:#8a6a76}
+#psEditOptions .ps-edit-group-items{display:flex;order:0;flex-basis:auto;padding:0;background:none}

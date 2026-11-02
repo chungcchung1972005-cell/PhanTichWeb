@@ -45,13 +45,13 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   const photo=await customer.$eval('.ps-photo img',img=>img.src);assert.match(photo,/thumbnail.*sz=w1000/);
   await customer.click('.ps-photo .ps-heart');
   await customer.click('.ps-photo img');await customer.waitForSelector('#psEditOptions');
-  await customer.click('#psEditOptions button[value="Chỉnh da"]');
+  await customer.click('#psEditOptions button[value="Mịn da"]');
   await customer.click('#psEditOptions button[value="Khác"]');
   await customer.type('#psLbNote','Giữ nét bé');
   assert.match(await customer.$eval('#psLbImg',e=>e.src),/sz=w2000/);
   await customer.click('#psLbClose');await customer.click('#psSubmitBtn');
   await customer.waitForFunction(async()=>{const r=await AlohaEditSync.mine();return r.ok && r.data.requests.length===1;});
-  const created=await customer.evaluate(async()=>(await AlohaEditSync.mine()).data.requests[0]);assert.deepEqual(created.photos[0].editOptions,['Chỉnh da','Khác']);
+  const created=await customer.evaluate(async()=>(await AlohaEditSync.mine()).data.requests[0]);assert.deepEqual(created.photos[0].editOptions,['Mịn da','Khác']);
   await customer.waitForFunction(()=>document.querySelectorAll('.ps-sent-label').length===1 && document.getElementById('selectedCount').textContent==='0');
   assert.equal(await customer.$eval('#psSelectAllBtn',e=>e.disabled),false);
   await customer.reload({waitUntil:'domcontentloaded'});
@@ -85,7 +85,7 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   console.log('PASS new source album in same order permits selection; force reload refreshes server manifests');
   await worker.goto(env.ROOT_URL+'crm/admin.html',{waitUntil:'domcontentloaded'});
   await openCust('Multi customer');await worker.waitForSelector('.tho-detail[data-tab="chinh"] #copyPhotoNames',{visible:true});
-  const detail=await worker.$eval('#kanbanModalBody',e=>e.textContent);assert.match(detail,/IMG_0001.JPG/);assert.match(detail,/Chỉnh da/);assert.match(detail,/Giữ nét bé/);
+  const detail=await worker.$eval('#kanbanModalBody',e=>e.textContent);assert.match(detail,/IMG_0001.JPG/);assert.match(detail,/Mịn da/);assert.match(detail,/Giữ nét bé/);
   assert.match(await worker.$eval('#kanbanModalBody .photo-download-btn',e=>e.href),/file\/d\/test-file-0001\/view/);
   await worker.click('#copyPhotoNames');await worker.waitForFunction(()=>window.copiedNames==='IMG_0001.JPG');assert.match(await worker.$eval('#copyPhotoStatus',e=>e.textContent),/Đã chép 1 tên file/);
   const linked=await worker.evaluate(r=>AlohaAuth.api('/api/edit-requests/'+r.id+'/links',{method:'POST',body:{rev:r.rev,resultLink:'https://drive.google.com/drive/folders/finished-round-one'}}),created);assert.equal(linked.status,200);
