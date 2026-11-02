@@ -15,6 +15,7 @@ Người dùng chính (Chung) chốt; ghi chú của người khác trái với 
 - **Chọn & chỉnh ảnh:** lượt đầu miễn phí 10 ảnh, vượt 50.000đ/ảnh; lượt sau 50.000đ/ảnh. Khách gửi ảnh cho thợ **liên tục bất cứ lúc nào**, không chờ thợ trả xong, trả tiền trước. (30/10/2026)
 - **Giỏ hàng kiểu Shopee:** thanh dính đáy, cộng tổng tiền ngay, Thanh toán → tiền về → ảnh tự chuyển thẳng cho thợ. (30/10/2026)
 - **Ghi cách sửa:** thả tim là hiện ngay dưới ảnh Da / Màu / Ánh sáng / Xoá vật thừa / Khác; "Khác là ghi chú rồi": ô gõ chỉ hiện khi bật Khác. (30/10/2026)
+- **Cách sửa 10 mục (02/11/2026, thay 5 chip):** Da (Mịn da / Xoá mụn, sẹo, chàm / Xoá vết đỏ, bong da) · Màu & sáng (Sáng hơn / Màu ấm hơn / Màu trong, tươi hơn) · Chi tiết (Trắng răng / Mắt rõ hơn / Gọn tóc rối / Xoá vật thừa) · Khác. Dưới ảnh nhỏ bấm nhóm mới xổ mục; ảnh phóng to hiện đủ. Sửa chữ: `EDIT_GROUPS` trong `js/chon-anh.js` + `EDIT_OPTIONS` trong `server/edit-requests.js` (máy chủ vẫn nhận 5 nhãn cũ). Chung KHÔNG lấy luật "chỉnh lại tối đa 3 lần, quá thì 47k" (giữ phí như cũ).
 - **Tiền công:** tất toán cuối tháng; Sếp không duyệt từng khoản. Thợ trả ảnh + khách bấm "Hài lòng" là xong, khách không phản hồi 3 ngày thì mặc định hài lòng. (30/10/2026)
 
 ## Ghi nhớ nhanh (đọc trước mỗi phiên, cập nhật 2026-10-15)
@@ -83,10 +84,12 @@ Người dùng chính (Chung) chốt; ghi chú của người khác trái với 
 *Lỗi đã mắc phiên này (không lặp):* script chụp UI không đặt giới hạn thời gian → treo, bị chê "lâu v" (luôn dùng `timeout`); script thử thả nhầm ô tải lên phía sau modal (dùng `.kanban-modal .drive-upload input[type=file]`); sửa giao diện làm dòng "Thiếu: …" chỉ hiện khi đã giao (soát lại điều kiện sau khi sửa); dữ liệu Drive lần thử trước dính vào lượt demo mới (đã thêm dọn LUOT-*); Puppeteer `response.buffer()` báo 0 byte với file tải bằng fetch→blob (kiểm zip bằng gọi API trực tiếp); script thử gửi mục sửa "Da" thay vì "Chỉnh da" (máy chủ chỉ nhận đúng 5 nhãn trong `js/chon-anh.js` `editOptions`).
 
 **Việc cần làm tiếp theo (theo thứ tự, HỎI TRẮC NGHIỆM trước khi làm):**
-1. Chuyển tiền thật qua SePay: Chung chọn KHÔNG thử (31/10). Khoá Render đã đặt, PR #44, #45 đã lên `main`.
-2. (Tuỳ Chung) dọn dữ liệu TEST trên web thật (khách `0999003110`, đơn `TESTGOC3110`/`B`, thư mục Drive trùng).
-3. Nếu studio dùng thật: hẹn giờ gọi /api/drive/sync khi máy chủ ngủ, xem lại quyết định thư mục ảnh "ai có link cũng xem"; thử ảnh nặng / vài trăm ảnh.
-4. (ĐÃ XONG 31/10) Viết lại `test-customer-edit-sync`; thử ảnh gốc trên web thật; màn khớp tay.
+1. Sửa 4 test lỗi CÓ SẴN (kiểm bằng stash 31/10): `test-auth` 2 case tab menu, `test-e2e-edit-sync` 4/5, `test-sale-chat` (sau `#/dat-lich`), `test-edited-photos` 2 case tiêu đề/bước tiến độ. Làm trước khi sửa thêm giao diện.
+2. Thêm nút "xoá đơn TEST" cho Sếp rồi dọn dữ liệu TEST trên web thật: khách `0999003110`, đơn `TESTGOC3110`/`B`/`C` (thư mục Drive đã vào thùng rác 31/10; vòng quét có thể tạo lại thư mục rỗng tên đó).
+2b. LỖI Codex tìm thấy 02/11 (chưa sửa): trang Sale `#don-anh` tab "Đã giao": đơn từ quy trình có `due:'Theo đơn'` (`crm/js/sale.js` ~1717) nhưng bảng xét `due > 0` nên luôn hiện "Đã đủ" (~1280); modal đơn còn điền SĐT/thợ mặc định khi thiếu (~1295). Gợi ý nếu làm thêm cho Sale: lọc tháng/tên/SĐT/gói + thực thu / còn nợ / hoa hồng theo đơn bằng dữ liệu thật (KHÔNG dữ liệu mẫu).
+3. (Tuỳ Chung) gộp bớt mục menu Sếp: Doanh thu + Tiền công + Tiền chưa khớp → 1 mục "Tiền" có tab.
+4. Nếu studio dùng thật: hẹn giờ gọi /api/drive/sync khi máy chủ ngủ, xem lại thư mục ảnh "ai có link cũng xem"; thử ảnh nặng / vài trăm ảnh.
+5. ĐÃ XONG 31/10: SePay + khoá Render (Chung không thử chuyển tiền thật); khớp tay; sửa trùng thư mục GOC; test khách 39/39; màn thợ "Khách của tôi"; Sếp/Sale mỗi lúc 1 mục (PR #44→#49). **Chung cho Claude tự gộp PR sau khi test đạt** (gộp qua GitHub API, token từ `git credential fill`); auto mode đôi khi vẫn chặn → báo 1 câu, không hỏi lại.
 
 **Việc cần làm tiếp theo (bổ sung 2026-10-15, đứng trước danh sách 29/09):**
 - Commit đợt đồng bộ chỉnh ảnh (phần 2 phiên 15/10) khi người dùng duyệt, stage theo danh sách file rõ ràng (KHÔNG 4 ảnh `_screenshots/tho-anh-*.png`).
