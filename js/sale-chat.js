@@ -258,7 +258,13 @@
         group.push(msgs[j]);
         j++;
       }
-      const bubbles = group.map((m) => `<div class="sc-bubble${seenIds.has(m.id) ? '' : ' sc-pop'}">${esc(m.text)}</div>`).join('');
+      const bubbles = group.map((m) => {
+        const orderData = m.orderData || (window.AlohaOrderQRModal && AlohaOrderQRModal.parseOrderData(m.text));
+        if (orderData && window.AlohaOrderQRModal) {
+          return `<div class="sc-bubble sc-bubble-order${seenIds.has(m.id) ? '' : ' sc-pop'}">${AlohaOrderQRModal.renderOrderCardHtml(orderData, { isSale: false })}</div>`;
+        }
+        return `<div class="sc-bubble${seenIds.has(m.id) ? '' : ' sc-pop'}">${esc(m.text)}</div>`;
+      }).join('');
       const time = `<time>${hm(group[group.length - 1].at)}</time>`;
       html += first.from === 'sale'
         ? `<div class="sc-row from-sale">${AVATAR}<div class="sc-stack"><span class="sc-name">${esc(first.senderName || 'Sale ALOHA Baby')}</span>${bubbles}${time}</div></div>`
@@ -689,6 +695,13 @@
   }, POLL_ACTIVE_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && active) fetchChat(); });
   if (identity()) { lastIdlePoll = Date.now(); fetchChat(); }
+
+  window.addEventListener('aloha:deposit-confirmed', (e) => {
+    if (active) render(true);
+  });
+  window.addEventListener('aloha:order-created', () => {
+    if (active) render(true);
+  });
 
   window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded };
 

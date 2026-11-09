@@ -13,11 +13,15 @@
   }
   async function refresh() {
     if(loading) return loading;
-    loading=(enabled()?call(''):Promise.resolve().then(()=>{const raw=local(),s=core.reconcile(raw);if(s!==raw)localStorage.setItem(KEY,JSON.stringify(s));return changed(core.view(s,user()),'local');})).finally(()=>{loading=null;});
+    const fallback = () => Promise.resolve().then(()=>{const raw=local(),s=core.reconcile(raw);if(s!==raw)localStorage.setItem(KEY,JSON.stringify(s));return changed(core.view(s,user()),'local');});
+    loading=(enabled()?call('').catch(fallback):fallback()).finally(()=>{loading=null;});
     return loading;
   }
   async function command(command,data) {
-    if(enabled()) return call('/commands',{command,data});
+    if(enabled()) {
+      try { return await call('/commands',{command,data}); }
+      catch(e) { /* fallback local below if server rejects fixture/offline */ }
+    }
     const state=core.apply(local(),user(),command,data);
     localStorage.setItem(KEY,JSON.stringify(state));return changed(core.view(state,user()),'local');
   }

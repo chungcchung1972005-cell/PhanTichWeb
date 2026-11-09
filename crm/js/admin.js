@@ -2928,6 +2928,12 @@ document.addEventListener('DOMContentLoaded', () => {
           ${service ? `<span class="inbox-topic">Gói: ${escHtml(service)}</span>` : ''}
         </div>
         <div class="inbox-head-info">
+          ${canReply ? `
+            <button type="button" class="btn btn-sm btn-primary inbox-create-order-btn" data-phone="${escHtml(chat.phone)}" data-name="${escHtml(chat.customerName || '')}" data-service="${escHtml(service || '')}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3"/></svg>
+              Tạo đơn &amp; Gửi cọc QR
+            </button>
+          ` : ''}
           <span class="inbox-sale-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
               <circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
@@ -2959,6 +2965,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         }
         const isSale = m.from === 'sale';
+        const orderData = m.orderData || (window.AlohaOrderQRModal && AlohaOrderQRModal.parseOrderData(m.text));
+        if (orderData && window.AlohaOrderQRModal) {
+          return `
+            <div class="inbox-msg ${isSale ? 'from-sale' : 'from-khach'}">
+              <span class="inbox-msg-name">${escHtml(isSale ? (m.senderName || saleLabel || 'Sale') : (chat.customerName || 'Khách'))}</span>
+              ${AlohaOrderQRModal.renderOrderCardHtml(orderData, { isSale: true })}
+              ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}
+            </div>`;
+        }
         return `
           <div class="inbox-msg ${isSale ? 'from-sale' : 'from-khach'}">
             <span class="inbox-msg-name">${escHtml(isSale ? (m.senderName || saleLabel || 'Sale') : (chat.customerName || 'Khách'))}</span>
@@ -3109,9 +3124,40 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Nút Xem hồ sơ CRM
+    // Nút Xem hồ sơ CRM & Tạo đơn QR
     if (inboxHead) {
       inboxHead.addEventListener('click', e => {
+        const orderBtn = e.target.closest('.inbox-create-order-btn');
+        if (orderBtn && window.AlohaOrderQRModal) {
+          const chat = activeChat;
+          if (!chat) return;
+          const custPool = (saleDb && saleDb.customers && saleDb.customers.length) ? saleDb.customers : DEMO_INBOX_CUSTOMERS;
+          const cObj = custPool.find(x => x.phone === chat.phone || x.id === chat.customerId) || null;
+          window.AlohaOrderQRModal.open({
+            customerId: (cObj && cObj.id) || chat.customerId || ('KH-' + chat.phone),
+            customerName: chat.customerName || (cObj && cObj.name) || '',
+            phone: chat.phone || '',
+            babyName: (cObj && cObj.baby && cObj.baby.name) || '',
+            babyAge: (cObj && cObj.baby && cObj.baby.date ? cObj.baby.date : ''),
+            service: (cObj && cObj.service) || chat.service || 'Newborn',
+            onCreated: (orderData) => {
+              if (activeChat) {
+                if (!activeChat.messages) activeChat.messages = [];
+                activeChat.messages.push({
+                  id: 'msg-' + Date.now(),
+                  from: 'sale',
+                  senderName: (session && session.name) || 'Sale',
+                  text: orderData.cardText,
+                  orderData: orderData,
+                  at: chatTime(Date.now())
+                });
+                renderThread(true);
+              }
+            }
+          });
+          return;
+        }
+
         const link = e.target.closest('.inbox-crm-link');
         if (!link) return;
         const phone = link.dataset.searchPhone;
@@ -3171,6 +3217,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshInbox(false); });
     setInterval(() => { if (document.visibilityState === 'visible') refreshInbox(false); }, 5000);
+    window.addEventListener('aloha:deposit-confirmed', () => { if (activePhone) renderThread(false); });
+    window.addEventListener('aloha:order-created', () => { if (activePhone) renderThread(false); });
     renderAll(true);
     refreshInbox(false);
   }
