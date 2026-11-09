@@ -43,11 +43,11 @@ const SEPAY_WEBHOOK_KEY = process.env.SEPAY_WEBHOOK_KEY;
 // sẵn. Đây là giá/gói MINH HOẠ, chưa phải bảng giá chính thức đã duyệt — xem
 // .claude/rules/tech-defaults.md mục "Cấu hình chưa xác định".
 const SERVICE_INFO = {
-  'Bé lớn': { concepts: 'Ngoại cảnh công viên, biển; Phong cách Hàn Quốc (hanbok); Vintage cổ điển; Áo dài truyền thống; Hoá thân nghề nghiệp (cảnh sát, lính cứu hoả...); Mùa thu lá vàng; Năng động, thể thao', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
-  'Sinh nhật': { concepts: 'Rực rỡ bóng bay; Giáng sinh (Noel); Pastel nhẹ nhàng (đập bánh kem); Trung thu, đèn lồng; Công chúa, hoàng tử; Tiệc cùng gia đình; Picnic ngoài trời', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
-  'Bầu': { concepts: 'Ngoại cảnh thiên nhiên; Vintage trong studio; Tối giản, tôn dáng; Cùng chồng; Cùng bé lớn; Vòng hoa; Biển', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
-  'Gia đình': { concepts: 'Đồng phục tông màu; Ngoại cảnh công viên; Vintage ấm áp; Biển; Nhiều thế hệ (ông bà, bố mẹ, các cháu); Anh chị em; Dã ngoại picnic', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
-  'Newborn': { concepts: 'Cuộn ủ (wrap) cổ điển; Tự nhiên (organic); Cùng bố mẹ, anh chị; Hoa lá; Hoá thân thú ngộ nghĩnh (mũ tai thỏ, tai gấu); Đen trắng tinh tế; Trăng sao cổ tích', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
+  'Bé lớn': { concepts: 'Basic concept; Hanbok Hàn Quốc; Summer Vibe; Tết; Chú ong nhỏ', note: 'phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ', price: 'từ 1.500.000đ' },
+  'Sinh nhật': { concepts: 'Dream Birthday; Birthday Girl; Happy Birthday theo mốc tuổi', note: 'có thể kết hợp bánh kem, backdrop theo yêu cầu', price: 'từ 1.800.000đ' },
+  'Bầu': { concepts: 'Biển mây; Khu vườn bí mật; Bầu tinh khôi; Mùa thu', note: 'nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần, tuỳ sức khoẻ mỗi mẹ', price: 'từ 2.000.000đ' },
+  'Gia đình': { concepts: 'Phú Quý sum vầy; Blue Family đồng phục; Merry Christmas; Home Sweet Home', note: 'không giới hạn số thành viên, chụp được nhiều thế hệ', price: 'từ 2.500.000đ' },
+  'Newborn': { concepts: 'Happy Dream ngọt ngào; Cam Cam Baby; Khu vườn thần bí; Cà chua; Ngựa Pony', note: 'nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi, studio giữ ấm phòng chụp phù hợp', price: 'từ 2.200.000đ' }
 };
 
 // Các đích điều hướng frontend hỗ trợ (khớp CHAT_ACTIONS trong js/script.js).

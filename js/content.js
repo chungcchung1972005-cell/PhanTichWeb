@@ -54,15 +54,17 @@
       blocks: [
         { type: 'video', src: VIDEO_NOEL.video, poster: VIDEO_NOEL.poster, caption: 'Hậu trường một buổi chụp concept Noel cho bé.' },
         { type: 'heading', text: 'Một buổi chụp diễn ra thế nào?' },
-        { type: 'steps', items: [
-          { title: 'Đón bé và làm quen', text: 'Ekip dành thời gian đầu buổi để bé quen với không gian, ánh đèn và những gương mặt mới. Bé thoải mái thì ảnh mới tự nhiên.' },
-          { title: 'Thay trang phục theo concept', text: 'Stylist chuẩn bị trang phục theo concept ba mẹ đã chọn, người lớn trong ảnh được makeup nhẹ nếu cần.' },
-          { title: 'Lên hình', text: 'Photographer chụp lần lượt từng bối cảnh. Trợ lý luôn ở cạnh bé, bé cần ăn, ngủ hay nghỉ thì cả ekip chờ bé.' },
-          { title: 'Chọn ảnh trên website', text: 'Sau buổi chụp, ảnh gốc được tải lên mục "Ảnh của tôi". Ba mẹ thả tim chọn ảnh và ghi chú chỉnh sửa ngay trên web.' },
-          { title: 'Nhận ảnh hoàn thiện', text: 'Theo dõi tiến độ chỉnh sửa (Chờ xử lý, Đang thực hiện, Hoàn thành) và nhận thông báo khi ảnh đã sửa xong.' }
-        ] },
+        {
+          type: 'steps', items: [
+            { title: 'Đón bé và làm quen', text: 'Ekip dành thời gian đầu buổi để bé quen với không gian, ánh đèn và những gương mặt mới. Bé thoải mái thì ảnh mới tự nhiên.' },
+            { title: 'Thay trang phục theo concept', text: 'Stylist chuẩn bị trang phục theo concept ba mẹ đã chọn, người lớn trong ảnh được makeup nhẹ nếu cần.' },
+            { title: 'Lên hình', text: 'Photographer chụp lần lượt từng bối cảnh. Trợ lý luôn ở cạnh bé, bé cần ăn, ngủ hay nghỉ thì cả ekip chờ bé.' },
+            { title: 'Chọn ảnh trên website', text: 'Sau buổi chụp, ảnh gốc được tải lên mục "Ảnh của tôi". Ba mẹ thả tim chọn ảnh và ghi chú chỉnh sửa ngay trên web.' },
+            { title: 'Nhận ảnh hoàn thiện', text: 'Theo dõi tiến độ chỉnh sửa (Chờ xử lý, Đang thực hiện, Hoàn thành) và nhận thông báo khi ảnh đã sửa xong.' }
+          ]
+        },
         { type: 'heading', text: 'Thêm vài khoảnh khắc' },
-        { type: 'gallery', items: [VIDEO_NEWBORN, VIDEO_BIRTHDAY], from: ['newborn/white-blossom', 'sinh-nhat/birthday-spotlight', 'gia-dinh/blue-family'], limit: 11 },
+        { type: 'gallery', items: [VIDEO_NEWBORN, VIDEO_BIRTHDAY], from: ['newborn/cam-cam-baby', 'sinh-nhat/dream-birthday', 'gia-dinh/blue-family'], limit: 11 },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['gioi-thieu-studio', 'chup-tai-nha', 'huong-dan-dat-lich']
@@ -77,12 +79,14 @@
       blocks: [
         { type: 'text', text: 'ALOHA Baby đồng hành cùng ba mẹ lưu lại những cột mốc đầu đời của con: từ những tháng mang bầu, những ngày đầu tiên của bé, các mốc sinh nhật cho tới khi con lớn và cả nhà cùng chụp chung một khung hình.' },
         { type: 'heading', text: 'Điều ba mẹ nhận được' },
-        { type: 'list', items: [
-          '<strong>Không gian rộng rãi</strong>, phòng chụp newborn giữ nhiệt độ ấm, an toàn cho bé.',
-          '<strong>Ekip quen làm việc với trẻ nhỏ</strong>: photographer và stylist kiên nhẫn chờ bé ăn, ngủ, chơi để có ảnh tự nhiên nhất.',
-          '<strong>Mọi thứ trên website</strong>: đặt lịch, chọn ảnh, gửi yêu cầu chỉnh sửa và theo dõi tiến độ trực tuyến.',
-          '<strong>Bảo mật hình ảnh của bé</strong>: ảnh chỉ xem được qua tài khoản của gia đình.'
-        ] },
+        {
+          type: 'list', items: [
+            '<strong>Không gian rộng rãi</strong>, phòng chụp newborn giữ nhiệt độ ấm, an toàn cho bé.',
+            '<strong>Ekip quen làm việc với trẻ nhỏ</strong>: photographer và stylist kiên nhẫn chờ bé ăn, ngủ, chơi để có ảnh tự nhiên nhất.',
+            '<strong>Mọi thứ trên website</strong>: đặt lịch, chọn ảnh, gửi yêu cầu chỉnh sửa và theo dõi tiến độ trực tuyến.',
+            '<strong>Bảo mật hình ảnh của bé</strong>: ảnh chỉ xem được qua tài khoản của gia đình.'
+          ]
+        },
         { type: 'heading', text: '5 dịch vụ đồng hành cùng con lớn khôn' },
         { type: 'albums', refs: ALL_SERVICES },
         { type: 'heading', text: 'Ghé thăm studio' },
@@ -99,19 +103,23 @@
       coverFrom: 'gia-dinh/simple-love',
       blocks: [
         { type: 'heading', text: 'Khi nào nên chọn chụp tại nhà?' },
-        { type: 'list', items: [
-          'Bé newborn còn quá nhỏ, ba mẹ chưa muốn đưa bé ra ngoài.',
-          'Mẹ vừa sinh, cần nghỉ ngơi và hạn chế di chuyển.',
-          'Gia đình có ông bà lớn tuổi, ngại đi lại.',
-          'Ba mẹ muốn lưu lại góc nhà, căn phòng của bé như một phần kỷ niệm.'
-        ] },
+        {
+          type: 'list', items: [
+            'Bé newborn còn quá nhỏ, ba mẹ chưa muốn đưa bé ra ngoài.',
+            'Mẹ vừa sinh, cần nghỉ ngơi và hạn chế di chuyển.',
+            'Gia đình có ông bà lớn tuổi, ngại đi lại.',
+            'Ba mẹ muốn lưu lại góc nhà, căn phòng của bé như một phần kỷ niệm.'
+          ]
+        },
         { type: 'heading', text: 'Nhà mình cần chuẩn bị gì?' },
-        { type: 'list', items: [
-          'Một góc phòng thoáng, gần cửa sổ có ánh sáng tự nhiên càng tốt.',
-          'Với bé newborn: giữ phòng ấm, không để quạt hay điều hoà thổi thẳng vào bé.',
-          'Cho bé ăn no, thay tã trước giờ ekip đến.',
-          'Để sẵn quần áo, đồ vật có ý nghĩa muốn đưa vào ảnh (gối, chăn, đồ chơi của bé...).'
-        ] },
+        {
+          type: 'list', items: [
+            'Một góc phòng thoáng, gần cửa sổ có ánh sáng tự nhiên càng tốt.',
+            'Với bé newborn: giữ phòng ấm, không để quạt hay điều hoà thổi thẳng vào bé.',
+            'Cho bé ăn no, thay tã trước giờ ekip đến.',
+            'Để sẵn quần áo, đồ vật có ý nghĩa muốn đưa vào ảnh (gối, chăn, đồ chơi của bé...).'
+          ]
+        },
         { type: 'text', text: 'Trang phục và đạo cụ theo concept: ba mẹ trao đổi trước với Sale để ekip chuẩn bị mang theo.' },
         { type: 'heading', text: 'Khung hình trong không gian nhà' },
         { type: 'gallery', from: ['gia-dinh/simple-love', 'gia-dinh/strawberry-garden', 'gia-dinh/phu-quy'], limit: 12 },
@@ -127,25 +135,29 @@
       eyebrow: 'Concept',
       title: 'Concept Biển',
       lead: 'Nắng, gió và sóng biển cho những bộ ảnh tươi sáng, phóng khoáng.',
-      coverFrom: 'bau/bien',
+      coverFrom: 'bau/bien-may',
       blocks: [
         { type: 'text', text: 'Concept biển hợp với ảnh bầu váy dài bay trong gió, cả nhà vui đùa trên bãi cát, hay bé lớn thích chạy nhảy ngoài trời.' },
         { type: 'heading', text: 'Hợp với ai?' },
-        { type: 'list', items: [
-          'Mẹ bầu thích ảnh váy dài nhẹ nhàng, nhiều ánh nắng.',
-          'Gia đình có bé đã tự đi được, thích nghịch cát, nghịch nước.',
-          'Ba mẹ thích ảnh ngoài trời, màu sắc tươi sáng, tự nhiên.'
-        ] },
+        {
+          type: 'list', items: [
+            'Mẹ bầu thích ảnh váy dài nhẹ nhàng, nhiều ánh nắng.',
+            'Gia đình có bé đã tự đi được, thích nghịch cát, nghịch nước.',
+            'Ba mẹ thích ảnh ngoài trời, màu sắc tươi sáng, tự nhiên.'
+          ]
+        },
         { type: 'heading', text: 'Gợi ý chuẩn bị' },
-        { type: 'list', items: [
-          'Trang phục màu sáng hoặc trắng, chất liệu nhẹ để bay trong gió.',
-          'Chụp sáng sớm hoặc chiều muộn để nắng dịu, bé không bị chói mắt.',
-          'Mang kem chống nắng, mũ, nước uống và quần áo thay cho bé.'
-        ] },
+        {
+          type: 'list', items: [
+            'Trang phục màu sáng hoặc trắng, chất liệu nhẹ để bay trong gió.',
+            'Chụp sáng sớm hoặc chiều muộn để nắng dịu, bé không bị chói mắt.',
+            'Mang kem chống nắng, mũ, nước uống và quần áo thay cho bé.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['bau/bien', 'bau/ngoai-canh'], limit: 12 },
+        { type: 'gallery', from: ['bau/bien-may', 'be-lon/summer-vibe', 'be-lon/summer-vibe-2'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['bau/bien', 'bau/ngoai-canh'] },
+        { type: 'albums', refs: ['bau/bien-may', 'be-lon/summer-vibe'] },
         { type: 'note', text: 'Buổi chụp ngoại cảnh biển cần sắp xếp lịch trình và di chuyển riêng. Địa điểm, thời gian và chi phí phát sinh: Sale tư vấn theo từng gia đình. ' + NOTE_STOCK }
       ],
       related: ['concept-vintage', 'concept-han-quoc', 'concept-sinh-nhat']
@@ -160,20 +172,24 @@
       blocks: [
         { type: 'video', src: VIDEO_NOEL.video, poster: VIDEO_NOEL.poster, caption: 'Hậu trường chụp concept Noel cho bé.' },
         { type: 'heading', text: 'Hợp với ai?' },
-        { type: 'list', items: [
-          'Bé đã ngồi vững cho tới bé lớn, diện đồ ông già Noel, tuần lộc, người tuyết.',
-          'Gia đình muốn có ảnh làm thiệp mừng Giáng sinh, năm mới gửi người thân.',
-          'Bé có sinh nhật vào cuối năm, muốn kết hợp cả hai dịp trong một buổi.'
-        ] },
+        {
+          type: 'list', items: [
+            'Bé đã ngồi vững cho tới bé lớn, diện đồ ông già Noel, tuần lộc, người tuyết.',
+            'Gia đình muốn có ảnh làm thiệp mừng Giáng sinh, năm mới gửi người thân.',
+            'Bé có sinh nhật vào cuối năm, muốn kết hợp cả hai dịp trong một buổi.'
+          ]
+        },
         { type: 'heading', text: 'Gợi ý chuẩn bị' },
-        { type: 'list', items: [
-          'Đỏ, trắng và xanh lá là bộ màu dễ phối nhất; cả nhà có thể mặc áo len cùng tông.',
-          'Mùa lễ cuối năm thường đông lịch, ba mẹ nên đặt lịch sớm để chọn được khung giờ đẹp.'
-        ] },
+        {
+          type: 'list', items: [
+            'Đỏ, trắng và xanh lá là bộ màu dễ phối nhất; cả nhà có thể mặc áo len cùng tông.',
+            'Mùa lễ cuối năm thường đông lịch, ba mẹ nên đặt lịch sớm để chọn được khung giờ đẹp.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['gia-dinh/merry-christmas'], limit: 12 },
+        { type: 'gallery', from: ['gia-dinh/merry-christmas', 'be-lon/marry-christmas', 'newborn/merry-christmas-1'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['gia-dinh/merry-christmas'] },
+        { type: 'albums', refs: ['gia-dinh/merry-christmas', 'be-lon/marry-christmas', 'newborn/merry-christmas-1'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-sinh-nhat', 'mot-ngay-tai-aloha', 'concept-vintage']
@@ -184,20 +200,22 @@
       eyebrow: 'Concept',
       title: 'Concept Sinh nhật',
       lead: 'Bóng bay, bánh kem và nụ cười của bé trong ngày đặc biệt.',
-      coverFrom: 'sinh-nhat/happy-donut',
+      coverFrom: 'sinh-nhat/dream-birthday',
       blocks: [
         { type: 'text', text: 'Mỗi mốc tuổi của bé, từ thôi nôi, 1 tuổi, 2 tuổi trở đi, đều đáng được lưu lại. Studio có nhiều concept sinh nhật để ba mẹ chọn theo tính cách của bé: rực rỡ, nhẹ nhàng, cổ tích hay ngoài trời.' },
         { type: 'video', src: VIDEO_BIRTHDAY.video, poster: VIDEO_BIRTHDAY.poster, caption: 'Cả nhà mừng sinh nhật bé.' },
         { type: 'heading', text: 'Chọn concept nào?' },
-        { type: 'albums', refs: ['sinh-nhat/birthday-spotlight', 'sinh-nhat/nang-bach-tuyet', 'sinh-nhat/summer-picnic', 'sinh-nhat/nha-minh-co-hoa', 'sinh-nhat/sinh-nhat-song-sinh', 'sinh-nhat/baby-prince', 'sinh-nhat/cozy-sky', 'sinh-nhat/angel-baby', 'sinh-nhat/happy-donut', 'sinh-nhat/sweet-birthday'] },
+        { type: 'albums', refs: ['sinh-nhat/dream-birthday', 'sinh-nhat/birthday-girl', 'sinh-nhat/happy-birthday', 'sinh-nhat/happy-birthday-2', 'sinh-nhat/happy-birthday-3', 'sinh-nhat/happy-birthday-4', 'sinh-nhat/happy-birthday-5', 'sinh-nhat/happy-birthday-6'] },
         { type: 'heading', text: 'Gợi ý chuẩn bị' },
-        { type: 'list', items: [
-          'Cho bé ăn và ngủ trưa đủ trước buổi chụp, bé vui thì ảnh mới tươi.',
-          'Nếu muốn chụp cảnh bé "phá bánh" (cake smash), mang thêm một bộ đồ để thay.',
-          'Mang theo món đồ chơi bé thích để dỗ bé cười.'
-        ] },
+        {
+          type: 'list', items: [
+            'Cho bé ăn và ngủ trưa đủ trước buổi chụp, bé vui thì ảnh mới tươi.',
+            'Nếu muốn chụp cảnh bé "phá bánh" (cake smash), mang thêm một bộ đồ để thay.',
+            'Mang theo món đồ chơi bé thích để dỗ bé cười.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['sinh-nhat/happy-donut', 'sinh-nhat/angel-baby', 'sinh-nhat/nang-bach-tuyet', 'sinh-nhat/summer-picnic'], limit: 12 },
+        { type: 'gallery', from: ['sinh-nhat/dream-birthday', 'sinh-nhat/birthday-girl', 'sinh-nhat/happy-birthday', 'sinh-nhat/happy-birthday-2'], limit: 12 },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-noel', 'concept-han-quoc', 'huong-dan-dat-lich']
@@ -208,24 +226,28 @@
       eyebrow: 'Concept',
       title: 'Concept Vintage',
       lead: 'Tông màu trầm ấm, cổ điển, những bức ảnh xem lại sau nhiều năm vẫn đẹp.',
-      coverFrom: 'bau/vintage',
+      coverFrom: 'gia-dinh/phu-quy',
       blocks: [
         { type: 'text', text: 'Vintage không chạy theo trào lưu nên rất "bền": ảnh đen trắng, sepia hay tông nâu ấm đều giữ được cảm xúc khi xem lại sau nhiều năm. Concept này dùng được cho hầu hết các dịch vụ.' },
         { type: 'heading', text: 'Hợp với ai?' },
-        { type: 'list', items: [
-          'Mẹ bầu thích váy dài, phông trơn, bố cục nhẹ nhàng.',
-          'Ba mẹ muốn ảnh newborn đen trắng tập trung vào bàn tay, bàn chân bé.',
-          'Gia đình muốn một bức ảnh chung treo phòng khách, trang trọng mà ấm áp.'
-        ] },
+        {
+          type: 'list', items: [
+            'Mẹ bầu thích váy dài, phông trơn, bố cục nhẹ nhàng.',
+            'Ba mẹ muốn ảnh newborn đen trắng tập trung vào bàn tay, bàn chân bé.',
+            'Gia đình muốn một bức ảnh chung treo phòng khách, trang trọng mà ấm áp.'
+          ]
+        },
         { type: 'heading', text: 'Gợi ý chuẩn bị' },
-        { type: 'list', items: [
-          'Trang phục trơn màu, tông kem, nâu, be hoặc trắng; tránh hoạ tiết to và chữ in.',
-          'Phụ kiện đơn giản: mũ cói, nơ, dây đeo quần cho bé trai.'
-        ] },
+        {
+          type: 'list', items: [
+            'Trang phục trơn màu, tông kem, nâu, be hoặc trắng; tránh hoạ tiết to và chữ in.',
+            'Phụ kiện đơn giản: mũ cói, nơ, dây đeo quần cho bé trai.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['bau/vintage', 'gia-dinh/xuan-kim-phuc', 'newborn/baby-cowboy'], limit: 12 },
+        { type: 'gallery', from: ['gia-dinh/phu-quy', 'gia-dinh/xuan-kim-phuc', 'be-lon/basic-concept-3'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['bau/vintage', 'gia-dinh/xuan-kim-phuc', 'newborn/baby-cowboy'] },
+        { type: 'albums', refs: ['gia-dinh/phu-quy', 'gia-dinh/xuan-kim-phuc', 'be-lon/basic-concept-3'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-han-quoc', 'concept-bien', 'gioi-thieu-studio']
@@ -236,19 +258,21 @@
       eyebrow: 'Concept',
       title: 'Concept Hàn Quốc',
       lead: 'Trang phục và bối cảnh phong cách Hàn, tông màu nhẹ, bố cục tối giản.',
-      coverFrom: 'be-lon/korea-princess',
+      coverFrom: 'be-lon/hanbok-baby',
       blocks: [
         { type: 'text', text: 'Phong cách Hàn Quốc chuộng ảnh sáng, trong trẻo, ít đạo cụ, để nụ cười và nét mặt của bé là điểm nhấn. Bé có thể mặc hanbok truyền thống hoặc trang phục hiện đại phong cách Hàn.' },
         { type: 'heading', text: 'Hợp với ai?' },
-        { type: 'list', items: [
-          'Bé từ khi biết đứng, biết đi trở lên, mặc hanbok hoặc đồ phong cách Hàn.',
-          'Mẹ bầu thích bố cục tối giản, tôn dáng.',
-          'Gia đình thích ảnh sáng màu, phối đồ đồng điệu.'
-        ] },
+        {
+          type: 'list', items: [
+            'Bé từ khi biết đứng, biết đi trở lên, mặc hanbok hoặc đồ phong cách Hàn.',
+            'Mẹ bầu thích bố cục tối giản, tôn dáng.',
+            'Gia đình thích ảnh sáng màu, phối đồ đồng điệu.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh tham khảo' },
-        { type: 'gallery', from: ['be-lon/korea-princess', 'bau/toi-gian', 'gia-dinh/blue-family'], limit: 12 },
+        { type: 'gallery', from: ['be-lon/hanbok-baby', 'gia-dinh/blue-family'], limit: 12 },
         { type: 'heading', text: 'Xem trọn album' },
-        { type: 'albums', refs: ['be-lon/korea-princess', 'bau/toi-gian', 'gia-dinh/blue-family'] },
+        { type: 'albums', refs: ['be-lon/hanbok-baby', 'gia-dinh/blue-family'] },
         { type: 'note', text: NOTE_STOCK }
       ],
       related: ['concept-vintage', 'concept-sinh-nhat', 'concept-bien']
@@ -270,16 +294,18 @@
         { type: 'heading', text: 'Nên đặt lịch từ khi nào?' },
         { type: 'text', text: 'Vì khó biết trước ngày sinh chính xác, ba mẹ có thể đặt lịch từ khi còn mang bầu và điền ngày dự sinh ở bước nhập thông tin bé. Nếu bé chào đời sớm hoặc muộn hơn dự kiến, ba mẹ liên hệ Sale để được hướng dẫn đổi lịch theo chính sách hiện hành của studio.' },
         { type: 'heading', text: 'Chuẩn bị cho buổi chụp' },
-        { type: 'list', items: [
-          'Cho bé bú no ngay trước buổi chụp, bé no sẽ ngủ ngon và sâu hơn.',
-          'Mặc cho bé đồ cài cúc phía trước, dễ cởi, tránh đồ chui đầu làm bé thức giấc.',
-          'Mang theo tã, khăn, bình sữa và đồ bé quen dùng.',
-          'Mẹ nên nghỉ ngơi đủ; buổi chụp newborn thường không vội vì cần chờ bé ăn, ngủ.'
-        ] },
+        {
+          type: 'list', items: [
+            'Cho bé bú no ngay trước buổi chụp, bé no sẽ ngủ ngon và sâu hơn.',
+            'Mặc cho bé đồ cài cúc phía trước, dễ cởi, tránh đồ chui đầu làm bé thức giấc.',
+            'Mang theo tã, khăn, bình sữa và đồ bé quen dùng.',
+            'Mẹ nên nghỉ ngơi đủ; buổi chụp newborn thường không vội vì cần chờ bé ăn, ngủ.'
+          ]
+        },
         { type: 'heading', text: 'An toàn của bé là trên hết' },
         { type: 'text', text: 'Phòng chụp newborn tại ALOHA Baby được giữ ấm để bé không bị lạnh khi cởi đồ. Ekip không ép bé vào tư thế khó; những tư thế trông "mạo hiểm" như chống cằm luôn cần người đỡ tay và được ghép ảnh ở khâu hậu kỳ, không để bé tự giữ tư thế.' },
         { type: 'heading', text: 'Concept newborn tham khảo' },
-        { type: 'albums', refs: ['newborn/white-blossom', 'newborn/baby-butterfly', 'newborn/starry-dream', 'newborn/little-dimsum', 'newborn/tinker-bell', 'newborn/baby-unicorn'] },
+        { type: 'albums', refs: ['newborn/happy-dream-2', 'newborn/cam-cam-baby', 'newborn/concept-ngua-pony', 'newborn/khu-vuon-than-bi', 'newborn/coca-baby', 'newborn/hello-kitty'] },
         { type: 'note', text: 'Thông tin trong bài là kinh nghiệm tham khảo chung. Bé sinh non, nhẹ cân hoặc có vấn đề sức khỏe, ba mẹ nên hỏi ý kiến bác sĩ trước khi chụp và ghi rõ ở mục "Lưu ý sức khỏe" khi đặt lịch. ' + NOTE_STOCK }
       ],
       related: ['huong-dan-dat-lich', 'chup-tai-nha', 'vi-sao-chon-aloha']
@@ -295,19 +321,23 @@
         { type: 'heading', text: 'Trước khi đặt lịch' },
         { type: 'text', text: 'Ba mẹ cần có tài khoản để studio lưu thông tin bé và gửi ảnh sau buổi chụp; đăng ký chỉ cần số điện thoại. Chưa biết chọn concept nào? Xem trước <a href="#/dich-vu">album của từng dịch vụ</a> hoặc hỏi trợ lý tư vấn trong khung chat ở góc màn hình.' },
         { type: 'heading', text: 'Đặt lịch trong 3 bước' },
-        { type: 'steps', items: [
-          { title: 'Chọn dịch vụ', text: 'Chọn 1 trong 5 dịch vụ: Newborn, Bầu, Sinh nhật, Bé lớn, Gia đình.' },
-          { title: 'Chọn ngày và khung giờ', text: 'Khung giờ đã kín hiện mờ, ba mẹ chỉ chọn được khung còn trống.' },
-          { title: 'Nhập thông tin bé và xác nhận', text: 'Tên bé, ngày sinh hoặc ngày dự sinh, số người trong ảnh, số điện thoại, lưu ý sức khỏe (nếu có) và ghi chú thêm (vd concept mong muốn). Kiểm tra lại phần tóm tắt rồi xác nhận.' }
-        ] },
+        {
+          type: 'steps', items: [
+            { title: 'Chọn dịch vụ', text: 'Chọn 1 trong 5 dịch vụ: Newborn, Bầu, Sinh nhật, Bé lớn, Gia đình.' },
+            { title: 'Chọn ngày và khung giờ', text: 'Khung giờ đã kín hiện mờ, ba mẹ chỉ chọn được khung còn trống.' },
+            { title: 'Nhập thông tin bé và xác nhận', text: 'Tên bé, ngày sinh hoặc ngày dự sinh, số người trong ảnh, số điện thoại, lưu ý sức khỏe (nếu có) và ghi chú thêm (vd concept mong muốn). Kiểm tra lại phần tóm tắt rồi xác nhận.' }
+          ]
+        },
         { type: 'heading', text: 'Đặt cọc để giữ lịch' },
         { type: 'text', text: 'Sau khi xác nhận, lịch hẹn cần được đặt cọc để trở thành chính thức. Sale của studio sẽ liên hệ xác nhận lại thông tin và hướng dẫn đặt cọc. Mức cọc và thời gian giữ khung giờ áp dụng theo chính sách hiện hành, Sale sẽ báo rõ khi liên hệ.' },
         { type: 'heading', text: 'Sau buổi chụp' },
-        { type: 'steps', items: [
-          { title: 'Chọn ảnh', text: 'Vào "Ảnh của tôi", thả tim những ảnh yêu thích. Bộ đếm cho biết đã chọn bao nhiêu ảnh so với gói.' },
-          { title: 'Gửi yêu cầu chỉnh sửa', text: 'Ghi chú chung cho cả bộ hoặc riêng từng ảnh (làm sáng da, xoá vết đỏ...), rồi bấm gửi.' },
-          { title: 'Theo dõi và nhận ảnh', text: 'Yêu cầu đi qua các bước Chờ xử lý, Đang thực hiện, Hoàn thành; biểu tượng chuông trên thanh menu báo khi ảnh đã sửa xong.' }
-        ] }
+        {
+          type: 'steps', items: [
+            { title: 'Chọn ảnh', text: 'Vào "Ảnh của tôi", thả tim những ảnh yêu thích. Bộ đếm cho biết đã chọn bao nhiêu ảnh so với gói.' },
+            { title: 'Gửi yêu cầu chỉnh sửa', text: 'Ghi chú chung cho cả bộ hoặc riêng từng ảnh (làm sáng da, xoá vết đỏ...), rồi bấm gửi.' },
+            { title: 'Theo dõi và nhận ảnh', text: 'Yêu cầu đi qua các bước Chờ xử lý, Đang thực hiện, Hoàn thành; biểu tượng chuông trên thanh menu báo khi ảnh đã sửa xong.' }
+          ]
+        }
       ],
       related: ['newborn-thoi-diem', 'mot-ngay-tai-aloha', 'vi-sao-chon-aloha']
     },
@@ -325,12 +355,14 @@
         { type: 'heading', text: 'Không gian và ekip dành riêng cho trẻ nhỏ' },
         { type: 'text', text: 'Studio rộng rãi tại 35 Lê Văn Thiêm, Thanh Xuân, phòng chụp newborn giữ nhiệt độ ấm và an toàn cho bé. Photographer và stylist quen làm việc với trẻ nhỏ, kiên nhẫn chờ bé ăn, ngủ, chơi để có những bức ảnh tự nhiên nhất.' },
         { type: 'heading', text: 'Mọi thứ đều theo dõi được trên web' },
-        { type: 'list', items: [
-          'Đặt lịch online, chỉ chọn được khung giờ còn trống.',
-          'Chọn ảnh bằng cách thả tim, ghi chú chỉnh sửa cho từng ảnh.',
-          'Theo dõi tiến độ chỉnh sửa và nhận thông báo khi ảnh xong.',
-          'Trợ lý tư vấn trong khung chat trả lời về dịch vụ, concept bất cứ lúc nào.'
-        ] },
+        {
+          type: 'list', items: [
+            'Đặt lịch online, chỉ chọn được khung giờ còn trống.',
+            'Chọn ảnh bằng cách thả tim, ghi chú chỉnh sửa cho từng ảnh.',
+            'Theo dõi tiến độ chỉnh sửa và nhận thông báo khi ảnh xong.',
+            'Trợ lý tư vấn trong khung chat trả lời về dịch vụ, concept bất cứ lúc nào.'
+          ]
+        },
         { type: 'heading', text: 'Ảnh của bé được bảo mật' },
         { type: 'text', text: 'Ảnh của bé chỉ xem được khi đăng nhập bằng tài khoản của gia đình. Studio chỉ dùng ảnh cho mục đích giới thiệu khi ba mẹ đồng ý bằng văn bản.' },
         { type: 'text', text: 'Không tiện đến studio? ALOHA Baby có dịch vụ <a href="#/noi-dung/chup-tai-nha">chụp ảnh tại nhà</a>.' }

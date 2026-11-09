@@ -379,35 +379,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const SERVICE_INFO = {
       'Bé lớn': {
         img: 'images/services/be-lon.jpg',
-        concepts: ['Ngoại cảnh công viên, phố cổ', 'Phong cách Hàn Quốc tối giản', 'Vintage cổ điển trong studio'],
+        concepts: ['Basic concept', 'Phong cách Hàn Quốc (Hanbok)', 'Ngoại cảnh Summer Vibe'],
         note: 'Phù hợp bé khoảng 2-10 tuổi, có thể chụp thêm cùng bố mẹ trong buổi.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 1.500.000đ'
       },
       'Sinh nhật': {
         img: 'images/services/sinh-nhat.jpg',
-        concepts: ['Sinh nhật rực rỡ, nhiều bóng bay', 'Theo mùa/lễ hội (Noel, Trung thu...)', 'Tông pastel nhẹ nhàng'],
+        concepts: ['Dream Birthday', 'Birthday Girl rực rỡ', 'Sinh nhật theo tuổi'],
         note: 'Có thể kết hợp bánh kem, backdrop theo yêu cầu, phù hợp mốc thôi nôi/sinh nhật.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 1.800.000đ'
       },
       'Bầu': {
         img: 'images/services/bau.jpg',
-        concepts: ['Vintage nhẹ nhàng trong studio', 'Ngoại cảnh thiên nhiên', 'Tối giản, tôn dáng mẹ bầu'],
+        concepts: ['Biển mây nhẹ nhàng', 'Khu vườn bí mật', 'Bầu tinh khôi'],
         note: 'Nhiều mẹ chọn chụp khi thai khoảng 32-36 tuần để dáng bụng tròn đẹp mà vẫn thoải mái di chuyển, mình gợi ý chung vậy thôi nhé, còn tuỳ sức khoẻ mỗi mẹ.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.000.000đ'
       },
       'Gia đình': {
         img: 'images/services/gia-dinh.jpg',
-        concepts: ['Ngoại cảnh công viên, biển', 'Vintage ấm áp trong studio', 'Đồng phục tông màu theo gia đình'],
+        concepts: ['Phú Quý sum vầy', 'Blue Family đồng phục', 'Merry Christmas ấm áp'],
         note: 'Không giới hạn số thành viên trong ảnh, có thể chụp nhiều thế hệ trong cùng buổi.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.500.000đ'
       },
       'Newborn': {
         img: 'images/services/newborn.jpg',
-        concepts: ['Newborn tự nhiên (organic) tại studio', 'Cuộn ủ (wrap) cổ điển', 'Có bố mẹ/anh chị cùng khung hình'],
+        concepts: ['Happy Dream ngọt ngào', 'Cam Cam Baby đáng yêu', 'Khu vườn thần bí'],
         note: 'Nhiều gia đình chọn chụp khi bé khoảng 5-14 ngày tuổi vì bé ngủ sâu, dễ tạo dáng hơn. Studio giữ ấm phòng chụp phù hợp cho bé.',
         packageNote: 'Gói tham khảo khoảng 15 ảnh gốc được chỉnh sửa, chọn thêm ngoài gói sẽ tính phí theo ảnh.',
         price: 'từ 2.200.000đ'
@@ -1180,17 +1180,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // từ khoá dùng chung nhiều dịch vụ (biển, vintage...) thì ưu tiên dịch vụ khách
       // đang nhắc trong câu, không thì lấy dịch vụ đầu tiên.
       const CONCEPT_KEYWORDS = [
-        [/trung thu|den long/, { 'sinh-nhat': 'trung-thu' }],
-        [/noel|giang sinh/, { 'sinh-nhat': 'le-hoi' }],
+        [/trung thu|den long/, { 'be-lon': 'trung-thu', newborn: 'concept-trung-thu' }],
+        [/noel|giang sinh/, { 'gia-dinh': 'merry-christmas', 'be-lon': 'marry-christmas', newborn: 'merry-christmas-1' }],
         [/cong chua|hoang tu|vuong mien/, { 'sinh-nhat': 'cong-chua' }],
         [/pastel|dap banh|cake smash/, { 'sinh-nhat': 'pastel' }],
         [/bong bay/, { 'sinh-nhat': 'bong-bay' }],
         [/bua tiec|tiec sinh nhat|tiec cung|thoi nen/, { 'sinh-nhat': 'tiec-gia-dinh' }],
         [/picnic|da ngoai/, { 'sinh-nhat': 'picnic', 'gia-dinh': 'da-ngoai' }],
         [/ao dai/, { 'be-lon': 'ao-dai' }],
-        [/han quoc|hanbok/, { 'be-lon': 'han-quoc' }],
+        [/han quoc|hanbok/, { 'be-lon': 'hanbok-baby' }],
         [/nghe nghiep|canh sat|cuu hoa|bac si|phi cong/, { 'be-lon': 'nghe-nghiep' }],
-        [/mua thu|la vang/, { 'be-lon': 'mua-thu' }],
+        [/mua thu|la vang/, { 'be-lon': 'concept-mua-thu', bau: 'mua-thu-1' }],
         [/the thao|bong ro|bong da|tennis/, { 'be-lon': 'the-thao' }],
         [/trang sao|mat trang|vang trang|ngoi sao/, { newborn: 'trang-sao' }],
         [/tai tho|tai gau|thu ngo nghinh|hoa than thu|con thu/, { newborn: 'thu-ngo-nghinh' }],
@@ -1205,8 +1205,8 @@ document.addEventListener('DOMContentLoaded', () => {
         [/toi gian/, { bau: 'toi-gian' }],
         [/den trang/, { newborn: 'den-trang', 'be-lon': 'vintage' }],
         [/\bbien\b/, { 'gia-dinh': 'bien', bau: 'bien', 'be-lon': 'ngoai-canh' }],
-        [/vintage|co dien/, { 'be-lon': 'vintage', bau: 'vintage', 'gia-dinh': 'vintage' }],
-        [/ngoai canh|cong vien|ngoai troi/, { 'be-lon': 'ngoai-canh', bau: 'ngoai-canh', 'gia-dinh': 'ngoai-canh' }]
+        [/vintage|co dien/, { 'gia-dinh': 'phu-quy', 'be-lon': 'basic-concept-3' }],
+        [/ngoai canh|cong vien|ngoai troi/, { 'be-lon': 'summer-vibe', 'gia-dinh': 'summer-picnic' }]
       ];
       const detectConcept = (raw) => {
         const t = stripDiacritics(raw);
