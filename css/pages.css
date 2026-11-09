@@ -1863,3 +1863,116 @@ body.ps-cart-open .fab-chat { bottom:calc(var(--ps-cart-height) + 16px); }
 #psEditOptions .ps-edit-group-toggle{display:none}
 #psEditOptions .ps-edit-group-label{display:block;flex-basis:100%;font-size:12px;font-weight:600;color:#8a6a76}
 #psEditOptions .ps-edit-group-items{display:flex;order:0;flex-basis:auto;padding:0;background:none}
+
+/* Nút Tư vấn concept trên thẻ concept (Newborn & Bé lớn) */
+.concept-album-consult {
+  position: absolute; top: 14px; right: 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--pink-600);
+  font-family: var(--font-heading);
+  font-size: 13px; font-weight: 700;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(20, 15, 25, 0.18);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 2;
+  line-height: 1.2;
+}
+.concept-album-consult svg {
+  width: 13px; height: 13px;
+  transition: transform 0.25s ease;
+}
+.concept-album-consult:hover {
+  background: var(--pink-600);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(230, 57, 98, 0.35);
+}
+.concept-album-consult:hover svg {
+  transform: translateX(3px);
+}
+.gallery-consult-top {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; color: var(--pink-600); border-color: var(--pink-300);
+  font-weight: 700;
+}
+.gallery-consult-top:hover {
+  background: var(--pink-600); color: #fff; border-color: var(--pink-600);
+}
+
+/* Giao diện Tư vấn Concept trong Chatbot */
+.chat-consult-options {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px;
+}
+.chat-consult-btn {
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pink-300);
+  background: #fff; color: var(--navy-800);
+  font-family: inherit; font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+.chat-consult-btn:hover {
+  background: var(--pink-50);
+  border-color: var(--pink-600);
+  color: var(--pink-600);
+  transform: translateY(-1px);
+}
+.chat-consult-list {
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 12px 0; max-height: 380px; overflow-y: auto;
+  padding-right: 4px;
+}
+.chat-consult-count {
+  font-size: 12px; font-weight: 600; color: var(--pink-600);
+  padding: 4px 8px; background: rgba(230, 57, 98, 0.08);
+  border-radius: 6px; text-align: center; margin-bottom: 4px;
+}
+.chat-concept-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 12px;
+  background: #fff; border: 1.5px solid #eee;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.chat-concept-card:hover {
+  border-color: var(--pink-400); background: #fff5f8;
+  transform: translateX(2px);
+}
+.chat-concept-card.active {
+  border-color: var(--pink-600); background: #fff0f5;
+  box-shadow: 0 2px 10px rgba(230, 57, 98, 0.15);
+}
+.chat-concept-img {
+  width: 50px; height: 50px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+  background: var(--pink-100);
+}
+.chat-concept-img img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.chat-concept-info {
+  flex: 1; min-width: 0;
+}
+.chat-concept-title {
+  font-size: 13.5px; font-weight: 700; color: var(--navy-900);
+  margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-concept-meta {
+  font-size: 11.5px; color: var(--navy-500);
+}
+.btn-chat-view-concept {
+  padding: 5px 9px; border-radius: 6px;
+  border: 1px solid var(--pink-300); background: #fff;
+  color: var(--pink-600); font-size: 11.5px; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn-chat-view-concept:hover {
+  background: var(--pink-600); color: #fff; border-color: var(--pink-600);
+}
+@media (max-width: 600px) {
+  .concept-album-consult { font-size: 12px; padding: 6px 10px; top: 10px; right: 10px; }
+}

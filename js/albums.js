@@ -1096,9 +1096,16 @@
       $('gallerySwitch').setAttribute('aria-label', 'Dịch vụ đang xem');
       $('gallerySwitch').innerHTML = chips([service], service.slug, (s) => '#/album/' + s.slug);
       revealActiveChip();
+      const isConsultable = (service.slug === 'newborn' || service.slug === 'be-lon');
       $('galleryConcepts').innerHTML = concepts.length
         ? concepts.map((c) => {
           const cover = photoOf(c.name, c.photos[0], 0);
+          const consultBtn = isConsultable
+            ? `<button type="button" class="concept-album-consult" data-service="${service.slug}" data-concept="${c.slug}" data-name="${c.name}" title="Tư vấn concept ${c.name}">
+                <span>Tư vấn concept</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>`
+            : `<span class="concept-album-arrow">${ARROW}</span>`;
           return `<a href="${serviceHref}/${c.slug}" class="concept-album">
             <img src="${cover.src}" alt="${cover.alt}" loading="lazy">
             <span class="concept-album-body">
@@ -1106,7 +1113,7 @@
               <span class="concept-album-desc">${c.desc}</span>
               <span class="concept-album-count">${c.photos.length} ảnh</span>
             </span>
-            <span class="concept-album-arrow">${ARROW}</span>
+            ${consultBtn}
           </a>`;
         }).join('')
         : '<p class="gallery-empty">Album đang được cập nhật ảnh, bạn quay lại sau nhé.</p>';
@@ -1122,6 +1129,19 @@
     $('gallerySwitch').setAttribute('aria-label', 'Các concept khác của ' + service.name);
     $('gallerySwitch').innerHTML = chips(concepts, concept.slug, (c) => serviceHref + '/' + c.slug);
     revealActiveChip();
+
+    const consultTopBtn = $('galleryConsultTop');
+    if (consultTopBtn) {
+      const isConsultable = (service.slug === 'newborn' || service.slug === 'be-lon');
+      consultTopBtn.hidden = !isConsultable;
+      if (isConsultable) {
+        consultTopBtn.onclick = () => {
+          if (window.AlohaConceptConsult) {
+            window.AlohaConceptConsult.start(service.slug, concept.slug, concept.name);
+          }
+        };
+      }
+    }
 
     const grid = $('galleryGrid');
     grid.innerHTML = '';
@@ -1241,6 +1261,20 @@
       if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
     });
   }
+
+  // Bấm nút "Tư vấn concept" trên thẻ album (Newborn & Bé lớn)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.concept-album-consult');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const serviceSlug = btn.dataset.service;
+    const conceptSlug = btn.dataset.concept;
+    const conceptName = btn.dataset.name;
+    if (window.AlohaConceptConsult) {
+      window.AlohaConceptConsult.start(serviceSlug, conceptSlug, conceptName);
+    }
+  });
 
   // "newborn/cuon-u" -> thông tin + ảnh của concept đó; "newborn" -> thông tin dịch vụ.
   // js/content.js dùng hàm này để trang nội dung lấy ảnh thẳng từ album, không
