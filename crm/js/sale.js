@@ -525,6 +525,7 @@
         '<button type="button" class="sw-icon-btn ib-back" data-act="inbox-back" aria-label="Quay lại danh sách">' + icon('back') + '</button>' +
         '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + (v.live && !v.owner ? ' · chưa có sale nhận' : '') + '</small></div>' +
         '<div class="ib-chat-actions">' +
+          (own ? '<button type="button" class="sw-btn sw-btn-accent ib-create-order-btn" data-act="ib-create-order" data-id="' + c.id + '" data-conv="' + v.id + '" title="Tạo đơn chụp & Gửi cọc QR">' + icon('qr') + 'Tạo đơn &amp; Gửi cọc QR</button>' : '') +
           (own ? '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' : '') +
           (isMine(v) ? '<button type="button" class="sw-btn" data-act="transfer" data-id="' + c.id + '">Chuyển người khác</button>' : '') +
           '<button type="button" class="sw-icon-btn sw-card-btn ib-info-btn' + (ui.inbox.info ? ' on' : '') + '" data-act="ib-info" data-id="' + c.id + '" title="Hồ sơ khách" aria-label="Hồ sơ khách" aria-pressed="' + ui.inbox.info + '">' + icon('menu') + '</button>' +
@@ -532,7 +533,15 @@
       '</header>' +
       '<div class="ib-msgs" id="ibMsgs">' +
         (v.bot && v.botSummary ? '<div class="ib-bot">' + icon('bot') + '<div><strong>Trợ lý ALOHA đã hỏi sẵn và chuyển cho bạn</strong><span>' + esc(v.botSummary) + '</span></div></div>' : '') +
-        v.messages.map(m => '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>').join('') +
+        v.messages.map(m => {
+          const orderData = m.orderData || (window.AlohaOrderQRModal && AlohaOrderQRModal.parseOrderData(m.text));
+          if (orderData && window.AlohaOrderQRModal) {
+            return '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '">' +
+              AlohaOrderQRModal.renderOrderCardHtml(orderData, { isSale: true }) +
+              '<small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>';
+          }
+          return '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '"><p>' + esc(m.text) + '</p><small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>';
+        }).join('') +
       '</div>' +
       (own ? '<div class="ib-compose">' +
         '<form class="ib-form" data-form="send-msg" data-id="' + v.id + '">' +
@@ -1738,6 +1747,38 @@
       case 'task-filter': ui.taskFilter = id; return render();
       case 'focus-search': return document.getElementById('swSearch').focus();
       case 'call': return showCall(id, key);
+      case 'ib-create-order': {
+        const c = customer(id);
+        const convId = el.dataset.conv || ui.inbox.active;
+        const v = db.conversations.find(x => x.id === convId);
+        if (window.AlohaOrderQRModal) {
+          window.AlohaOrderQRModal.open({
+            customerId: c ? c.id : ('KH-' + ((c && c.phone) || (v && v.phone) || '')),
+            customerName: c ? c.name : (v ? v.customerName : ''),
+            phone: (c && c.phone) || (v && v.phone) || '',
+            babyName: (c && c.baby && c.baby.name) || '',
+            babyAge: (c && c.baby && c.baby.date ? ageText(c.baby.date) : ''),
+            service: (c && c.service) || 'Newborn',
+            pkg: (c && c.pkg) || 'Tiêu chuẩn',
+            concept: (c && c.concept) || '',
+            onCreated: (orderData) => {
+              if (v) {
+                if (!v.messages) v.messages = [];
+                v.messages.push({
+                  from: 'sale',
+                  text: orderData.cardText,
+                  orderData: orderData,
+                  time: 'Vừa xong',
+                  by: me.name
+                });
+                render();
+              }
+              toast('Đã tạo đơn #' + orderData.code + ' và gửi mã VietQR vào chat!');
+            }
+          });
+        }
+        return;
+      }
       case 'mark-called': {
         const c = myCustomer(id);
         if (key) ui.done[key] = true; else if (c && c.task) ui.done['cus:' + c.id] = true;
@@ -2258,6 +2299,14 @@
   setInterval(() => { if (document.visibilityState === 'visible') liveRefresh(); }, 3000);
   setInterval(() => { if (document.visibilityState !== 'visible') liveRefresh(); }, 20000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') liveRefresh(); });
+
+  window.addEventListener('aloha:deposit-confirmed', (e) => {
+    const detail = e.detail;
+    if (!detail) return;
+    toast('🎉 Đơn #' + detail.code + ' đã được xác nhận tiền cọc!');
+    render();
+  });
+  window.addEventListener('aloha:order-created', () => { render(); });
 
   render();
   liveRefresh();

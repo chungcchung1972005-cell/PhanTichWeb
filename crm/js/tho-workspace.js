@@ -212,6 +212,21 @@
       if (r.ok) { albums = r.data.albums || []; const c = customers().find((x) => x.key === openKey); if (c && tab === 'goc' && !gocPane.querySelector('.drive-upload-list:not(:empty)')) renderOriginals(c); }
     }
     window.addEventListener('aloha:workflow', (e) => { orders = (e.detail && e.detail.orders) || orders; renderList(); });
+    window.addEventListener('aloha:deposit-confirmed', (e) => {
+      const detail = e.detail;
+      if (window.AlohaWorkflow) {
+        const wf = AlohaWorkflow.get();
+        if (wf && wf.orders) { orders = wf.orders; renderList(); }
+      }
+      const session = window.AlohaAuth && AlohaAuth.getSession();
+      if (session && session.role === 'tho-anh' && detail) {
+        const noticeEl = document.createElement('div');
+        noticeEl.className = 'tho-deposit-toast';
+        noticeEl.innerHTML = `🔔 <strong>Lịch chụp mới:</strong> Đơn #${esc(detail.code)} đã cọc thành công!`;
+        document.body.appendChild(noticeEl);
+        setTimeout(() => { noticeEl.remove(); }, 5000);
+      }
+    });
     if (window.AlohaWorkflow) AlohaWorkflow.refresh().then((s) => { orders = s.orders || []; renderList(); }).catch(() => {});
     desk.subscribe({ onChange: renderList, onClose: () => { lastRendered = ''; renderList(); } });
     loadAlbums(); setInterval(loadAlbums, 30000);
