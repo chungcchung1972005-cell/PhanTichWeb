@@ -1060,6 +1060,8 @@
   }
 
   // param: "newborn" (tầng concept) hoặc "newborn/cuon-u" (tầng ảnh).
+  let activeConsultFilter = null;
+
   function render(param) {
     closeLightbox(true);
     const [serviceSlug, conceptSlug] = (param || '').split('/');
@@ -1086,19 +1088,68 @@
 
     if (!isPhotos) {
       current = null;
-      $('galleryCrumb').innerHTML = `<span>${service.name}</span>`;
-      $('galleryTitle').textContent = 'Album ' + service.name;
-      $('galleryDesc').textContent = service.desc;
-      $('galleryCount').textContent = `${concepts.length} concept · ${photoCount(service)} ảnh`;
+      let displayConcepts = concepts;
+      let isFiltered = false;
+
+      if (activeConsultFilter && activeConsultFilter.serviceSlug === service.slug && activeConsultFilter.concepts && activeConsultFilter.concepts.length) {
+        const validSlugs = new Set(activeConsultFilter.concepts.map((c) => c.slug));
+        const validNames = new Set(activeConsultFilter.concepts.map((c) => String(c.name || c.displayName || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
+        displayConcepts = concepts.filter((c) => validSlugs.has(c.slug) || validNames.has(String(c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
+        if (displayConcepts.length > 0) isFiltered = true;
+      }
+
+      const isBau = isFiltered && activeConsultFilter && activeConsultFilter.serviceSlug === 'bau';
+      const isGiaDinh = isFiltered && activeConsultFilter && activeConsultFilter.serviceSlug === 'gia-dinh';
+      const isStyleConsult = isBau || isGiaDinh;
+
+      const filterLabel = isFiltered && activeConsultFilter
+        ? (isStyleConsult
+          ? `phong cách ${activeConsultFilter.styleName || activeConsultFilter.stageLabel || ''}`
+          : `bé ${(activeConsultFilter.gender || '').toLowerCase()} giai đoạn ${activeConsultFilter.stageLabel || ''}`)
+        : '';
+
+      $('galleryCrumb').innerHTML = `<span>${service.name}</span>` + (isFiltered && activeConsultFilter ? ` / <span style="color:var(--pink-600);font-weight:600;">Gợi ý ${isStyleConsult ? 'phong cách ' + (activeConsultFilter.styleName || activeConsultFilter.stageLabel) : 'cho ' + activeConsultFilter.gender}</span>` : '');
+      $('galleryTitle').textContent = isFiltered && activeConsultFilter
+        ? (isStyleConsult ? `Gợi ý concept ${service.name} (${activeConsultFilter.styleName || activeConsultFilter.stageLabel})` : `Gợi ý concept cho ${activeConsultFilter.gender} (${activeConsultFilter.stageLabel})`)
+        : 'Album ' + service.name;
+      $('galleryDesc').textContent = isFiltered
+        ? `Aloha đã chọn lọc ${displayConcepts.length} concept phù hợp nhất theo ${filterLabel}.`
+        : service.desc;
+      $('galleryCount').textContent = isFiltered
+        ? `${displayConcepts.length} concept phù hợp · Gợi ý từ trợ lý tư vấn`
+        : `${concepts.length} concept · ${photoCount(service)} ảnh`;
+
       // Đã bấm đúng dịch vụ này từ trang chủ rồi nên không cần liệt kê 4 dịch vụ còn lại ở đây nữa
       // (người dùng phản hồi 2026-09-28: chỉ giữ lại chip của dịch vụ đang xem).
       $('gallerySwitch').hidden = false;
       $('gallerySwitch').setAttribute('aria-label', 'Dịch vụ đang xem');
       $('gallerySwitch').innerHTML = chips([service], service.slug, (s) => '#/album/' + s.slug);
       revealActiveChip();
-      const isConsultable = (service.slug === 'newborn' || service.slug === 'be-lon');
-      $('galleryConcepts').innerHTML = concepts.length
-        ? concepts.map((c) => {
+      // Nút tư vấn concept áp dụng cho tất cả các album dịch vụ (Newborn, Bé lớn, Bầu, Gia đình, Sinh nhật)
+      const isConsultable = ['newborn', 'be-lon', 'bau', 'gia-dinh', 'sinh-nhat'].includes(service.slug);
+
+      let bannerHtml = '';
+      if (isFiltered) {
+        const bannerTitle = isBau ? 'Gợi ý phù hợp cho mẹ bầu:' : (isGiaDinh ? 'Gợi ý phù hợp cho gia đình:' : 'Gợi ý phù hợp cho bé:');
+        bannerHtml = `
+          <div class="gallery-consult-filter-banner" id="galleryFilterBanner">
+            <div class="gcfb-left">
+              <div class="gcfb-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2z"/></svg>
+              </div>
+              <div class="gcfb-info">
+                <strong>${bannerTitle}</strong> Đang lọc <strong>${displayConcepts.length} concept</strong> phù hợp nhất theo <strong>${filterLabel}</strong>.
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm gcfb-clear" id="galleryClearFilterBtn">
+              Xem tất cả concept
+            </button>
+          </div>
+        `;
+      }
+
+      const cardsHtml = displayConcepts.length
+        ? displayConcepts.map((c) => {
           const cover = photoOf(c.name, c.photos[0], 0);
           const consultBtn = isConsultable
             ? `<button type="button" class="concept-album-consult" data-service="${service.slug}" data-concept="${c.slug}" data-name="${c.name}" title="Tư vấn concept ${c.name}">
@@ -1116,8 +1167,22 @@
             ${consultBtn}
           </a>`;
         }).join('')
-        : '<p class="gallery-empty">Album đang được cập nhật ảnh, bạn quay lại sau nhé.</p>';
-      return 'Album ' + service.name + ' | ALOHA Baby';
+        : '<p class="gallery-empty">Không tìm thấy concept phù hợp.</p>';
+
+      $('galleryConcepts').innerHTML = bannerHtml + cardsHtml;
+
+      if (isFiltered) {
+        const clearBtn = $('galleryClearFilterBtn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            activeConsultFilter = null;
+            render(service.slug);
+          });
+        }
+      }
+
+      return (isFiltered && activeConsultFilter ? (isStyleConsult ? `Gợi ý concept ${service.name} (${activeConsultFilter.styleName || activeConsultFilter.stageLabel}) · ` : `Gợi ý concept cho ${activeConsultFilter.gender} · `) : 'Album ') + service.name + ' | ALOHA Baby';
     }
 
     current = { service, concept };
@@ -1132,7 +1197,8 @@
 
     const consultTopBtn = $('galleryConsultTop');
     if (consultTopBtn) {
-      const isConsultable = (service.slug === 'newborn' || service.slug === 'be-lon');
+      // Nút tư vấn concept áp dụng cho tất cả các album dịch vụ (Newborn, Bé lớn, Bầu, Gia đình, Sinh nhật)
+      const isConsultable = ['newborn', 'be-lon', 'bau', 'gia-dinh', 'sinh-nhat'].includes(service.slug);
       consultTopBtn.hidden = !isConsultable;
       if (isConsultable) {
         consultTopBtn.onclick = () => {
@@ -1307,6 +1373,9 @@
     render,
     lookup,
     openViewer,
-    close: () => closeLightbox(true)
+    close: () => closeLightbox(true),
+    applyConsultFilter: (filter) => { activeConsultFilter = filter; },
+    clearConsultFilter: () => { activeConsultFilter = null; },
+    getActiveFilter: () => activeConsultFilter
   };
 })(window, document);
