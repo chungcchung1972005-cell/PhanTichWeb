@@ -26,442 +26,978 @@
     {
       slug: 'newborn',
       name: 'Newborn',
-      cover: 'images/services/newborn.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
+      cover: 'images/services/newborn.jpg',
       desc: 'Những ngày đầu đời của bé, chụp khi bé ngủ sâu trong phòng được giữ ấm, tạo dáng nhẹ nhàng và an toàn.',
       concepts: [
-        { slug: 'baby-butterfly', name: 'Baby Butterfly', desc: 'Bé ngủ giữa đôi cánh bướm bằng vải mềm, tông hồng phấn ngọt ngào.',
+        { slug: 'cam-cam-baby', name: 'Cam cam baby', desc: 'Concept Cam cam baby chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/baby-butterfly/baby-butterfly-01.jpg',
-            'images/albums/newborn/baby-butterfly/baby-butterfly-02.jpg',
-            'images/albums/newborn/baby-butterfly/baby-butterfly-03.jpg',
-            'images/albums/newborn/baby-butterfly/baby-butterfly-04.jpg',
-            'images/albums/newborn/baby-butterfly/baby-butterfly-05.jpg'
+            'images/albums/newborn/cam-cam-baby/cam-cam-baby-01.jpg',
+            'images/albums/newborn/cam-cam-baby/cam-cam-baby-02.jpg',
+            'images/albums/newborn/cam-cam-baby/cam-cam-baby-03.jpg',
+            'images/albums/newborn/cam-cam-baby/cam-cam-baby-04.jpg',
+            'images/albums/newborn/cam-cam-baby/cam-cam-baby-05.jpg'
           ] },
-        { slug: 'little-dimsum', name: 'Little Dimsum', desc: 'Bé hoá chiếc bánh bao nhỏ trong xửng tre, mũ len trắng đính nơ cam.',
+        { slug: 'coca-baby', name: 'Coca baby', desc: 'Concept Coca baby chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/little-dimsum/little-dimsum-01.jpg',
-            'images/albums/newborn/little-dimsum/little-dimsum-02.jpg',
-            'images/albums/newborn/little-dimsum/little-dimsum-03.jpg',
-            'images/albums/newborn/little-dimsum/little-dimsum-04.jpg',
-            'images/albums/newborn/little-dimsum/little-dimsum-05.jpg'
+            'images/albums/newborn/coca-baby/coca-baby-01.jpg',
+            'images/albums/newborn/coca-baby/coca-baby-02.jpg',
+            'images/albums/newborn/coca-baby/coca-baby-03.jpg',
+            'images/albums/newborn/coca-baby/coca-baby-04.jpg'
           ] },
-        { slug: 'baby-cowboy', name: 'Baby Cowboy', desc: 'Mũ len bờm ngựa, chú ngựa nhỏ và giỏ mây, tông nâu mộc mạc.',
+        { slug: 'concept-2_9', name: 'Concept 2_9', desc: 'Concept Concept 2_9 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/baby-cowboy/baby-cowboy-01.jpg',
-            'images/albums/newborn/baby-cowboy/baby-cowboy-02.jpg',
-            'images/albums/newborn/baby-cowboy/baby-cowboy-03.jpg',
-            'images/albums/newborn/baby-cowboy/baby-cowboy-04.jpg',
-            'images/albums/newborn/baby-cowboy/baby-cowboy-05.jpg'
+            'images/albums/newborn/concept-2_9/concept-2_9-01.jpg',
+            'images/albums/newborn/concept-2_9/concept-2_9-02.jpg',
+            'images/albums/newborn/concept-2_9/concept-2_9-03.jpg',
+            'images/albums/newborn/concept-2_9/concept-2_9-04.jpg',
+            'images/albums/newborn/concept-2_9/concept-2_9-05.jpg'
           ] },
-        { slug: 'starry-dream', name: 'Starry Dream', desc: 'Nôi gỗ nhỏ trên nền trời sao xanh, bé ngủ ngon cùng gấu bông.',
+        { slug: 'concept-ca-chua', name: 'Concept cà chua', desc: 'Concept Concept cà chua chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/starry-dream/starry-dream-01.jpg',
-            'images/albums/newborn/starry-dream/starry-dream-02.jpg',
-            'images/albums/newborn/starry-dream/starry-dream-03.jpg',
-            'images/albums/newborn/starry-dream/starry-dream-04.jpg',
-            'images/albums/newborn/starry-dream/starry-dream-05.jpg'
+            'images/albums/newborn/concept-ca-chua/concept-ca-chua-01.jpg',
+            'images/albums/newborn/concept-ca-chua/concept-ca-chua-02.jpg',
+            'images/albums/newborn/concept-ca-chua/concept-ca-chua-03.jpg'
           ] },
-        { slug: 'tinker-bell', name: 'Tinker Bell', desc: 'Nàng tiên nhỏ váy lá xanh ngủ giữa khu rừng cổ tích.',
+        { slug: 'concept-cuu-nho', name: 'Concept cừu nhỏ', desc: 'Concept Concept cừu nhỏ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/tinker-bell/tinker-bell-01.jpg',
-            'images/albums/newborn/tinker-bell/tinker-bell-02.jpg',
-            'images/albums/newborn/tinker-bell/tinker-bell-03.jpg',
-            'images/albums/newborn/tinker-bell/tinker-bell-04.jpg',
-            'images/albums/newborn/tinker-bell/tinker-bell-05.jpg'
+            'images/albums/newborn/concept-cuu-nho/concept-cuu-nho-01.jpg',
+            'images/albums/newborn/concept-cuu-nho/concept-cuu-nho-02.jpg',
+            'images/albums/newborn/concept-cuu-nho/concept-cuu-nho-03.jpg',
+            'images/albums/newborn/concept-cuu-nho/concept-cuu-nho-04.jpg'
           ] },
-        { slug: 'baby-cookie', name: 'Baby Cookie', desc: 'Mũ gấu nâu, bánh quy và cốc sữa, tông nâu đỏ ấm áp.',
+        { slug: 'concept-giac-mo', name: 'Concept giấc mơ', desc: 'Concept Concept giấc mơ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/baby-cookie/baby-cookie-01.jpg',
-            'images/albums/newborn/baby-cookie/baby-cookie-02.jpg',
-            'images/albums/newborn/baby-cookie/baby-cookie-03.jpg',
-            'images/albums/newborn/baby-cookie/baby-cookie-04.jpg',
-            'images/albums/newborn/baby-cookie/baby-cookie-05.jpg'
+            'images/albums/newborn/concept-giac-mo/concept-giac-mo-01.jpg',
+            'images/albums/newborn/concept-giac-mo/concept-giac-mo-02.jpg',
+            'images/albums/newborn/concept-giac-mo/concept-giac-mo-03.jpg',
+            'images/albums/newborn/concept-giac-mo/concept-giac-mo-04.jpg',
+            'images/albums/newborn/concept-giac-mo/concept-giac-mo-05.jpg'
           ] },
-        { slug: 'baby-unicorn', name: 'Baby Unicorn', desc: 'Kỳ lân cầu vồng, mây bông và những ngôi sao hồng.',
+        { slug: 'concept-hoa-nho', name: 'Concept hoa nhỏ', desc: 'Concept Concept hoa nhỏ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/baby-unicorn/baby-unicorn-01.jpg',
-            'images/albums/newborn/baby-unicorn/baby-unicorn-02.jpg',
-            'images/albums/newborn/baby-unicorn/baby-unicorn-03.jpg',
-            'images/albums/newborn/baby-unicorn/baby-unicorn-04.jpg',
-            'images/albums/newborn/baby-unicorn/baby-unicorn-05.jpg'
+            'images/albums/newborn/concept-hoa-nho/concept-hoa-nho-01.jpg',
+            'images/albums/newborn/concept-hoa-nho/concept-hoa-nho-02.jpg',
+            'images/albums/newborn/concept-hoa-nho/concept-hoa-nho-03.jpg',
+            'images/albums/newborn/concept-hoa-nho/concept-hoa-nho-04.jpg'
           ] },
-        { slug: 'lucky-horsey', name: 'Lucky Horsey', desc: 'Bé ôm chú ngựa đỏ may mắn, concept đón năm mới.',
+        { slug: 'concept-ngua-nho', name: 'Concept ngựa nhỏ', desc: 'Concept Concept ngựa nhỏ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/lucky-horsey/lucky-horsey-01.jpg',
-            'images/albums/newborn/lucky-horsey/lucky-horsey-02.jpg',
-            'images/albums/newborn/lucky-horsey/lucky-horsey-03.jpg',
-            'images/albums/newborn/lucky-horsey/lucky-horsey-04.jpg',
-            'images/albums/newborn/lucky-horsey/lucky-horsey-05.jpg'
+            'images/albums/newborn/concept-ngua-nho/concept-ngua-nho-01.jpg',
+            'images/albums/newborn/concept-ngua-nho/concept-ngua-nho-02.jpg',
+            'images/albums/newborn/concept-ngua-nho/concept-ngua-nho-03.jpg',
+            'images/albums/newborn/concept-ngua-nho/concept-ngua-nho-04.jpg',
+            'images/albums/newborn/concept-ngua-nho/concept-ngua-nho-05.jpg'
           ] },
-        { slug: 'white-blossom', name: 'White Blossom', desc: 'Hoa trắng và vải voan mềm, tinh khôi, nhẹ nhàng.',
+        { slug: 'concept-ngua-nho-2', name: 'Concept ngựa nhỏ 2', desc: 'Concept Concept ngựa nhỏ 2 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/white-blossom/white-blossom-01.jpg',
-            'images/albums/newborn/white-blossom/white-blossom-02.jpg',
-            'images/albums/newborn/white-blossom/white-blossom-03.jpg',
-            'images/albums/newborn/white-blossom/white-blossom-04.jpg',
-            'images/albums/newborn/white-blossom/white-blossom-05.jpg'
+            'images/albums/newborn/concept-ngua-nho-2/concept-ngua-nho-2-01.jpg',
+            'images/albums/newborn/concept-ngua-nho-2/concept-ngua-nho-2-02.jpg',
+            'images/albums/newborn/concept-ngua-nho-2/concept-ngua-nho-2-03.jpg',
+            'images/albums/newborn/concept-ngua-nho-2/concept-ngua-nho-2-04.jpg'
           ] },
-        { slug: 'tet-dong-day', name: 'Tết Đong Đầy', desc: 'Bé nằm trong giỏ hoa đỏ cùng bánh chưng, quạt giấy ngày Tết.',
+        { slug: 'concept-ngua-pony', name: 'Concept ngựa pony', desc: 'Concept Concept ngựa pony chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/newborn/tet-dong-day/tet-dong-day-01.jpg',
-            'images/albums/newborn/tet-dong-day/tet-dong-day-02.jpg',
-            'images/albums/newborn/tet-dong-day/tet-dong-day-03.jpg',
-            'images/albums/newborn/tet-dong-day/tet-dong-day-04.jpg',
-            'images/albums/newborn/tet-dong-day/tet-dong-day-05.jpg'
+            'images/albums/newborn/concept-ngua-pony/concept-ngua-pony-01.jpg',
+            'images/albums/newborn/concept-ngua-pony/concept-ngua-pony-02.jpg',
+            'images/albums/newborn/concept-ngua-pony/concept-ngua-pony-03.jpg',
+            'images/albums/newborn/concept-ngua-pony/concept-ngua-pony-04.jpg',
+            'images/albums/newborn/concept-ngua-pony/concept-ngua-pony-05.jpg'
+          ] },
+        { slug: 'concept-ngua-pony-2', name: 'Concept ngựa pony 2', desc: 'Concept Concept ngựa pony 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/concept-ngua-pony-2/concept-ngua-pony-2-01.jpg',
+            'images/albums/newborn/concept-ngua-pony-2/concept-ngua-pony-2-02.jpg',
+            'images/albums/newborn/concept-ngua-pony-2/concept-ngua-pony-2-03.jpg'
+          ] },
+        { slug: 'concept-qua-chanh-vang', name: 'Concept quả chanh vàng', desc: 'Concept Concept quả chanh vàng chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/concept-qua-chanh-vang/concept-qua-chanh-vang-01.jpg',
+            'images/albums/newborn/concept-qua-chanh-vang/concept-qua-chanh-vang-02.jpg',
+            'images/albums/newborn/concept-qua-chanh-vang/concept-qua-chanh-vang-03.jpg',
+            'images/albums/newborn/concept-qua-chanh-vang/concept-qua-chanh-vang-04.jpg'
+          ] },
+        { slug: 'concept-trung-thu', name: 'Concept trung thu', desc: 'Concept Concept trung thu chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-01.jpg',
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-02.jpg',
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-03.jpg',
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-04.jpg',
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-05.jpg',
+            'images/albums/newborn/concept-trung-thu/concept-trung-thu-06.jpg'
+          ] },
+        { slug: 'concept-trung-thu-2', name: 'Concept trung thu 2', desc: 'Concept Concept trung thu 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/concept-trung-thu-2/concept-trung-thu-2-01.jpg',
+            'images/albums/newborn/concept-trung-thu-2/concept-trung-thu-2-02.jpg',
+            'images/albums/newborn/concept-trung-thu-2/concept-trung-thu-2-03.jpg',
+            'images/albums/newborn/concept-trung-thu-2/concept-trung-thu-2-04.jpg',
+            'images/albums/newborn/concept-trung-thu-2/concept-trung-thu-2-05.jpg'
+          ] },
+        { slug: 'concept-tim-mong-mo', name: 'Concept tím mộng mơ', desc: 'Concept Concept tím mộng mơ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/concept-tim-mong-mo/concept-tim-mong-mo-01.jpg',
+            'images/albums/newborn/concept-tim-mong-mo/concept-tim-mong-mo-02.jpg',
+            'images/albums/newborn/concept-tim-mong-mo/concept-tim-mong-mo-03.jpg',
+            'images/albums/newborn/concept-tim-mong-mo/concept-tim-mong-mo-04.jpg',
+            'images/albums/newborn/concept-tim-mong-mo/concept-tim-mong-mo-05.jpg'
+          ] },
+        { slug: 'happy-dream-2', name: 'Happy dream 2', desc: 'Concept Happy dream 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/happy-dream-2/happy-dream-2-01.jpg',
+            'images/albums/newborn/happy-dream-2/happy-dream-2-02.jpg',
+            'images/albums/newborn/happy-dream-2/happy-dream-2-03.jpg',
+            'images/albums/newborn/happy-dream-2/happy-dream-2-04.jpg',
+            'images/albums/newborn/happy-dream-2/happy-dream-2-05.jpg'
+          ] },
+        { slug: 'harry-potter', name: 'Harry potter', desc: 'Concept Harry potter chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/harry-potter/harry-potter-01.jpg',
+            'images/albums/newborn/harry-potter/harry-potter-02.jpg',
+            'images/albums/newborn/harry-potter/harry-potter-03.jpg',
+            'images/albums/newborn/harry-potter/harry-potter-04.jpg'
+          ] },
+        { slug: 'havard-concept', name: 'Havard concept', desc: 'Concept Havard concept chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/havard-concept/havard-concept-01.jpg',
+            'images/albums/newborn/havard-concept/havard-concept-02.jpg',
+            'images/albums/newborn/havard-concept/havard-concept-03.jpg',
+            'images/albums/newborn/havard-concept/havard-concept-04.jpg'
+          ] },
+        { slug: 'hello-kitty', name: 'Hello kitty', desc: 'Concept Hello kitty chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/hello-kitty/hello-kitty-01.jpg',
+            'images/albums/newborn/hello-kitty/hello-kitty-02.jpg',
+            'images/albums/newborn/hello-kitty/hello-kitty-03.jpg',
+            'images/albums/newborn/hello-kitty/hello-kitty-04.jpg'
+          ] },
+        { slug: 'khu-vuon-than-bi', name: 'Khu vườn thần bí', desc: 'Concept Khu vườn thần bí chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/khu-vuon-than-bi/khu-vuon-than-bi-01.jpg',
+            'images/albums/newborn/khu-vuon-than-bi/khu-vuon-than-bi-02.jpg',
+            'images/albums/newborn/khu-vuon-than-bi/khu-vuon-than-bi-03.jpg',
+            'images/albums/newborn/khu-vuon-than-bi/khu-vuon-than-bi-04.jpg',
+            'images/albums/newborn/khu-vuon-than-bi/khu-vuon-than-bi-05.jpg'
+          ] },
+        { slug: 'labubu-concept', name: 'Labubu concept', desc: 'Concept Labubu concept chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/labubu-concept/labubu-concept-01.jpg',
+            'images/albums/newborn/labubu-concept/labubu-concept-02.jpg',
+            'images/albums/newborn/labubu-concept/labubu-concept-03.jpg',
+            'images/albums/newborn/labubu-concept/labubu-concept-04.jpg'
+          ] },
+        { slug: 'merry-christmas-1', name: 'Merry christmas 1', desc: 'Concept Merry christmas 1 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/merry-christmas-1/merry-christmas-1-01.jpg',
+            'images/albums/newborn/merry-christmas-1/merry-christmas-1-02.jpg',
+            'images/albums/newborn/merry-christmas-1/merry-christmas-1-03.jpg',
+            'images/albums/newborn/merry-christmas-1/merry-christmas-1-04.jpg'
+          ] },
+        { slug: 'merry-christmas-2', name: 'Merry christmas 2', desc: 'Concept Merry christmas 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/merry-christmas-2/merry-christmas-2-01.jpg',
+            'images/albums/newborn/merry-christmas-2/merry-christmas-2-02.jpg',
+            'images/albums/newborn/merry-christmas-2/merry-christmas-2-03.jpg'
+          ] },
+        { slug: 'nang-tien-xanh', name: 'Nàng tiên xanh', desc: 'Concept Nàng tiên xanh chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/nang-tien-xanh/nang-tien-xanh-01.jpg',
+            'images/albums/newborn/nang-tien-xanh/nang-tien-xanh-02.jpg',
+            'images/albums/newborn/nang-tien-xanh/nang-tien-xanh-03.jpg',
+            'images/albums/newborn/nang-tien-xanh/nang-tien-xanh-04.jpg'
+          ] },
+        { slug: 'tet-2', name: 'Tết 2', desc: 'Concept Tết 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/newborn/tet-2/tet-2-01.jpg',
+            'images/albums/newborn/tet-2/tet-2-02.jpg',
+            'images/albums/newborn/tet-2/tet-2-03.jpg',
+            'images/albums/newborn/tet-2/tet-2-04.jpg'
           ] }
       ]
     },
     {
       slug: 'bau',
       name: 'Bầu',
-      stock: true, // ảnh Pexels minh hoạ, chưa có ảnh thật của studio
-      cover: 'images/services/bau.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
-      desc: 'Lưu giữ dáng bụng tròn của mẹ, trong studio hoặc ngoại cảnh, tuỳ sức khoẻ và mong muốn của mỗi mẹ.',
+      cover: 'images/services/bau.jpg',
+      desc: 'Tôn vinh nét đẹp thiêng liêng của người mẹ trong thai kỳ, lưu giữ những rung động đầu tiên cùng con.',
       concepts: [
-        { slug: 'ngoai-canh', name: 'Ngoại cảnh thiên nhiên', desc: 'Ánh sáng tự nhiên, cây lá và không gian thoáng.',
+        { slug: 'basic-concept-1', name: 'Basic concept 1', desc: 'Concept Basic concept 1 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/service-bau.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-01.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-02.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-03.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-04.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-06.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-07.jpg',
-            'images/albums/bau/ngoai-canh/ngoai-canh-08.jpg'
+            'images/albums/bau/basic-concept-1/basic-concept-1-01.jpg',
+            'images/albums/bau/basic-concept-1/basic-concept-1-02.jpg',
+            'images/albums/bau/basic-concept-1/basic-concept-1-03.jpg',
+            'images/albums/bau/basic-concept-1/basic-concept-1-04.jpg',
+            'images/albums/bau/basic-concept-1/basic-concept-1-05.jpg'
           ] },
-        { slug: 'vintage', name: 'Vintage trong studio', desc: 'Váy dài, phông trơn, tông màu trầm nhẹ nhàng.',
+        { slug: 'basic-concept-2', name: 'Basic concept 2', desc: 'Concept Basic concept 2 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/album-4.jpg',
-            'images/albums/bau/vintage/vintage-01.jpg',
-            'images/albums/bau/vintage/vintage-02.jpg',
-            'images/albums/bau/vintage/vintage-03.jpg',
-            'images/albums/bau/vintage/vintage-05.jpg',
-            'images/albums/bau/vintage/vintage-06.jpg',
-            'images/albums/bau/vintage/vintage-07.jpg',
-            'images/albums/bau/vintage/vintage-08.jpg'
+            'images/albums/bau/basic-concept-2/basic-concept-2-01.jpg',
+            'images/albums/bau/basic-concept-2/basic-concept-2-02.jpg',
+            'images/albums/bau/basic-concept-2/basic-concept-2-03.jpg',
+            'images/albums/bau/basic-concept-2/basic-concept-2-04.jpg',
+            'images/albums/bau/basic-concept-2/basic-concept-2-05.jpg'
           ] },
-        { slug: 'toi-gian', name: 'Tối giản, tôn dáng', desc: 'Bố cục tối giản, tập trung vào dáng mẹ bầu.',
+        { slug: 'basic-concept-3', name: 'Basic concept 3', desc: 'Concept Basic concept 3 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/bau/toi-gian/toi-gian-01.jpg',
-            'images/albums/bau/toi-gian/toi-gian-02.jpg',
-            'images/albums/bau/toi-gian/toi-gian-03.jpg',
-            'images/albums/bau/toi-gian/toi-gian-04.jpg',
-            'images/albums/bau/toi-gian/toi-gian-06.jpg',
-            'images/albums/bau/toi-gian/toi-gian-07.jpg',
-            'images/albums/bau/toi-gian/toi-gian-08.jpg'
+            'images/albums/bau/basic-concept-3/basic-concept-3-01.jpg',
+            'images/albums/bau/basic-concept-3/basic-concept-3-02.jpg',
+            'images/albums/bau/basic-concept-3/basic-concept-3-03.jpg',
+            'images/albums/bau/basic-concept-3/basic-concept-3-04.jpg',
+            'images/albums/bau/basic-concept-3/basic-concept-3-05.jpg'
           ] },
-        { slug: 'cung-chong', name: 'Cùng chồng', desc: 'Khoảnh khắc hai vợ chồng cùng chờ đón thiên thần nhỏ.',
+        { slug: 'bien-may', name: 'Biển mây', desc: 'Concept Biển mây chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/bau/cung-chong/cung-chong-01.jpg',
-            'images/albums/bau/cung-chong/cung-chong-02.jpg',
-            'images/albums/bau/cung-chong/cung-chong-03.jpg',
-            'images/albums/bau/cung-chong/cung-chong-04.jpg',
-            'images/albums/bau/cung-chong/cung-chong-05.jpg',
-            'images/albums/bau/cung-chong/cung-chong-06.jpg',
-            'images/albums/bau/cung-chong/cung-chong-07.jpg',
-            'images/albums/bau/cung-chong/cung-chong-08.jpg',
-            'images/albums/bau/cung-chong/cung-chong-09.jpg'
+            'images/albums/bau/bien-may/bien-may-01.png',
+            'images/albums/bau/bien-may/bien-may-02.png',
+            'images/albums/bau/bien-may/bien-may-03.png',
+            'images/albums/bau/bien-may/bien-may-04.png',
+            'images/albums/bau/bien-may/bien-may-05.png',
+            'images/albums/bau/bien-may/bien-may-06.png'
           ] },
-        { slug: 'cung-be', name: 'Cùng bé lớn', desc: 'Anh chị lớn cùng mẹ chào đón em bé sắp chào đời.',
+        { slug: 'bau-tinh-khoi', name: 'Bầu tinh khôi', desc: 'Concept Bầu tinh khôi chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/bau/cung-be/cung-be-01.jpg',
-            'images/albums/bau/cung-be/cung-be-03.jpg',
-            'images/albums/bau/cung-be/cung-be-04.jpg',
-            'images/albums/bau/cung-be/cung-be-05.jpg',
-            'images/albums/bau/cung-be/cung-be-07.jpg',
-            'images/albums/bau/cung-be/cung-be-08.jpg',
-            'images/albums/bau/cung-be/cung-be-09.jpg'
+            'images/albums/bau/bau-tinh-khoi/bau-tinh-khoi-01.jpg',
+            'images/albums/bau/bau-tinh-khoi/bau-tinh-khoi-02.jpg',
+            'images/albums/bau/bau-tinh-khoi/bau-tinh-khoi-03.jpg',
+            'images/albums/bau/bau-tinh-khoi/bau-tinh-khoi-04.jpg'
           ] },
-        { slug: 'vong-hoa', name: 'Vòng hoa', desc: 'Vòng hoa tươi trên tóc, váy nhẹ nhàng, nữ tính.',
+        { slug: 'giua-rung-mo', name: 'Giữa rừng mơ', desc: 'Concept Giữa rừng mơ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/bau/vong-hoa/vong-hoa-01.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-02.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-03.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-04.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-05.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-06.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-07.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-08.jpg',
-            'images/albums/bau/vong-hoa/vong-hoa-09.jpg'
+            'images/albums/bau/giua-rung-mo/giua-rung-mo-01.jpg',
+            'images/albums/bau/giua-rung-mo/giua-rung-mo-02.jpg',
+            'images/albums/bau/giua-rung-mo/giua-rung-mo-03.jpg',
+            'images/albums/bau/giua-rung-mo/giua-rung-mo-04.jpg'
           ] },
-        { slug: 'bien', name: 'Biển', desc: 'Váy dài bay trong gió, nắng và sóng biển.',
+        { slug: 'gau-bong', name: 'Gấu bông', desc: 'Concept Gấu bông chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/bau/bien/bien-01.jpg',
-            'images/albums/bau/bien/bien-02.jpg',
-            'images/albums/bau/bien/bien-03.jpg',
-            'images/albums/bau/bien/bien-04.jpg',
-            'images/albums/bau/bien/bien-05.jpg',
-            'images/albums/bau/bien/bien-06.jpg',
-            'images/albums/bau/bien/bien-07.jpg',
-            'images/albums/bau/bien/bien-08.jpg',
-            'images/albums/bau/bien/bien-09.jpg'
+            'images/albums/bau/gau-bong/gau-bong-01.jpg',
+            'images/albums/bau/gau-bong/gau-bong-02.jpg',
+            'images/albums/bau/gau-bong/gau-bong-03.jpg',
+            'images/albums/bau/gau-bong/gau-bong-04.jpg',
+            'images/albums/bau/gau-bong/gau-bong-05.jpg'
+          ] },
+        { slug: 'khu-vuon-bi-mat', name: 'Khu vườn bí mật', desc: 'Concept Khu vườn bí mật chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-01.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-02.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-03.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-04.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-05.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-06.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-07.jpg',
+            'images/albums/bau/khu-vuon-bi-mat/khu-vuon-bi-mat-08.jpg'
+          ] },
+        { slug: 'khu-vuon-mua-ha', name: 'Khu vườn mùa hạ', desc: 'Concept Khu vườn mùa hạ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/khu-vuon-mua-ha/khu-vuon-mua-ha-01.jpg',
+            'images/albums/bau/khu-vuon-mua-ha/khu-vuon-mua-ha-02.jpg',
+            'images/albums/bau/khu-vuon-mua-ha/khu-vuon-mua-ha-03.jpg',
+            'images/albums/bau/khu-vuon-mua-ha/khu-vuon-mua-ha-04.jpg'
+          ] },
+        { slug: 'khuc-giao-mua', name: 'Khúc giao mùa', desc: 'Concept Khúc giao mùa chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/khuc-giao-mua/khuc-giao-mua-01.jpg',
+            'images/albums/bau/khuc-giao-mua/khuc-giao-mua-02.jpg',
+            'images/albums/bau/khuc-giao-mua/khuc-giao-mua-03.jpg',
+            'images/albums/bau/khuc-giao-mua/khuc-giao-mua-04.jpg',
+            'images/albums/bau/khuc-giao-mua/khuc-giao-mua-05.jpg'
+          ] },
+        { slug: 'mon-qua-nho', name: 'Món quà nhỏ', desc: 'Concept Món quà nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/mon-qua-nho/mon-qua-nho-01.jpg',
+            'images/albums/bau/mon-qua-nho/mon-qua-nho-02.jpg',
+            'images/albums/bau/mon-qua-nho/mon-qua-nho-03.jpg',
+            'images/albums/bau/mon-qua-nho/mon-qua-nho-04.jpg',
+            'images/albums/bau/mon-qua-nho/mon-qua-nho-05.jpg'
+          ] },
+        { slug: 'mua-thu-1', name: 'Mùa thu 1', desc: 'Concept Mùa thu 1 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/mua-thu-1/mua-thu-1-01.jpg',
+            'images/albums/bau/mua-thu-1/mua-thu-1-02.jpg',
+            'images/albums/bau/mua-thu-1/mua-thu-1-03.jpg',
+            'images/albums/bau/mua-thu-1/mua-thu-1-04.jpg',
+            'images/albums/bau/mua-thu-1/mua-thu-1-05.jpg',
+            'images/albums/bau/mua-thu-1/mua-thu-1-06.jpg'
+          ] },
+        { slug: 'mua-thu-2', name: 'Mùa thu 2', desc: 'Concept Mùa thu 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/mua-thu-2/mua-thu-2-01.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-02.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-03.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-04.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-05.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-06.jpg',
+            'images/albums/bau/mua-thu-2/mua-thu-2-07.jpg'
+          ] },
+        { slug: 'mua-xuan', name: 'Mùa xuân', desc: 'Concept Mùa xuân chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/mua-xuan/mua-xuan-01.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-02.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-03.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-04.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-05.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-06.jpg',
+            'images/albums/bau/mua-xuan/mua-xuan-07.jpg'
+          ] },
+        { slug: 'thanh-ngoc', name: 'Thanh ngọc', desc: 'Concept Thanh ngọc chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/thanh-ngoc/thanh-ngoc-01.jpg',
+            'images/albums/bau/thanh-ngoc/thanh-ngoc-02.jpg',
+            'images/albums/bau/thanh-ngoc/thanh-ngoc-03.jpg',
+            'images/albums/bau/thanh-ngoc/thanh-ngoc-04.jpg'
+          ] },
+        { slug: 'thanh-am', name: 'Thanh âm', desc: 'Concept Thanh âm chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/thanh-am/thanh-am-01.jpg',
+            'images/albums/bau/thanh-am/thanh-am-02.jpg',
+            'images/albums/bau/thanh-am/thanh-am-03.jpg',
+            'images/albums/bau/thanh-am/thanh-am-04.jpg',
+            'images/albums/bau/thanh-am/thanh-am-05.jpg'
+          ] },
+        { slug: 'trai-tym-ngot-ngao', name: 'Trái tym ngọt ngào', desc: 'Concept Trái tym ngọt ngào chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/trai-tym-ngot-ngao/trai-tym-ngot-ngao-01.jpg',
+            'images/albums/bau/trai-tym-ngot-ngao/trai-tym-ngot-ngao-02.jpg',
+            'images/albums/bau/trai-tym-ngot-ngao/trai-tym-ngot-ngao-03.jpg',
+            'images/albums/bau/trai-tym-ngot-ngao/trai-tym-ngot-ngao-04.jpg',
+            'images/albums/bau/trai-tym-ngot-ngao/trai-tym-ngot-ngao-05.jpg'
+          ] },
+        { slug: 'vuon-hoa', name: 'Vườn hoa', desc: 'Concept Vườn hoa chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/vuon-hoa/vuon-hoa-01.jpg',
+            'images/albums/bau/vuon-hoa/vuon-hoa-02.jpg',
+            'images/albums/bau/vuon-hoa/vuon-hoa-03.jpg',
+            'images/albums/bau/vuon-hoa/vuon-hoa-04.jpg',
+            'images/albums/bau/vuon-hoa/vuon-hoa-05.jpg',
+            'images/albums/bau/vuon-hoa/vuon-hoa-06.jpg'
+          ] },
+        { slug: 'diep-vu-hoa-gian', name: 'Điệp vũ hoa gian', desc: 'Concept Điệp vũ hoa gian chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-01.jpg',
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-02.jpg',
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-03.jpg',
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-04.jpg',
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-05.jpg',
+            'images/albums/bau/diep-vu-hoa-gian/diep-vu-hoa-gian-06.jpg'
           ] }
       ]
     },
     {
       slug: 'sinh-nhat',
       name: 'Sinh nhật',
-      cover: 'images/services/sinh-nhat.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
-      desc: 'Thôi nôi và sinh nhật của bé, kết hợp bánh kem, bóng bay và backdrop theo yêu cầu.',
+      cover: 'images/services/sinh-nhat.jpg',
+      desc: 'Đánh dấu cột mốc tròn tuổi mới của bé với set trang trí bánh kem, bóng bay và trang phục theo chủ đề.',
       concepts: [
-        { slug: 'birthday-spotlight', name: 'Birthday Spotlight', desc: 'Xe hơi đỏ, bóng bay đỏ và vest nơ, sinh nhật bảnh bao cho bé trai.',
+        { slug: 'birthday-girl', name: 'Birthday girl', desc: 'Concept Birthday girl chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-01.jpg',
-            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-02.jpg',
-            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-03.jpg',
-            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-04.jpg',
-            'images/albums/sinh-nhat/birthday-spotlight/birthday-spotlight-05.jpg'
+            'images/albums/sinh-nhat/birthday-girl/birthday-girl-01.jpg',
+            'images/albums/sinh-nhat/birthday-girl/birthday-girl-02.jpg',
+            'images/albums/sinh-nhat/birthday-girl/birthday-girl-03.jpg',
+            'images/albums/sinh-nhat/birthday-girl/birthday-girl-04.jpg',
+            'images/albums/sinh-nhat/birthday-girl/birthday-girl-05.jpg'
           ] },
-        { slug: 'nang-bach-tuyet', name: 'Nàng Bạch Tuyết', desc: 'Váy Bạch Tuyết, táo đỏ và khu rừng cổ tích cho bé gái.',
+        { slug: 'birthday-party', name: 'Birthday party', desc: 'Concept Birthday party chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-01.jpg',
-            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-02.jpg',
-            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-03.jpg',
-            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-04.jpg',
-            'images/albums/sinh-nhat/nang-bach-tuyet/nang-bach-tuyet-05.jpg'
+            'images/albums/sinh-nhat/birthday-party/birthday-party-01.jpg',
+            'images/albums/sinh-nhat/birthday-party/birthday-party-02.jpg',
+            'images/albums/sinh-nhat/birthday-party/birthday-party-03.jpg',
+            'images/albums/sinh-nhat/birthday-party/birthday-party-04.jpg',
+            'images/albums/sinh-nhat/birthday-party/birthday-party-05.jpg'
           ] },
-        { slug: 'summer-picnic', name: 'Summer Picnic', desc: 'Tiệc sinh nhật picnic trên cỏ, mẹ và bé váy kem cùng tông.',
+        { slug: 'dream-birthday', name: 'Dream birthday', desc: 'Concept Dream birthday chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/summer-picnic/summer-picnic-01.jpg',
-            'images/albums/sinh-nhat/summer-picnic/summer-picnic-02.jpg',
-            'images/albums/sinh-nhat/summer-picnic/summer-picnic-03.jpg',
-            'images/albums/sinh-nhat/summer-picnic/summer-picnic-04.jpg',
-            'images/albums/sinh-nhat/summer-picnic/summer-picnic-05.jpg'
+            'images/albums/sinh-nhat/dream-birthday/dream-birthday-01.jpg',
+            'images/albums/sinh-nhat/dream-birthday/dream-birthday-02.jpg',
+            'images/albums/sinh-nhat/dream-birthday/dream-birthday-03.jpg',
+            'images/albums/sinh-nhat/dream-birthday/dream-birthday-04.jpg',
+            'images/albums/sinh-nhat/dream-birthday/dream-birthday-05.jpg'
           ] },
-        { slug: 'nha-minh-co-hoa', name: 'Nhà Mình Có Hoa', desc: 'Cả nhà áo trắng quây quần bên bánh kem, nhẹ nhàng ấm cúng.',
+        { slug: 'happy-birthday', name: 'Happy birthday', desc: 'Concept Happy birthday chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-01.jpg',
-            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-02.jpg',
-            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-03.jpg',
-            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-04.jpg',
-            'images/albums/sinh-nhat/nha-minh-co-hoa/nha-minh-co-hoa-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday/happy-birthday-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday/happy-birthday-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday/happy-birthday-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday/happy-birthday-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday/happy-birthday-05.jpg'
           ] },
-        { slug: 'sinh-nhat-song-sinh', name: 'Sinh Nhật Song Sinh', desc: 'Thôi nôi cho hai bé song sinh với xe ô tô nhỏ và gấu bông.',
+        { slug: 'happy-birthday-2', name: 'Happy birthday 2', desc: 'Concept Happy birthday 2 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-01.jpg',
-            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-02.jpg',
-            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-03.jpg',
-            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-04.jpg',
-            'images/albums/sinh-nhat/sinh-nhat-song-sinh/sinh-nhat-song-sinh-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-2/happy-birthday-2-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-2/happy-birthday-2-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-2/happy-birthday-2-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-2/happy-birthday-2-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-2/happy-birthday-2-05.jpg'
           ] },
-        { slug: 'baby-prince', name: 'Baby Prince', desc: 'Vương miện, nơ đỏ và gấu nâu, hoàng tử nhỏ đón tuổi mới.',
+        { slug: 'happy-birthday-3', name: 'Happy birthday 3', desc: 'Concept Happy birthday 3 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/baby-prince/baby-prince-01.jpg',
-            'images/albums/sinh-nhat/baby-prince/baby-prince-02.jpg',
-            'images/albums/sinh-nhat/baby-prince/baby-prince-03.jpg',
-            'images/albums/sinh-nhat/baby-prince/baby-prince-04.jpg',
-            'images/albums/sinh-nhat/baby-prince/baby-prince-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-3/happy-birthday-3-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-3/happy-birthday-3-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-3/happy-birthday-3-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-3/happy-birthday-3-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-3/happy-birthday-3-05.jpg'
           ] },
-        { slug: 'cozy-sky', name: 'Cozy Sky Birthday', desc: 'Mây trắng, chữ Happy Birthday và gối ca rô xanh dịu mắt.',
+        { slug: 'happy-birthday-4', name: 'Happy birthday 4', desc: 'Concept Happy birthday 4 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/cozy-sky/cozy-sky-01.jpg',
-            'images/albums/sinh-nhat/cozy-sky/cozy-sky-02.jpg',
-            'images/albums/sinh-nhat/cozy-sky/cozy-sky-03.jpg',
-            'images/albums/sinh-nhat/cozy-sky/cozy-sky-04.jpg',
-            'images/albums/sinh-nhat/cozy-sky/cozy-sky-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-4/happy-birthday-4-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-4/happy-birthday-4-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-4/happy-birthday-4-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-4/happy-birthday-4-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-4/happy-birthday-4-05.jpg'
           ] },
-        { slug: 'angel-baby', name: 'Angel Baby', desc: 'Bóng bay trắng, số 1 hồng và bánh dâu, thôi nôi tinh khôi.',
+        { slug: 'happy-birthday-5', name: 'Happy birthday 5', desc: 'Concept Happy birthday 5 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/angel-baby/angel-baby-01.jpg',
-            'images/albums/sinh-nhat/angel-baby/angel-baby-02.jpg',
-            'images/albums/sinh-nhat/angel-baby/angel-baby-03.jpg',
-            'images/albums/sinh-nhat/angel-baby/angel-baby-04.jpg',
-            'images/albums/sinh-nhat/angel-baby/angel-baby-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-05.jpg',
+            'images/albums/sinh-nhat/happy-birthday-5/happy-birthday-5-06.jpg'
           ] },
-        { slug: 'happy-donut', name: 'Happy Donut', desc: 'Bánh donut khổng lồ, đồng cỏ và bánh kem, sắc màu vui tươi.',
+        { slug: 'happy-birthday-6', name: 'Happy birthday 6', desc: 'Concept Happy birthday 6 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/happy-donut/happy-donut-01.jpg',
-            'images/albums/sinh-nhat/happy-donut/happy-donut-02.jpg',
-            'images/albums/sinh-nhat/happy-donut/happy-donut-03.jpg',
-            'images/albums/sinh-nhat/happy-donut/happy-donut-04.jpg',
-            'images/albums/sinh-nhat/happy-donut/happy-donut-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-6/happy-birthday-6-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-6/happy-birthday-6-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-6/happy-birthday-6-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-6/happy-birthday-6-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-6/happy-birthday-6-05.jpg'
           ] },
-        { slug: 'sweet-birthday', name: 'Sweet Birthday', desc: 'Mũ chóp voan trắng, bóng bay và bánh kem trên nền đỏ.',
+        { slug: 'happy-birthday-7', name: 'Happy birthday 7', desc: 'Concept Happy birthday 7 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-01.jpg',
-            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-02.jpg',
-            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-03.jpg',
-            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-04.jpg',
-            'images/albums/sinh-nhat/sweet-birthday/sweet-birthday-05.jpg'
+            'images/albums/sinh-nhat/happy-birthday-7/happy-birthday-7-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-7/happy-birthday-7-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-7/happy-birthday-7-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-7/happy-birthday-7-04.jpg',
+            'images/albums/sinh-nhat/happy-birthday-7/happy-birthday-7-05.jpg'
+          ] },
+        { slug: 'happy-birthday-8', name: 'Happy birthday 8', desc: 'Concept Happy birthday 8 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/sinh-nhat/happy-birthday-8/happy-birthday-8-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-8/happy-birthday-8-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-8/happy-birthday-8-03.jpg',
+            'images/albums/sinh-nhat/happy-birthday-8/happy-birthday-8-04.jpg'
+          ] },
+        { slug: 'happy-birthday-boy', name: 'Happy birthday boy', desc: 'Concept Happy birthday boy chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/sinh-nhat/happy-birthday-boy/happy-birthday-boy-01.jpg',
+            'images/albums/sinh-nhat/happy-birthday-boy/happy-birthday-boy-02.jpg',
+            'images/albums/sinh-nhat/happy-birthday-boy/happy-birthday-boy-03.jpg'
+          ] },
+        { slug: 'little-princess', name: 'Little princess', desc: 'Concept Little princess chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/sinh-nhat/little-princess/little-princess-01.jpg',
+            'images/albums/sinh-nhat/little-princess/little-princess-02.jpg',
+            'images/albums/sinh-nhat/little-princess/little-princess-03.jpg',
+            'images/albums/sinh-nhat/little-princess/little-princess-04.jpg'
+          ] },
+        { slug: 'sinh-nhat-1', name: 'Sinh nhật 1', desc: 'Concept Sinh nhật 1 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/sinh-nhat/sinh-nhat-1/sinh-nhat-1-01.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-1/sinh-nhat-1-02.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-1/sinh-nhat-1-03.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-1/sinh-nhat-1-04.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-1/sinh-nhat-1-05.jpg'
+          ] },
+        { slug: 'sinh-nhat-2', name: 'Sinh nhật 2', desc: 'Concept Sinh nhật 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/sinh-nhat/sinh-nhat-2/sinh-nhat-2-01.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-2/sinh-nhat-2-02.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-2/sinh-nhat-2-03.jpg',
+            'images/albums/sinh-nhat/sinh-nhat-2/sinh-nhat-2-04.jpg'
           ] }
       ]
     },
     {
       slug: 'be-lon',
       name: 'Bé lớn',
-      cover: 'images/services/be-lon.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
-      desc: 'Bé từ khoảng 2 đến 10 tuổi, ngoại cảnh hoặc trong studio, có thể chụp thêm cùng bố mẹ trong buổi.',
+      cover: 'images/services/be-lon.jpg',
+      desc: 'Giai đoạn bé đã biết đi, biết biểu cảm tự nhiên, hoạt bát trước ống kính.',
       concepts: [
-        { slug: 'fruity-summer', name: 'Fruity Summer', desc: 'Nền vàng tươi, xe đẩy siêu thị và trái cây nhồi bông mùa hè.',
+        { slug: 'alice', name: 'Alice', desc: 'Concept Alice chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/fruity-summer/fruity-summer-01.jpg',
-            'images/albums/be-lon/fruity-summer/fruity-summer-02.jpg',
-            'images/albums/be-lon/fruity-summer/fruity-summer-03.jpg',
-            'images/albums/be-lon/fruity-summer/fruity-summer-04.jpg',
-            'images/albums/be-lon/fruity-summer/fruity-summer-05.jpg'
+            'images/albums/be-lon/alice/alice-01.jpg',
+            'images/albums/be-lon/alice/alice-02.jpg',
+            'images/albums/be-lon/alice/alice-03.jpg',
+            'images/albums/be-lon/alice/alice-04.jpg',
+            'images/albums/be-lon/alice/alice-05.jpg'
           ] },
-        { slug: 'korea-princess', name: 'Korea Princess', desc: 'Hanbok hồng, bóng bay trắng trên nền xanh lá dịu mắt.',
+        { slug: 'basic-concept-be-gai', name: 'Basic concept (Bé gái)', desc: 'Concept Basic concept (Bé gái) chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/korea-princess/korea-princess-01.jpg',
-            'images/albums/be-lon/korea-princess/korea-princess-02.jpg',
-            'images/albums/be-lon/korea-princess/korea-princess-03.jpg',
-            'images/albums/be-lon/korea-princess/korea-princess-04.jpg',
-            'images/albums/be-lon/korea-princess/korea-princess-05.jpg'
+            'images/albums/be-lon/basic-concept-be-gai/basic-concept-be-gai-01.jpg',
+            'images/albums/be-lon/basic-concept-be-gai/basic-concept-be-gai-02.jpg',
+            'images/albums/be-lon/basic-concept-be-gai/basic-concept-be-gai-03.jpg'
           ] },
-        { slug: 'honey-bee', name: 'Honey Bee', desc: 'Bé hoá chú ong nhỏ bên tổ mật vàng óng.',
+        { slug: 'basic-concept-be-trai', name: 'Basic concept (Bé trai)', desc: 'Concept Basic concept (Bé trai) chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/honey-bee/honey-bee-01.jpg',
-            'images/albums/be-lon/honey-bee/honey-bee-02.jpg',
-            'images/albums/be-lon/honey-bee/honey-bee-03.jpg',
-            'images/albums/be-lon/honey-bee/honey-bee-04.jpg',
-            'images/albums/be-lon/honey-bee/honey-bee-05.jpg'
+            'images/albums/be-lon/basic-concept-be-trai/basic-concept-be-trai-01.jpg',
+            'images/albums/be-lon/basic-concept-be-trai/basic-concept-be-trai-02.jpg',
+            'images/albums/be-lon/basic-concept-be-trai/basic-concept-be-trai-03.jpg',
+            'images/albums/be-lon/basic-concept-be-trai/basic-concept-be-trai-04.jpg'
           ] },
-        { slug: 'swan-ballet', name: 'Swan Ballet', desc: 'Váy múa trắng, cài lông vũ, nhẹ nhàng như thiên nga.',
+        { slug: 'basic-concept-2', name: 'Basic concept 2', desc: 'Concept Basic concept 2 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/swan-ballet/swan-ballet-01.jpg',
-            'images/albums/be-lon/swan-ballet/swan-ballet-02.jpg',
-            'images/albums/be-lon/swan-ballet/swan-ballet-03.jpg',
-            'images/albums/be-lon/swan-ballet/swan-ballet-04.jpg',
-            'images/albums/be-lon/swan-ballet/swan-ballet-05.jpg'
+            'images/albums/be-lon/basic-concept-2/basic-concept-2-01.jpg',
+            'images/albums/be-lon/basic-concept-2/basic-concept-2-02.jpg',
+            'images/albums/be-lon/basic-concept-2/basic-concept-2-03.jpg',
+            'images/albums/be-lon/basic-concept-2/basic-concept-2-04.jpg'
           ] },
-        { slug: 'happy-farm', name: 'Happy Farm', desc: 'Nông trại vui vẻ với rơm vàng, rau củ và bí ngô.',
+        { slug: 'basic-concept-3', name: 'Basic concept 3', desc: 'Concept Basic concept 3 chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/happy-farm/happy-farm-01.jpg',
-            'images/albums/be-lon/happy-farm/happy-farm-02.jpg',
-            'images/albums/be-lon/happy-farm/happy-farm-03.jpg',
-            'images/albums/be-lon/happy-farm/happy-farm-04.jpg'
+            'images/albums/be-lon/basic-concept-3/basic-concept-3-01.jpg',
+            'images/albums/be-lon/basic-concept-3/basic-concept-3-02.jpg',
+            'images/albums/be-lon/basic-concept-3/basic-concept-3-03.jpg',
+            'images/albums/be-lon/basic-concept-3/basic-concept-3-04.jpg'
           ] },
-        { slug: 'thong-nhat-non-song', name: 'Thống Nhất Non Sông', desc: 'Áo trắng khăn quàng đỏ, cờ đỏ sao vàng, mừng ngày thống nhất.',
+        { slug: 'blooming-baby', name: 'Blooming baby', desc: 'Concept Blooming baby chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-01.jpg',
-            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-02.jpg',
-            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-03.jpg',
-            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-04.jpg',
-            'images/albums/be-lon/thong-nhat-non-song/thong-nhat-non-song-05.jpg'
+            'images/albums/be-lon/blooming-baby/blooming-baby-01.jpg',
+            'images/albums/be-lon/blooming-baby/blooming-baby-02.jpg',
+            'images/albums/be-lon/blooming-baby/blooming-baby-03.jpg',
+            'images/albums/be-lon/blooming-baby/blooming-baby-04.jpg',
+            'images/albums/be-lon/blooming-baby/blooming-baby-05.jpg'
           ] },
-        { slug: 'little-muse', name: 'Little Muse', desc: 'Váy trắng bồng, giỏ mây và hoa nhỏ, tông trắng kem.',
+        { slug: 'be-ca-concept', name: 'Bé cá concept', desc: 'Concept Bé cá concept chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/little-muse/little-muse-01.jpg',
-            'images/albums/be-lon/little-muse/little-muse-02.jpg',
-            'images/albums/be-lon/little-muse/little-muse-03.jpg',
-            'images/albums/be-lon/little-muse/little-muse-04.jpg',
-            'images/albums/be-lon/little-muse/little-muse-05.jpg'
+            'images/albums/be-lon/be-ca-concept/be-ca-concept-01.jpg',
+            'images/albums/be-lon/be-ca-concept/be-ca-concept-02.jpg',
+            'images/albums/be-lon/be-ca-concept/be-ca-concept-03.jpg',
+            'images/albums/be-lon/be-ca-concept/be-ca-concept-04.jpg',
+            'images/albums/be-lon/be-ca-concept/be-ca-concept-05.jpg'
           ] },
-        { slug: 'than-tai', name: 'Em Bé Thần Tài', desc: 'Áo đỏ mũ quan, thỏi vàng lấp lánh, cầu chúc năm mới phát tài.',
+        { slug: 'bach-tuyet', name: 'Bạch tuyết', desc: 'Concept Bạch tuyết chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/than-tai/than-tai-01.jpg',
-            'images/albums/be-lon/than-tai/than-tai-02.jpg',
-            'images/albums/be-lon/than-tai/than-tai-03.jpg',
-            'images/albums/be-lon/than-tai/than-tai-04.jpg',
-            'images/albums/be-lon/than-tai/than-tai-05.jpg'
+            'images/albums/be-lon/bach-tuyet/bach-tuyet-01.jpg',
+            'images/albums/be-lon/bach-tuyet/bach-tuyet-02.jpg',
+            'images/albums/be-lon/bach-tuyet/bach-tuyet-03.jpg',
+            'images/albums/be-lon/bach-tuyet/bach-tuyet-04.jpg',
+            'images/albums/be-lon/bach-tuyet/bach-tuyet-05.jpg'
           ] },
-        { slug: 'em-be-to-he', name: 'Em Bé Tò He', desc: 'Gánh tò he, mái ngói đỏ và áo dài cách tân, đậm chất Tết xưa.',
+        { slug: 'chu-chuot-nho', name: 'Chú chuột nhỏ', desc: 'Concept Chú chuột nhỏ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/em-be-to-he/em-be-to-he-01.jpg',
-            'images/albums/be-lon/em-be-to-he/em-be-to-he-02.jpg',
-            'images/albums/be-lon/em-be-to-he/em-be-to-he-03.jpg',
-            'images/albums/be-lon/em-be-to-he/em-be-to-he-04.jpg',
-            'images/albums/be-lon/em-be-to-he/em-be-to-he-05.jpg'
+            'images/albums/be-lon/chu-chuot-nho/chu-chuot-nho-01.jpg',
+            'images/albums/be-lon/chu-chuot-nho/chu-chuot-nho-02.jpg',
+            'images/albums/be-lon/chu-chuot-nho/chu-chuot-nho-03.jpg',
+            'images/albums/be-lon/chu-chuot-nho/chu-chuot-nho-04.jpg'
           ] },
-        { slug: 'du-xuan', name: 'Du Xuân', desc: 'Áo dài đỏ, gánh hoa cúc và bao lì xì, rộn ràng đầu xuân.',
+        { slug: 'chu-ong-nho', name: 'Chú ong nhỏ', desc: 'Concept Chú ong nhỏ chụp tại studio ALOHA Baby.',
           photos: [
-            'images/albums/be-lon/du-xuan/du-xuan-01.jpg',
-            'images/albums/be-lon/du-xuan/du-xuan-02.jpg',
-            'images/albums/be-lon/du-xuan/du-xuan-03.jpg',
-            'images/albums/be-lon/du-xuan/du-xuan-04.jpg',
-            'images/albums/be-lon/du-xuan/du-xuan-05.jpg'
+            'images/albums/be-lon/chu-ong-nho/chu-ong-nho-01.jpg',
+            'images/albums/be-lon/chu-ong-nho/chu-ong-nho-02.jpg',
+            'images/albums/be-lon/chu-ong-nho/chu-ong-nho-03.jpg',
+            'images/albums/be-lon/chu-ong-nho/chu-ong-nho-04.jpg',
+            'images/albums/be-lon/chu-ong-nho/chu-ong-nho-05.jpg'
+          ] },
+        { slug: 'concept-bong-hoa-nho', name: 'Concept bông hoa nhỏ', desc: 'Concept Concept bông hoa nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/concept-bong-hoa-nho/concept-bong-hoa-nho-01.jpg',
+            'images/albums/be-lon/concept-bong-hoa-nho/concept-bong-hoa-nho-02.jpg',
+            'images/albums/be-lon/concept-bong-hoa-nho/concept-bong-hoa-nho-03.jpg',
+            'images/albums/be-lon/concept-bong-hoa-nho/concept-bong-hoa-nho-04.jpg'
+          ] },
+        { slug: 'concept-hoa-nhi', name: 'Concept hoa nhí', desc: 'Concept Concept hoa nhí chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-01.jpg',
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-02.jpg',
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-03.jpg',
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-04.jpg',
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-05.jpg',
+            'images/albums/be-lon/concept-hoa-nhi/concept-hoa-nhi-06.jpg'
+          ] },
+        { slug: 'concept-mua-thu', name: 'Concept mùa thu', desc: 'Concept Concept mùa thu chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/concept-mua-thu/concept-mua-thu-01.jpg',
+            'images/albums/be-lon/concept-mua-thu/concept-mua-thu-02.jpg',
+            'images/albums/be-lon/concept-mua-thu/concept-mua-thu-03.jpg',
+            'images/albums/be-lon/concept-mua-thu/concept-mua-thu-04.jpg',
+            'images/albums/be-lon/concept-mua-thu/concept-mua-thu-05.jpg'
+          ] },
+        { slug: 'concept-nha-tham-hiem', name: 'Concept nhà thám hiểm', desc: 'Concept Concept nhà thám hiểm chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-01.jpg',
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-02.jpg',
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-03.jpg',
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-04.jpg',
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-05.jpg',
+            'images/albums/be-lon/concept-nha-tham-hiem/concept-nha-tham-hiem-06.jpg'
+          ] },
+        { slug: 'concept-vit-nho', name: 'Concept vịt nhỏ', desc: 'Concept Concept vịt nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/concept-vit-nho/concept-vit-nho-01.jpg',
+            'images/albums/be-lon/concept-vit-nho/concept-vit-nho-02.jpg',
+            'images/albums/be-lon/concept-vit-nho/concept-vit-nho-03.jpg',
+            'images/albums/be-lon/concept-vit-nho/concept-vit-nho-04.jpg'
+          ] },
+        { slug: 'co-gai-nho', name: 'Cô gái nhỏ', desc: 'Concept Cô gái nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/co-gai-nho/co-gai-nho-01.jpg',
+            'images/albums/be-lon/co-gai-nho/co-gai-nho-02.jpg',
+            'images/albums/be-lon/co-gai-nho/co-gai-nho-03.jpg',
+            'images/albums/be-lon/co-gai-nho/co-gai-nho-04.jpg',
+            'images/albums/be-lon/co-gai-nho/co-gai-nho-05.jpg'
+          ] },
+        { slug: 'co-phu-thuy-nho', name: 'Cô phù thuỷ nhỏ', desc: 'Concept Cô phù thuỷ nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/co-phu-thuy-nho/co-phu-thuy-nho-01.jpg',
+            'images/albums/be-lon/co-phu-thuy-nho/co-phu-thuy-nho-02.jpg',
+            'images/albums/be-lon/co-phu-thuy-nho/co-phu-thuy-nho-03.jpg',
+            'images/albums/be-lon/co-phu-thuy-nho/co-phu-thuy-nho-04.jpg',
+            'images/albums/be-lon/co-phu-thuy-nho/co-phu-thuy-nho-05.jpg'
+          ] },
+        { slug: 'cong-chua-toc-may', name: 'Công chúa tóc mây', desc: 'Concept Công chúa tóc mây chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/cong-chua-toc-may/cong-chua-toc-may-01.jpg',
+            'images/albums/be-lon/cong-chua-toc-may/cong-chua-toc-may-02.jpg',
+            'images/albums/be-lon/cong-chua-toc-may/cong-chua-toc-may-03.jpg',
+            'images/albums/be-lon/cong-chua-toc-may/cong-chua-toc-may-04.jpg'
+          ] },
+        { slug: 'dau-tay-hong', name: 'Dâu tây hồng', desc: 'Concept Dâu tây hồng chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-01.jpg',
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-02.jpg',
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-03.jpg',
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-04.jpg',
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-05.jpg',
+            'images/albums/be-lon/dau-tay-hong/dau-tay-hong-06.jpg'
+          ] },
+        { slug: 'giac-mo-vui-ve', name: 'Giấc mơ vui vẻ', desc: 'Concept Giấc mơ vui vẻ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/giac-mo-vui-ve/giac-mo-vui-ve-01.jpg',
+            'images/albums/be-lon/giac-mo-vui-ve/giac-mo-vui-ve-02.jpg',
+            'images/albums/be-lon/giac-mo-vui-ve/giac-mo-vui-ve-03.jpg',
+            'images/albums/be-lon/giac-mo-vui-ve/giac-mo-vui-ve-04.jpg',
+            'images/albums/be-lon/giac-mo-vui-ve/giac-mo-vui-ve-05.jpg'
+          ] },
+        { slug: 'halloween-1', name: 'Halloween 1', desc: 'Concept Halloween 1 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/halloween-1/halloween-1-01.jpg',
+            'images/albums/be-lon/halloween-1/halloween-1-02.jpg',
+            'images/albums/be-lon/halloween-1/halloween-1-03.jpg',
+            'images/albums/be-lon/halloween-1/halloween-1-04.jpg',
+            'images/albums/be-lon/halloween-1/halloween-1-05.jpg'
+          ] },
+        { slug: 'halloween-2', name: 'Halloween 2', desc: 'Concept Halloween 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/halloween-2/halloween-2-01.jpg',
+            'images/albums/be-lon/halloween-2/halloween-2-02.jpg',
+            'images/albums/be-lon/halloween-2/halloween-2-03.jpg',
+            'images/albums/be-lon/halloween-2/halloween-2-04.jpg',
+            'images/albums/be-lon/halloween-2/halloween-2-05.jpg',
+            'images/albums/be-lon/halloween-2/halloween-2-06.jpg'
+          ] },
+        { slug: 'halloween-3', name: 'Halloween 3', desc: 'Concept Halloween 3 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/halloween-3/halloween-3-01.jpg',
+            'images/albums/be-lon/halloween-3/halloween-3-02.jpg',
+            'images/albums/be-lon/halloween-3/halloween-3-03.jpg',
+            'images/albums/be-lon/halloween-3/halloween-3-04.jpg',
+            'images/albums/be-lon/halloween-3/halloween-3-05.jpg'
+          ] },
+        { slug: 'hanbok-baby', name: 'Hanbok baby', desc: 'Concept Hanbok baby chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-01.jpg',
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-02.jpg',
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-03.jpg',
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-04.jpg',
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-05.jpg',
+            'images/albums/be-lon/hanbok-baby/hanbok-baby-06.jpg'
+          ] },
+        { slug: 'hary-potter', name: 'Hary potter', desc: 'Concept Hary potter chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/hary-potter/hary-potter-01.jpg',
+            'images/albums/be-lon/hary-potter/hary-potter-02.jpg',
+            'images/albums/be-lon/hary-potter/hary-potter-03.jpg',
+            'images/albums/be-lon/hary-potter/hary-potter-04.jpg'
+          ] },
+        { slug: 'hary-potter-2', name: 'Hary potter 2', desc: 'Concept Hary potter 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/hary-potter-2/hary-potter-2-01.jpg',
+            'images/albums/be-lon/hary-potter-2/hary-potter-2-02.jpg',
+            'images/albums/be-lon/hary-potter-2/hary-potter-2-03.jpg',
+            'images/albums/be-lon/hary-potter-2/hary-potter-2-04.jpg'
+          ] },
+        { slug: 'hy-lan', name: 'Hỷ lân', desc: 'Concept Hỷ lân chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/hy-lan/hy-lan-01.jpg',
+            'images/albums/be-lon/hy-lan/hy-lan-02.jpg',
+            'images/albums/be-lon/hy-lan/hy-lan-03.jpg',
+            'images/albums/be-lon/hy-lan/hy-lan-04.jpg',
+            'images/albums/be-lon/hy-lan/hy-lan-05.jpg',
+            'images/albums/be-lon/hy-lan/hy-lan-06.jpg'
+          ] },
+        { slug: 'khu-vuon-co-tich', name: 'Khu vườn cổ tích', desc: 'Concept Khu vườn cổ tích chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/khu-vuon-co-tich/khu-vuon-co-tich-01.jpg',
+            'images/albums/be-lon/khu-vuon-co-tich/khu-vuon-co-tich-02.jpg',
+            'images/albums/be-lon/khu-vuon-co-tich/khu-vuon-co-tich-03.jpg',
+            'images/albums/be-lon/khu-vuon-co-tich/khu-vuon-co-tich-04.jpg',
+            'images/albums/be-lon/khu-vuon-co-tich/khu-vuon-co-tich-05.jpg'
+          ] },
+        { slug: 'little-boy', name: 'Little boy', desc: 'Concept Little boy chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/little-boy/little-boy-01.jpg',
+            'images/albums/be-lon/little-boy/little-boy-02.jpg',
+            'images/albums/be-lon/little-boy/little-boy-03.jpg',
+            'images/albums/be-lon/little-boy/little-boy-04.jpg'
+          ] },
+        { slug: 'little-girl', name: 'Little girl', desc: 'Concept Little girl chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/little-girl/little-girl-01.jpg',
+            'images/albums/be-lon/little-girl/little-girl-02.jpg',
+            'images/albums/be-lon/little-girl/little-girl-03.jpg',
+            'images/albums/be-lon/little-girl/little-girl-04.jpg'
+          ] },
+        { slug: 'marry-christmas', name: 'Marry christmas', desc: 'Concept Marry christmas chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/marry-christmas/marry-christmas-01.jpg',
+            'images/albums/be-lon/marry-christmas/marry-christmas-02.jpg',
+            'images/albums/be-lon/marry-christmas/marry-christmas-03.jpg',
+            'images/albums/be-lon/marry-christmas/marry-christmas-04.jpg',
+            'images/albums/be-lon/marry-christmas/marry-christmas-05.jpg'
+          ] },
+        { slug: 'marry-christmas-2', name: 'Marry christmas 2', desc: 'Concept Marry christmas 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/marry-christmas-2/marry-christmas-2-01.jpg',
+            'images/albums/be-lon/marry-christmas-2/marry-christmas-2-02.jpg',
+            'images/albums/be-lon/marry-christmas-2/marry-christmas-2-03.jpg',
+            'images/albums/be-lon/marry-christmas-2/marry-christmas-2-04.jpg'
+          ] },
+        { slug: 'marry-christmas-3', name: 'Marry christmas 3', desc: 'Concept Marry christmas 3 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/marry-christmas-3/marry-christmas-3-01.jpg',
+            'images/albums/be-lon/marry-christmas-3/marry-christmas-3-02.jpg',
+            'images/albums/be-lon/marry-christmas-3/marry-christmas-3-03.jpg',
+            'images/albums/be-lon/marry-christmas-3/marry-christmas-3-04.jpg'
+          ] },
+        { slug: 'marry-christmas-4', name: 'Marry christmas 4', desc: 'Concept Marry christmas 4 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/marry-christmas-4/marry-christmas-4-01.jpg',
+            'images/albums/be-lon/marry-christmas-4/marry-christmas-4-02.jpg',
+            'images/albums/be-lon/marry-christmas-4/marry-christmas-4-03.jpg',
+            'images/albums/be-lon/marry-christmas-4/marry-christmas-4-04.jpg'
+          ] },
+        { slug: 'mat-troi-nho', name: 'Mặt trời nhỏ', desc: 'Concept Mặt trời nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/mat-troi-nho/mat-troi-nho-01.jpg',
+            'images/albums/be-lon/mat-troi-nho/mat-troi-nho-02.jpg',
+            'images/albums/be-lon/mat-troi-nho/mat-troi-nho-03.jpg',
+            'images/albums/be-lon/mat-troi-nho/mat-troi-nho-04.jpg'
+          ] },
+        { slug: 'nong-trai-vui-ve', name: 'Nông trại vui vẻ', desc: 'Concept Nông trại vui vẻ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/nong-trai-vui-ve/nong-trai-vui-ve-01.jpg',
+            'images/albums/be-lon/nong-trai-vui-ve/nong-trai-vui-ve-02.jpg',
+            'images/albums/be-lon/nong-trai-vui-ve/nong-trai-vui-ve-03.jpg',
+            'images/albums/be-lon/nong-trai-vui-ve/nong-trai-vui-ve-04.jpg',
+            'images/albums/be-lon/nong-trai-vui-ve/nong-trai-vui-ve-05.jpg'
+          ] },
+        { slug: 'ponyo-boy', name: 'Ponyo boy', desc: 'Concept Ponyo boy chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/ponyo-boy/ponyo-boy-01.jpg',
+            'images/albums/be-lon/ponyo-boy/ponyo-boy-02.jpg',
+            'images/albums/be-lon/ponyo-boy/ponyo-boy-03.jpg',
+            'images/albums/be-lon/ponyo-boy/ponyo-boy-04.jpg',
+            'images/albums/be-lon/ponyo-boy/ponyo-boy-05.jpg'
+          ] },
+        { slug: 'qua-tao-nho', name: 'Quả táo nhỏ', desc: 'Concept Quả táo nhỏ chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/qua-tao-nho/qua-tao-nho-01.jpg',
+            'images/albums/be-lon/qua-tao-nho/qua-tao-nho-02.jpg',
+            'images/albums/be-lon/qua-tao-nho/qua-tao-nho-03.jpg',
+            'images/albums/be-lon/qua-tao-nho/qua-tao-nho-04.jpg'
+          ] },
+        { slug: 'summer-vibe', name: 'Summer vibe', desc: 'Concept Summer vibe chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/summer-vibe/summer-vibe-01.jpg',
+            'images/albums/be-lon/summer-vibe/summer-vibe-02.jpg',
+            'images/albums/be-lon/summer-vibe/summer-vibe-03.jpg',
+            'images/albums/be-lon/summer-vibe/summer-vibe-04.jpg'
+          ] },
+        { slug: 'summer-vibe-2', name: 'Summer vibe 2', desc: 'Concept Summer vibe 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/summer-vibe-2/summer-vibe-2-01.jpg',
+            'images/albums/be-lon/summer-vibe-2/summer-vibe-2-02.jpg',
+            'images/albums/be-lon/summer-vibe-2/summer-vibe-2-03.jpg',
+            'images/albums/be-lon/summer-vibe-2/summer-vibe-2-04.jpg',
+            'images/albums/be-lon/summer-vibe-2/summer-vibe-2-05.jpg'
+          ] },
+        { slug: 'summer-vibe-3', name: 'Summer vibe 3', desc: 'Concept Summer vibe 3 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/summer-vibe-3/summer-vibe-3-01.jpg',
+            'images/albums/be-lon/summer-vibe-3/summer-vibe-3-02.jpg',
+            'images/albums/be-lon/summer-vibe-3/summer-vibe-3-03.jpg',
+            'images/albums/be-lon/summer-vibe-3/summer-vibe-3-04.jpg'
+          ] },
+        { slug: 'trung-thu', name: 'Trung thu', desc: 'Concept Trung thu chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/trung-thu/trung-thu-01.jpg',
+            'images/albums/be-lon/trung-thu/trung-thu-02.jpg',
+            'images/albums/be-lon/trung-thu/trung-thu-03.jpg',
+            'images/albums/be-lon/trung-thu/trung-thu-04.jpg',
+            'images/albums/be-lon/trung-thu/trung-thu-05.jpg',
+            'images/albums/be-lon/trung-thu/trung-thu-06.jpg'
+          ] },
+        { slug: 'tet', name: 'Tết', desc: 'Concept Tết chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/tet/tet-01.jpg',
+            'images/albums/be-lon/tet/tet-02.jpg',
+            'images/albums/be-lon/tet/tet-03.jpg',
+            'images/albums/be-lon/tet/tet-04.jpg'
+          ] },
+        { slug: 'tet-doc-lap', name: 'Tết độc lập', desc: 'Concept Tết độc lập chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-01.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-02.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-03.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-04.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-05.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-06.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-07.jpg',
+            'images/albums/be-lon/tet-doc-lap/tet-doc-lap-08.jpg'
+          ] },
+        { slug: 'tet-doc-lap-2', name: 'Tết độc lập 2', desc: 'Concept Tết độc lập 2 chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-01.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-02.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-03.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-04.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-05.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-06.jpg',
+            'images/albums/be-lon/tet-doc-lap-2/tet-doc-lap-2-07.jpg'
+          ] },
+        { slug: 'vit-donal', name: 'Vịt donal', desc: 'Concept Vịt donal chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/be-lon/vit-donal/vit-donal-01.jpg',
+            'images/albums/be-lon/vit-donal/vit-donal-02.jpg',
+            'images/albums/be-lon/vit-donal/vit-donal-03.jpg',
+            'images/albums/be-lon/vit-donal/vit-donal-04.jpg'
           ] }
       ]
     },
     {
       slug: 'gia-dinh',
       name: 'Gia đình',
-      cover: 'images/services/gia-dinh.jpg', // ảnh bìa ô dịch vụ trang chủ, nguồn: images/services/sources.json
-      desc: 'Không giới hạn số thành viên, chụp được nhiều thế hệ trong cùng một buổi.',
+      cover: 'images/services/gia-dinh.jpg',
+      desc: 'Bức ảnh sum vầy của ba mẹ, con cái và ông bà, lưu giữ tình cảm ấm áp qua từng thế hệ.',
       concepts: [
-        { slug: 'strawberry-garden', name: 'Strawberry Garden', desc: 'Mẹ và bé váy trắng giữa khu vườn dâu tây.',
-          photos: [
-            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-01.jpg',
-            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-02.jpg',
-            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-03.jpg',
-            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-04.jpg',
-            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-05.jpg'
-          ] },
-        { slug: 'simple-love', name: 'Simple Love', desc: 'Cả nhà tông trắng kem, bóng bay và hoa nhẹ nhàng.',
-          photos: [
-            'images/albums/gia-dinh/simple-love/simple-love-01.jpg',
-            'images/albums/gia-dinh/simple-love/simple-love-02.jpg',
-            'images/albums/gia-dinh/simple-love/simple-love-03.jpg',
-            'images/albums/gia-dinh/simple-love/simple-love-04.jpg',
-            'images/albums/gia-dinh/simple-love/simple-love-05.jpg'
-          ] },
-        { slug: 'blue-family', name: 'Blue Family', desc: 'Bố mẹ và bé đồng phục xanh pastel, vui nhộn và trẻ trung.',
+        { slug: 'blue-family', name: 'Blue family', desc: 'Concept Blue family chụp tại studio ALOHA Baby.',
           photos: [
             'images/albums/gia-dinh/blue-family/blue-family-01.jpg',
             'images/albums/gia-dinh/blue-family/blue-family-02.jpg',
             'images/albums/gia-dinh/blue-family/blue-family-03.jpg',
-            'images/albums/gia-dinh/blue-family/blue-family-04.jpg',
-            'images/albums/gia-dinh/blue-family/blue-family-05.jpg'
+            'images/albums/gia-dinh/blue-family/blue-family-04.jpg'
           ] },
-        { slug: 'fruity-family', name: 'Fruity Family', desc: 'Nền vàng tươi, dưa hấu và trái cây, không khí mùa hè.',
+        { slug: 'con-dau-long', name: 'Con đầu lòng', desc: 'Concept Con đầu lòng chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/con-dau-long/con-dau-long-01.jpg',
+            'images/albums/gia-dinh/con-dau-long/con-dau-long-02.jpg',
+            'images/albums/gia-dinh/con-dau-long/con-dau-long-03.jpg',
+            'images/albums/gia-dinh/con-dau-long/con-dau-long-04.jpg'
+          ] },
+        { slug: 'fruity-family', name: 'Fruity family', desc: 'Concept Fruity family chụp tại studio ALOHA Baby.',
           photos: [
             'images/albums/gia-dinh/fruity-family/fruity-family-01.jpg',
             'images/albums/gia-dinh/fruity-family/fruity-family-02.jpg',
             'images/albums/gia-dinh/fruity-family/fruity-family-03.jpg',
-            'images/albums/gia-dinh/fruity-family/fruity-family-04.jpg',
-            'images/albums/gia-dinh/fruity-family/fruity-family-05.jpg'
+            'images/albums/gia-dinh/fruity-family/fruity-family-04.jpg'
           ] },
-        { slug: 'home-sweet-home', name: 'Home Sweet Home', desc: 'Cả nhà đồng phục yếm jean trên nền đỏ gạch, bóng bay trắng.',
+        { slug: 'home-sweet-home', name: 'Home sweet home', desc: 'Concept Home sweet home chụp tại studio ALOHA Baby.',
           photos: [
             'images/albums/gia-dinh/home-sweet-home/home-sweet-home-01.jpg',
             'images/albums/gia-dinh/home-sweet-home/home-sweet-home-02.jpg',
             'images/albums/gia-dinh/home-sweet-home/home-sweet-home-03.jpg',
-            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-04.jpg',
-            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-05.jpg'
+            'images/albums/gia-dinh/home-sweet-home/home-sweet-home-04.jpg'
           ] },
-        { slug: 'xuan-kim-phuc', name: 'Xuân Kim Phúc', desc: 'Áo dài kem, ô giấy và bình phong hoạ tiết, sang trọng ngày xuân.',
-          photos: [
-            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-01.jpg',
-            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-02.jpg',
-            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-03.jpg',
-            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-04.jpg',
-            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-05.jpg'
-          ] },
-        { slug: 'phu-quy', name: 'Phú Quý', desc: 'Ông bà, bố mẹ và các cháu áo dài, bức ảnh nhiều thế hệ.',
-          photos: [
-            'images/albums/gia-dinh/phu-quy/phu-quy-01.jpg',
-            'images/albums/gia-dinh/phu-quy/phu-quy-02.jpg',
-            'images/albums/gia-dinh/phu-quy/phu-quy-03.jpg',
-            'images/albums/gia-dinh/phu-quy/phu-quy-04.jpg',
-            'images/albums/gia-dinh/phu-quy/phu-quy-05.jpg'
-          ] },
-        { slug: 'tet-doan-vien', name: 'Tết Đoàn Viên', desc: 'Áo dài đỏ, phông chữ Tết, cả nhà sum vầy ngày đầu năm.',
-          photos: [
-            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-01.jpg',
-            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-02.jpg',
-            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-03.jpg',
-            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-04.jpg',
-            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-05.jpg'
-          ] },
-        { slug: 'xuan-hong-phuc', name: 'Xuân Hồng Phúc', desc: 'Áo dài đỏ trên nền xanh, trống đỏ và cành đào ngày Tết.',
-          photos: [
-            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-01.jpg',
-            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-02.jpg',
-            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-03.jpg',
-            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-04.jpg',
-            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-05.jpg'
-          ] },
-        { slug: 'merry-christmas', name: 'Merry Christmas', desc: 'Pyjama kẻ đỏ cả nhà, cây thông và lò sưởi ấm áp.',
+        { slug: 'merry-christmas', name: 'Merry christmas', desc: 'Concept Merry christmas chụp tại studio ALOHA Baby.',
           photos: [
             'images/albums/gia-dinh/merry-christmas/merry-christmas-01.jpg',
             'images/albums/gia-dinh/merry-christmas/merry-christmas-02.jpg',
             'images/albums/gia-dinh/merry-christmas/merry-christmas-03.jpg',
-            'images/albums/gia-dinh/merry-christmas/merry-christmas-04.jpg',
-            'images/albums/gia-dinh/merry-christmas/merry-christmas-05.jpg'
+            'images/albums/gia-dinh/merry-christmas/merry-christmas-04.jpg'
+          ] },
+        { slug: 'me-con-ngay-tet', name: 'Mẹ con ngày Tết', desc: 'Concept Mẹ con ngày Tết chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/me-con-ngay-tet/me-con-ngay-tet-01.jpg',
+            'images/albums/gia-dinh/me-con-ngay-tet/me-con-ngay-tet-02.jpg',
+            'images/albums/gia-dinh/me-con-ngay-tet/me-con-ngay-tet-03.jpg'
+          ] },
+        { slug: 'nha-minh-co-hoa', name: 'Nhà mình có hoa', desc: 'Concept Nhà mình có hoa chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/nha-minh-co-hoa/nha-minh-co-hoa-01.jpg',
+            'images/albums/gia-dinh/nha-minh-co-hoa/nha-minh-co-hoa-02.jpg',
+            'images/albums/gia-dinh/nha-minh-co-hoa/nha-minh-co-hoa-03.jpg',
+            'images/albums/gia-dinh/nha-minh-co-hoa/nha-minh-co-hoa-04.jpg'
+          ] },
+        { slug: 'phu-quy', name: 'Phú quý', desc: 'Concept Phú quý chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/phu-quy/phu-quy-01.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-02.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-03.jpg',
+            'images/albums/gia-dinh/phu-quy/phu-quy-04.jpg'
+          ] },
+        { slug: 'simple-love', name: 'Simple love', desc: 'Concept Simple love chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/simple-love/simple-love-01.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-02.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-03.jpg',
+            'images/albums/gia-dinh/simple-love/simple-love-04.jpg'
+          ] },
+        { slug: 'strawberry-garden', name: 'Strawberry garden', desc: 'Concept Strawberry garden chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-01.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-02.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-03.jpg',
+            'images/albums/gia-dinh/strawberry-garden/strawberry-garden-04.jpg'
+          ] },
+        { slug: 'summer-picnic', name: 'Summer picnic', desc: 'Concept Summer picnic chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/summer-picnic/summer-picnic-01.jpg',
+            'images/albums/gia-dinh/summer-picnic/summer-picnic-02.jpg',
+            'images/albums/gia-dinh/summer-picnic/summer-picnic-03.jpg',
+            'images/albums/gia-dinh/summer-picnic/summer-picnic-04.jpg'
+          ] },
+        { slug: 'tet-nhu-y', name: 'Tết như ý', desc: 'Concept Tết như ý chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/tet-nhu-y/tet-nhu-y-01.jpg',
+            'images/albums/gia-dinh/tet-nhu-y/tet-nhu-y-02.jpg',
+            'images/albums/gia-dinh/tet-nhu-y/tet-nhu-y-03.jpg',
+            'images/albums/gia-dinh/tet-nhu-y/tet-nhu-y-04.jpg'
+          ] },
+        { slug: 'tet-doan-vien', name: 'Tết đoàn viên', desc: 'Concept Tết đoàn viên chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-01.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-02.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-03.jpg',
+            'images/albums/gia-dinh/tet-doan-vien/tet-doan-vien-04.jpg'
+          ] },
+        { slug: 'tet-dau-doi', name: 'Tết đầu đời', desc: 'Concept Tết đầu đời chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/tet-dau-doi/tet-dau-doi-01.jpg',
+            'images/albums/gia-dinh/tet-dau-doi/tet-dau-doi-02.jpg',
+            'images/albums/gia-dinh/tet-dau-doi/tet-dau-doi-03.jpg'
+          ] },
+        { slug: 'xuan-hong-phuc', name: 'Xuân hồng phúc', desc: 'Concept Xuân hồng phúc chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-01.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-02.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-03.jpg',
+            'images/albums/gia-dinh/xuan-hong-phuc/xuan-hong-phuc-04.jpg'
+          ] },
+        { slug: 'xuan-kim-phuc', name: 'Xuân kim phúc', desc: 'Concept Xuân kim phúc chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-01.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-02.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-03.jpg',
+            'images/albums/gia-dinh/xuan-kim-phuc/xuan-kim-phuc-04.jpg'
+          ] },
+        { slug: 'dao-xuan', name: 'Đào xuân', desc: 'Concept Đào xuân chụp tại studio ALOHA Baby.',
+          photos: [
+            'images/albums/gia-dinh/dao-xuan/dao-xuan-01.jpg',
+            'images/albums/gia-dinh/dao-xuan/dao-xuan-02.jpg',
+            'images/albums/gia-dinh/dao-xuan/dao-xuan-03.jpg',
+            'images/albums/gia-dinh/dao-xuan/dao-xuan-04.jpg'
           ] }
       ]
     }
   ];
+
 
   // Chỉ hiện concept đã có ảnh.
   const conceptsOf = (service) => service.concepts.filter((c) => c.photos.length > 0);

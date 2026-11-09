@@ -146,8 +146,8 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
     }
 
     // 4) Lightbox trong 1 concept: mở ảnh, chuyển ảnh, đóng.
-    await page.goto(BASE + '#/album/newborn/baby-butterfly', { waitUntil: 'networkidle0' });
-    const n = services.find((x) => x.slug === 'newborn').concepts.find((c) => c.slug === 'baby-butterfly').count;
+    await page.goto(BASE + '#/album/newborn/cam-cam-baby', { waitUntil: 'networkidle0' });
+    const n = services.find((x) => x.slug === 'newborn').concepts.find((c) => c.slug === 'cam-cam-baby').count;
     await page.click('#galleryGrid .gallery-item');
     await wait(150);
     let lb = await state(page);
