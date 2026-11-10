@@ -675,12 +675,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const albumOf = (service) => ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((s) => s.name === service) || null;
     const albumConcepts = (service) => { const a = albumOf(service); return a ? a.concepts : []; };
     const slugOf = (service) => { const a = albumOf(service); return a ? a.slug : ''; };
-    // Mở trang album: luôn giữ mở khung chat, không thu nhỏ ô chat
+    // Mở trang album: luôn giữ mở khung chat, không thu nhỏ ô chat, điều hướng ngay lập tức
     const openAlbum = (href) => {
-      setTimeout(() => {
-        botNav = true; setTimeout(() => { botNav = false; }, 800); // trang không đổi thì thôi
-        window.location.hash = href.slice(1);
-      }, 400);
+      if (!href) return;
+      if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+        window.AlohaAlbums.clearConsultFilter();
+      }
+      botNav = true;
+      setTimeout(() => { botNav = false; }, 800);
+      const targetHash = href.startsWith('#/') ? href : ('#/' + href.replace(/^#?\/?/, ''));
+      const route = targetHash.slice(2).split('?')[0];
+
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      } else {
+        if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+          window.AlohaRouter.navigateTo(route);
+        } else if (window.AlohaAlbums) {
+          const param = route.replace(/^album\/?/, '');
+          window.AlohaAlbums.render(param);
+        }
+      }
     };
 
     const askConceptService = async () => {
@@ -704,30 +719,45 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const askConcept = async (service) => {
+      const album = albumOf(service);
+      if (album && album.href) {
+        openAlbum(album.href);
+      }
       chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      if (service === 'Bầu' || (album && album.slug === 'bau')) {
+        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+          window.AlohaConceptConsult.startBau();
+          return;
+        }
+      }
+      if (service === 'Gia đình' || (album && album.slug === 'gia-dinh')) {
+        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+          window.AlohaConceptConsult.startGiaDinh();
+          return;
+        }
+      }
       const concepts = albumConcepts(service);
       await botSay(`Dạ ALOHA Baby gửi mình các concept chụp ảnh ${service} bên dưới.\nDịch vụ "${service}" có ${concepts.length} concept. Mình chọn concept muốn xem bên dưới nhé!`, 450);
       showServiceConceptButtons(service);
     };
 
     const showConcept = async (service, concept) => {
+      // Đồng thời điều hướng màn hình bên trái qua concept được chọn ngay lập tức
+      if (concept && concept.href) {
+        openAlbum(concept.href);
+      }
       addImageMsg(concept.cover || (concept.photos && concept.photos[0]), `Ảnh mẫu concept ${concept.name}`, `${service} · ${concept.name} (ảnh minh hoạ, chưa phải ảnh khách hàng thật).`);
       if (concept.desc) await botSay(concept.desc, 500);
       const count = concept.photos ? concept.photos.length : (concept.count || '');
-      await botSay(`Album "${concept.name}" có ${count} ảnh mẫu. Bạn có thể mở xem trọn bộ ảnh trên trang hoặc chọn concept khác bên dưới nhé.`, 450);
+      await botSay(`Album "${concept.name}" có ${count} ảnh mẫu đang được mở trên màn hình bên trái để bạn xem rõ nét nhé. Bạn có thể đặt lịch hoặc xem concept khác bên dưới nhé. 🥰`, 450);
       const items = [
-        C('xem-album', 'Xem trọn bộ ảnh concept này', () => {
-          botSay(`Mình mở album "${concept.name}" cho bạn nhé.`, 350).then(() => {
-            openAlbum(concept.href);
-            showServiceConceptButtons(service);
-          });
-        }, 'mở album ảnh mẫu của concept'),
         C('dat-lich', FEAT.booking === false ? 'Giữ lịch concept này' : 'Đặt lịch concept này', () => confirmBooking(`${service} · ${concept.name}`), 'khách muốn chụp concept này'),
         C('concept-khac', 'Xem concept khác', () => askConcept(service), 'xem concept khác cùng dịch vụ'),
         C('menu', 'Chọn dịch vụ khác', () => {
           botSay('Bạn đang quan tâm concept dịch vụ nào khác ạ?', 350).then(askMainMenu);
-        }, 'các chủ đề tư vấn khác')
-      ];
+        }, 'các chủ đề tư vấn khác'),
+        saleCand()
+      ].filter(Boolean);
       offer(items, items.length);
     };
 
@@ -772,6 +802,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
       if (ctx.service) {
+        if (ctx.service.slug === 'bau') {
+          return {
+            lines: ['Aloha xin chào! Bạn đang quan tâm concept Bầu, dạ không biết mình đang quan tâm phong cách nào ạ .'],
+            teaser: 'Tư vấn concept Bầu'
+          };
+        }
+        if (ctx.service.slug === 'gia-dinh') {
+          return {
+            lines: ['Aloha xin chào! Bạn đang quan tâm concept Gia đình, dạ không biết mình đang quan tâm phong cách nào ạ .'],
+            teaser: 'Tư vấn concept Gia đình'
+          };
+        }
         const count = albumConcepts(ctx.service.name).length;
         return {
           lines: [`Bạn đang quan tâm concept ${ctx.service.name}, ALOHA Baby gửi mình các concept chụp ảnh ${ctx.service.name} bên dưới.\nDịch vụ "${ctx.service.name}" có ${count} concept. Mình chọn concept muốn xem bên dưới nhé!`],
@@ -786,6 +828,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const repliesFor = (ctx) => {
       if (!ctx.service) { askMainMenu(); return; }
       const name = ctx.service.name;
+      if (ctx.service.slug === 'bau') {
+        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+          window.AlohaConceptConsult.startBau(null, null, true);
+          return;
+        }
+      }
+      if (ctx.service.slug === 'gia-dinh') {
+        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+          window.AlohaConceptConsult.startGiaDinh(null, null, true);
+          return;
+        }
+      }
       if (ctx.concept) {
         const items = [
           C('tu-van-concept', 'Tư vấn concept này', () => showConcept(name, ctx.concept), `mô tả, ảnh mẫu concept ${ctx.concept.name}`),
@@ -812,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, delay);
     });
     const greet = async (ctx, replace) => {
+      if (isConsulting()) return;
       const token = ++greetToken;
       greetedKey = ctx.key;
       // Để nguyên những gì đã chat trước đó, chỉ xoá các nút quick replies cũ
@@ -822,10 +877,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (token === greetToken) repliesFor(ctx);
     };
+    const isConsulting = () => !!(window.AlohaConceptConsult && window.AlohaConceptConsult.isConsulting && window.AlohaConceptConsult.isConsulting());
     const serviceOfKey = (key) => key.split('/')[0];
     // Đồng bộ điều hướng 2 chiều giữa Menu web và Chatbot, giữ nguyên lịch sử chat
     const applyContext = async () => {
-      if (!chatStarted || saleMode) return;
+      if (!chatStarted || saleMode || isConsulting()) return;
       const ctx = pageContext();
       if (botNav) { botNav = false; greetedKey = ctx.key; return; }
       if (ctx.key === greetedKey) return;
@@ -834,15 +890,28 @@ document.addEventListener('DOMContentLoaded', () => {
       greetedKey = ctx.key;
       if (ctx.service && newService !== prevService) {
         chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+        if (ctx.service.slug === 'bau') {
+          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+            window.AlohaConceptConsult.startBau();
+            return;
+          }
+        }
+        if (ctx.service.slug === 'gia-dinh') {
+          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+            window.AlohaConceptConsult.startGiaDinh();
+            return;
+          }
+        }
         const count = albumConcepts(ctx.service.name).length;
         await botSay(`Bạn đang quan tâm concept ${ctx.service.name}, ALOHA Baby gửi mình các concept chụp ảnh ${ctx.service.name} bên dưới.\nDịch vụ "${ctx.service.name}" có ${count} concept. Mình chọn concept muốn xem bên dưới nhé!`, 450);
         showServiceConceptButtons(ctx.service.name);
       }
     };
 
-    const startChat = () => {
+    const startChat = (skipGreeting) => {
       if (chatStarted) return;
       chatStarted = true;
+      if (skipGreeting || isConsulting()) return;
       greet(pageContext(), false);
     };
 
@@ -860,12 +929,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const teaserText = document.getElementById('chatTeaserText');
     const hideTeaser = () => { if (teaser) teaser.hidden = true; };
 
-    const openChat = () => {
+    const openChat = (skipGreeting) => {
       chatPanel.classList.add('open');
       chatPanel.setAttribute('aria-hidden', 'false');
       chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
-      startChat();
+      startChat(skipGreeting);
       if (!isCustomerLoggedIn() || !window.AlohaSaleChat) return;
       if (saleMode) { embedSale(); return; }
       const ui = readUi();
@@ -914,7 +983,34 @@ document.addEventListener('DOMContentLoaded', () => {
         hideTeaser();
       }
     };
-    window.addEventListener('hashchange', () => setTimeout(refreshChatForPage, 0));
+    const triggerConsultIfTarget = (targetHash) => {
+      const h = targetHash || window.location.hash || '';
+      if (h === '#/album/bau' || h === '#/album/bau/') {
+        // Đảm bảo mở album Bầu với đầy đủ tất cả concept trước để khách xem
+        openAlbum('#/album/bau');
+        setTimeout(() => {
+          openChat(true);
+          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+            window.AlohaConceptConsult.startBau();
+          }
+        }, 120);
+      } else if (h === '#/album/gia-dinh' || h === '#/album/gia-dinh/') {
+        // Đảm bảo mở album Gia đình với đầy đủ tất cả concept trước để khách xem
+        openAlbum('#/album/gia-dinh');
+        setTimeout(() => {
+          openChat(true);
+          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+            window.AlohaConceptConsult.startGiaDinh();
+          }
+        }, 120);
+      }
+    };
+
+    window.addEventListener('hashchange', () => {
+      setTimeout(refreshChatForPage, 0);
+      setTimeout(() => triggerConsultIfTarget(), 300);
+      triggerConsultIfTarget();
+    });
 
     // Nút "Tư vấn concept ngay" ở section Concept -> mở luôn khung chat tư vấn
     // thay vì dẫn tới link rỗng, khớp đúng flow concept -> tư vấn -> đặt lịch.
@@ -937,8 +1033,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Khi khách bấm vào link album (menu, collage, footer...) kể cả khi đang ở đúng trang đó
     document.querySelectorAll('a[href^="#/album/"]').forEach((a) => {
       a.addEventListener('click', () => {
-        if (window.location.hash === a.getAttribute('href')) {
-          const slug = a.getAttribute('href').replace('#/album/', '').split('/')[0];
+        const href = a.getAttribute('href') || '';
+        if (href === '#/album/bau' || href === '#/album/bau/') {
+          openAlbum('#/album/bau');
+          triggerConsultIfTarget('#/album/bau');
+          return;
+        }
+        if (href === '#/album/gia-dinh' || href === '#/album/gia-dinh/') {
+          openAlbum('#/album/gia-dinh');
+          triggerConsultIfTarget('#/album/gia-dinh');
+          return;
+        }
+        if (window.location.hash === href) {
+          const slug = href.replace('#/album/', '').split('/')[0];
           const s = ((window.AlohaAlbums && window.AlohaAlbums.list) || []).find((x) => x.slug === slug);
           if (s && !saleMode) {
             chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
@@ -1056,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // chat" - khung chat không đẩy khách sang đăng nhập nữa, xem comment ở đầu khối addEventListener
     // chatToggle phía trên).
     setTimeout(refreshChatForPage, 0);
+    setTimeout(() => triggerConsultIfTarget(), 300);
 
     // ---------------------------------------------------------------------
     // Khung nhập tự do -> gọi server proxy (server/) để trả lời bằng Gemini API
