@@ -478,8 +478,30 @@
   }
 
   // ---------- Trang: Hộp thư ----------
+  function convTimeMs(v) {
+    if (!v) return 0;
+    if (typeof v.updatedAt === 'number' && !isNaN(v.updatedAt)) return v.updatedAt;
+    if (v.updatedAt) {
+      const t = new Date(v.updatedAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    if (Array.isArray(v.messages) && v.messages.length) {
+      for (let i = v.messages.length - 1; i >= 0; i--) {
+        const m = v.messages[i];
+        if (m && m.at) {
+          if (typeof m.at === 'number') return m.at;
+          const t = new Date(m.at).getTime();
+          if (!isNaN(t)) return t;
+        }
+      }
+    }
+    const match = String(v.id || '').match(/(\d{10,})/);
+    if (match) return Number(match[1]);
+    return 0;
+  }
+
   function viewInbox(param) {
-    const convs = scoped(db.conversations);
+    const convs = scoped(db.conversations).slice().sort((a, b) => convTimeMs(b) - convTimeMs(a));
     const filters = {
       'chua-tra-loi': v => v.unread && !v.done,
       // Bỏ nhóm "Đã xong" (người dùng yêu cầu 2026-09-27): hội thoại đã xong vẫn nằm trong 2 nhóm dưới.
@@ -1637,9 +1659,12 @@
     if (!c) return;
     let v = db.conversations.find(x => x.customerId === c.id);
     if (!v) {
-      v = { id: 'cv-' + Date.now(), owner: c.owner || me.id, customerId: c.id, channel: 'Chat trực tiếp', time: 'Vừa xong', messages: [] };
+      v = { id: 'cv-' + Date.now(), owner: c.owner || me.id, customerId: c.id, channel: 'Chat trực tiếp', time: 'Vừa xong', updatedAt: Date.now(), messages: [] };
       db.conversations.unshift(v);
+    } else {
+      v.updatedAt = Date.now();
     }
+    db.conversations.sort((a, b) => convTimeMs(b) - convTimeMs(a));
     if (ui.owner !== 'all' && ui.owner !== v.owner) ui.owner = 'all';
     ui.inbox.filter = v.unread && !v.done ? 'chua-tra-loi' : (v.bot ? 'bot' : 'cua-toi');
     closeModal();
@@ -2241,6 +2266,8 @@
         const v = db.conversations.find(x => x.id === LIVE_ID(sum.phone));
         if (full || before !== v.time + ':' + v.unread) changed = true;
       }
+      db.conversations.sort((a, b) => convTimeMs(b) - convTimeMs(a));
+      db.customers.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     } finally {
       liveState.busy = false;
       if (changed) liveRerender();
@@ -2255,6 +2282,7 @@
     if (!t.ok || !t.data.chat) return;
     liveState.seen[v.phone] = t.data.chat.updatedAt;
     liveMerge(Object.assign({}, t.data.chat, { staffUnread: v.unread ? 1 : 0 }), t.data.chat);
+    db.conversations.sort((a, b) => convTimeMs(b) - convTimeMs(a));
     liveRerender();
   }
 
@@ -2274,6 +2302,7 @@
     liveState.seen[v.phone] = chat.updatedAt;
     const claimed = !v.owner;
     liveMerge({ phone: chat.phone, customerName: chat.customerName, topic: chat.topic, updatedAt: chat.updatedAt, staffUnread: 0 }, chat);
+    db.conversations.sort((a, b) => convTimeMs(b) - convTimeMs(a));
     render();
     const inp = document.getElementById('ibInput'); if (inp) inp.focus();
     if (claimed && v.owner === me.id) toast('Bạn đã nhận khách ' + customer(v.customerId).name + '.');

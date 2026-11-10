@@ -2771,9 +2771,9 @@ document.addEventListener('DOMContentLoaded', () => {
           time: cv.time || (last ? last.at : ''),
           last: last,
           messages: msgs,
-          updatedAt: Date.now() - idx * 60000
+          updatedAt: cv.updatedAt || (Date.now() - idx * 60000)
         };
-      });
+      }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     }
 
     let chats = buildLocalChats();
@@ -2848,7 +2848,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!nameMatch && !phoneMatch && !serviceMatch && !saleMatch && !msgMatch) return false;
         }
         return true;
-      });
+      }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     }
 
     function renderInboxList() {
@@ -3053,7 +3053,7 @@ document.addEventListener('DOMContentLoaded', () => {
               serverChats.push(lc);
             }
           });
-          chats = serverChats;
+          chats = serverChats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
           if (activePhone) {
             const t = await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(activePhone));
             if (t && t.ok && t.data.chat) activeChat = t.data.chat;
