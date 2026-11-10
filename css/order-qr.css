@@ -729,6 +729,32 @@
   .btn-text-short {
     display: inline !important;
   }
+  .chat-order-card {
+    padding: 12px 10px !important;
+  }
+  .chat-order-card .coc-qr-box,
+  .chat-order-card .coc-qr-section,
+  .chat-order-card .aor-qr-section {
+    padding: 10px 8px !important;
+    gap: 10px !important;
+  }
+  .chat-order-card .coc-qr-img-wrap,
+  .chat-order-card .aor-qr-img-wrap {
+    width: 100px !important;
+    min-width: 100px !important;
+  }
+  .chat-order-card .coc-qr-img,
+  .chat-order-card .aor-qr-img {
+    width: 100px !important;
+    height: 100px !important;
+    min-width: 100px !important;
+    min-height: 100px !important;
+  }
+  .chat-order-card .coc-label,
+  .chat-order-card .aor-label {
+    width: 80px !important;
+    min-width: 80px !important;
+  }
 }
 
 /* Toast thông báo lịch chụp cho Thợ ảnh */

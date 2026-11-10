@@ -158,6 +158,7 @@
     const confirmed = isOrderConfirmed(data.code);
     const qrUrl = data.qrUrl || getVietQRUrl(data.depositAmount, data.code);
     const memo = data.memo || ('ALOHA ' + data.code);
+    const cleanPkg = String(data.pkg || 'Tiêu chuẩn').replace(/^Gói\s+/i, '').replace(/\s*\([^)]*\)/g, '').trim();
 
     return `
       <div class="chat-order-card ${confirmed ? 'is-confirmed' : 'is-pending'}" data-order-code="${esc(data.code)}" data-amount="${data.depositAmount || ''}">
@@ -182,7 +183,7 @@
           ` : ''}
           <div class="coc-row aor-row">
             <span class="coc-label aor-label">Gói chụp:</span>
-            <span class="coc-val aor-val"><strong>${esc(data.service || 'Chụp ảnh')}</strong> · Gói ${esc(data.pkg || 'Tiêu chuẩn')} (${money(data.price)})</span>
+            <span class="coc-val aor-val"><strong>${esc(data.service || 'Chụp ảnh')}</strong> · Gói ${esc(cleanPkg || 'Tiêu chuẩn')} (${money(data.price)})</span>
           </div>
           <div class="coc-row aor-row">
             <span class="coc-label aor-label">Concept:</span>
