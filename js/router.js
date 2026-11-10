@@ -148,6 +148,11 @@
       if (roles.indexOf(session.role) === -1) { window.location.href = AlohaAuth.roleHome(session.role); return; }
     }
     if (base === 'chat-sale') {
+      // Khách chưa đăng nhập không được chat với Sale: đưa sang đăng nhập
+      if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+        window.location.href = 'login.html?next=' + encodeURIComponent(route);
+        return;
+      }
       // Mở khung chat ở góc, ở lại trang đang xem (lần tải đầu thì là Trang chủ).
       history.replaceState(null, '', '#/' + (currentRoute || ''));
       if (currentRoute === null) showView('');

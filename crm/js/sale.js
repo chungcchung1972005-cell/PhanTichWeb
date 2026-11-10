@@ -517,34 +517,37 @@
 
   function convTimeMs(v) {
     if (!v) return 0;
-    if (typeof v.updatedAt === 'number' && !isNaN(v.updatedAt) && v.updatedAt > 0) return v.updatedAt;
+    let t = 0;
     if (v.updatedAt) {
-      const t = new Date(v.updatedAt).getTime();
-      if (!isNaN(t) && t > 0) return t;
+      if (typeof v.updatedAt === 'number' && !isNaN(v.updatedAt) && v.updatedAt > 0) t = v.updatedAt;
+      else if (v.updatedAt instanceof Date) t = v.updatedAt.getTime();
+      else if (typeof v.updatedAt === 'string') {
+        const p = Date.parse(v.updatedAt);
+        if (!isNaN(p) && p > 0) t = p;
+        else t = parseTimeStr(v.updatedAt);
+      }
     }
     if (Array.isArray(v.messages) && v.messages.length) {
       for (let i = v.messages.length - 1; i >= 0; i--) {
         const m = v.messages[i];
         if (m) {
-          if (typeof m.at === 'number' && !isNaN(m.at) && m.at > 0) return m.at;
-          if (m.at) {
-            const t = new Date(m.at).getTime();
-            if (!isNaN(t) && t > 0) return t;
+          let mt = 0;
+          if (typeof m.at === 'number' && !isNaN(m.at) && m.at > 0) mt = m.at;
+          else if (m.at) {
+            const p = new Date(m.at).getTime();
+            if (!isNaN(p)) mt = p;
           }
-          if (m.time) {
-            const tm = parseTimeStr(m.time);
-            if (tm > 0) return tm;
-          }
+          if (!mt && m.time) mt = parseTimeStr(m.time);
+          if (mt > t) t = mt;
         }
       }
     }
-    if (v.time) {
-      const tm = parseTimeStr(v.time);
-      if (tm > 0) return tm;
+    if (!t && v.time) t = parseTimeStr(v.time);
+    if (!t) {
+      const match = String(v.id || '').match(/(\d{10,})/);
+      if (match) t = Number(match[1]);
     }
-    const match = String(v.id || '').match(/(\d{10,})/);
-    if (match) return Number(match[1]);
-    return 0;
+    return t || 0;
   }
 
   function viewInbox(param) {
@@ -557,7 +560,7 @@
     };
     if (!filters[ui.inbox.filter]) ui.inbox.filter = 'chua-tra-loi';
     if (param && convs.some(v => v.id === param)) { ui.inbox.active = param; ui.inbox.mobileChat = true; }
-    const list = convs.filter(filters[ui.inbox.filter]);
+    const list = convs.filter(filters[ui.inbox.filter]).sort((a, b) => convTimeMs(b) - convTimeMs(a));
     if (!ui.inbox.active || !convs.some(v => v.id === ui.inbox.active)) ui.inbox.active = (list[0] || convs[0] || {}).id || null;
     const active = convs.find(v => v.id === ui.inbox.active);
     const chip = (k, l) => {
@@ -2282,7 +2285,9 @@
     if (sum.topic && c.service === 'Chưa chọn') c.service = serviceFromTopic(sum.topic);
     c.since = relTime(sum.updatedAt);
     v.time = relTime(sum.updatedAt);
-    v.updatedAt = sum.updatedAt || (sum.last && (sum.last.at || parseTimeStr(sum.last.time))) || parseTimeStr(v.time) || Date.now();
+    const sumTime = typeof sum.updatedAt === 'number' ? sum.updatedAt : (Date.parse(sum.updatedAt) || 0);
+    const lastTime = (sum.last && (typeof sum.last.at === 'number' ? sum.last.at : (Date.parse(sum.last.at) || parseTimeStr(sum.last.time)))) || 0;
+    v.updatedAt = Math.max(sumTime, lastTime, v.updatedAt || 0, parseTimeStr(v.time) || 0);
     v.unread = (sum.staffUnread || 0) > 0;
     if (full) {
       v.messages = full.messages.map(liveMsg);

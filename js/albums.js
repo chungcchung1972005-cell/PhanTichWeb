@@ -1202,6 +1202,16 @@
       consultTopBtn.hidden = !isConsultable;
       if (isConsultable) {
         consultTopBtn.onclick = () => {
+          if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+            sessionStorage.setItem('aloha_consult_pending', JSON.stringify({
+              service: service.slug,
+              concept: concept.slug,
+              name: concept.name
+            }));
+            const nextRoute = `album/${service.slug}/${concept.slug}`;
+            window.location.href = `login.html?next=${encodeURIComponent(nextRoute)}`;
+            return;
+          }
           if (window.AlohaConceptConsult) {
             window.AlohaConceptConsult.start(service.slug, concept.slug, concept.name);
           }
@@ -1328,7 +1338,7 @@
     });
   }
 
-  // Bấm nút "Tư vấn concept" trên thẻ album (Newborn & Bé lớn)
+  // Bấm nút "Tư vấn concept" trên thẻ album (Newborn & Bé lớn & các dịch vụ khác)
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.concept-album-consult');
     if (!btn) return;
@@ -1337,6 +1347,18 @@
     const serviceSlug = btn.dataset.service;
     const conceptSlug = btn.dataset.concept;
     const conceptName = btn.dataset.name;
+
+    if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+      sessionStorage.setItem('aloha_consult_pending', JSON.stringify({
+        service: serviceSlug,
+        concept: conceptSlug,
+        name: conceptName
+      }));
+      const nextRoute = conceptSlug ? `album/${serviceSlug}/${conceptSlug}` : `album/${serviceSlug}`;
+      window.location.href = `login.html?next=${encodeURIComponent(nextRoute)}`;
+      return;
+    }
+
     if (window.AlohaConceptConsult) {
       window.AlohaConceptConsult.start(serviceSlug, conceptSlug, conceptName);
     }

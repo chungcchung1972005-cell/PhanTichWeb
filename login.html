@@ -201,8 +201,8 @@
     return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z-]+$/.test(n) ||
       /^album\/[a-z-]+(\/[a-z0-9-]+)?$/.test(n) || /^noi-dung\/[a-z0-9-]+$/.test(n));
   }
-  // Đặt lịch đang tạm tắt (js/features.js) -> khách vừa đăng ký vào chat với Sale thay vì trang đặt lịch.
-  var registerHome = (window.ALOHA_FEATURES && window.ALOHA_FEATURES.booking === false) ? 'chat-sale' : 'dat-lich';
+  // Đặt lịch đang tạm tắt (js/features.js) -> khách vừa đăng ký mặc định quay về trang chủ.
+  var registerHome = (window.ALOHA_FEATURES && window.ALOHA_FEATURES.booking === false) ? 'home' : 'dat-lich';
   var params = new URLSearchParams(window.location.search);
   var isRegisterMode = params.get('mode') === 'register';
 

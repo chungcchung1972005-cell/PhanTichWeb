@@ -362,6 +362,9 @@
     if (cache.phone !== me.phone) cache = { phone: me.phone, chat: null, status: 'loading' };
     cache.chat = chat;
     cache.status = 'ok';
+    if (chat && Array.isArray(chat.messages) && chat.messages.some((m) => m.from === 'khach')) {
+      try { localStorage.setItem('aloha_chatted_sale_' + me.phone, 'true'); } catch (e) {}
+    }
     if (chat && chat.assignedSaleName) {
       window.dispatchEvent(new CustomEvent('aloha:sale-assigned', {
         detail: { name: chat.assignedSaleName, phone: chat.assignedSalePhone }
@@ -433,6 +436,14 @@
   async function send(text, retryOf) {
     const clean = String(text || '').trim();
     if (!clean) return;
+    if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+      window.location.href = 'login.html?next=chat-sale';
+      return;
+    }
+    const me = identity();
+    if (me && me.phone) {
+      try { localStorage.setItem('aloha_chatted_sale_' + me.phone, 'true'); } catch (e) {}
+    }
     // Khách nhắn trước khi lời chào chạy xong -> hiện nốt lời chào ngay, không chen ngang.
     stopSeq();
     if (retryOf) pending = pending.filter((p) => p !== retryOf);
@@ -459,6 +470,10 @@
   // ---------------------------------------------------------------- Mở / đóng khung chat
   // topic: slug dịch vụ (vd 'bau'); bỏ trống thì lấy dịch vụ của album đang xem (nếu có).
   function open(topic) {
+    if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+      window.location.href = 'login.html?next=chat-sale';
+      return;
+    }
     if (FEATURES.aiChat !== false) {
       // Chatbot AI bật: chat với Sale ngay trong khung chatbot (js/script.js). Lúc tải trang
       // (vd vừa đăng nhập với next=chat-sale) khung chatbot chưa sẵn sàng -> chờ trang dựng xong.
@@ -554,6 +569,10 @@
   }
   function embed(o) {
     if (!o || !o.container) return;
+    if (!window.AlohaAuth || !AlohaAuth.isLoggedIn()) {
+      window.location.href = 'login.html?next=chat-sale';
+      return;
+    }
     // Tính "lần đầu nhúng" TRƯỚC khi đổi embedded/thread, vì nhánh khách vãng lai bên dưới phải
     // đổi 2 biến đó ngay (để vẽ trạng thái "đang kết nối") trước khi có danh tính thật.
     const first = !embedded || thread !== o.container;
@@ -739,7 +758,20 @@
     return null;
   }
 
-  window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded, getAssignedSale };
+  function hasUserChattedWithSale() {
+    const me = identity();
+    if (!me || !me.phone) return false;
+    try {
+      if (localStorage.getItem('aloha_chatted_sale_' + me.phone) === 'true') return true;
+    } catch (e) {}
+    if (cache && cache.chat && Array.isArray(cache.chat.messages) && cache.chat.messages.some((m) => m.from === 'khach')) {
+      try { localStorage.setItem('aloha_chatted_sale_' + me.phone, 'true'); } catch (e) {}
+      return true;
+    }
+    return false;
+  }
+
+  window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded, getAssignedSale, hasUserChattedWithSale };
 
   // Tải trang thẳng vào #/chat-sale (vd vừa đăng nhập xong): router chạy trước khi file này
   // nạp nên đã để lại yêu cầu mở khung chat -> mở ở đây.

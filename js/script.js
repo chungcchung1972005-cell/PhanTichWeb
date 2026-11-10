@@ -969,14 +969,24 @@ document.addEventListener('DOMContentLoaded', () => {
       chatToggle.setAttribute('aria-expanded', 'true');
       hideTeaser();
       startChat(skipGreeting);
-      if (!isCustomerLoggedIn() || !window.AlohaSaleChat) return;
-      if (saleMode) { embedSale(); return; }
+      if (!isCustomerLoggedIn() || !window.AlohaSaleChat) {
+        setSaleUi(false);
+        return;
+      }
       const ui = readUi();
-      // Đang chat với Sale trước khi tải lại trang, hoặc Sale vừa trả lời -> vào thẳng chat Sale.
-      // Chỉ tự vào khi tài khoản đã kết nối được máy chủ chat (có mã): đăng nhập lúc máy chủ tắt
-      // thì chat Sale bị khoá, tự chuyển sang sẽ làm trợ lý AI như "không trả lời" (lỗi 2026-09-28).
       const session = window.AlohaAuth && AlohaAuth.getSession();
-      if (session && session.token && (ui.mode === 'sale' || window.AlohaSaleChat.unread() > 0)) enterSale(ui.saleTopic || '');
+      const hasChatted = window.AlohaSaleChat && window.AlohaSaleChat.hasUserChattedWithSale ? window.AlohaSaleChat.hasUserChattedWithSale() : false;
+      const unreadCount = window.AlohaSaleChat && window.AlohaSaleChat.unread ? window.AlohaSaleChat.unread() : 0;
+
+      // Khách đã đăng nhập nếu chưa nhắn gì với Sale (và không có tin chưa đọc từ Sale):
+      // Luôn ưu tiên chat với Chatbot AI trước!
+      if (session && session.token && (unreadCount > 0 || (hasChatted && (saleMode || ui.mode === 'sale')))) {
+        if (saleMode) embedSale();
+        else enterSale(ui.saleTopic || '');
+      } else {
+        if (saleMode) leaveSale();
+        else setSaleUi(false);
+      }
     };
     const closeChat = () => {
       chatPanel.classList.remove('open');
@@ -1164,9 +1174,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function enterSale(topic) {
-      // Khách vãng lai chat Sale được luôn (người dùng đổi quyết định): không còn bắt đăng nhập ở
-      // đây nữa. window.AlohaSaleChat.embed() bên dưới tự xin server cấp 1 danh tính "Khách vãng
-      // lai" khi cần (js/sale-chat.js ensureGuest), không đụng tới aloha_auth/tài khoản thật.
+      // Khách chưa đăng nhập không được chat với Sale: bắt buộc chuyển sang trang đăng nhập
+      if (!isCustomerLoggedIn()) {
+        goToLogin('chat-sale');
+        return;
+      }
       if (!window.AlohaSaleChat) { window.location.href = 'tel:0938125222'; return; }
       chatPanel.classList.add('open');
       chatPanel.setAttribute('aria-hidden', 'false');
@@ -1196,12 +1208,34 @@ document.addEventListener('DOMContentLoaded', () => {
         askMainMenu();
       }
     };
-    if (chatToSale) chatToSale.addEventListener('click', () => { if (saleMode) leaveSale(); else enterSale(''); });
+    if (chatToSale) {
+      chatToSale.addEventListener('click', () => {
+        if (saleMode) {
+          leaveSale();
+        } else {
+          if (!isCustomerLoggedIn()) {
+            goToLogin('chat-sale');
+            return;
+          }
+          enterSale('');
+        }
+      });
+    }
     // Ô nhập của khung chatbot khi đang chat với Sale: nút gửi chỉ sáng khi đã gõ chữ.
     if (chatInput && chatSendBtn) chatInput.addEventListener('input', () => { if (saleMode) chatSendBtn.disabled = chatInput.disabled || !chatInput.value.trim(); });
 
     // js/sale-chat.js (link #/chat-sale, route #/chat-sale sau khi đăng nhập) mở chat Sale qua đây.
-    window.AlohaChatbot = { openSale: (topic) => enterSale(String(topic || '').split('/')[0]), open: openChat, backToAi: leaveSale };
+    window.AlohaChatbot = {
+      openSale: (topic) => {
+        if (!isCustomerLoggedIn()) {
+          goToLogin('chat-sale');
+          return;
+        }
+        enterSale(String(topic || '').split('/')[0]);
+      },
+      open: openChat,
+      backToAi: leaveSale
+    };
 
     // Cập nhật lại tên Sale trên tiêu đề ngay khi server gán sale cho khách
     window.addEventListener('aloha:sale-assigned', (e) => {

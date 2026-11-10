@@ -159,6 +159,25 @@
   const CHAT_INPUT_FORM_ID = 'chatInputForm';
   const PENDING_KEY = 'aloha_consult_pending';
 
+  // Kiểm tra đăng nhập trước khi tư vấn concept: nếu chưa đăng nhập thì chuyển sang login.html
+  function ensureConsultAuth(serviceSlug, conceptSlug, conceptName) {
+    const isLogged = window.AlohaAuth && window.AlohaAuth.isLoggedIn();
+    if (!isLogged) {
+      sessionStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify({
+          service: serviceSlug || 'newborn',
+          concept: conceptSlug || null,
+          name: conceptName || null
+        })
+      );
+      const nextRoute = conceptSlug ? `album/${serviceSlug || 'newborn'}/${conceptSlug}` : `album/${serviceSlug || 'newborn'}`;
+      window.location.href = `login.html?next=${encodeURIComponent(nextRoute)}`;
+      return false;
+    }
+    return true;
+  }
+
   let currentSession = null; // { initialService, initialConcept, initialName, stageKey, gender, weight }
 
   // Cuộn khung chat xuống đáy
@@ -644,6 +663,7 @@
   }
 
   async function startBauConsultation(conceptSlug, conceptName, skipGreeting = false) {
+    if (!ensureConsultAuth('bau', conceptSlug, conceptName)) return;
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
     const body = getAiTarget();
     if (body) {
@@ -743,6 +763,7 @@
   // LUỒNG TƯ VẤN KHI KHÁCH BẤM TRỰC TIẾP VÀO 1 CONCEPT BẦU CỤ THỂ BÊN TRÁI
   // -------------------------------------------------------------------------
   async function startBauDirectConceptConsult(conceptSlug, conceptName) {
+    if (!ensureConsultAuth('bau', conceptSlug, conceptName)) return;
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
     const body = getAiTarget();
     if (body) {
@@ -927,6 +948,7 @@
   }
 
   async function startGiaDinhConsultation(conceptSlug, conceptName, skipGreeting = false) {
+    if (!ensureConsultAuth('gia-dinh', conceptSlug, conceptName)) return;
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
     const body = getAiTarget();
     if (body) {
@@ -1025,6 +1047,7 @@
   // LUỒNG TƯ VẤN KHI KHÁCH BẤM TRỰC TIẾP VÀO 1 CONCEPT GIA ĐÌNH CỤ THỂ BÊN TRÁI
   // -------------------------------------------------------------------------
   async function startGiaDinhDirectConceptConsult(conceptSlug, conceptName) {
+    if (!ensureConsultAuth('gia-dinh', conceptSlug, conceptName)) return;
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
     const body = getAiTarget();
     if (body) {
@@ -1171,6 +1194,9 @@
   // KHỞI ĐỘNG LUỒNG TƯ VẤN (PUBLIC API)
   // -------------------------------------------------------------------------
   function startConsultation(serviceSlug, conceptSlug, conceptName) {
+    // 1. Kiểm tra đăng nhập BẮT BUỘC cho tất cả dịch vụ/concept
+    if (!ensureConsultAuth(serviceSlug, conceptSlug, conceptName)) return;
+
     // Luồng tư vấn riêng cho Bầu theo phong cách (Ấm áp / Mát mẻ) hoặc Chat trực tiếp với Sale
     if (serviceSlug === 'bau') {
       if (conceptSlug || conceptName) {
@@ -1196,24 +1222,6 @@
       if (window.AlohaChatbot && window.AlohaChatbot.open) {
         window.AlohaChatbot.open();
       }
-      return;
-    }
-
-    // 1. Kiểm tra đăng nhập
-    const isLogged = window.AlohaAuth && window.AlohaAuth.isLoggedIn();
-    if (!isLogged) {
-      // Lưu lại ngữ cảnh concept mẹ đang chọn vào sessionStorage
-      sessionStorage.setItem(
-        PENDING_KEY,
-        JSON.stringify({
-          service: serviceSlug,
-          concept: conceptSlug,
-          name: conceptName
-        })
-      );
-      // Chuyển sang login.html kèm param next để đăng nhập xong quay lại đúng trang
-      const nextRoute = conceptSlug ? `album/${serviceSlug}/${conceptSlug}` : `album/${serviceSlug}`;
-      window.location.href = `login.html?next=${encodeURIComponent(nextRoute)}`;
       return;
     }
 
