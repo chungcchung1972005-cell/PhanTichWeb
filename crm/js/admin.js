@@ -2968,7 +2968,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const orderData = m.orderData || (window.AlohaOrderQRModal && AlohaOrderQRModal.parseOrderData(m.text));
         if (orderData && window.AlohaOrderQRModal) {
           return `
-            <div class="inbox-msg ${isSale ? 'from-sale' : 'from-khach'}">
+            <div class="inbox-msg inbox-msg-order ${isSale ? 'from-sale' : 'from-khach'}">
               <span class="inbox-msg-name">${escHtml(isSale ? (m.senderName || saleLabel || 'Sale') : (chat.customerName || 'Khách'))}</span>
               ${AlohaOrderQRModal.renderOrderCardHtml(orderData, { isSale: true })}
               ${m.at ? `<time>${escHtml(chatTime(m.at))}</time>` : ''}

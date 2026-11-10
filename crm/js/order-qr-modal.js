@@ -8,9 +8,9 @@
 
   const BANK_CONFIG = {
     bankId: 'MB',
-    bankName: 'Ngân hàng Quân Đội (MB Bank)',
-    accountNo: '0938125222',
-    accountName: 'ALOHA BABY STUDIO',
+    bankName: 'MB Bank (Ngân hàng Quân Đội)',
+    accountNo: '0382071708',
+    accountName: 'NGUYEN QUANG CHUNG',
     hotline: '0938.125.222',
     address: '35 Lê Văn Thiêm, Thanh Xuân, Hà Nội'
   };
@@ -831,12 +831,43 @@
     const copyBtn = e.target.closest('[data-copy]');
     if (copyBtn) {
       const text = copyBtn.getAttribute('data-copy');
-      if (text && navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
+      if (text) {
+        const setCopied = () => {
           const old = copyBtn.innerHTML;
           copyBtn.innerHTML = '✓ Đã chép';
-          setTimeout(() => { copyBtn.innerHTML = old; }, 1500);
-        }).catch(() => {});
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.innerHTML = old;
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(setCopied).catch(() => {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+              setCopied();
+            } catch (err) {}
+          });
+        } else {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            setCopied();
+          } catch (err) {}
+        }
       }
     }
 

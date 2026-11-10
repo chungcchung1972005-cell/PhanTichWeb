@@ -605,7 +605,7 @@
         v.messages.map(m => {
           const orderData = m.orderData || (window.AlohaOrderQRModal && AlohaOrderQRModal.parseOrderData(m.text));
           if (orderData && window.AlohaOrderQRModal) {
-            return '<div class="ib-msg ' + (m.from === 'sale' ? 'out' : 'in') + '">' +
+            return '<div class="ib-msg ib-msg-order ' + (m.from === 'sale' ? 'out' : 'in') + '">' +
               AlohaOrderQRModal.renderOrderCardHtml(orderData, { isSale: true }) +
               '<small>' + esc(m.time) + (m.from === 'sale' ? ' · ' + esc(m.by || saleName(v.owner)) : '') + '</small></div>';
           }

@@ -115,8 +115,8 @@ const wait = ms => new Promise(res => setTimeout(res, ms));
       };
     });
     console.log('✓ Thông tin VietQR Preview:', qrState);
-    if (!qrState.qrSrc.includes('img.vietqr.io') || !qrState.qrSrc.includes('0938125222')) {
-      throw new Error('Link VietQR không đúng cấu hình MB Bank 0938125222!');
+    if (!qrState.qrSrc.includes('img.vietqr.io') || !qrState.qrSrc.includes('0382071708')) {
+      throw new Error('Link VietQR không đúng cấu hình MB Bank 0382071708!');
     }
 
     // Gửi form tạo đơn
