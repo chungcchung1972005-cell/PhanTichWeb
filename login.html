@@ -198,8 +198,8 @@
   // trang đang xem rồi mở tiếp khung chat (js/script.js, 2026-09-28).
   var validNextRoutes = ['dat-lich', 'chon-anh', 'chat-sale', 'home'];
   function isValidNext(n) {
-    return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z-]+$/.test(n) ||
-      /^album\/[a-z-]+(\/[a-z0-9-]+)?$/.test(n) || /^noi-dung\/[a-z0-9-]+$/.test(n));
+    return !!n && (validNextRoutes.indexOf(n) !== -1 || /^chat-sale\/[a-z0-9_-]+$/.test(n) ||
+      /^album\/[a-z0-9_-]+(\/[a-z0-9_-]+)?$/.test(n) || /^noi-dung\/[a-z0-9_-]+$/.test(n));
   }
   // Đặt lịch đang tạm tắt (js/features.js) -> khách vừa đăng ký mặc định quay về trang chủ.
   var registerHome = (window.ALOHA_FEATURES && window.ALOHA_FEATURES.booking === false) ? 'home' : 'dat-lich';

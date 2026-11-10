@@ -676,6 +676,9 @@
     }
 
     // 2. Mở khung chat nếu chưa mở
+    if (window.AlohaChatbot && window.AlohaChatbot.backToAi) {
+      window.AlohaChatbot.backToAi();
+    }
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
       window.AlohaChatbot.open(true);
     } else {
@@ -776,6 +779,9 @@
     }
 
     // 2. Mở khung chat nếu đang đóng
+    if (window.AlohaChatbot && window.AlohaChatbot.backToAi) {
+      window.AlohaChatbot.backToAi();
+    }
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
       window.AlohaChatbot.open(true);
     } else {
@@ -961,6 +967,9 @@
     }
 
     // 2. Mở khung chat nếu chưa mở
+    if (window.AlohaChatbot && window.AlohaChatbot.backToAi) {
+      window.AlohaChatbot.backToAi();
+    }
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
       window.AlohaChatbot.open(true);
     } else {
@@ -1060,6 +1069,9 @@
     }
 
     // 2. Mở khung chat nếu đang đóng
+    if (window.AlohaChatbot && window.AlohaChatbot.backToAi) {
+      window.AlohaChatbot.backToAi();
+    }
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
       window.AlohaChatbot.open(true);
     } else {
@@ -1238,6 +1250,9 @@
       weight: null
     };
 
+    if (window.AlohaChatbot && window.AlohaChatbot.backToAi) {
+      window.AlohaChatbot.backToAi();
+    }
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
       window.AlohaChatbot.open(true);
     } else {

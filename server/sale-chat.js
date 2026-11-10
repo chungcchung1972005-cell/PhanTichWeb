@@ -169,9 +169,10 @@ function assignNextSale(chat, preferredPhone) {
 // Bản tóm tắt cho danh sách hộp thư của Sale (không gửi cả lịch sử tin).
 function summarize(chat) {
   const last = (chat.messages && chat.messages.length) ? chat.messages[chat.messages.length - 1] : null;
-  const lastAt = (last && last.at) ? (typeof last.at === 'number' ? last.at : new Date(last.at).getTime()) : 0;
-  const chatAt = chat.updatedAt ? (typeof chat.updatedAt === 'number' ? chat.updatedAt : new Date(chat.updatedAt).getTime()) : 0;
-  const updatedAt = Math.max(chatAt, lastAt, chat.createdAt || 0);
+  const lastAt = (last && last.at) ? (typeof last.at === 'number' && !isNaN(last.at) ? last.at : (Date.parse(last.at) || 0)) : 0;
+  const chatAt = chat.updatedAt ? (typeof chat.updatedAt === 'number' && !isNaN(chat.updatedAt) ? chat.updatedAt : (Date.parse(chat.updatedAt) || 0)) : 0;
+  const createAt = chat.createdAt ? (typeof chat.createdAt === 'number' && !isNaN(chat.createdAt) ? chat.createdAt : (Date.parse(chat.createdAt) || 0)) : 0;
+  const updatedAt = Math.max(chatAt, lastAt, createAt, 0);
   return {
     phone: chat.phone, customerName: chat.customerName, topic: chat.topic || '',
     staffUnread: chat.staffUnread || 0, customerUnread: chat.customerUnread || 0,
@@ -272,7 +273,7 @@ function mongoStore(uri, dbName) {
     async getChat(phone) { return (await chats()).findOne({ _id: phone }); },
     async listChats() {
       const list = await (await chats()).find({}, { projection: { messages: { $slice: -1 } } })
-        .limit(300).toArray();
+        .sort({ updatedAt: -1 }).limit(300).toArray();
       const summarized = list.map(summarize);
       summarized.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
       return summarized;

@@ -2287,7 +2287,8 @@
     v.time = relTime(sum.updatedAt);
     const sumTime = typeof sum.updatedAt === 'number' ? sum.updatedAt : (Date.parse(sum.updatedAt) || 0);
     const lastTime = (sum.last && (typeof sum.last.at === 'number' ? sum.last.at : (Date.parse(sum.last.at) || parseTimeStr(sum.last.time)))) || 0;
-    v.updatedAt = Math.max(sumTime, lastTime, v.updatedAt || 0, parseTimeStr(v.time) || 0);
+    const exactTime = Math.max(sumTime, lastTime);
+    v.updatedAt = exactTime > 0 ? Math.max(exactTime, v.updatedAt || 0) : (v.updatedAt || parseTimeStr(v.time) || Date.now());
     v.unread = (sum.staffUnread || 0) > 0;
     if (full) {
       v.messages = full.messages.map(liveMsg);
