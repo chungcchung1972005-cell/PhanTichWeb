@@ -3137,20 +3137,27 @@ document.addEventListener('DOMContentLoaded', () => {
             customerId: (cObj && cObj.id) || chat.customerId || ('KH-' + chat.phone),
             customerName: chat.customerName || (cObj && cObj.name) || '',
             phone: chat.phone || '',
+            chatPhone: chat.phone || '',
+            convId: chat.id || '',
             babyName: (cObj && cObj.baby && cObj.baby.name) || '',
             babyAge: (cObj && cObj.baby && cObj.baby.date ? cObj.baby.date : ''),
             service: (cObj && cObj.service) || chat.service || 'Newborn',
             onCreated: (orderData) => {
               if (activeChat) {
                 if (!activeChat.messages) activeChat.messages = [];
-                activeChat.messages.push({
-                  id: 'msg-' + Date.now(),
-                  from: 'sale',
-                  senderName: (session && session.name) || 'Sale',
-                  text: orderData.cardText,
-                  orderData: orderData,
-                  at: chatTime(Date.now())
-                });
+                if (!activeChat.messages.some(m => m.orderData && m.orderData.code === orderData.code)) {
+                  activeChat.messages.push({
+                    id: 'msg-' + Date.now(),
+                    from: 'sale',
+                    senderName: (session && session.name) || 'Sale',
+                    text: orderData.cardText,
+                    orderData: orderData,
+                    at: chatTime(Date.now())
+                  });
+                }
+                if (orderData.customerName) activeChat.customerName = orderData.customerName;
+                activeChat.updatedAt = Date.now();
+                chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
                 renderThread(true);
               }
             }

@@ -161,71 +161,71 @@
 
     return `
       <div class="chat-order-card ${confirmed ? 'is-confirmed' : 'is-pending'}" data-order-code="${esc(data.code)}" data-amount="${data.depositAmount || ''}">
-        <div class="coc-badge">
-          <span class="coc-badge-icon">${confirmed ? '✅' : '📸'}</span>
+        <div class="coc-badge aor-badge">
+          <span class="coc-badge-icon aor-badge-icon">${confirmed ? '✅' : '📸'}</span>
           <strong>ĐƠN ĐẶT LỊCH #${esc(data.code)}</strong>
-          <span class="coc-status-pill ${confirmed ? 'pill-success' : 'pill-wait'}">
+          <span class="coc-status-pill aor-status-pill ${confirmed ? 'pill-success' : 'pill-wait'}">
             ${confirmed ? 'Đã cọc · Chờ ngày chụp' : 'Chờ cọc (Giữ chỗ 60p)'}
           </span>
         </div>
         
-        <div class="coc-details">
-          <div class="coc-row">
-            <span class="coc-label">Bé yêu:</span>
-            <strong class="coc-val">${esc(data.babyName || 'Bé')}${data.babyAge ? ' (' + esc(data.babyAge) + ')' : ''}</strong>
+        <div class="coc-details aor-details">
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Bé yêu:</span>
+            <strong class="coc-val aor-val">${esc(data.babyName || 'Bé')}${data.babyAge ? ' (' + esc(data.babyAge) + ')' : ''}</strong>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Phụ huynh:</span>
-            <span class="coc-val">${esc(data.customerName || 'Khách')}${data.phone ? ' · ' + esc(data.phone) : ''}</span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Phụ huynh:</span>
+            <span class="coc-val aor-val">${esc(data.customerName || 'Khách')}${data.phone ? ' · ' + esc(data.phone) : ''}</span>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Gói chụp:</span>
-            <span class="coc-val"><strong>${esc(data.service || 'Chụp ảnh')}</strong> · Gói ${esc(data.pkg || 'Tiêu chuẩn')} (${money(data.price)})</span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Gói chụp:</span>
+            <span class="coc-val aor-val"><strong>${esc(data.service || 'Chụp ảnh')}</strong> · Gói ${esc(data.pkg || 'Tiêu chuẩn')} (${money(data.price)})</span>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Concept:</span>
-            <span class="coc-val">${esc(data.concept || 'Studio tư vấn')}</span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Concept:</span>
+            <span class="coc-val aor-val">${esc(data.concept || 'Studio tư vấn')}</span>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Lịch chụp:</span>
-            <span class="coc-val"><strong>📅 ${esc(data.time || '09:00')} ngày ${esc(data.date || '')}</strong></span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Lịch chụp:</span>
+            <span class="coc-val aor-val"><strong>📅 ${esc(data.time || '09:00')} ngày ${esc(data.date || '')}</strong></span>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Phòng chụp:</span>
-            <span class="coc-val">📍 ${esc(data.room || 'Studio ALOHA')}</span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Phòng chụp:</span>
+            <span class="coc-val aor-val">📍 ${esc(data.room || 'Studio ALOHA')}</span>
           </div>
-          <div class="coc-row">
-            <span class="coc-label">Thợ phụ trách:</span>
-            <span class="coc-val">📷 ${esc(data.shooterName || 'Thợ ảnh ALOHA')}</span>
+          <div class="coc-row aor-row">
+            <span class="coc-label aor-label">Thợ phụ trách:</span>
+            <span class="coc-val aor-val">📷 ${esc(data.shooterName || 'Thợ ảnh ALOHA')}</span>
           </div>
         </div>
 
-        <div class="coc-qr-box">
-          <div class="coc-qr-img-wrap">
-            <img src="${qrUrl}" alt="VietQR đặt cọc" class="coc-qr-img" loading="lazy">
-            <div class="coc-qr-scan-hint">Quét mã bằng App Ngân hàng</div>
+        <div class="coc-qr-box coc-qr-section aor-qr-section">
+          <div class="coc-qr-img-wrap aor-qr-img-wrap">
+            <img src="${qrUrl}" alt="VietQR đặt cọc" class="coc-qr-img aor-qr-img" loading="lazy">
+            <div class="coc-qr-scan-hint aor-qr-scan-hint">Quét mã bằng App Ngân hàng</div>
           </div>
-          <div class="coc-bank-info">
-            <div class="coc-bank-row">
+          <div class="coc-bank-info aor-bank-info">
+            <div class="coc-bank-row aor-bank-row">
               <span class="cbr-k">Ngân hàng:</span>
               <strong class="cbr-v">${BANK_CONFIG.bankName}</strong>
             </div>
-            <div class="coc-bank-row">
+            <div class="coc-bank-row aor-bank-row">
               <span class="cbr-k">Số tài khoản:</span>
               <div class="cbr-v-wrap">
                 <strong class="cbr-v mono">${BANK_CONFIG.accountNo}</strong>
                 <button type="button" class="btn-copy-sm" data-copy="${BANK_CONFIG.accountNo}" title="Sao chép STK">📋 Copy</button>
               </div>
             </div>
-            <div class="coc-bank-row">
+            <div class="coc-bank-row aor-bank-row">
               <span class="cbr-k">Chủ tài khoản:</span>
               <strong class="cbr-v">${BANK_CONFIG.accountName}</strong>
             </div>
-            <div class="coc-bank-row">
+            <div class="coc-bank-row aor-bank-row">
               <span class="cbr-k">Tiền cọc giữ lịch:</span>
-              <strong class="cbr-v coc-deposit-amt">${money(data.depositAmount)}</strong>
+              <strong class="cbr-v coc-deposit-amt aor-deposit-amt">${money(data.depositAmount)}</strong>
             </div>
-            <div class="coc-bank-row">
+            <div class="coc-bank-row aor-bank-row">
               <span class="cbr-k">Nội dung CK:</span>
               <div class="cbr-v-wrap">
                 <strong class="cbr-v mono" style="color:var(--pink-600);">${esc(memo)}</strong>
@@ -235,13 +235,13 @@
           </div>
         </div>
 
-        <div class="coc-actions">
+        <div class="coc-actions aor-actions">
           ${!confirmed ? `
             <button type="button" class="btn-sim-deposit" data-code="${esc(data.code)}" data-amt="${data.depositAmount}">
               ⚡ Xác nhận đã nhận cọc (Mô phỏng tiền về)
             </button>
           ` : `
-            <div class="coc-confirmed-banner">
+            <div class="coc-confirmed-banner aor-confirmed-banner">
               🎉 <strong>Cọc đã được xác nhận thành công!</strong> Thợ ảnh đã nhận lịch vào danh sách việc.
             </div>
           `}
@@ -269,7 +269,7 @@
             <h3 id="alohaOrderModalTitle">Tạo Đơn Chụp &amp; Gửi Cọc VietQR</h3>
             <p class="aloha-modal-sub">Điền thông tin buổi chụp để sinh mã QR có sẵn số tiền &amp; cú pháp giao dịch</p>
           </div>
-          <button type="button" class="aloha-modal-close" id="alohaOrderModalClose" aria-label="Đóng">&times;</button>
+          <button type="button" class="aloha-modal-close" id="alohaOrderModalClose" data-act="close-order-modal" aria-label="Đóng">&times;</button>
         </header>
 
         <form id="alohaOrderForm" class="aloha-order-form" novalidate>
@@ -406,7 +406,7 @@
           </div>
 
           <footer class="aloha-order-modal-foot">
-            <button type="button" class="btn btn-outline" id="aofBtnCancel">Hủy bỏ</button>
+            <button type="button" class="btn btn-outline" id="aofBtnCancel" data-act="close-order-modal">Hủy bỏ</button>
             <button type="submit" class="btn btn-primary" id="aofBtnSubmit">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
               <span>Xác nhận tạo đơn &amp; Gửi cọc QR vào Chat</span>
@@ -419,9 +419,18 @@
     document.body.appendChild(modalEl);
 
     // Event listeners nội bộ của modal
-    document.getElementById('alohaOrderModalClose').onclick = closeModal;
-    document.getElementById('aofBtnCancel').onclick = closeModal;
+    const closeBtn = document.getElementById('alohaOrderModalClose');
+    const cancelBtn = document.getElementById('aofBtnCancel');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
     modalEl.onclick = (e) => { if (e.target === modalEl) closeModal(); };
+
+    // Bắt sự kiện phím Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalEl && !modalEl.hidden && modalEl.style.display !== 'none') {
+        closeModal();
+      }
+    });
 
     // Tự động tính cọc khi đổi gói
     document.getElementById('aofPkg').onchange = (e) => {
@@ -470,10 +479,11 @@
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomStr = tomorrow.toISOString().slice(0, 10);
 
-    const safePhone = (ctx.phone || '').replace(/\D/g, '') || '0912345678';
-    document.getElementById('aofCustId').value = ctx.customerId || ('KH-' + safePhone);
-    document.getElementById('aofPhone').value = ctx.phone || '';
-    document.getElementById('aofCustName').value = ctx.customerName || '';
+    const isGuest = String(ctx.phone || '').startsWith('khach-vang-lai-');
+    const safePhone = isGuest ? '' : ((ctx.phone || '').replace(/\D/g, '') || '');
+    document.getElementById('aofCustId').value = ctx.customerId || (safePhone ? 'KH-' + safePhone : 'KH-MOI');
+    document.getElementById('aofPhone').value = safePhone;
+    document.getElementById('aofCustName').value = (ctx.customerName === 'Khách vãng lai' || ctx.customerName === 'Khách hàng') ? '' : (ctx.customerName || '');
     document.getElementById('aofBabyName').value = ctx.babyName || '';
     document.getElementById('aofBabyAge').value = ctx.babyAge || '';
     document.getElementById('aofConcept').value = ctx.concept || '';
@@ -483,6 +493,10 @@
     document.getElementById('aofDate').min = new Date().toISOString().slice(0, 10);
     document.getElementById('aofTime').value = ctx.time || '09:00';
     document.getElementById('aofRoom').value = ctx.room || 'P1';
+
+    // Lưu lại phone của cuộc hội thoại chat đang mở để gửi tin nhắn chính xác
+    currentContext.chatPhone = ctx.chatPhone || ctx.phone || '';
+    currentContext.convId = ctx.convId || '';
 
     // Populate photographers
     const shooters = getPhotographers();
@@ -498,11 +512,17 @@
 
     updateQRPreview();
     modalEl.hidden = false;
+    modalEl.style.display = 'flex';
+    modalEl.classList.remove('is-hidden');
     document.body.classList.add('aloha-modal-open');
   }
 
   function closeModal() {
-    if (modalEl) modalEl.hidden = true;
+    if (modalEl) {
+      modalEl.hidden = true;
+      modalEl.style.display = 'none';
+      modalEl.classList.add('is-hidden');
+    }
     document.body.classList.remove('aloha-modal-open');
   }
 
@@ -679,10 +699,10 @@
 
   // Gửi Order Card vào chat (hỗ trợ cả server API và local state)
   async function sendOrderCardToChat(data) {
-    // Gửi qua Server sale-chat nếu đang kết nối
-    if (window.AlohaAuth && AlohaAuth.api && data.phone) {
+    const destPhone = (currentContext && currentContext.chatPhone) || data.phone;
+    if (window.AlohaAuth && AlohaAuth.api && destPhone) {
       try {
-        await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(data.phone) + '/messages', {
+        await AlohaAuth.api('/api/sale-chat/inbox/' + encodeURIComponent(destPhone) + '/messages', {
           method: 'POST',
           body: {
             text: data.cardText,
@@ -695,7 +715,9 @@
     }
 
     // Gửi sự kiện để giao diện CRM Sale hoặc Admin tự cập nhật
-    window.dispatchEvent(new CustomEvent('aloha:order-created', { detail: data }));
+    window.dispatchEvent(new CustomEvent('aloha:order-created', {
+      detail: Object.assign({}, data, { chatPhone: destPhone })
+    }));
   }
 
   // Hàm xác nhận tiền cọc thành công (được gọi bởi Webhook SePay, nút Xác nhận cọc, hoặc nút Mô phỏng)

@@ -14,6 +14,11 @@
   animation: alohaFadeIn 0.2s ease-out;
 }
 
+.aloha-order-modal-backdrop[hidden],
+.aloha-order-modal-backdrop.is-hidden {
+  display: none !important;
+}
+
 @keyframes alohaFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -23,7 +28,8 @@
   background: #ffffff;
   width: 100%;
   max-width: 860px;
-  max-height: 92vh;
+  max-height: 90vh;
+  max-height: 90dvh;
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
   display: flex;
@@ -43,10 +49,11 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 24px;
+  padding: 16px 22px;
   background: linear-gradient(135deg, #fff1f2, #ffe4e6);
   border-bottom: 1px solid #fecdd3;
   position: relative;
+  flex-shrink: 0;
 }
 
 .aloha-head-icon {
@@ -76,36 +83,48 @@
 
 .aloha-modal-close {
   position: absolute;
-  top: 16px;
-  right: 18px;
-  background: transparent;
+  top: 14px;
+  right: 16px;
+  background: rgba(225, 29, 72, 0.08);
   border: none;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   color: #9f1239;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s;
+  z-index: 10;
+  touch-action: manipulation;
 }
 
-.aloha-modal-close:hover {
-  background: rgba(225, 29, 72, 0.1);
-  color: #e11d48;
+.aloha-modal-close:hover,
+.aloha-modal-close:active {
+  background: #e11d48;
+  color: #ffffff;
 }
 
 .aloha-order-form {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .aloha-form-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: 24px;
-  padding: 22px 24px;
+  gap: 22px;
+  padding: 20px 22px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .aloha-col-title {
@@ -270,9 +289,10 @@
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 14px 22px;
   border-top: 1px solid #e2e8f0;
   background: #f8fafc;
+  flex-shrink: 0;
 }
 
 .aloha-order-modal-foot .btn {
@@ -312,187 +332,286 @@
 
 /* -------------------- 2. THẺ ĐƠN HÀNG TRONG CHAT -------------------- */
 .chat-order-card {
-  background: #ffffff;
-  border: 1.5px solid #fecdd3;
-  border-radius: 16px;
-  padding: 14px;
-  margin: 6px 0;
-  box-shadow: 0 4px 15px rgba(225, 29, 72, 0.08);
-  font-family: inherit;
-  color: #1e293b;
-  text-align: left;
-  max-width: 440px;
-  transition: all 0.2s ease;
+  background: #ffffff !important;
+  border: 1.5px solid #fecdd3 !important;
+  border-radius: 16px !important;
+  padding: 14px 16px !important;
+  margin: 6px 0 !important;
+  box-shadow: 0 4px 15px rgba(225, 29, 72, 0.08) !important;
+  font-family: inherit !important;
+  color: #1e293b !important;
+  text-align: left !important;
+  max-width: 440px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.chat-order-card * {
+  box-sizing: border-box !important;
 }
 
 .chat-order-card.is-confirmed {
-  border-color: #86efac;
-  background: #f0fdf4;
+  border-color: #86efac !important;
+  background: #f0fdf4 !important;
 }
 
-.coc-badge {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f1f5f9;
-  margin-bottom: 10px;
+.chat-order-card .coc-badge,
+.chat-order-card .aor-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 10px !important;
+  width: 100% !important;
 }
 
-.coc-badge strong {
-  font-size: 13px;
-  color: #881337;
-  letter-spacing: 0.2px;
+.chat-order-card .coc-badge strong,
+.chat-order-card .aor-badge strong {
+  font-size: 13px !important;
+  color: #881337 !important;
+  letter-spacing: 0.2px !important;
 }
 
-.is-confirmed .coc-badge strong {
-  color: #14532d;
+.chat-order-card.is-confirmed .coc-badge strong,
+.chat-order-card.is-confirmed .aor-badge strong {
+  color: #14532d !important;
 }
 
-.coc-status-pill {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  white-space: nowrap;
+.chat-order-card .coc-status-pill,
+.chat-order-card .aor-status-pill {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  white-space: nowrap !important;
 }
 
-.coc-status-pill.pill-wait {
-  background: #fff1f2;
-  color: #e11d48;
-  border: 1px solid #fecdd3;
+.chat-order-card .coc-status-pill.pill-wait,
+.chat-order-card .aor-status-pill.pill-wait {
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+  border: 1px solid #fecdd3 !important;
 }
 
-.coc-status-pill.pill-success {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+.chat-order-card .coc-status-pill.pill-success,
+.chat-order-card .aor-status-pill.pill-success {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 1px solid #bbf7d0 !important;
 }
 
-.coc-details {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12.5px;
-  line-height: 1.45;
-  margin-bottom: 12px;
+.chat-order-card .coc-details,
+.chat-order-card .aor-details {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
 }
 
-.coc-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+.chat-order-card .coc-row,
+.chat-order-card .aor-row {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  padding: 2px 0 !important;
+  border-bottom: none !important;
+  width: 100% !important;
 }
 
-.coc-label {
-  width: 90px;
-  flex-shrink: 0;
-  color: #64748b;
-  font-size: 12px;
+.chat-order-card .coc-label,
+.chat-order-card .aor-label {
+  width: 95px !important;
+  min-width: 95px !important;
+  flex-shrink: 0 !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+  text-align: left !important;
 }
 
-.coc-val {
-  flex: 1;
-  color: #0f172a;
-  word-break: break-word;
+.chat-order-card .coc-val,
+.chat-order-card .aor-val {
+  flex: 1 !important;
+  color: #0f172a !important;
+  word-break: break-word !important;
+  text-align: left !important;
 }
 
-/* Khung VietQR */
-.coc-qr-box {
-  display: flex;
-  gap: 12px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  padding: 10px;
-  align-items: center;
-  margin-bottom: 10px;
+/* Khung VietQR: Ngăn ngừa hoàn toàn sale.css .coc-qr-box ghi đè width:120px và grid */
+.chat-order-card .coc-qr-box,
+.chat-order-card .coc-qr-section,
+.chat-order-card .aor-qr-section {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  gap: 14px !important;
+  background: #ffffff !important;
+  border: 1px solid #f1f5f9 !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  margin: 0 0 10px 0 !important;
+  place-items: initial !important;
+  flex-shrink: initial !important;
 }
 
-.is-confirmed .coc-qr-box {
-  background: #ffffff;
-  border-color: #dcfce7;
+.chat-order-card.is-confirmed .coc-qr-box,
+.chat-order-card.is-confirmed .coc-qr-section,
+.chat-order-card.is-confirmed .aor-qr-section {
+  background: #ffffff !important;
+  border-color: #dcfce7 !important;
 }
 
-.coc-qr-img-wrap {
-  width: 115px;
-  flex-shrink: 0;
-  text-align: center;
+.chat-order-card .coc-qr-img-wrap,
+.chat-order-card .aor-qr-img-wrap {
+  width: 115px !important;
+  min-width: 115px !important;
+  flex-shrink: 0 !important;
+  text-align: center !important;
 }
 
-.coc-qr-img {
-  width: 115px;
-  height: 115px;
-  object-fit: contain;
-  display: block;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+.chat-order-card .coc-qr-img,
+.chat-order-card .aor-qr-img {
+  width: 115px !important;
+  height: 115px !important;
+  min-width: 115px !important;
+  min-height: 115px !important;
+  object-fit: contain !important;
+  display: block !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
 }
 
-.coc-qr-scan-hint {
-  font-size: 9.5px;
-  color: #64748b;
-  margin-top: 4px;
+.chat-order-card .coc-qr-scan-hint,
+.chat-order-card .aor-qr-scan-hint {
+  font-size: 9.5px !important;
+  color: #64748b !important;
+  margin-top: 4px !important;
 }
 
-.coc-bank-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11.5px;
-  min-width: 0;
+.chat-order-card .coc-bank-info,
+.chat-order-card .aor-bank-info {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  font-size: 11.5px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  text-align: left !important;
 }
 
-.coc-bank-row {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
+.chat-order-card .coc-bank-row,
+.chat-order-card .aor-bank-row {
+  display: flex !important;
+  flex-direction: column !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
-.coc-bank-row .cbr-k {
-  color: #64748b;
-  font-size: 10.5px;
+.chat-order-card .coc-bank-row .cbr-k,
+.chat-order-card .aor-bank-row .cbr-k {
+  color: #64748b !important;
+  font-size: 10.5px !important;
 }
 
-.coc-bank-row .cbr-v {
-  color: #0f172a;
+.chat-order-card .coc-bank-row .cbr-v,
+.chat-order-card .aor-bank-row .cbr-v {
+  color: #0f172a !important;
 }
 
-.coc-bank-row .cbr-v.mono {
-  font-family: Consolas, Monaco, monospace;
+.chat-order-card .coc-bank-row .cbr-v.mono,
+.chat-order-card .aor-bank-row .cbr-v.mono {
+  font-family: Consolas, Monaco, monospace !important;
 }
 
-.coc-bank-row .cbr-v-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.chat-order-card .coc-bank-row .cbr-v-wrap,
+.chat-order-card .aor-bank-row .cbr-v-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
-.btn-copy-sm {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #475569;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
+.chat-order-card .btn-copy-sm {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
 }
 
-.btn-copy-sm:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+.chat-order-card .btn-copy-sm:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
-.coc-deposit-amt {
-  color: #e11d48;
-  font-size: 13.5px;
+.chat-order-card .coc-deposit-amt,
+.chat-order-card .aor-deposit-amt {
+  color: #e11d48 !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
 }
 
 /* Actions */
+.chat-order-card .coc-actions,
+.chat-order-card .aor-actions {
+  margin-top: 8px !important;
+  width: 100% !important;
+}
+
+.chat-order-card .btn-sim-deposit {
+  width: 100% !important;
+  height: 36px !important;
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2) !important;
+}
+
+.chat-order-card .btn-sim-deposit:hover {
+  filter: brightness(1.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.chat-order-card .coc-confirmed-banner,
+.chat-order-card .aor-confirmed-banner {
+  background: #dcfce7 !important;
+  border: 1px solid #86efac !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  color: #14532d !important;
+  text-align: center !important;
+  line-height: 1.4 !important;
+}
+
+/* Đảm bảo khung bubble tin nhắn không bóp nghẹt thẻ đơn */
+.ib-msg:has(.chat-order-card),
+.inbox-msg:has(.chat-order-card) {
+  max-width: 92% !important;
+}
 .coc-actions {
   margin-top: 8px;
 }
@@ -539,16 +658,74 @@
 
 /* Responsive modal */
 @media (max-width: 768px) {
+  .aloha-order-modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .aloha-order-modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+  .aloha-order-modal-head {
+    padding: 12px 14px !important;
+  }
+  .aloha-order-modal-head h3 {
+    font-size: 15.5px !important;
+  }
+  .aloha-modal-sub {
+    font-size: 11.5px !important;
+  }
+  .aloha-modal-close {
+    top: 10px !important;
+    right: 10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 20px !important;
+  }
   .aloha-form-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 14px;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 14px 12px !important;
+  }
+  .aloha-form-row {
+    flex-direction: column !important;
+    gap: 10px !important;
   }
   .aloha-col-qr {
-    order: -1;
+    order: -1 !important;
+  }
+  .aloha-order-modal-foot {
+    padding: 10px 14px !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+  .aloha-order-modal-foot .btn {
+    height: 38px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+  }
+  .aloha-order-modal-foot .btn-outline {
+    flex: 0 0 auto !important;
+    min-width: 70px !important;
+  }
+  .aloha-order-modal-foot .btn-primary {
+    flex: 1 !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .aloha-order-modal-foot .btn-primary span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
   .chat-order-card {
-    max-width: 100%;
+    max-width: 100% !important;
   }
 }
 

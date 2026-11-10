@@ -1769,6 +1769,7 @@
 
     switch (act) {
       case 'close-modal': return closeModal();
+      case 'close-order-modal': if (window.AlohaOrderQRModal) window.AlohaOrderQRModal.close(); return;
       case 'task-filter': ui.taskFilter = id; return render();
       case 'focus-search': return document.getElementById('swSearch').focus();
       case 'call': return showCall(id, key);
@@ -1776,11 +1777,14 @@
         const c = customer(id);
         const convId = el.dataset.conv || ui.inbox.active;
         const v = db.conversations.find(x => x.id === convId);
+        const chatPhone = (v && v.phone) || (c && c.phone) || '';
         if (window.AlohaOrderQRModal) {
           window.AlohaOrderQRModal.open({
             customerId: c ? c.id : ('KH-' + ((c && c.phone) || (v && v.phone) || '')),
             customerName: c ? c.name : (v ? v.customerName : ''),
             phone: (c && c.phone) || (v && v.phone) || '',
+            chatPhone: chatPhone,
+            convId: convId,
             babyName: (c && c.baby && c.baby.name) || '',
             babyAge: (c && c.baby && c.baby.date ? ageText(c.baby.date) : ''),
             service: (c && c.service) || 'Newborn',
@@ -1789,13 +1793,24 @@
             onCreated: (orderData) => {
               if (v) {
                 if (!v.messages) v.messages = [];
-                v.messages.push({
-                  from: 'sale',
-                  text: orderData.cardText,
-                  orderData: orderData,
-                  time: 'Vừa xong',
-                  by: me.name
-                });
+                if (!v.messages.some(m => m.orderData && m.orderData.code === orderData.code)) {
+                  v.messages.push({
+                    from: 'sale',
+                    text: orderData.cardText,
+                    orderData: orderData,
+                    time: 'Vừa xong',
+                    by: me.name
+                  });
+                }
+                if (c && orderData.customerName) {
+                  c.name = orderData.customerName;
+                  c.short = orderData.customerName.trim().split(/\s+/).pop();
+                  if (orderData.phone && (!c.phone || c.phone.startsWith('khach-vang-lai-'))) {
+                    c.phone = orderData.phone;
+                  }
+                }
+                v.updatedAt = Date.now();
+                db.conversations.sort((a, b) => convTimeMs(b) - convTimeMs(a));
                 render();
               }
               toast('Đã tạo đơn #' + orderData.code + ' và gửi mã VietQR vào chat!');

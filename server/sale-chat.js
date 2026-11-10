@@ -59,7 +59,11 @@ if (!AUTH_SECRET) {
 
 // ---------------------------------------------------------------- Tiện ích
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
-const normPhone = (s) => String(s || '').replace(/\D/g, '');
+const normPhone = (s) => {
+  const str = String(s || '').trim();
+  if (str.startsWith('khach-vang-lai-')) return str;
+  return str.replace(/\D/g, '');
+};
 const isPhone = (p) => /^0\d{9,10}$/.test(p);
 
 function signToken(payload) {
