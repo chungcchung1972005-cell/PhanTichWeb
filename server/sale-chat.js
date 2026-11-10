@@ -140,13 +140,41 @@ function newMessage(from, senderName, text, kind) {
   return msg;
 }
 
+// Danh sách Sale đang hoạt động (tự động lấy từ DEMO_ACCOUNTS có role 'sale')
+function getActiveSales() {
+  const list = [];
+  for (const [phone, acc] of Object.entries(DEMO_ACCOUNTS)) {
+    if (acc.role === 'sale') list.push({ phone, name: acc.name });
+  }
+  return list;
+}
+
+let roundRobinIndex = 0;
+function assignNextSale(chat, preferredPhone) {
+  if (chat && chat.assignedSalePhone) return;
+  const sales = getActiveSales();
+  if (!sales.length) return;
+  let assigned = null;
+  if (preferredPhone) {
+    assigned = sales.find(s => s.phone === preferredPhone) || null;
+  }
+  if (!assigned) {
+    assigned = sales[roundRobinIndex % sales.length];
+    roundRobinIndex = (roundRobinIndex + 1) % 1000000;
+  }
+  chat.assignedSalePhone = assigned.phone;
+  chat.assignedSaleName = assigned.name;
+}
+
 // Bản tóm tắt cho danh sách hộp thư của Sale (không gửi cả lịch sử tin).
 function summarize(chat) {
   const last = chat.messages[chat.messages.length - 1] || null;
   return {
     phone: chat.phone, customerName: chat.customerName, topic: chat.topic || '',
     staffUnread: chat.staffUnread || 0, customerUnread: chat.customerUnread || 0,
-    updatedAt: chat.updatedAt, last
+    updatedAt: chat.updatedAt, last,
+    assignedSalePhone: chat.assignedSalePhone || null,
+    assignedSaleName: chat.assignedSaleName || null
   };
 }
 function publicChat(chat) {
@@ -176,9 +204,19 @@ function memoryStore() {
       return [...chats.values()].sort((a, b) => b.updatedAt - a.updatedAt).map(summarize);
     },
     async appendMessage(phone, fields, msg) {
-      const chat = chats.get(phone) || { phone, customerName: 'Khách hàng', topic: '', messages: [], staffUnread: 0, customerUnread: 0, updatedAt: 0, createdAt: msg.at };
+      let chat = chats.get(phone);
+      if (!chat) {
+        chat = { phone, customerName: 'Khách hàng', topic: '', messages: [], staffUnread: 0, customerUnread: 0, updatedAt: 0, createdAt: msg.at };
+        assignNextSale(chat, fields.assignedSalePhone);
+      } else if (!chat.assignedSalePhone) {
+        assignNextSale(chat, fields.assignedSalePhone);
+      }
       if (fields.customerName) chat.customerName = fields.customerName;
       if (fields.topic) chat.topic = fields.topic;
+      if (fields.assignedSalePhone) {
+        chat.assignedSalePhone = fields.assignedSalePhone;
+        if (fields.assignedSaleName) chat.assignedSaleName = fields.assignedSaleName;
+      }
       chat.messages.push(msg);
       if (chat.messages.length > MAX_MESSAGES) chat.messages.splice(0, chat.messages.length - MAX_MESSAGES);
       if (msg.from === 'sale') chat.customerUnread += 1; else chat.staffUnread += 1;
@@ -237,6 +275,20 @@ function mongoStore(uri, dbName) {
       const onInsert = { createdAt: msg.at };
       if (fields.customerName) set.customerName = fields.customerName; else onInsert.customerName = 'Khách hàng';
       if (fields.topic) set.topic = fields.topic; else onInsert.topic = '';
+      
+      const sales = getActiveSales();
+      let assigned = null;
+      if (fields.assignedSalePhone) {
+        assigned = sales.find(s => s.phone === fields.assignedSalePhone) || { phone: fields.assignedSalePhone, name: fields.assignedSaleName || 'Sale' };
+      } else if (sales.length) {
+        assigned = sales[roundRobinIndex % sales.length];
+        roundRobinIndex = (roundRobinIndex + 1) % 1000000;
+      }
+      if (assigned) {
+        onInsert.assignedSalePhone = assigned.phone;
+        onInsert.assignedSaleName = assigned.name;
+      }
+
       const inc = msg.from === 'sale' ? { customerUnread: 1 } : { staffUnread: 1 };
       if (msg.from === 'sale') onInsert.staffUnread = 0; else onInsert.customerUnread = 0;
       return (await chats()).findOneAndUpdate(
@@ -394,16 +446,27 @@ router.post('/auth/google/complete', wrap(async (req, res) => {
 // cho trong lúc chat. Giới hạn theo IP để tránh spam tạo hàng loạt cuộc trò chuyện rác.
 const guestHits = new Map();
 function guestRateLimited(ip) {
+  const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  const maxLimit = isLocal ? 100 : 15;
   const now = Date.now();
   const list = (guestHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
   list.push(now);
   guestHits.set(ip, list);
-  return list.length > 5; // tối đa 5 lượt cấp mới / 10 phút / IP
+  return list.length > maxLimit;
 }
 router.post('/auth/guest', wrap(async (req, res) => {
   if (guestRateLimited(req.ip)) return res.status(429).json({ error: 'too_many_guests' });
   const phone = 'khach-vang-lai-' + crypto.randomBytes(5).toString('hex');
-  return issue(res, { phone, role: 'khach-hang', name: 'Khách vãng lai' });
+  const sales = getActiveSales();
+  const assigned = sales.length ? sales[roundRobinIndex % sales.length] : null;
+  if (assigned) roundRobinIndex = (roundRobinIndex + 1) % 1000000;
+  return issue(res, {
+    phone,
+    role: 'khach-hang',
+    name: 'Khách vãng lai',
+    assignedSalePhone: assigned ? assigned.phone : null,
+    assignedSaleName: assigned ? assigned.name : null
+  });
 }));
 
 router.post('/auth/register', wrap(async (req, res) => {
@@ -429,8 +492,12 @@ router.post('/me/messages', requireAuth(['khach-hang']), wrap(async (req, res) =
   if (!text) return res.status(400).json({ error: 'bad_text' });
   if (rateLimited(req.user.phone)) return res.status(429).json({ error: 'too_many_messages' });
   const topic = String(req.body.topic || '').trim().slice(0, MAX_TOPIC);
-  const chat = await store.appendMessage(req.user.phone, { customerName: req.user.name, topic },
-    newMessage('khach', req.user.name, text));
+  const chat = await store.appendMessage(req.user.phone, {
+    customerName: req.user.name,
+    topic,
+    assignedSalePhone: req.user.assignedSalePhone,
+    assignedSaleName: req.user.assignedSaleName
+  }, newMessage('khach', req.user.name, text));
   res.json({ chat: publicChat(chat) });
 }));
 
@@ -442,8 +509,12 @@ router.post('/me/handoff', requireAuth(['khach-hang']), wrap(async (req, res) =>
   if (!text) return res.status(400).json({ error: 'bad_summary' });
   if (rateLimited(req.user.phone)) return res.status(429).json({ error: 'too_many_messages' });
   const topic = String(req.body.topic || '').trim().slice(0, MAX_TOPIC);
-  const chat = await store.appendMessage(req.user.phone, { customerName: req.user.name, topic },
-    newMessage('he-thong', 'Tóm tắt tự động', text, 'summary'));
+  const chat = await store.appendMessage(req.user.phone, {
+    customerName: req.user.name,
+    topic,
+    assignedSalePhone: req.user.assignedSalePhone,
+    assignedSaleName: req.user.assignedSaleName
+  }, newMessage('he-thong', 'Tóm tắt tự động', text, 'summary'));
   res.json({ chat: publicChat(chat) });
 }));
 
@@ -477,6 +548,10 @@ router.post('/inbox/:phone/read', requireAuth(['sale']), wrap(async (req, res) =
   if (!chat) return res.status(404).json({ error: 'not_found' });
   res.json({ chat: publicChat(chat) });
 }));
+
+router.get('/sales', (req, res) => {
+  res.json({ sales: getActiveSales() });
+});
 
 // Gửi tin nhắn thông báo tự động từ hệ thống vào hội thoại khách hàng (ví dụ: xác nhận tiền cọc SePay)
 async function sendSystemMessage(phone, text, kind = 'payment-confirmed') {

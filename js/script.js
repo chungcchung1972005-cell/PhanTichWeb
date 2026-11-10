@@ -427,12 +427,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let leadPending = null;     // bước đang chờ khách GÕ TỰ DO trả lời ('age'|'weight'|'note'), null = không chờ
     let startLeadIntake = null; // gán bên trong khối nhập tự do (cần detectConcept/SERVICE_KEYWORDS)
 
+    // Phân tách 2 luồng: Trợ lý AI (#chatAiView) và Sale trực tiếp (#chatSaleView)
+    const getAiTarget = () => {
+      let target = document.getElementById('chatAiView');
+      if (!target) {
+        target = document.createElement('div');
+        target.className = 'chat-ai-view';
+        target.id = 'chatAiView';
+        chatBody.prepend(target);
+      }
+      return target;
+    };
+
+    const saveAiView = () => {
+      try {
+        const ai = document.getElementById('chatAiView');
+        if (ai && ai.children.length > 0) {
+          sessionStorage.setItem('aloha_ai_chat_snapshot', ai.innerHTML);
+        }
+      } catch (e) {}
+    };
+
     const addMsg = (text, who) => {
       const div = document.createElement('div');
       div.className = 'chat-msg ' + who;
       div.textContent = text;
-      chatBody.appendChild(div);
+      getAiTarget().appendChild(div);
       chatBody.scrollTop = chatBody.scrollHeight;
+      saveAiView();
       if (who === 'user') {
         interacted = true;
         // Ghi vào hành trình (js/router.js) để tóm tắt cho Sale khi khách chuyển sang Sale.
@@ -456,8 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cap.textContent = caption;
         div.appendChild(cap);
       }
-      chatBody.appendChild(div);
+      getAiTarget().appendChild(div);
       chatBody.scrollTop = chatBody.scrollHeight;
+      saveAiView();
       return div;
     };
 
@@ -465,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const div = document.createElement('div');
       div.className = 'chat-msg bot chat-typing';
       div.innerHTML = '<span></span><span></span><span></span>';
-      chatBody.appendChild(div);
+      getAiTarget().appendChild(div);
       chatBody.scrollTop = chatBody.scrollHeight;
       return div;
     };
@@ -492,8 +515,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         wrap.appendChild(btn);
       });
-      chatBody.appendChild(wrap);
+      getAiTarget().appendChild(wrap);
       chatBody.scrollTop = chatBody.scrollHeight;
+      saveAiView();
     };
 
     // ------------------------------------------------ Gợi ý: tối đa 2 nút, AI chọn theo hoàn cảnh
@@ -520,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (/^#\/chon-anh/.test(h)) return 'Đang ở mục Ảnh của tôi';
       return 'Đang ở trang chủ';
     };
-    const recentChat = () => Array.from(chatBody.querySelectorAll(':scope > .chat-msg:not(.chat-typing)')).slice(-8)
+    const recentChat = () => Array.from(getAiTarget().querySelectorAll(':scope > .chat-msg:not(.chat-typing)')).slice(-8)
       .map((m) => (m.classList.contains('user') ? 'Khách: ' : 'Trợ lý: ') + m.textContent.trim().slice(0, 300))
       .filter((s) => s.length > 8);
 
@@ -530,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const limit = maxCount || MAX_SUGGEST;
       const wrap = document.createElement('div');
       wrap.className = 'chat-quick';
-      chatBody.appendChild(wrap);
+      getAiTarget().appendChild(wrap);
       const show = (items) => {
         if (!wrap.isConnected) return; // khung đã đổi (khách bấm chỗ khác, chuyển Sale...)
         wrap.classList.remove('is-loading');
@@ -610,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const askMainMenu = () => {
-      chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      getAiTarget().querySelectorAll('.chat-quick').forEach((el) => el.remove());
       const candidates = MAIN_SERVICES.map((item) =>
         C('svc-' + item.slug, item.label, () => {
           openAlbum(item.href);
@@ -870,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const token = ++greetToken;
       greetedKey = ctx.key;
       // Để nguyên những gì đã chat trước đó, chỉ xoá các nút quick replies cũ
-      chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      getAiTarget().querySelectorAll('.chat-quick').forEach((el) => el.remove());
       const g = greetingFor(ctx);
       for (let i = 0; i < g.lines.length; i++) {
         if (!(await say(g.lines[i], i === 0 ? 550 : 450, token))) return;
@@ -911,7 +935,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const startChat = (skipGreeting) => {
       if (chatStarted) return;
       chatStarted = true;
-      if (skipGreeting || isConsulting()) return;
+      const aiView = getAiTarget();
+      if (!aiView.children.length) {
+        try {
+          const snapshot = sessionStorage.getItem('aloha_ai_chat_snapshot');
+          if (snapshot) {
+            aiView.innerHTML = snapshot;
+            return;
+          }
+        } catch (e) {}
+      }
+      if (skipGreeting || isConsulting() || aiView.children.length > 0) return;
       greet(pageContext(), false);
     };
 
@@ -1072,40 +1106,49 @@ document.addEventListener('DOMContentLoaded', () => {
     let saleTopic = '';
 
     // Tên Sale hiển thị ở đầu khung khi đang chat, để khách thấy có người cụ thể đang phụ trách
-    // (người dùng yêu cầu 2026-09). Chỉ để HIỂN THỊ: hệ thống chưa phân công theo từng khách thật
-    // sự, mọi tài khoản Sale vẫn đọc/trả lời được như nhau (xem CLAUDE.md mục "Việc còn mở"). Chọn
-    // 1 lần rồi nhớ lại trong phiên chat này (sessionStorage "aloha_chat_ui") để không đổi tên
-    // giữa chừng khi khách rời/quay lại chat Sale hay tải lại trang.
-    const SALE_STAFF = ['Ngọc Anh', 'Minh Thư', 'Thu Hà', 'Quốc Bảo', 'Hải Yến'];
+    // Lấy theo sale được phân công từ server (round-robin), định dạng "Sale + tên" (vd: Sale Ngọc Anh).
+    function formatStaffHeader(name) {
+      if (!name) return 'Sale ALOHA Baby';
+      const clean = String(name).trim();
+      return /^sale\b/i.test(clean) ? clean : ('Sale ' + clean);
+    }
     const assignedSaleName = () => {
+      const assigned = window.AlohaSaleChat && window.AlohaSaleChat.getAssignedSale && window.AlohaSaleChat.getAssignedSale();
+      if (assigned && assigned.name) {
+        writeUi({ saleStaff: assigned.name });
+        return assigned.name;
+      }
       const ui = readUi();
       if (ui.saleStaff) return ui.saleStaff;
-      const name = SALE_STAFF[Math.floor(Math.random() * SALE_STAFF.length)];
-      writeUi({ saleStaff: name });
-      return name;
+      const staffList = ['Ngọc Anh', 'Minh Thư', 'Thu Hà'];
+      return staffList[0];
     };
 
     const addDivider = (text) => {
       const div = document.createElement('div');
       div.className = 'chat-divider';
       div.textContent = text;
-      chatBody.appendChild(div);
+      getAiTarget().appendChild(div);
       chatBody.scrollTop = chatBody.scrollHeight;
     };
     const saleLive = () => {
-      let live = chatBody.querySelector('.chat-sale-live');
-      if (!live) { live = document.createElement('div'); live.className = 'chat-sale-live'; }
-      chatBody.appendChild(live); // luôn nằm cuối, sau các tin với trợ lý AI
+      let live = document.getElementById('chatSaleView');
+      if (!live) {
+        live = document.createElement('div');
+        live.id = 'chatSaleView';
+        live.className = 'chat-sale-view chat-sale-live';
+        chatBody.appendChild(live);
+      }
       return live;
     };
     const embedSale = () => {
-      window.AlohaSaleChat.embed({ container: chatBody.querySelector('.chat-sale-live') || saleLive(), scroller: chatBody,
+      window.AlohaSaleChat.embed({ container: saleLive(), scroller: chatBody,
         input: chatInput, sendBtn: chatSendBtn, statusBox: chatSaleStatus, topic: saleTopic });
     };
     const setSaleUi = (on) => {
       chatPanel.classList.toggle('sale-mode', on);
       if (chatTitle) chatTitle.textContent = on ? 'Tư vấn viên ALOHA Baby' : 'Trợ lý ALOHA';
-      if (chatSubtitle) chatSubtitle.textContent = on ? ('Đang chat với Sale - ' + assignedSaleName()) : 'Trợ lý tư vấn';
+      if (chatSubtitle) chatSubtitle.textContent = on ? ('Đang chat với ' + formatStaffHeader(assignedSaleName())) : 'Trợ lý tư vấn';
       // Nút ở đầu khung: chữ ngắn cho vừa hàng, tên đầy đủ để ở title/aria-label.
       if (chatToSaleText) chatToSaleText.textContent = on ? 'Trợ lý AI' : 'Nhắn Sale';
       if (chatToSale) {
@@ -1136,8 +1179,6 @@ document.addEventListener('DOMContentLoaded', () => {
       greetToken++; // dừng lời chào của trợ lý AI nếu đang chạy dở
       saleTopic = slug;
       writeUi({ mode: 'sale', saleTopic: slug, dismissed: false });
-      chatBody.querySelectorAll('.chat-quick, .chat-typing').forEach((el) => el.remove());
-      addDivider('Bạn đang chat trực tiếp với Sale ALOHA Baby. Để tư vấn nhanh hơn, Sale sẽ xem tóm tắt những mục bạn đã xem và đã hỏi trợ lý AI.');
       saleLive();
       setSaleUi(true);
       embedSale();
@@ -1149,8 +1190,11 @@ document.addEventListener('DOMContentLoaded', () => {
       writeUi({ mode: 'ai' });
       if (window.AlohaSaleChat) window.AlohaSaleChat.unembed();
       setSaleUi(false);
-      addDivider('Đã quay lại trợ lý AI. Tin nhắn với Sale vẫn được lưu, bấm "Nhắn Sale" để chat tiếp.');
-      askMainMenu();
+      chatBody.scrollTop = chatBody.scrollHeight;
+      const aiView = getAiTarget();
+      if (!aiView.children.length) {
+        askMainMenu();
+      }
     };
     if (chatToSale) chatToSale.addEventListener('click', () => { if (saleMode) leaveSale(); else enterSale(''); });
     // Ô nhập của khung chatbot khi đang chat với Sale: nút gửi chỉ sáng khi đã gõ chữ.
@@ -1158,6 +1202,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // js/sale-chat.js (link #/chat-sale, route #/chat-sale sau khi đăng nhập) mở chat Sale qua đây.
     window.AlohaChatbot = { openSale: (topic) => enterSale(String(topic || '').split('/')[0]), open: openChat, backToAi: leaveSale };
+
+    // Cập nhật lại tên Sale trên tiêu đề ngay khi server gán sale cho khách
+    window.addEventListener('aloha:sale-assigned', (e) => {
+      if (saleMode && chatSubtitle && e.detail && e.detail.name) {
+        chatSubtitle.textContent = 'Đang chat với ' + formatStaffHeader(e.detail.name);
+      }
+    });
 
     // Tự mở / hiện bong bóng theo trang đang xem (không còn nhánh "vừa đăng nhập xong từ khung
     // chat" - khung chat không đẩy khách sang đăng nhập nữa, xem comment ở đầu khối addEventListener

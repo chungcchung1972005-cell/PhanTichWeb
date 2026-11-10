@@ -171,10 +171,24 @@
     }
   }
 
+  function getAiTarget() {
+    let target = document.getElementById('chatAiView');
+    if (!target) {
+      const body = $(CHAT_BODY_ID);
+      if (body) {
+        target = document.createElement('div');
+        target.className = 'chat-ai-view';
+        target.id = 'chatAiView';
+        body.prepend(target);
+      }
+    }
+    return target || $(CHAT_BODY_ID);
+  }
+
   // Thêm tin nhắn bot
   function botReply(text, delay = 450) {
     return new Promise((resolve) => {
-      const body = $(CHAT_BODY_ID);
+      const body = getAiTarget();
       if (!body) return resolve();
 
       // Hiệu ứng typing
@@ -198,7 +212,7 @@
 
   // Thêm tin nhắn người dùng (khi bấm nút chọn)
   function userReply(text) {
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (!body) return;
     const msg = document.createElement('div');
     msg.className = 'chat-msg user';
@@ -209,7 +223,7 @@
 
   // Thêm phân cách thông báo
   function addDivider(text) {
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (!body) return;
     const div = document.createElement('div');
     div.className = 'chat-divider';
@@ -220,7 +234,7 @@
 
   // Hiển thị các nút bấm để khách chọn (KHÔNG CHO GÕ TAY)
   function showOptionButtons(options, onPick) {
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (!body) return;
 
     // Xoá các cụm nút quick reply cũ nếu còn
@@ -425,7 +439,7 @@
 
   // Render danh sách card concept trong ô chat (xem trực quan, bấm chuyển trang bên trái)
   function renderConceptCardsInChat(concepts) {
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (!body) return;
 
     const listWrap = document.createElement('div');
@@ -631,7 +645,7 @@
 
   async function startBauConsultation(conceptSlug, conceptName, skipGreeting = false) {
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (body) {
       body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       body.querySelectorAll('.chat-msg.bot').forEach((m) => {
@@ -730,7 +744,7 @@
   // -------------------------------------------------------------------------
   async function startBauDirectConceptConsult(conceptSlug, conceptName) {
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (body) {
       body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       body.querySelectorAll('.chat-msg.bot').forEach((m) => {
@@ -793,7 +807,6 @@
       await botReply(`Dạ em chuyển tiếp thông tin concept **"${displayName}"** và kết nối bạn với tư vấn viên Sale ngay nhé! ❤️`);
       setTimeout(() => {
         setInputLocked(false);
-        currentSession = null;
         if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
           window.AlohaChatbot.openSale('bau');
         }
@@ -915,7 +928,7 @@
 
   async function startGiaDinhConsultation(conceptSlug, conceptName, skipGreeting = false) {
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (body) {
       body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       body.querySelectorAll('.chat-msg.bot').forEach((m) => {
@@ -1013,7 +1026,7 @@
   // -------------------------------------------------------------------------
   async function startGiaDinhDirectConceptConsult(conceptSlug, conceptName) {
     // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (body) {
       body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       body.querySelectorAll('.chat-msg.bot').forEach((m) => {
@@ -1076,7 +1089,6 @@
       await botReply(`Dạ em chuyển tiếp thông tin concept **"${displayName}"** và kết nối bạn với tư vấn viên Sale ngay nhé! ❤️`);
       setTimeout(() => {
         setInputLocked(false);
-        currentSession = null;
         if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
           window.AlohaChatbot.openSale('gia-dinh');
         }
@@ -1229,7 +1241,7 @@
     }
 
     // Dọn dẹp các nút bấm cũ và các tin nhắn chào chung trong ô chat
-    const body = $(CHAT_BODY_ID);
+    const body = getAiTarget();
     if (body) {
       body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
       body.querySelectorAll('.chat-msg.bot').forEach((m) => {

@@ -967,8 +967,32 @@ body.hide-floating-book .floating-book { display: none; }
 @media (prefers-reduced-motion: reduce) { .chat-panel.sale-mode .chat-sale-btn { animation: none; } }
 .chat-panel.sale-mode .chat-header { background: linear-gradient(120deg, var(--navy-700), var(--pink-600)); }
 .chat-panel .sc-status { flex-shrink: 0; }
-/* Tin nhắn Sale vẽ bằng js/sale-chat.js (lớp .sc-*, css/pages.css) ngay trong thân khung chatbot. */
-.chat-sale-live { display: flex; flex-direction: column; gap: 12px; }
+/* Phân tách 2 luồng: Trợ lý AI và Sale trực tiếp, giữ nguyên 100% cuộc trò chuyện khi chuyển đổi qua lại */
+.chat-ai-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.chat-sale-view {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.chat-panel:not(.sale-mode) .chat-sale-view,
+.chat-panel:not(.sale-mode) .chat-sale-live {
+  display: none !important;
+}
+.chat-panel.sale-mode .chat-ai-view {
+  display: none !important;
+}
+.chat-panel.sale-mode .chat-sale-view,
+.chat-panel.sale-mode .chat-sale-live {
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px;
+}
 .chat-sale-live .sc-stack { max-width: 88%; }
 .chat-divider {
   align-self: center; text-align: center; font-size: 11.5px; line-height: 1.45; color: var(--navy-500);

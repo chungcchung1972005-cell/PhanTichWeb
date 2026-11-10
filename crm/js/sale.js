@@ -200,7 +200,11 @@
   }
   function ownerTag(ownerId) {
     if (!ownerId) return '<span class="sw-tag tone-red sw-owner-tag">Chưa có sale nhận</span>';
-    return ownerId === me.id ? '' : '<span class="sw-tag tone-beige sw-owner-tag">' + esc(saleName(ownerId)) + '</span>';
+    const sName = saleName(ownerId);
+    const tagText = /^sale\b/i.test(sName) ? sName : ('Sale ' + sName);
+    return ownerId === me.id
+      ? '<span class="sw-tag tone-teal sw-owner-tag">' + esc(tagText) + ' (Của bạn)</span>'
+      : '<span class="sw-tag tone-beige sw-owner-tag">' + esc(tagText) + '</span>';
   }
 
   // ---------- Truy vấn theo quyền ----------
@@ -568,7 +572,7 @@
         '<span class="sw-avatar">' + initials(c.name) + '</span>' +
         '<span class="ib-item-body"><span class="ib-item-top"><strong>' + esc(c.name) + '</strong><small>' + esc(v.time) + '</small></span>' +
         '<span class="ib-preview">' + esc(last.text) + '</span>' +
-        ((v.bot || v.owner !== me.id) ? '<span class="ib-item-tags">' + (v.bot ? '<span class="sw-tag tone-peach">' + esc(v.channel) + '</span>' : '') + ownerTag(v.owner) + '</span>' : '') + '</span></button>';
+        '<span class="ib-item-tags">' + (v.bot ? '<span class="sw-tag tone-peach">' + esc(v.channel) + '</span>' : '') + ownerTag(v.owner) + '</span>' + '</span></button>';
     }).join('') : emptyState(db.conversations.length ? 'Không có hội thoại nào trong nhóm này.' : 'Chưa có khách nào nhắn. Khi khách bấm ảnh dịch vụ hoặc nút chat trên website và gửi tin, hội thoại sẽ tự hiện ở đây.');
 
     return '<div class="ib' + (ui.inbox.mobileChat ? ' show-chat' : '') + (active && ui.inbox.info ? ' show-info' : '') + '">' +
@@ -588,7 +592,7 @@
     return '<section class="ib-chat">' +
       '<header class="ib-chat-head">' +
         '<button type="button" class="sw-icon-btn ib-back" data-act="inbox-back" aria-label="Quay lại danh sách">' + icon('back') + '</button>' +
-        '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + (v.live && !v.owner ? ' · chưa có sale nhận' : '') + '</small></div>' +
+        '<div><strong>' + esc(c.name) + '</strong><small>Qua ' + esc(v.channel) + (v.online ? ' · đang online' : '') + (v.live && !v.owner ? ' · chưa có sale nhận' : (v.owner ? ' · ' + esc(saleName(v.owner).startsWith('Sale') ? saleName(v.owner) : ('Sale ' + saleName(v.owner))) + ' phụ trách' : '')) + '</small></div>' +
         '<div class="ib-chat-actions">' +
           (own ? '<button type="button" class="sw-btn sw-btn-accent ib-create-order-btn" data-act="ib-create-order" data-id="' + c.id + '" data-conv="' + v.id + '" title="Tạo đơn chụp & Gửi cọc QR">' + icon('qr') + 'Tạo đơn &amp; Gửi cọc QR</button>' : '') +
           (own ? '<button type="button" class="sw-btn sw-btn-teal" data-act="call" data-id="' + c.id + '">' + icon('phone') + 'Gọi</button>' : '') +
@@ -2292,6 +2296,13 @@
       if (last && last.from === 'khach' && c.stage !== 'moi') c.status = { text: 'Khách vừa nhắn', tone: 'amber' };
     } else if (!v.loaded && sum.last) {
       v.messages = [liveMsg(sum.last)];
+    }
+    if (sum.assignedSalePhone) {
+      const assignedSale = db.sales.find(s => s.phone === sum.assignedSalePhone || s.name === sum.assignedSaleName);
+      if (assignedSale && (!c.owner || !v.owner)) {
+        c.owner = v.owner = assignedSale.id;
+        c.assignedSaleName = v.assignedSaleName = assignedSale.name;
+      }
     }
     const linked=AlohaWorkflow.get() && AlohaWorkflow.get().orders.find(o=>o.phone===sum.phone);
     if(linked){const owner=(db.sales.find(s=>s.phone===linked.salePhone)||{}).id;if(owner){c.owner=owner;v.owner=owner;}}

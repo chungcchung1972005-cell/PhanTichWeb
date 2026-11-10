@@ -104,8 +104,20 @@
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || !data.token || !data.session) return null;
-          const g = { phone: data.session.phone, name: data.session.name, token: data.token, exp: Date.now() + 29 * 24 * 3600 * 1000 };
+          const g = {
+            phone: data.session.phone,
+            name: data.session.name,
+            token: data.token,
+            assignedSalePhone: data.session.assignedSalePhone || null,
+            assignedSaleName: data.session.assignedSaleName || null,
+            exp: Date.now() + 29 * 24 * 3600 * 1000
+          };
           saveGuest(g);
+          if (g.assignedSaleName) {
+            window.dispatchEvent(new CustomEvent('aloha:sale-assigned', {
+              detail: { name: g.assignedSaleName, phone: g.assignedSalePhone }
+            }));
+          }
           return g;
         } catch (e) { return null; } finally { guestPromise = null; }
       })();
@@ -266,8 +278,16 @@
         return `<div class="sc-bubble${seenIds.has(m.id) ? '' : ' sc-pop'}">${esc(m.text)}</div>`;
       }).join('');
       const time = `<time>${hm(group[group.length - 1].at)}</time>`;
+      function formatSaleDisplayName(name) {
+        if (!name) return 'Sale ALOHA Baby';
+        const clean = String(name).trim();
+        if (/^sale\b/i.test(clean)) return clean;
+        if (/^aloha\b/i.test(clean)) return clean;
+        return 'Sale ' + clean;
+      }
+      const displayName = first.from === 'sale' ? formatSaleDisplayName(first.senderName) : (first.senderName || 'Khách hàng');
       html += first.from === 'sale'
-        ? `<div class="sc-row from-sale">${AVATAR}<div class="sc-stack"><span class="sc-name">${esc(first.senderName || 'Sale ALOHA Baby')}</span>${bubbles}${time}</div></div>`
+        ? `<div class="sc-row from-sale">${AVATAR}<div class="sc-stack"><span class="sc-name">${esc(displayName)}</span>${bubbles}${time}</div></div>`
         : `<div class="sc-row from-me"><div class="sc-stack">${bubbles}${time}</div></div>`;
       i = j;
     }
@@ -342,6 +362,11 @@
     if (cache.phone !== me.phone) cache = { phone: me.phone, chat: null, status: 'loading' };
     cache.chat = chat;
     cache.status = 'ok';
+    if (chat && chat.assignedSaleName) {
+      window.dispatchEvent(new CustomEvent('aloha:sale-assigned', {
+        detail: { name: chat.assignedSaleName, phone: chat.assignedSalePhone }
+      }));
+    }
   }
   function setError(me, status) {
     if (cache.phone !== me.phone) cache = { phone: me.phone, chat: null, status: 'loading' };
@@ -703,7 +728,18 @@
     if (active) render(true);
   });
 
-  window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded };
+  function getAssignedSale() {
+    if (cache.chat && cache.chat.assignedSaleName) {
+      return { phone: cache.chat.assignedSalePhone, name: cache.chat.assignedSaleName };
+    }
+    const g = guestSession();
+    if (g && g.assignedSaleName) {
+      return { phone: g.assignedSalePhone, name: g.assignedSaleName };
+    }
+    return null;
+  }
+
+  window.AlohaSaleChat = { open, close, embed, pause, unembed, send, handoff, summaryText, unread, isEmbedded: () => embedded, getAssignedSale };
 
   // Tải trang thẳng vào #/chat-sale (vd vừa đăng nhập xong): router chạy trước khi file này
   // nạp nên đã để lại yêu cầu mở khung chat -> mở ở đây.
