@@ -325,6 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <p>Ảnh chỉ được gửi đi chỉnh sửa sau khi studio nhận được thanh toán. Nếu chưa thanh toán, yêu cầu sẽ chưa được gửi.</p>
         </div>
       </div>
+
+      <div class="ps-qr-actions">
+        <button type="button" class="ps-qr-cancel-btn" id="psQrCancelPayBtn">Hủy thanh toán &amp; Chọn lại ảnh</button>
+      </div>
     </div>
   `;
   document.body.appendChild(qrOverlay);
@@ -498,6 +502,17 @@ document.addEventListener('DOMContentLoaded', () => {
     tick();
   }
 
+  function cancelPaymentAndUnlock() {
+    qr = null;
+    stopPaymentWatch();
+    lockSelection(false);
+    qrOverlay.classList.remove('show');
+    banner.classList.remove('show');
+    banner.innerHTML = '';
+    renderCart();
+    updateSummary();
+  }
+
   // Đóng modal KHÔNG gửi yêu cầu. Nếu mã còn hạn, trang vẫn tiếp tục chờ tiền về
   // ở nền: khách chuyển khoản xong là ảnh tự gửi đi, không cần mở lại modal.
   function closeQrPaymentModal() {
@@ -512,9 +527,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="ps-banner-info">
         <strong>Ảnh của bé chưa được gửi đi</strong>
         <p>${waiting
-          ? 'Hệ thống đang chờ thanh toán phí ảnh chọn thêm. Bạn chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh, không cần thao tác gì thêm. Danh sách ảnh tạm khoá trong lúc chờ.'
+          ? 'Hệ thống đang chờ thanh toán phí ảnh chọn thêm. Bạn chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh. Nếu muốn thay đổi danh sách ảnh, bạn có thể bấm "Hủy thanh toán".'
           : 'Mã QR đã hết hạn. Bấm "Gửi yêu cầu chỉnh sửa" để nhận mã mới và hoàn tất thanh toán.'}</p>
-        ${waiting ? '<button type="button" class="ps-reopen-qr-link" id="psContinuePayBtn">Xem lại mã QR</button>' : ''}
+        ${waiting ? `
+          <div class="ps-banner-actions">
+            <button type="button" class="ps-reopen-qr-link" id="psContinuePayBtn">Xem lại mã QR</button>
+            <button type="button" class="ps-cancel-pay-link" id="psCancelPayBannerBtn">Hủy thanh toán &amp; Chọn lại ảnh</button>
+          </div>
+        ` : ''}
       </div>
     `;
     const continueBtn = banner.querySelector('#psContinuePayBtn');
@@ -523,6 +543,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (qr) openQrPaymentModal(qr.count, qr.fee);
       });
     }
+    const cancelBannerBtn = banner.querySelector('#psCancelPayBannerBtn');
+    if (cancelBannerBtn) {
+      cancelBannerBtn.addEventListener('click', cancelPaymentAndUnlock);
+    }
     banner.classList.add('show');
   }
 
@@ -530,6 +554,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   qrOverlay.addEventListener('click', (e) => {
     if (e.target === qrOverlay) closeQrPaymentModal();
+  });
+
+  const qrCancelBtn = qrOverlay.querySelector('#psQrCancelPayBtn');
+  if (qrCancelBtn) {
+    qrCancelBtn.addEventListener('click', cancelPaymentAndUnlock);
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && qrOverlay.classList.contains('show')) {
+      closeQrPaymentModal();
+    }
   });
 
   let currentFilter = 'all';
@@ -578,6 +613,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const target=lb.classList.contains('show') ? lb.querySelector('#psLbFav') : heartBtn;
       let hint=document.getElementById('psLockedHint');if(!hint){hint=document.createElement('span');hint.id='psLockedHint';hint.setAttribute('role','status');}
       hint.textContent='Đã gửi thợ; bạn vẫn có thể chọn ảnh khác.';target?.after(hint);setTimeout(()=>hint.remove(),4000);return;
+    }
+    if (qr && Date.now() < qr.deadline) {
+      const target = lb.classList.contains('show') ? lb.querySelector('#psLbFav') : heartBtn;
+      let hint = document.getElementById('psLockedHint');
+      if (!hint) {
+        hint = document.createElement('span');
+        hint.id = 'psLockedHint';
+        hint.setAttribute('role', 'status');
+      }
+      hint.textContent = 'Đang chờ thanh toán mã QR. Bấm "Hủy thanh toán" để chọn lại ảnh.';
+      target?.after(hint);
+      setTimeout(() => hint.remove(), 4000);
+      return;
     }
     if (!heartBtn || heartBtn.disabled || photoById[id]?.previewOnly) return;
     hideUndo(); // đã tự chọn/bỏ chọn tiếp thì không Hoàn tác "Bỏ chọn tất cả" được nữa
@@ -1574,6 +1622,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('psCartQr').addEventListener('click', () => {
     if (qr) openQrPaymentModal(qr.count, qr.fee);
   });
+  const cartCancelBtn = document.createElement('button');
+  cartCancelBtn.type = 'button';
+  cartCancelBtn.className = 'btn ps-cart-cancel-btn';
+  cartCancelBtn.id = 'psCartCancelBtn';
+  cartCancelBtn.textContent = 'Hủy thanh toán';
+  cartCancelBtn.hidden = true;
+  cartCancelBtn.addEventListener('click', cancelPaymentAndUnlock);
+  document.getElementById('psCartQr').after(cartCancelBtn);
+
   function renderCart() {
     const waiting = !!qr && Date.now() < qr.deadline;
     const active = !document.getElementById('view-chon-anh').hidden && selected.size > 0;
@@ -1588,6 +1645,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reminder.hidden = missing === 0;
     reminder.textContent = missing + ' ảnh chưa ghi cách sửa';
     document.getElementById('psCartQr').hidden = !waiting;
+    cartCancelBtn.hidden = !waiting;
     submitBtn.hidden = waiting;
     clearAllBtn.hidden = waiting;
     submitBtn.textContent = submitting ? 'Đang gửi…' : paidPending ? 'Gửi lại cho thợ' : feeCount ? 'Thanh toán' : 'Gửi cho thợ';

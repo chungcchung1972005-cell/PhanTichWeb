@@ -990,7 +990,30 @@
   line-height: 1.5;
 }
 
-/* Banner mở lại QR */
+/* Nút hủy thanh toán & chọn lại ảnh trong modal */
+.ps-qr-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+.ps-qr-cancel-btn {
+  background: transparent;
+  color: #6b7280;
+  border: 1.5px solid #d1d5db;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: .84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.ps-qr-cancel-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Banner mở lại QR & Hủy */
 .ps-banner-info {
   flex: 1;
 }
@@ -1003,6 +1026,12 @@
   margin: 0 0 8px 0;
   font-size: .88rem;
   line-height: 1.5;
+}
+.ps-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .ps-reopen-qr-link {
   display: inline-flex;
@@ -1021,6 +1050,41 @@
 .ps-reopen-qr-link:hover {
   background: #059669;
   color: #fff;
+}
+.ps-cancel-pay-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.ps-cancel-pay-link:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* Nút hủy thanh toán trên thanh giỏ ảnh đáy màn hình */
+.ps-cart-cancel-btn {
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: .84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.ps-cart-cancel-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 /* ===== Lightbox (xem ảnh lớn, thu phóng, lướt, yêu thích + ghi chú) ===== */
 .ps-photo img { cursor: zoom-in; }
