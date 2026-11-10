@@ -474,8 +474,15 @@ router.post('/inbox/:phone/read', requireAuth(['sale']), wrap(async (req, res) =
   res.json({ chat: publicChat(chat) });
 }));
 
+// Gửi tin nhắn thông báo tự động từ hệ thống vào hội thoại khách hàng (ví dụ: xác nhận tiền cọc SePay)
+async function sendSystemMessage(phone, text, kind = 'payment-confirmed') {
+  const norm = normPhone(phone);
+  const msg = newMessage('sale', 'ALOHA Baby Studio', text, kind);
+  return await store.appendMessage(norm, {}, msg);
+}
+
 // requireAuth dùng chung cho server/edit-requests.js (cùng token, cùng AUTH_SECRET).
 // isPublicDemoPhone: SĐT thuộc tài khoản demo CÔNG KHAI (mật khẩu in trên login.html) - edit-requests.js
 // dùng để chặn Thợ ảnh/Sếp demo công khai khỏi API chỉnh ảnh. Không đổi quyền gì trong chat Sale.
 const isPublicDemoPhone = (phone) => Object.prototype.hasOwnProperty.call(DEMO_ACCOUNTS, String(phone || ''));
-module.exports = { router, storeKind: store.kind, requireAuth, EDIT_DEMO_SCOPE, isPublicDemoPhone };
+module.exports = { router, storeKind: store.kind, requireAuth, EDIT_DEMO_SCOPE, isPublicDemoPhone, sendSystemMessage };

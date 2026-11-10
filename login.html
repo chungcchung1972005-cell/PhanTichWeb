@@ -53,6 +53,7 @@
   .login-error.show { display: block; }
   .login-submit { width: 100%; margin-top: 4px; }
   .login-demo {
+    display: none !important;
     margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--pink-50);
     font-size: 12px; color: var(--navy-500);
   }
@@ -150,7 +151,7 @@
     </p>
 
     <!-- Đăng nhập demo mô phỏng phía client, xem js/auth.js -->
-    <div class="login-demo" id="loginDemoBox">
+    <div class="login-demo" id="loginDemoBox" style="display: none !important;">
       <strong>Tài khoản demo để xem thử:</strong>
       <table>
         <tr><td>Khách hàng</td><td>0900000001 / khach123</td></tr>
@@ -207,7 +208,7 @@
 
   function applyMode() {
     document.getElementById('fieldName').hidden = !isRegisterMode;
-    document.getElementById('loginDemoBox').style.display = isRegisterMode ? 'none' : '';
+    document.getElementById('loginDemoBox').style.display = 'none';
     if (isRegisterMode) {
       document.getElementById('loginTitle').textContent = 'Đăng ký tài khoản khách hàng';
       document.getElementById('loginSub').textContent = 'Tạo tài khoản để đặt lịch và xem ảnh của bé.';
@@ -332,7 +333,7 @@
     ['loginForm', 'socialBox', 'loginModeSwitch', 'loginDemoBox'].forEach(function (id) {
       var el = document.getElementById(id);
       if (id === 'socialBox') el.hidden = on || !googleReady;
-      else if (id === 'loginDemoBox') el.style.display = (on || isRegisterMode) ? 'none' : '';
+      else if (id === 'loginDemoBox') el.style.display = 'none';
       else el.hidden = on;
     });
     document.getElementById('googleForm').hidden = !on;

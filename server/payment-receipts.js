@@ -21,7 +21,7 @@ function createReceiptStore(store, incomingTx = []) {
     async listAll() { return store.kind === 'memory' ? incomingTx.map(t => ({...t})) : store.listAll(); },
     async find(code, amount) {
       const c = normalize(code);
-      if (c.length < 8 || c.length > 60) return null;
+      if (c.length < 3 || c.length > 60) return null;
       const records = store.kind === 'memory' ? incomingTx : await store.listAll();
       return records.find(t => t.id != null && t.content.includes(c) && t.amount >= amount) || null;
     }

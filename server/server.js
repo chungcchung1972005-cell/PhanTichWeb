@@ -14,11 +14,13 @@
 //   npm start
 // Server mặc định chạy ở http://localhost:3001
 
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const saleChat = require('./sale-chat');
 const editRequests = require('./edit-requests'); // yêu cầu chỉnh ảnh (2026-10-15): mặc định RAM, MongoDB RIÊNG khi có EDIT_REQUESTS_MONGODB_URI
+const workflow = require('./workflow');
 
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
@@ -405,17 +407,73 @@ app.post('/api/sepay-webhook', async (req, res) => {
   try {
     const receipt = {id:tx.id, content:normalize(`${tx.content || ''} ${tx.description || ''}`), amount, at:Date.now()};
     const added = await receipts.add(receipt);
-    // Tiền về khớp bản nháp chờ thanh toán -> máy chủ tự gửi ảnh cho thợ (khách tắt trang vẫn nhận).
-    // Lỗi ở bước này chỉ ghi log: biên lai đã lưu, Sale/Sếp thấy trong "Tiền chưa khớp".
-    if (added) await editRequests.router.onPaymentReceived(receipt);
+    if (added) {
+      // Tiền về khớp bản nháp chờ thanh toán -> máy chủ tự gửi ảnh cho thợ (khách tắt trang vẫn nhận).
+      await editRequests.router.onPaymentReceived(receipt);
+      // Tiền cọc đơn hàng chụp ảnh (50%) -> tự động xác nhận đơn, nổ tin nhắn xác nhận và giao việc cho thợ
+      await handleOrderDepositPayment(receipt, tx);
+    }
     return res.json(added ? {success:true} : {success:true,duplicate:true});
   } catch (_) { return res.status(503).json({success:false,error:'store_unavailable'}); }
 });
 
+// Tự động xử lý tiền đặt cọc đơn hàng chụp ảnh qua SePay
+async function handleOrderDepositPayment(receipt, tx) {
+  try {
+    const wfState = await workflow.service.read();
+    const orders = wfState.orders || [];
+
+    // Tìm đơn trong workflow có mã khớp với nội dung chuyển khoản
+    // Khách quét QR có cú pháp ALOHA DPxxxx, normalized content chứa 'DPxxxx' hoặc 'ALOHADPxxxx'
+    const order = orders.find(o => {
+      if (!o.code) return false;
+      const cleanCode = normalize(o.code);
+      return cleanCode.length >= 3 && receipt.content.includes(cleanCode);
+    });
+
+    if (!order) return null;
+
+    // Đơn đã ghi nhận thanh toán giao dịch này rồi -> bỏ qua
+    const ref = 'sepay:' + tx.id;
+    if (order.payments && order.payments.some(p => p.reference === ref)) {
+      return null;
+    }
+
+    if (order.status === 'cancelled') {
+      return null;
+    }
+
+    // Cập nhật workflow sang trạng thái confirmed (Đã cọc)
+    const botUser = { role: 'sep', phone: '0900000004', name: 'SePay Webhook' };
+    await workflow.service.change(botUser, 'payment', {
+      id: order.id,
+      amount: receipt.amount,
+      reference: ref
+    });
+
+    // Gửi tin nhắn xác nhận chính thức vào chat giữa Studio và Khách hàng
+    if (order.phone && saleChat.sendSystemMessage) {
+      const moneyFmt = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+      const successMsg = 
+        `🎉 ALOHA XÁC NHẬN: Đã nhận thành công ${moneyFmt(receipt.amount)} tiền đặt cọc cho đơn #${order.code} qua SePay!\n` +
+        `Lịch hẹn chụp ảnh (${order.service || 'Buổi chụp'}) của gia đình đã được xác nhận chính thức trên hệ thống studio.\n` +
+        `Đội ngũ thợ ảnh và ekip ALOHA đã nhận lịch và sẵn sàng chuẩn bị buổi chụp thật chu đáo cho bé! Hẹn gặp mẹ và bé nhé! ❤️`;
+      
+      await saleChat.sendSystemMessage(order.phone, successMsg);
+    }
+
+    console.log(`[SEPAY] Tự động xác nhận cọc ${receipt.amount}đ cho đơn #${order.code} (Khách: ${order.customerName || order.phone})`);
+    return order;
+  } catch (err) {
+    console.error('[SEPAY] Lỗi tự động xác nhận tiền cọc đơn hàng:', err.message);
+    return null;
+  }
+}
+
 app.get('/api/payment-status', async (req, res) => {
   const code = normalize(req.query.code);
   const amount = Number(req.query.amount);
-  if (code.length < 8 || code.length > 40 || !Number.isFinite(amount) || amount <= 0) {
+  if (code.length < 3 || code.length > 60 || !Number.isFinite(amount) || amount <= 0) {
     return res.status(400).json({ error: 'bad_request' });
   }
   try { return res.json({paid:!!(await receipts.find(code,amount))}); }

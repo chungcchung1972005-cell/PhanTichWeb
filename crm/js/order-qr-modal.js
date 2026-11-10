@@ -160,7 +160,7 @@
     const memo = data.memo || ('ALOHA ' + data.code);
 
     return `
-      <div class="chat-order-card ${confirmed ? 'is-confirmed' : 'is-pending'}" data-order-code="${esc(data.code)}">
+      <div class="chat-order-card ${confirmed ? 'is-confirmed' : 'is-pending'}" data-order-code="${esc(data.code)}" data-amount="${data.depositAmount || ''}">
         <div class="coc-badge">
           <span class="coc-badge-icon">${confirmed ? '✅' : '📸'}</span>
           <strong>ĐƠN ĐẶT LỊCH #${esc(data.code)}</strong>
@@ -807,6 +807,51 @@
       }
     }
   });
+
+  // Tự động kiểm tra tiền cọc qua SePay cho các thẻ đơn hàng đang chờ cọc trên màn hình
+  const isLocalHost = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const PAYMENT_API_BASE = (window.AlohaAuth && AlohaAuth.API_BASE) || 
+    (isLocalHost ? 'http://localhost:3001' : 'https://phantichweb.onrender.com');
+
+  let isPollingDeposits = false;
+  async function pollPendingOrderDeposits() {
+    if (isPollingDeposits) return;
+    const pendingCards = document.querySelectorAll('.chat-order-card.is-pending');
+    if (!pendingCards.length) return;
+
+    isPollingDeposits = true;
+    try {
+      for (const card of pendingCards) {
+        const code = card.getAttribute('data-order-code');
+        const amt = Number(card.getAttribute('data-amount')) || 1250000;
+        if (!code) continue;
+
+        const clean = code.replace(/^#/, '');
+        if (isOrderConfirmed(clean)) {
+          confirmDeposit(clean, amt);
+          continue;
+        }
+
+        try {
+          const res = await fetch(`${PAYMENT_API_BASE}/api/payment-status?code=${encodeURIComponent(clean)}&amount=${amt}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.paid) {
+              confirmDeposit(clean, amt);
+            }
+          }
+        } catch (_) {}
+      }
+    } finally {
+      isPollingDeposits = false;
+    }
+  }
+
+  // Khởi động kiểm tra cọc tự động mỗi 4 giây
+  if (typeof window !== 'undefined') {
+    setInterval(pollPendingOrderDeposits, 4000);
+    window.addEventListener('aloha:workflow', pollPendingOrderDeposits);
+  }
 
   // Public API
   window.AlohaOrderQRModal = {

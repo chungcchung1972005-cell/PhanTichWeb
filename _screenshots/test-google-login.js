@@ -198,7 +198,7 @@ const session = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('a
     await page.click('#googleCancel');
     st = await loginState(page);
     log('Google không có tên -> con trỏ ở ô Họ tên; "Dùng cách khác" quay lại form thường + nút Google',
-      noName.focused === 'googleName' && !st.gForm && st.form && st.social && st.demo && st.title === 'Đăng nhập ALOHA Baby');
+      noName.focused === 'googleName' && !st.gForm && st.form && st.social && !st.demo && st.title === 'Đăng nhập ALOHA Baby');
 
     // ---------------- 4) Mobile
     const m = await newTab(await browser.createBrowserContext(), errors, { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
