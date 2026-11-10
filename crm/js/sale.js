@@ -348,7 +348,7 @@
       const c = n.count ? n.count() : 0;
       return '<a href="#' + n.route + '" class="' + (n.route === route ? 'active' : '') + '">' + icon(n.icon) +
         '<span>' + n.label + '</span>' + (c ? '<em>' + c + '</em>' : '') + '</a>';
-    }).join('') + '<a href="admin.html#tin-nhan">' + icon('chat') + '<span>Tin nhắn</span><em class="sw-chat-unread" hidden></em></a>';
+    }).join('');
     updateChatBadges();
     const pct = Math.min(100, Math.round(me.achieved / me.target * 100));
     document.getElementById('swGoal').innerHTML =
@@ -478,22 +478,65 @@
   }
 
   // ---------- Trang: Hộp thư ----------
+  function parseTimeStr(str) {
+    if (!str) return 0;
+    const s = String(str).trim();
+    if (!s) return 0;
+    const low = s.toLowerCase();
+    if (low === 'vừa xong' || low === 'hôm nay') return Date.now();
+    const mMin = low.match(/^(\d+)\s*phút/);
+    if (mMin) return Date.now() - Number(mMin[1]) * 60000;
+    const mHour = low.match(/^(\d+)\s*giờ/);
+    if (mHour) return Date.now() - Number(mHour[1]) * 3600000;
+    const mDays = low.match(/^(\d+)\s*ngày/);
+    if (mDays) return Date.now() - Number(mDays[1]) * 86400000;
+    const mDM = s.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (mDM) {
+      const y = mDM[3] ? Number(mDM[3]) : new Date().getFullYear();
+      const m = Number(mDM[2]) - 1;
+      const d = Number(mDM[1]);
+      const hh = mDM[4] ? Number(mDM[4]) : 12;
+      const mm = mDM[5] ? Number(mDM[5]) : 0;
+      const dt = new Date(y, m, d, hh, mm);
+      if (!isNaN(dt.getTime())) return dt.getTime();
+    }
+    const mHM = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (mHM) {
+      const dt = new Date();
+      dt.setHours(Number(mHM[1]), Number(mHM[2]), 0, 0);
+      return dt.getTime();
+    }
+    const t = new Date(s).getTime();
+    if (!isNaN(t)) return t;
+    return 0;
+  }
+
   function convTimeMs(v) {
     if (!v) return 0;
-    if (typeof v.updatedAt === 'number' && !isNaN(v.updatedAt)) return v.updatedAt;
+    if (typeof v.updatedAt === 'number' && !isNaN(v.updatedAt) && v.updatedAt > 0) return v.updatedAt;
     if (v.updatedAt) {
       const t = new Date(v.updatedAt).getTime();
-      if (!isNaN(t)) return t;
+      if (!isNaN(t) && t > 0) return t;
     }
     if (Array.isArray(v.messages) && v.messages.length) {
       for (let i = v.messages.length - 1; i >= 0; i--) {
         const m = v.messages[i];
-        if (m && m.at) {
-          if (typeof m.at === 'number') return m.at;
-          const t = new Date(m.at).getTime();
-          if (!isNaN(t)) return t;
+        if (m) {
+          if (typeof m.at === 'number' && !isNaN(m.at) && m.at > 0) return m.at;
+          if (m.at) {
+            const t = new Date(m.at).getTime();
+            if (!isNaN(t) && t > 0) return t;
+          }
+          if (m.time) {
+            const tm = parseTimeStr(m.time);
+            if (tm > 0) return tm;
+          }
         }
       }
+    }
+    if (v.time) {
+      const tm = parseTimeStr(v.time);
+      if (tm > 0) return tm;
     }
     const match = String(v.id || '').match(/(\d{10,})/);
     if (match) return Number(match[1]);
@@ -1722,6 +1765,7 @@
     lastRoute = route;
     renderChrome(route);
     document.body.classList.remove('side-open');
+    document.body.classList.toggle('chat-open', route === 'hop-thu' && !!ui.inbox.mobileChat && !!ui.inbox.active);
     const msgs = document.getElementById('ibMsgs');
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
     if (route === 'hop-thu' && ui.inbox.active) {
@@ -2206,7 +2250,9 @@
     const d = new Date(ts); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1);
   }
   function msgTime(ts) {
+    if (!ts) return 'Vừa xong';
     const d = new Date(ts);
+    if (isNaN(d.getTime())) return typeof ts === 'string' ? ts : 'Vừa xong';
     return dateKey(d) === TODAY ? hm(d) : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + hm(d);
   }
   const saleIdByName = (name) => (db.sales.find(s => s.name === name) || {}).id || null;
@@ -2226,13 +2272,13 @@
     }
     if (!v) {
       v = { id, live: true, phone: sum.phone, owner: null, customerId: c.id, channel: 'Chat web', time: '', unread: false, messages: [], loaded: false };
-      db.conversations.unshift(v);
+      db.conversations.push(v);
     }
     c.name = name;
     if (sum.topic && c.service === 'Chưa chọn') c.service = serviceFromTopic(sum.topic);
     c.since = relTime(sum.updatedAt);
     v.time = relTime(sum.updatedAt);
-    v.updatedAt = sum.updatedAt;
+    v.updatedAt = sum.updatedAt || (sum.last && (sum.last.at || parseTimeStr(sum.last.time))) || parseTimeStr(v.time) || Date.now();
     v.unread = (sum.staffUnread || 0) > 0;
     if (full) {
       v.messages = full.messages.map(liveMsg);

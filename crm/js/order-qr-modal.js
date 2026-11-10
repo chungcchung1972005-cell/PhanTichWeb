@@ -174,10 +174,12 @@
             <span class="coc-label aor-label">Bé yêu:</span>
             <strong class="coc-val aor-val">${esc(data.babyName || 'Bé')}${data.babyAge ? ' (' + esc(data.babyAge) + ')' : ''}</strong>
           </div>
-          <div class="coc-row aor-row">
-            <span class="coc-label aor-label">Phụ huynh:</span>
-            <span class="coc-val aor-val">${esc(data.customerName || 'Khách')}${data.phone ? ' · ' + esc(data.phone) : ''}</span>
-          </div>
+          ${opts.isSale ? `
+            <div class="coc-row aor-row">
+              <span class="coc-label aor-label">Phụ huynh:</span>
+              <span class="coc-val aor-val">${esc(data.customerName || 'Khách')}${data.phone ? ' · ' + esc(data.phone) : ''}</span>
+            </div>
+          ` : ''}
           <div class="coc-row aor-row">
             <span class="coc-label aor-label">Gói chụp:</span>
             <span class="coc-val aor-val"><strong>${esc(data.service || 'Chụp ảnh')}</strong> · Gói ${esc(data.pkg || 'Tiêu chuẩn')} (${money(data.price)})</span>
@@ -194,10 +196,12 @@
             <span class="coc-label aor-label">Phòng chụp:</span>
             <span class="coc-val aor-val">📍 ${esc(data.room || 'Studio ALOHA')}</span>
           </div>
-          <div class="coc-row aor-row">
-            <span class="coc-label aor-label">Thợ phụ trách:</span>
-            <span class="coc-val aor-val">📷 ${esc(data.shooterName || 'Thợ ảnh ALOHA')}</span>
-          </div>
+          ${opts.isSale ? `
+            <div class="coc-row aor-row">
+              <span class="coc-label aor-label">Thợ phụ trách:</span>
+              <span class="coc-val aor-val">📷 ${esc(data.shooterName || 'Thợ ảnh ALOHA')}</span>
+            </div>
+          ` : ''}
         </div>
 
         <div class="coc-qr-box coc-qr-section aor-qr-section">
@@ -236,15 +240,27 @@
         </div>
 
         <div class="coc-actions aor-actions">
-          ${!confirmed ? `
-            <button type="button" class="btn-sim-deposit" data-code="${esc(data.code)}" data-amt="${data.depositAmount}">
-              ⚡ Xác nhận đã nhận cọc (Mô phỏng tiền về)
-            </button>
-          ` : `
-            <div class="coc-confirmed-banner aor-confirmed-banner">
-              🎉 <strong>Cọc đã được xác nhận thành công!</strong> Thợ ảnh đã nhận lịch vào danh sách việc.
-            </div>
-          `}
+          ${!confirmed ? (
+            opts.isSale ? `
+              <button type="button" class="btn-sim-deposit" data-code="${esc(data.code)}" data-amt="${data.depositAmount}">
+                ⚡ Xác nhận đã nhận cọc (Mô phỏng tiền về)
+              </button>
+            ` : `
+              <div class="coc-wait-note aor-wait-note" style="font-size:12.5px; color:#475569; text-align:center; padding:8px 10px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; width:100%;">
+                ⏱️ <em>Lịch chụp sẽ tự động kích hoạt ngay khi ngân hàng ghi nhận chuyển khoản.</em>
+              </div>
+            `
+          ) : (
+            opts.isSale ? `
+              <div class="coc-confirmed-banner aor-confirmed-banner">
+                🎉 <strong>Cọc đã được xác nhận thành công!</strong> Thợ ảnh đã nhận lịch vào danh sách việc.
+              </div>
+            ` : `
+              <div class="coc-confirmed-banner aor-confirmed-banner">
+                🎉 <strong>Đã nhận cọc thành công!</strong> Studio đã khóa lịch giữ chỗ cho bé. Hẹn gặp gia đình mình nhé! ❤️
+              </div>
+            `
+          )}
         </div>
       </div>
     `;
@@ -409,7 +425,8 @@
             <button type="button" class="btn btn-outline" id="aofBtnCancel" data-act="close-order-modal">Hủy bỏ</button>
             <button type="submit" class="btn btn-primary" id="aofBtnSubmit">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
-              <span>Xác nhận tạo đơn &amp; Gửi cọc QR vào Chat</span>
+              <span class="btn-text-full">Xác nhận tạo đơn &amp; Gửi cọc QR vào Chat</span>
+              <span class="btn-text-short">Tạo đơn &amp; Gửi cọc QR</span>
             </button>
           </footer>
         </form>
@@ -515,6 +532,10 @@
     modalEl.style.display = 'flex';
     modalEl.classList.remove('is-hidden');
     document.body.classList.add('aloha-modal-open');
+    const formGrid = modalEl.querySelector('.aloha-form-grid');
+    if (formGrid) formGrid.scrollTop = 0;
+    const cardEl = modalEl.querySelector('.aloha-order-modal-card');
+    if (cardEl) cardEl.scrollTop = 0;
   }
 
   function closeModal() {

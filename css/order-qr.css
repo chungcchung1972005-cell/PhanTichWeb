@@ -695,8 +695,11 @@
     flex-direction: column !important;
     gap: 10px !important;
   }
-  .aloha-col-qr {
-    order: -1 !important;
+  .btn-text-short {
+    display: none !important;
+  }
+  .btn-text-full {
+    display: inline !important;
   }
   .aloha-order-modal-foot {
     padding: 10px 14px !important;
@@ -716,16 +719,15 @@
     flex: 1 !important;
     min-width: 0 !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
   }
-  .aloha-order-modal-foot .btn-primary span {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+}
+
+@media (max-width: 520px) {
+  .btn-text-full {
+    display: none !important;
   }
-  .chat-order-card {
-    max-width: 100% !important;
+  .btn-text-short {
+    display: inline !important;
   }
 }
 
