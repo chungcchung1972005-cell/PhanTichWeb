@@ -2040,3 +2040,69 @@ body.ps-cart-open .fab-chat { bottom:calc(var(--ps-cart-height) + 16px); }
 @media (max-width: 600px) {
   .concept-album-consult { font-size: 12px; padding: 6px 10px; top: 10px; right: 10px; }
 }
+
+
+/* Banner lọc concept phù hợp cho bé trên trang album bên trái */
+.gallery-consult-filter-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #fff5f8 0%, #ffffff 100%);
+  border: 1.5px solid var(--pink-300);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(230, 57, 98, 0.08);
+  animation: fadeIn 0.3s ease;
+}
+.gcfb-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gcfb-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--pink-100);
+  color: var(--pink-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gcfb-info {
+  font-size: 14px;
+  color: var(--navy-800);
+  line-height: 1.45;
+}
+.gcfb-info strong {
+  color: var(--pink-600);
+}
+.gcfb-clear {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 600;
+  border-color: var(--pink-300);
+  color: var(--pink-600);
+}
+.gcfb-clear:hover {
+  background: var(--pink-600);
+  color: #fff;
+  border-color: var(--pink-600);
+}
+
+@media (max-width: 600px) {
+  .gallery-consult-filter-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .gcfb-clear {
+    width: 100%;
+    justify-content: center;
+  }
+}

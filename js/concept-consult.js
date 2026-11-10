@@ -5,7 +5,7 @@
 // 3. Chatbox hỏi 3 bước (100% bấm nút chọn, KHÔNG cho gõ tay):
 //    - Bước 1: Độ tuổi (7 ngày - 5 tháng | 6 tháng - 1 tuổi | 2 tuổi - 5 tuổi)
 //    - Bước 2: Giới tính (Bé trai | Bé gái)
-//    - Bước 3: Cân nặng (3kg - 5kg | 6kg - 8kg | > 10kg)
+//    - Bước 3: Cân nặng (Newborn: 3kg - 5kg | 6kg - 8kg; Bé lớn có thêm: > 10kg)
 // 4. Lọc danh sách concept hợp lệ theo ma trận dữ liệu chính thức từ studio.
 // 5. Kiểm tra concept mẹ bấm ban đầu có phù hợp không; thông báo và hiển thị danh sách concept gợi ý trực quan.
 (function (window, document) {
@@ -311,11 +311,18 @@
       'Em xin thông tin này để Aloha nắm rõ hơn về đặc điểm của bé khi tư vấn concept ạ.'
     );
 
+    const serviceSlug = (currentSession && currentSession.initialService) ||
+      (window.location.hash.includes('be-lon') ? 'be-lon' : 'newborn');
+    const isBeLon = serviceSlug === 'be-lon';
+
     const weightOptions = [
       { label: '⚖️ 3kg - 5kg', value: '3kg - 5kg' },
-      { label: '⚖️ 6kg - 8kg', value: '6kg - 8kg' },
-      { label: '⚖️ > 10kg', value: '> 10kg' }
+      { label: '⚖️ 6kg - 8kg', value: '6kg - 8kg' }
     ];
+
+    if (isBeLon) {
+      weightOptions.push({ label: '⚖️ > 10kg', value: '> 10kg' });
+    }
 
     showOptionButtons(weightOptions, (weight) => {
       userReply(weight);
@@ -346,20 +353,74 @@
         `Dạ tuyệt vời quá! Concept **"${matchedItem.displayName}"** mẹ đang quan tâm rất phù hợp với bé nhà mình luôn ạ! ❤️\n` +
         `Ngoài ra, Aloha gửi mẹ danh sách các concept phù hợp nhất cho bé ${gender.toLowerCase()} giai đoạn **${stageInfo.label}** bên dưới để mẹ thoải mái tham khảo:`
       );
+      renderConceptCardsInChat(filteredConcepts);
     } else if (initialConcept && !isMatched) {
+      // 1. Áp dụng bộ lọc và điều hướng màn hình bên trái sang danh sách concept phù hợp cho bé
+      if (window.AlohaAlbums && window.AlohaAlbums.applyConsultFilter) {
+        window.AlohaAlbums.applyConsultFilter({
+          serviceSlug: stageInfo.serviceSlug,
+          stageLabel: stageInfo.label,
+          gender: gender,
+          concepts: filteredConcepts
+        });
+      }
+
+      const targetHash = `#/album/${stageInfo.serviceSlug}`;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render(stageInfo.serviceSlug);
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
+      // 2. Bot gửi tin nhắn thông báo concept chưa nằm trong danh sách phù hợp
       await botReply(
         `Dạ, concept **"${initialName || initialConcept}"** hiện chưa nằm trong danh sách phù hợp với độ tuổi/giới tính của bé nhà mình ạ.\n` +
-        `Aloha gợi ý cho mẹ những concept khác phù hợp và xinh xắn hơn cho bé ${gender.toLowerCase()} giai đoạn **${stageInfo.label}** nhé! ❤️`
+        `Aloha đã lọc sẵn danh sách concept phù hợp cho bé ở màn hình bên trái để mẹ click xem nhé! ❤️`
       );
+
+      // 3. Hiển thị 2 phương án lựa chọn trong ô chat
+      const choiceOptions = [
+        { label: '✨ Chọn concept phù hợp cho bé', value: 'pick_suitable' },
+        { label: `💬 Vẫn muốn chụp concept "${initialName || initialConcept}"`, value: 'keep_concept' },
+        { label: '🔄 Chọn lại thông tin bé', value: 'restart_info' }
+      ];
+
+      showOptionButtons(choiceOptions, async (choice) => {
+        if (choice === 'pick_suitable') {
+          userReply('✨ Mình muốn xem các concept phù hợp cho bé');
+          await botReply(
+            `Dạ tuyệt vời ạ! Mẹ có thể bấm vào từng ô concept ở màn hình bên trái để xem trọn bộ ảnh to rõ nét, hoặc xem nhanh danh sách gợi ý dưới đây nhé: 🥰`
+          );
+          renderConceptCardsInChat(filteredConcepts);
+        } else if (choice === 'keep_concept') {
+          userReply(`💬 Mình vẫn muốn chụp concept "${initialName || initialConcept}"`);
+          await botReply(
+            `Dạ mẹ yên tâm nhé! Em đã ghi nhận thông tin của bé và concept **"${initialName || initialConcept}"** mẹ đang quan tâm để chuyển sang Tư vấn viên Sale. Bạn Sale sẽ liên hệ hỗ trợ mẹ xem xét linh động điều chỉnh trang phục/bối cảnh cho bé ạ! ❤️`
+          );
+          setTimeout(() => {
+            setInputLocked(false);
+            if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
+              window.AlohaChatbot.openSale(
+                stageInfo.serviceSlug,
+                `Khách muốn chụp concept "${initialName || initialConcept}" cho bé ${gender.toLowerCase()} (${stageInfo.label}, ${currentSession.weight || ''})`
+              );
+            } else if (window.AlohaSaleChat) {
+              window.AlohaSaleChat.open(`Concept ${initialName || initialConcept} (${stageInfo.label})`);
+            }
+          }, 800);
+        } else if (choice === 'restart_info') {
+          userReply('🔄 Chọn lại thông tin bé');
+          step1_AskAge();
+        }
+      });
     } else {
       await botReply(
         `Dạ, với độ tuổi và giới tính của bé nhà mình, Aloha có một số concept rất phù hợp để mẹ tham khảo đây ạ! ❤️\n` +
         `Mẹ có thể bấm vào từng concept bên dưới để xem hình ảnh thực tế và lựa chọn phong cách mình yêu thích nhé!`
       );
+      renderConceptCardsInChat(filteredConcepts);
     }
-
-    // 2. Render danh sách concept trực quan ngay trong ô chat
-    renderConceptCardsInChat(filteredConcepts);
   }
 
   // Render danh sách card concept trong ô chat (xem trực quan, bấm chuyển trang bên trái)
@@ -370,14 +431,19 @@
     const listWrap = document.createElement('div');
     listWrap.className = 'chat-consult-list';
 
+    const isBau = currentSession && currentSession.initialService === 'bau';
+    const forLabel = isBau ? 'cho mẹ bầu' : 'cho bé';
+    const salutation = isBau ? 'bạn' : 'mẹ';
+
     const countHeader = document.createElement('div');
     countHeader.className = 'chat-consult-count';
-    countHeader.innerHTML = `<span>Gợi ý <strong>${concepts.length} concept</strong> phù hợp cho bé</span>`;
+    countHeader.innerHTML = `<span>Gợi ý <strong>${concepts.length} concept</strong> phù hợp ${forLabel}</span>`;
     listWrap.appendChild(countHeader);
 
     concepts.forEach((c) => {
       const card = document.createElement('div');
       card.className = 'chat-concept-card';
+      card.dataset.slug = c.slug;
       card.innerHTML = `
         <div class="chat-concept-img">
           <img src="${c.cover}" alt="${c.displayName}" loading="lazy">
@@ -404,6 +470,10 @@
         // Highlight thẻ đang xem trong chat
         listWrap.querySelectorAll('.chat-concept-card').forEach((el) => el.classList.remove('active'));
         card.classList.add('active');
+        if (currentSession) {
+          currentSession.selectedConcept = c.slug;
+          currentSession.selectedName = c.displayName;
+        }
       };
 
       card.addEventListener('click', triggerView);
@@ -417,45 +487,708 @@
 
     // Hướng dẫn tiếp theo & nút kết nối Sale
     setTimeout(async () => {
+      const isBau = currentSession && currentSession.initialService === 'bau';
+      const isGiaDinh = currentSession && currentSession.initialService === 'gia-dinh';
+      const isStyleConsult = isBau || isGiaDinh;
+      const salutation = isStyleConsult ? 'bạn' : 'mẹ';
       await botReply(
-        'Mẹ bấm vào concept nào thì album bên trái sẽ mở toàn bộ ảnh của concept đó để mẹ xem rõ nét nhé. ' +
-        'Nếu mẹ ưng ý concept nào hoặc cần tư vấn sâu hơn, mẹ có thể bấm nút bên dưới ạ! 🥰',
+        `${isStyleConsult ? 'Bạn' : 'Mẹ'} bấm vào concept nào thì album bên trái sẽ mở toàn bộ ảnh của concept đó để xem rõ nét nhé. ` +
+        `Nếu ${salutation} ưng ý concept nào hoặc cần tư vấn sâu hơn, ${salutation} có thể bấm nút bên dưới ạ! 🥰`,
         300
       );
 
-      const actionOptions = [
-        { label: '💬 Nhắn tư vấn viên Sale', value: 'chat_sale' },
-        { label: '📅 Đặt lịch chụp ngay', value: 'booking' },
-        { label: '🔄 Tư vấn lại từ đầu', value: 'restart' }
-      ];
+      const selectedConceptSlug = currentSession ? (currentSession.selectedConcept || currentSession.initialConcept) : null;
+      const selectedConceptName = currentSession ? (currentSession.selectedName || currentSession.initialName) : null;
 
-      showOptionButtons(actionOptions, (act) => {
-        if (act === 'chat_sale') {
-          userReply('Aloha kết nối giúp mình với tư vấn viên Sale nhé');
+      const actionOptions = isStyleConsult
+        ? [
+            ...(selectedConceptSlug ? [{ label: '👁️ Xem chi tiết concept', value: 'view_detail' }] : []),
+            { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+            { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+          ]
+        : [
+            ...(selectedConceptSlug ? [{ label: '👁️ Xem chi tiết concept', value: 'view_detail' }] : []),
+            { label: '💬 Nhắn tư vấn viên Sale', value: 'chat_sale' },
+            { label: '📅 Đặt lịch chụp ngay', value: 'booking' },
+            { label: '🔄 Tư vấn lại từ đầu', value: 'restart' }
+          ];
+
+      const handleActionChoice = async (act) => {
+        if (act === 'view_detail') {
+          userReply('👁️ Xem chi tiết concept');
+          const serviceSlug = isBau ? 'bau' : (isGiaDinh ? 'gia-dinh' : (currentSession.initialService || 'newborn'));
+          const targetSlug = selectedConceptSlug;
+          const targetName = selectedConceptName || 'đã chọn';
+          const targetRoute = `album/${serviceSlug}/${targetSlug}`;
+          const targetHash = `#/album/${serviceSlug}/${targetSlug}`;
+
+          if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+            window.AlohaRouter.navigateTo(targetRoute);
+          }
+          if (window.location.hash !== targetHash) {
+            window.location.hash = targetHash;
+          } else if (window.AlohaAlbums) {
+            window.AlohaAlbums.render(`${serviceSlug}/${targetSlug}`);
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+          await botReply(
+            `Dạ, Aloha đang mở toàn bộ ảnh mẫu của concept **"${targetName}"** ở màn hình bên trái để ${salutation} xem chi tiết rõ nét nhé! ❤️`
+          );
+
+          const afterDetailOptions = isStyleConsult
+            ? [
+                { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+                { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+              ]
+            : [
+                { label: '💬 Nhắn tư vấn viên Sale', value: 'chat_sale' },
+                { label: '📅 Đặt lịch chụp ngay', value: 'booking' },
+                { label: '🔄 Tư vấn lại từ đầu', value: 'restart' }
+              ];
+          showOptionButtons(afterDetailOptions, (nextAct) => handleActionChoice(nextAct));
+        } else if (act === 'chat_sale') {
+          userReply(isStyleConsult ? '💬 Mình muốn chat trực tiếp với Sale' : '💬 Nhắn tư vấn viên Sale');
           setInputLocked(false);
+          const topicDesc = isBau ? 'bau' : (isGiaDinh ? 'gia-dinh' : (currentSession.initialService || 'newborn'));
+          const serviceTitle = isBau ? 'Bầu' : (isGiaDinh ? 'Gia đình' : '');
           if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
-            window.AlohaChatbot.openSale(currentSession.initialService || 'newborn');
+            window.AlohaChatbot.openSale(topicDesc);
+          }
+          if (isStyleConsult && window.AlohaSaleChat && window.AlohaSaleChat.send) {
+            window.AlohaSaleChat.send(selectedConceptName ? `Mình đang quan tâm concept "${selectedConceptName}" chụp ảnh ${serviceTitle}, tư vấn chi tiết giúp mình với ạ!` : `Mình đang quan tâm concept chụp ảnh ${serviceTitle}, tư vấn chi tiết giúp mình với ạ!`);
           }
         } else if (act === 'booking') {
           userReply('Mình muốn đặt lịch chụp');
           window.location.hash = '#/dat-lich';
+        } else if (act === 'restart_all') {
+          userReply('🔄 Tư vấn lại từ đầu');
+          const currentSvc = isBau ? 'bau' : (isGiaDinh ? 'gia-dinh' : 'bau');
+          if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+            window.AlohaAlbums.clearConsultFilter();
+          }
+          if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+            window.AlohaRouter.navigateTo(`album/${currentSvc}`);
+          }
+          if (window.location.hash !== `#/album/${currentSvc}`) {
+            window.location.hash = `#/album/${currentSvc}`;
+          } else if (window.AlohaAlbums) {
+            window.AlohaAlbums.render(currentSvc);
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+          if (isBau) {
+            startBauConsultation(null, null, false);
+          } else if (isGiaDinh) {
+            startGiaDinhConsultation(null, null, false);
+          }
         } else if (act === 'restart') {
           userReply('Tư vấn lại');
           startConsultation(currentSession.initialService, null, null);
         }
-      });
+      };
+
+      showOptionButtons(actionOptions, handleActionChoice);
     }, 500);
+  }
+
+  // -------------------------------------------------------------------------
+  // LUỒNG TƯ VẤN CONCEPT BẦU (PHONG CÁCH ẤM ÁP / MÁT MẺ)
+  // -------------------------------------------------------------------------
+  const BAU_AM_AP_NAMES = [
+    'Basic concept 1',
+    'Gấu bông',
+    'Khu vườn bí mật',
+    'Mùa thu 1',
+    'Khúc giao mùa',
+    'Thanh âm',
+    'Điệp vũ hoa gian'
+  ];
+
+  function getBauConceptsByStyle(styleKey) {
+    const list = (window.AlohaAlbums && window.AlohaAlbums.list) || [];
+    const bauService = list.find((s) => s.slug === 'bau');
+    if (!bauService || !bauService.concepts) return [];
+
+    const isAmAp = styleKey === 'am_ap';
+    const amApNorms = new Set(BAU_AM_AP_NAMES.map(norm));
+
+    return bauService.concepts
+      .filter((c) => {
+        const inAmAp = amApNorms.has(norm(c.name)) || amApNorms.has(norm(c.slug));
+        return isAmAp ? inAmAp : !inAmAp;
+      })
+      .map((c) => ({
+        displayName: c.name,
+        slug: c.slug,
+        serviceSlug: 'bau',
+        name: c.name,
+        desc: c.desc,
+        count: (c.photos ? c.photos.length : 0),
+        cover: (c.photos && c.photos[0]) || '',
+        href: '#/album/bau/' + c.slug
+      }));
+  }
+
+  async function startBauConsultation(conceptSlug, conceptName, skipGreeting = false) {
+    // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
+    const body = $(CHAT_BODY_ID);
+    if (body) {
+      body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      body.querySelectorAll('.chat-msg.bot').forEach((m) => {
+        if (m.textContent.includes('Bạn đang quan tâm concept Bầu') || m.textContent.includes('ALOHA Baby gửi mình các concept chụp ảnh Bầu')) {
+          m.remove();
+        }
+      });
+    }
+
+    // 2. Mở khung chat nếu chưa mở
+    if (window.AlohaChatbot && window.AlohaChatbot.open) {
+      window.AlohaChatbot.open(true);
+    } else {
+      const panel = $(CHAT_PANEL_ID);
+      if (panel) {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    const sub = $('chatSubtitle');
+    if (sub) sub.textContent = 'Tư vấn Concept';
+
+    // 3. Đảm bảo hiển thị màn hình album Bầu bên trái với ĐẦY ĐỦ TẤT CẢ concept trước
+    if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+      window.AlohaAlbums.clearConsultFilter();
+    }
+    if (window.location.hash !== '#/album/bau') {
+      window.location.hash = '#/album/bau';
+    }
+    if (window.AlohaRouter && window.AlohaRouter.showView) {
+      window.AlohaRouter.showView('album/bau');
+    } else if (window.AlohaAlbums) {
+      window.AlohaAlbums.render('bau');
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+    currentSession = {
+      initialService: 'bau',
+      initialConcept: conceptSlug || null,
+      initialName: conceptName || null,
+      stageKey: 'bau',
+      gender: 'Mẹ bầu',
+      weight: null
+    };
+
+    setInputLocked(true);
+
+    if (!skipGreeting) {
+      await botReply('Aloha xin chào! Bạn đang quan tâm concept Bầu, dạ không biết mình đang quan tâm phong cách nào ạ .');
+    }
+
+    // Khách có 2 lựa chọn: Ấm áp / Mát mẻ
+    const styleOptions = [
+      { label: '🌸 Ấm áp', value: 'am_ap', name: 'Ấm áp' },
+      { label: '🌿 Mát mẻ', value: 'mat_me', name: 'Mát mẻ' }
+    ];
+
+    showOptionButtons(styleOptions, async (styleKey) => {
+      const selected = styleOptions.find((o) => o.value === styleKey) || styleOptions[0];
+      userReply(selected.name);
+
+      const targetConcepts = getBauConceptsByStyle(styleKey);
+
+      // 1. Lọc và điều hướng bên trái qua các concept tương ứng
+      if (window.AlohaAlbums && window.AlohaAlbums.applyConsultFilter) {
+        window.AlohaAlbums.applyConsultFilter({
+          serviceSlug: 'bau',
+          styleName: selected.name,
+          stageLabel: selected.name,
+          gender: 'Mẹ bầu',
+          concepts: targetConcepts
+        });
+      }
+
+      if (window.location.hash !== '#/album/bau') {
+        window.location.hash = '#/album/bau';
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render('bau');
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
+      // 2. Bot phản hồi trong ô chat đúng mẫu yêu cầu:
+      // "Dạ Aloha gửi bạn các concept phù hợp với phong cách [khách đã chọn] bên trái, bạn có thể tham khảo ạ!"
+      await botReply(
+        `Dạ Aloha gửi bạn các concept phù hợp với phong cách ${selected.name} bên trái, bạn có thể tham khảo ạ! ❤️`
+      );
+
+      // 3. Render danh sách card concept trong ô chat để xem nhanh
+      renderConceptCardsInChat(targetConcepts);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // LUỒNG TƯ VẤN KHI KHÁCH BẤM TRỰC TIẾP VÀO 1 CONCEPT BẦU CỤ THỂ BÊN TRÁI
+  // -------------------------------------------------------------------------
+  async function startBauDirectConceptConsult(conceptSlug, conceptName) {
+    // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
+    const body = $(CHAT_BODY_ID);
+    if (body) {
+      body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      body.querySelectorAll('.chat-msg.bot').forEach((m) => {
+        if (m.textContent.includes('Bạn đang quan tâm concept Bầu') || m.textContent.includes('ALOHA Baby gửi mình các concept chụp ảnh Bầu')) {
+          m.remove();
+        }
+      });
+    }
+
+    // 2. Mở khung chat nếu đang đóng
+    if (window.AlohaChatbot && window.AlohaChatbot.open) {
+      window.AlohaChatbot.open(true);
+    } else {
+      const panel = $(CHAT_PANEL_ID);
+      if (panel) {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    const sub = $('chatSubtitle');
+    if (sub) sub.textContent = 'Tư vấn Concept';
+
+    currentSession = {
+      initialService: 'bau',
+      initialConcept: conceptSlug || null,
+      initialName: conceptName || null,
+      stageKey: 'bau',
+      gender: 'Mẹ bầu',
+      weight: null
+    };
+
+    setInputLocked(true);
+
+    // Chuẩn hoá tìm concept trong danh sách album Bầu nếu có
+    let targetConcept = null;
+    if (window.AlohaAlbums && window.AlohaAlbums.list) {
+      const bauAlbum = window.AlohaAlbums.list.find((s) => s.slug === 'bau');
+      if (bauAlbum && bauAlbum.concepts) {
+        if (conceptSlug) {
+          targetConcept = bauAlbum.concepts.find((c) => c.slug === conceptSlug);
+        }
+        if (!targetConcept && conceptName) {
+          const norm = String(conceptName).toLowerCase().replace(/[^a-z0-9]/g, '');
+          targetConcept = bauAlbum.concepts.find((c) => String(c.name).toLowerCase().replace(/[^a-z0-9]/g, '') === norm);
+        }
+      }
+    }
+    const finalSlug = targetConcept ? targetConcept.slug : (conceptSlug || '');
+    const displayName = (targetConcept && targetConcept.name) || conceptName || conceptSlug || 'Bầu';
+
+    // Hỏi trực tiếp về concept khách vừa bấm bên trái
+    await botReply(
+      `Dạ, bạn đang quan tâm concept **"${displayName}"** chụp ảnh Bầu đúng không ạ? ❤️\n` +
+      `Aloha có thể kết nối bạn chat trực tiếp với tư vấn viên Sale để được tư vấn chi tiết về trang phục, bối cảnh và gói chụp này nhé!`
+    );
+
+    const handleConnectSale = async () => {
+      userReply('💬 Mình muốn chat trực tiếp với Sale');
+      await botReply(`Dạ em chuyển tiếp thông tin concept **"${displayName}"** và kết nối bạn với tư vấn viên Sale ngay nhé! ❤️`);
+      setTimeout(() => {
+        setInputLocked(false);
+        currentSession = null;
+        if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
+          window.AlohaChatbot.openSale('bau');
+        }
+        if (window.AlohaSaleChat && window.AlohaSaleChat.send) {
+          window.AlohaSaleChat.send(`Mình đang quan tâm concept "${displayName}" chụp ảnh Bầu, tư vấn chi tiết giúp mình với ạ!`);
+        }
+      }, 600);
+    };
+
+    const handleRestartAll = () => {
+      userReply('🔄 Tư vấn lại từ đầu');
+      if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+        window.AlohaAlbums.clearConsultFilter();
+      }
+      if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+        window.AlohaRouter.navigateTo('album/bau');
+      }
+      if (window.location.hash !== '#/album/bau') {
+        window.location.hash = '#/album/bau';
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render('bau');
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
+      startBauConsultation(null, null, false);
+    };
+
+    const handleViewDetail = async () => {
+      userReply('👁️ Xem chi tiết concept');
+
+      // Đồng thời bên trái hiện đầy đủ ảnh của concept họ đã chọn
+      const targetRoute = `album/bau/${finalSlug}`;
+      const targetHash = `#/album/bau/${finalSlug}`;
+
+      if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+        window.AlohaRouter.navigateTo(targetRoute);
+      }
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render(`bau/${finalSlug}`);
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+      await botReply(
+        `Dạ, Aloha đang mở toàn bộ ảnh mẫu của concept **"${displayName}"** ở màn hình bên trái để bạn xem chi tiết rõ nét nhé! ❤️\n` +
+        `Nếu bạn ưng ý concept này hoặc cần tư vấn sâu hơn về trang phục và gói chụp, bạn có thể chọn kết nối với Sale bên dưới ạ! 🥰`
+      );
+
+      const afterViewOptions = [
+        { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+        { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+      ];
+
+      showOptionButtons(afterViewOptions, (act) => {
+        if (act === 'chat_sale') handleConnectSale();
+        else if (act === 'restart_all') handleRestartAll();
+      });
+    };
+
+    // 3 lựa chọn theo đúng nghiệp vụ: Xem chi tiết concept | Chat trực tiếp với Sale | Tư vấn lại từ đầu
+    const directOptions = [
+      { label: '👁️ Xem chi tiết concept', value: 'view_detail' },
+      { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+      { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+    ];
+
+    showOptionButtons(directOptions, (choice) => {
+      if (choice === 'view_detail') {
+        handleViewDetail();
+      } else if (choice === 'chat_sale') {
+        handleConnectSale();
+      } else if (choice === 'restart_all') {
+        handleRestartAll();
+      }
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // LUỒNG TƯ VẤN CONCEPT GIA ĐÌNH (PHONG CÁCH ẤM ÁP / MÁT MẺ)
+  // -------------------------------------------------------------------------
+  const GIA_DINH_AM_AP_NAMES = [
+    'Merry christmas',
+    'Mẹ con ngày Tết',
+    'Phú quý',
+    'Tết như ý',
+    'Simple love',
+    'Tết đầu đời',
+    'Tết đoàn viên',
+    'Xuân hồng phúc',
+    'Xuân kim phúc',
+    'Đào xuân'
+  ];
+
+  function getGiaDinhConceptsByStyle(styleKey) {
+    const list = (window.AlohaAlbums && window.AlohaAlbums.list) || [];
+    const gdService = list.find((s) => s.slug === 'gia-dinh');
+    if (!gdService || !gdService.concepts) return [];
+
+    const isAmAp = styleKey === 'am_ap';
+    const amApNorms = new Set(GIA_DINH_AM_AP_NAMES.map(norm));
+
+    return gdService.concepts
+      .filter((c) => {
+        const inAmAp = amApNorms.has(norm(c.name)) || amApNorms.has(norm(c.slug));
+        return isAmAp ? inAmAp : !inAmAp;
+      })
+      .map((c) => ({
+        displayName: c.name,
+        slug: c.slug,
+        serviceSlug: 'gia-dinh',
+        name: c.name,
+        desc: c.desc,
+        count: (c.photos ? c.photos.length : 0),
+        cover: (c.photos && c.photos[0]) || '',
+        href: '#/album/gia-dinh/' + c.slug
+      }));
+  }
+
+  async function startGiaDinhConsultation(conceptSlug, conceptName, skipGreeting = false) {
+    // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
+    const body = $(CHAT_BODY_ID);
+    if (body) {
+      body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      body.querySelectorAll('.chat-msg.bot').forEach((m) => {
+        if (m.textContent.includes('Bạn đang quan tâm concept Gia đình') || m.textContent.includes('ALOHA Baby gửi mình các concept chụp ảnh Gia đình')) {
+          m.remove();
+        }
+      });
+    }
+
+    // 2. Mở khung chat nếu chưa mở
+    if (window.AlohaChatbot && window.AlohaChatbot.open) {
+      window.AlohaChatbot.open(true);
+    } else {
+      const panel = $(CHAT_PANEL_ID);
+      if (panel) {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    const sub = $('chatSubtitle');
+    if (sub) sub.textContent = 'Tư vấn Concept';
+
+    // 3. Đảm bảo hiển thị màn hình album Gia đình bên trái với ĐẦY ĐỦ TẤT CẢ concept trước
+    if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+      window.AlohaAlbums.clearConsultFilter();
+    }
+    if (window.location.hash !== '#/album/gia-dinh') {
+      window.location.hash = '#/album/gia-dinh';
+    }
+    if (window.AlohaRouter && window.AlohaRouter.showView) {
+      window.AlohaRouter.showView('album/gia-dinh');
+    } else if (window.AlohaAlbums) {
+      window.AlohaAlbums.render('gia-dinh');
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+    currentSession = {
+      initialService: 'gia-dinh',
+      initialConcept: conceptSlug || null,
+      initialName: conceptName || null,
+      stageKey: 'gia-dinh',
+      gender: 'Gia đình',
+      weight: null
+    };
+
+    setInputLocked(true);
+
+    if (!skipGreeting) {
+      await botReply('Aloha xin chào! Bạn đang quan tâm concept Gia đình, dạ không biết mình đang quan tâm phong cách nào ạ .');
+    }
+
+    // Khách có 2 lựa chọn: Ấm áp / Mát mẻ
+    const styleOptions = [
+      { label: '🌸 Ấm áp', value: 'am_ap', name: 'Ấm áp' },
+      { label: '🌿 Mát mẻ', value: 'mat_me', name: 'Mát mẻ' }
+    ];
+
+    showOptionButtons(styleOptions, async (styleKey) => {
+      const selected = styleOptions.find((o) => o.value === styleKey) || styleOptions[0];
+      userReply(selected.name);
+
+      const targetConcepts = getGiaDinhConceptsByStyle(styleKey);
+
+      // 1. Lọc và điều hướng bên trái qua các concept tương ứng
+      if (window.AlohaAlbums && window.AlohaAlbums.applyConsultFilter) {
+        window.AlohaAlbums.applyConsultFilter({
+          serviceSlug: 'gia-dinh',
+          styleName: selected.name,
+          stageLabel: selected.name,
+          gender: 'Gia đình',
+          concepts: targetConcepts
+        });
+      }
+
+      if (window.location.hash !== '#/album/gia-dinh') {
+        window.location.hash = '#/album/gia-dinh';
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render('gia-dinh');
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
+      // 2. Bot phản hồi trong ô chat
+      await botReply(
+        `Dạ Aloha gửi bạn các concept phù hợp với phong cách ${selected.name} bên trái, bạn có thể tham khảo ạ! ❤️`
+      );
+
+      // 3. Render danh sách card concept trong ô chat để xem nhanh
+      renderConceptCardsInChat(targetConcepts);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // LUỒNG TƯ VẤN KHI KHÁCH BẤM TRỰC TIẾP VÀO 1 CONCEPT GIA ĐÌNH CỤ THỂ BÊN TRÁI
+  // -------------------------------------------------------------------------
+  async function startGiaDinhDirectConceptConsult(conceptSlug, conceptName) {
+    // 1. Dọn dẹp quick reply cũ và các tin nhắn chào chung cũ trong ô chat
+    const body = $(CHAT_BODY_ID);
+    if (body) {
+      body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      body.querySelectorAll('.chat-msg.bot').forEach((m) => {
+        if (m.textContent.includes('Bạn đang quan tâm concept Gia đình') || m.textContent.includes('ALOHA Baby gửi mình các concept chụp ảnh Gia đình')) {
+          m.remove();
+        }
+      });
+    }
+
+    // 2. Mở khung chat nếu đang đóng
+    if (window.AlohaChatbot && window.AlohaChatbot.open) {
+      window.AlohaChatbot.open(true);
+    } else {
+      const panel = $(CHAT_PANEL_ID);
+      if (panel) {
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    const sub = $('chatSubtitle');
+    if (sub) sub.textContent = 'Tư vấn Concept';
+
+    currentSession = {
+      initialService: 'gia-dinh',
+      initialConcept: conceptSlug || null,
+      initialName: conceptName || null,
+      stageKey: 'gia-dinh',
+      gender: 'Gia đình',
+      weight: null
+    };
+
+    setInputLocked(true);
+
+    // Chuẩn hoá tìm concept trong danh sách album Gia đình nếu có
+    let targetConcept = null;
+    if (window.AlohaAlbums && window.AlohaAlbums.list) {
+      const gdAlbum = window.AlohaAlbums.list.find((s) => s.slug === 'gia-dinh');
+      if (gdAlbum && gdAlbum.concepts) {
+        if (conceptSlug) {
+          targetConcept = gdAlbum.concepts.find((c) => c.slug === conceptSlug);
+        }
+        if (!targetConcept && conceptName) {
+          const n = norm(conceptName);
+          targetConcept = gdAlbum.concepts.find((c) => norm(c.name) === n);
+        }
+      }
+    }
+    const finalSlug = targetConcept ? targetConcept.slug : (conceptSlug || '');
+    const displayName = (targetConcept && targetConcept.name) || conceptName || conceptSlug || 'Gia đình';
+
+    // Hỏi trực tiếp về concept khách vừa bấm bên trái
+    await botReply(
+      `Dạ, bạn đang quan tâm concept **"${displayName}"** chụp ảnh Gia đình đúng không ạ? ❤️\n` +
+      `Aloha có thể kết nối bạn chat trực tiếp với tư vấn viên Sale để được tư vấn chi tiết về trang phục, bối cảnh và gói chụp này nhé!`
+    );
+
+    const handleConnectSale = async () => {
+      userReply('💬 Mình muốn chat trực tiếp với Sale');
+      await botReply(`Dạ em chuyển tiếp thông tin concept **"${displayName}"** và kết nối bạn với tư vấn viên Sale ngay nhé! ❤️`);
+      setTimeout(() => {
+        setInputLocked(false);
+        currentSession = null;
+        if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
+          window.AlohaChatbot.openSale('gia-dinh');
+        }
+        if (window.AlohaSaleChat && window.AlohaSaleChat.send) {
+          window.AlohaSaleChat.send(`Mình đang quan tâm concept "${displayName}" chụp ảnh Gia đình, tư vấn chi tiết giúp mình với ạ!`);
+        }
+      }, 600);
+    };
+
+    const handleRestartAll = () => {
+      userReply('🔄 Tư vấn lại từ đầu');
+      if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+        window.AlohaAlbums.clearConsultFilter();
+      }
+      if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+        window.AlohaRouter.navigateTo('album/gia-dinh');
+      }
+      if (window.location.hash !== '#/album/gia-dinh') {
+        window.location.hash = '#/album/gia-dinh';
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render('gia-dinh');
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
+      startGiaDinhConsultation(null, null, false);
+    };
+
+    const handleViewDetail = async () => {
+      userReply('👁️ Xem chi tiết concept');
+
+      // Đồng thời bên trái hiện đầy đủ ảnh của concept họ đã chọn
+      const targetRoute = `album/gia-dinh/${finalSlug}`;
+      const targetHash = `#/album/gia-dinh/${finalSlug}`;
+
+      if (window.AlohaRouter && window.AlohaRouter.navigateTo) {
+        window.AlohaRouter.navigateTo(targetRoute);
+      }
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      } else if (window.AlohaAlbums) {
+        window.AlohaAlbums.render(`gia-dinh/${finalSlug}`);
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+      await botReply(
+        `Dạ, Aloha đang mở toàn bộ ảnh mẫu của concept **"${displayName}"** ở màn hình bên trái để bạn xem chi tiết rõ nét nhé! ❤️\n` +
+        `Nếu bạn ưng ý concept này hoặc cần tư vấn sâu hơn về trang phục và gói chụp, bạn có thể chọn kết nối với Sale bên dưới ạ! 🥰`
+      );
+
+      const afterViewOptions = [
+        { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+        { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+      ];
+
+      showOptionButtons(afterViewOptions, (act) => {
+        if (act === 'chat_sale') handleConnectSale();
+        else if (act === 'restart_all') handleRestartAll();
+      });
+    };
+
+    // 3 lựa chọn theo đúng nghiệp vụ: Xem chi tiết concept | Chat trực tiếp với Sale | Tư vấn lại từ đầu
+    const directOptions = [
+      { label: '👁️ Xem chi tiết concept', value: 'view_detail' },
+      { label: '💬 Chat trực tiếp với Sale', value: 'chat_sale' },
+      { label: '🔄 Tư vấn lại từ đầu', value: 'restart_all' }
+    ];
+
+    showOptionButtons(directOptions, (choice) => {
+      if (choice === 'view_detail') {
+        handleViewDetail();
+      } else if (choice === 'chat_sale') {
+        handleConnectSale();
+      } else if (choice === 'restart_all') {
+        handleRestartAll();
+      }
+    });
   }
 
   // -------------------------------------------------------------------------
   // KHỞI ĐỘNG LUỒNG TƯ VẤN (PUBLIC API)
   // -------------------------------------------------------------------------
   function startConsultation(serviceSlug, conceptSlug, conceptName) {
-    // Chỉ áp dụng cho Newborn và Bé lớn
-    if (serviceSlug !== 'newborn' && serviceSlug !== 'be-lon') return;
+    // Luồng tư vấn riêng cho Bầu theo phong cách (Ấm áp / Mát mẻ) hoặc Chat trực tiếp với Sale
+    if (serviceSlug === 'bau') {
+      if (conceptSlug || conceptName) {
+        startBauDirectConceptConsult(conceptSlug, conceptName);
+      } else {
+        startBauConsultation();
+      }
+      return;
+    }
+
+    // Luồng tư vấn riêng cho Gia đình theo phong cách (Ấm áp / Mát mẻ) hoặc Chat trực tiếp với Sale
+    if (serviceSlug === 'gia-dinh') {
+      if (conceptSlug || conceptName) {
+        startGiaDinhDirectConceptConsult(conceptSlug, conceptName);
+      } else {
+        startGiaDinhConsultation();
+      }
+      return;
+    }
+
+    // Dịch vụ Sinh nhật: tạm thời mở khung chat tư vấn trong khi chờ kịch bản chi tiết
+    if (serviceSlug !== 'newborn' && serviceSlug !== 'be-lon') {
+      if (window.AlohaChatbot && window.AlohaChatbot.open) {
+        window.AlohaChatbot.open();
+      }
+      return;
+    }
 
     // 1. Kiểm tra đăng nhập
-    const isLogged = window.AlohaAuth && AlohaAuth.isLoggedIn();
+    const isLogged = window.AlohaAuth && window.AlohaAuth.isLoggedIn();
     if (!isLogged) {
       // Lưu lại ngữ cảnh concept mẹ đang chọn vào sessionStorage
       sessionStorage.setItem(
@@ -473,6 +1206,9 @@
     }
 
     // 2. Mẹ đã đăng nhập -> Mở khung chat và khởi tạo phiên tư vấn
+    if (window.AlohaAlbums && window.AlohaAlbums.clearConsultFilter) {
+      window.AlohaAlbums.clearConsultFilter();
+    }
     currentSession = {
       initialService: serviceSlug,
       initialConcept: conceptSlug || null,
@@ -483,7 +1219,7 @@
     };
 
     if (window.AlohaChatbot && window.AlohaChatbot.open) {
-      window.AlohaChatbot.open();
+      window.AlohaChatbot.open(true);
     } else {
       const panel = $(CHAT_PANEL_ID);
       if (panel) {
@@ -492,14 +1228,21 @@
       }
     }
 
+    // Dọn dẹp các nút bấm cũ và các tin nhắn chào chung trong ô chat
+    const body = $(CHAT_BODY_ID);
+    if (body) {
+      body.querySelectorAll('.chat-quick').forEach((el) => el.remove());
+      body.querySelectorAll('.chat-msg.bot').forEach((m) => {
+        if (m.textContent.includes('Bạn đang quan tâm concept') || m.textContent.includes('ALOHA Baby gửi mình các concept')) {
+          m.remove();
+        }
+      });
+    }
+
     const sub = $('chatSubtitle');
     if (sub) sub.textContent = 'Tư vấn Concept';
 
-    // Thêm đường kẻ phân đoạn mới
-    const conceptTag = conceptName ? `concept "${conceptName}"` : 'concept';
-    addDivider(`Tư vấn ${conceptTag}`);
-
-    // Bắt đầu bước 1
+    // Bắt đầu bước 1: Hỏi tuổi
     step1_AskAge();
   }
 
@@ -509,7 +1252,7 @@
       const raw = sessionStorage.getItem(PENDING_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (window.AlohaAuth && AlohaAuth.isLoggedIn()) {
+      if (window.AlohaAuth && window.AlohaAuth.isLoggedIn()) {
         sessionStorage.removeItem(PENDING_KEY);
         setTimeout(() => {
           startConsultation(data.service, data.concept, data.name);
@@ -527,9 +1270,36 @@
     setTimeout(checkPendingConsultAfterLogin, 300);
   }
 
+  // Đồng bộ khi mẹ click xem concept trên màn hình album bên trái
+  window.addEventListener('hashchange', () => {
+    if (!currentSession || !currentSession.stageKey) return;
+    const hash = window.location.hash || '';
+    const m = hash.match(/^#\/album\/([^\/]+)\/([^\/?]+)/);
+    if (!m) return;
+    const conceptSlug = m[2];
+    const listWrap = document.querySelector('.chat-consult-list');
+    if (!listWrap) return;
+    listWrap.querySelectorAll('.chat-concept-card').forEach((c) => {
+      if (c.dataset && c.dataset.slug === conceptSlug) {
+        c.classList.add('active');
+        c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        c.classList.remove('active');
+      }
+    });
+  });
+
   // Export public API
   window.AlohaConceptConsult = {
     start: startConsultation,
+    startBau: startBauConsultation,
+    startBauDirect: startBauDirectConceptConsult,
+    getBauConceptsByStyle: getBauConceptsByStyle,
+    startGiaDinh: startGiaDinhConsultation,
+    startGiaDinhDirect: startGiaDinhDirectConceptConsult,
+    getGiaDinhConceptsByStyle: getGiaDinhConceptsByStyle,
+    isConsulting: () => !!currentSession,
+    endConsult: () => { currentSession = null; },
     checkPending: checkPendingConsultAfterLogin,
     data: CONSULT_DATA,
     filterConcepts: filterConcepts
