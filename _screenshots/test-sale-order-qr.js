@@ -147,15 +147,18 @@ const wait = ms => new Promise(res => setTimeout(res, ms));
     });
 
     if (!cardDetails.isPending) throw new Error('Thẻ đơn ban đầu phải ở trạng thái is-pending (Chờ cọc)!');
-    if (!cardDetails.hasSimBtn) throw new Error('Thẻ đơn phải có nút "⚡ Xác nhận đã nhận cọc (Mô phỏng tiền về)"!');
+    if (cardDetails.hasSimBtn) throw new Error('Thẻ đơn KHÔNG ĐƯỢC có nút xác nhận thủ công (SePay tự động 100%)!');
+    console.log('✓ Đã xác nhận: Thẻ KHÔNG có nút xác nhận thủ công, SePay tự động 100% bảo vệ dòng tiền.');
 
     // =========================================================================
-    // PHẦN 2: Xác nhận tiền cọc (Mô phỏng SePay chuyển khoản thành công)
+    // PHẦN 2: Xác nhận tiền cọc tự động qua SePay (Mô phỏng Webhook tiền về tài khoản)
     // =========================================================================
-    console.log('\n[BƯỚC 5] Bấm nút mô phỏng nhận cọc thành công...');
+    console.log('\n[BƯỚC 5] Mô phỏng SePay ghi nhận tiền về tài khoản ngân hàng thành công...');
     await page.evaluate(() => {
-      const btn = document.querySelector('.btn-sim-deposit');
-      if (btn) btn.click();
+      const card = document.querySelector('.chat-order-card');
+      const code = card.getAttribute('data-order-code');
+      const amt = Number(card.getAttribute('data-amount')) || 1250000;
+      window.AlohaOrderQRModal.confirmDeposit(code, amt);
     });
     await wait(1200);
 

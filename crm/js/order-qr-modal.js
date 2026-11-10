@@ -243,18 +243,19 @@
         <div class="coc-actions aor-actions">
           ${!confirmed ? (
             opts.isSale ? `
-              <button type="button" class="btn-sim-deposit" data-code="${esc(data.code)}" data-amt="${data.depositAmount}">
-                ⚡ Xác nhận đã nhận cọc (Mô phỏng tiền về)
-              </button>
+              <div class="coc-wait-note aor-wait-note" style="font-size:12px; color:#0369a1; text-align:center; padding:10px 12px; background:#f0f9ff; border-radius:10px; border:1px dashed #7dd3fc; width:100%; line-height:1.45;">
+                ⏱️ <strong>Đang chờ SePay tự động ghi nhận tiền về:</strong><br>
+                <span style="color:#64748b; font-size:11.5px;">Hệ thống tự động kích hoạt lịch và bàn giao việc cho Thợ ảnh ngay khi nhận được thanh toán. Nhân viên không cần bấm xác nhận thủ công.</span>
+              </div>
             ` : `
-              <div class="coc-wait-note aor-wait-note" style="font-size:12.5px; color:#475569; text-align:center; padding:8px 10px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; width:100%;">
-                ⏱️ <em>Lịch chụp sẽ tự động kích hoạt ngay khi ngân hàng ghi nhận chuyển khoản.</em>
+              <div class="coc-wait-note aor-wait-note" style="font-size:12px; color:#475569; text-align:center; padding:10px 12px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; width:100%; line-height:1.45;">
+                ⏱️ <em>Lịch chụp sẽ tự động kích hoạt ngay khi ngân hàng ghi nhận chuyển khoản thành công.</em>
               </div>
             `
           ) : (
             opts.isSale ? `
               <div class="coc-confirmed-banner aor-confirmed-banner">
-                🎉 <strong>Cọc đã được xác nhận thành công!</strong> Thợ ảnh đã nhận lịch vào danh sách việc.
+                🎉 <strong>SePay đã tự động xác nhận tiền về!</strong> Thợ ảnh đã nhận lịch vào danh sách việc.
               </div>
             ` : `
               <div class="coc-confirmed-banner aor-confirmed-banner">

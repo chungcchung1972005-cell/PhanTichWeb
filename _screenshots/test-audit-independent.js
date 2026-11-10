@@ -568,10 +568,11 @@ function logHeader(title) {
         const hasParent = textBefore.includes('Phụ huynh') && textBefore.includes('0933221100');
         const simBtn = card.querySelector('.btn-sim-deposit');
 
-        if (!simBtn) return { hasShooter, hasParent, hasSimBtn: false };
+        // SePay tự động 100%: không được có nút bấm thủ công
+        const hasSimBtn = !!simBtn;
 
-        // Click nút mô phỏng nhận cọc
-        simBtn.click();
+        // Mô phỏng SePay ghi nhận tiền về tự động
+        window.AlohaOrderQRModal.confirmDeposit(orderData.code, orderData.depositAmount);
         await new Promise((r) => setTimeout(r, 600));
 
         const isConfirmedNow = card.classList.contains('is-confirmed');
@@ -581,7 +582,7 @@ function logHeader(title) {
         return {
           hasShooter,
           hasParent,
-          hasSimBtn: true,
+          hasSimBtn,
           isConfirmedNow,
           statusPill,
           bannerText
@@ -591,14 +592,14 @@ function logHeader(title) {
       console.log('Kết quả kiểm tra phía Sale:');
       console.log('  Hiển thị Thợ phụ trách:', saleCardResult.hasShooter ? 'CÓ ✅' : 'KHÔNG ❌');
       console.log('  Hiển thị Phụ huynh & SĐT:', saleCardResult.hasParent ? 'CÓ ✅' : 'KHÔNG ❌');
-      console.log('  Nút mô phỏng nhận cọc:', saleCardResult.hasSimBtn ? 'CÓ ✅' : 'KHÔNG ❌');
-      console.log('  Chuyển sang trạng thái Đã cọc sau click:', saleCardResult.isConfirmedNow ? 'CÓ ✅' : 'KHÔNG ❌');
+      console.log('  Nút bấm xác nhận thủ công (phải ẩn hoàn toàn vì SePay tự động):', !saleCardResult.hasSimBtn ? 'ĐÃ ẨN HOÀN TOÀN ✅' : 'VẪN CÒN (LỖI) ❌');
+      console.log('  SePay tự động kích hoạt Đã cọc khi có tiền về:', saleCardResult.isConfirmedNow ? 'CÓ ✅' : 'KHÔNG ❌');
       console.log('  Banner xác nhận thành công:', saleCardResult.bannerText);
 
       const isSaleCardFunctioning =
         saleCardResult.hasShooter &&
         saleCardResult.hasParent &&
-        saleCardResult.hasSimBtn &&
+        !saleCardResult.hasSimBtn &&
         saleCardResult.isConfirmedNow;
 
       console.log('Kết luận Phía Sale:', isSaleCardFunctioning ? 'PASS ✅' : 'FAIL ❌');
