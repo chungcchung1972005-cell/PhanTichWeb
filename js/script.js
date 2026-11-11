@@ -853,13 +853,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!ctx.service) { askMainMenu(); return; }
       const name = ctx.service.name;
       if (ctx.service.slug === 'bau') {
-        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+        if (isCustomerLoggedIn() && window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
           window.AlohaConceptConsult.startBau(null, null, true);
           return;
         }
       }
       if (ctx.service.slug === 'gia-dinh') {
-        if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+        if (isCustomerLoggedIn() && window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
           window.AlohaConceptConsult.startGiaDinh(null, null, true);
           return;
         }
@@ -915,13 +915,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ctx.service && newService !== prevService) {
         chatBody.querySelectorAll('.chat-quick').forEach((el) => el.remove());
         if (ctx.service.slug === 'bau') {
-          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
+          if (isCustomerLoggedIn() && window.AlohaConceptConsult && window.AlohaConceptConsult.startBau) {
             window.AlohaConceptConsult.startBau();
             return;
           }
         }
         if (ctx.service.slug === 'gia-dinh') {
-          if (window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
+          if (isCustomerLoggedIn() && window.AlohaConceptConsult && window.AlohaConceptConsult.startGiaDinh) {
             window.AlohaConceptConsult.startGiaDinh();
             return;
           }
@@ -1029,6 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const triggerConsultIfTarget = (targetHash) => {
       const h = targetHash || window.location.hash || '';
+      if (!isCustomerLoggedIn()) return;
       if (h === '#/album/bau' || h === '#/album/bau/') {
         // Đảm bảo mở album Bầu với đầy đủ tất cả concept trước để khách xem
         openAlbum('#/album/bau');

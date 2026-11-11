@@ -29,9 +29,36 @@
   const CFG = db.config;
   const session = window.AlohaAuth.getSession() || {};
   const isSep = session.role === 'sep';
+
+  const BASE_ACHIEVED = {
+    '0900000002': 142, // Ngọc Anh
+    '0900000005': 115, // Minh Thư
+    '0900000006': 98   // Thu Hà
+  };
+
+  function computeSaleAchieved(phone) {
+    let totalVnd = 0;
+    const wf = window.AlohaWorkflow && window.AlohaWorkflow.get && window.AlohaWorkflow.get();
+    if (wf && Array.isArray(wf.orders)) {
+      wf.orders.forEach(o => {
+        if (o.salePhone === phone && o.status !== 'cancelled') {
+          const rev = (o.status === 'delivered' || o.status === 'shot' || o.status === 'confirmed')
+            ? (o.price || o.collected || 0)
+            : (o.collected || 0);
+          totalVnd += Number(rev) || 0;
+        }
+      });
+    }
+    const base = BASE_ACHIEVED[phone] || 0;
+    const orderMillions = Math.round((totalVnd / 1000000) * 10) / 10;
+    return Math.round((base + orderMillions) * 10) / 10;
+  }
+
   const me = isSep
     ? { id: 'sep', name: session.name || 'Sếp demo', phone: session.phone || '0900000004', target: 870, achieved: 581 }
     : (db.sales.find(s => s.phone === session.phone) || {id:session.phone,name:session.name||'Sale',phone:session.phone,target:0,achieved:0});
+  if (!isSep && me.phone) me.achieved = computeSaleAchieved(me.phone);
+  db.sales.forEach(s => { s.achieved = computeSaleAchieved(s.phone); });
 
   // Đồng hồ: dùng ngày giờ thật của máy. "Hôm nay" tự đổi khi qua nửa đêm (xem tick()).
   const demoNow = () => new Date();
@@ -641,14 +668,24 @@
     if (!c.baby) return '<div class="sw-soft"><small class="sw-label">Thông tin bé</small><p class="sw-muted">Chưa có thông tin bé</p></div>';
     const b = c.baby;
     let extra = '';
-    if (b.kind === 'due' && c.service === 'Newborn') {
-      const from = dateKey(addDays(parseKey(b.date), 7)); const to = dateKey(addDays(parseKey(b.date), 14));
-      extra = '<small class="sw-muted">Gợi ý chụp: ' + fmtDM(from) + ' – ' + fmtDM(to) + ' (7–14 ngày tuổi)</small>';
-    } else if (b.kind === 'birth') {
-      extra = '<small class="sw-muted">' + esc(b.name ? b.name + ' · ' : '') + ageText(b.date) + '</small>';
+    let mainInfo = '';
+    if (b.date) {
+      if (b.kind === 'due' && c.service === 'Newborn') {
+        const from = dateKey(addDays(parseKey(b.date), 7)); const to = dateKey(addDays(parseKey(b.date), 14));
+        extra = '<small class="sw-muted">Gợi ý chụp: ' + fmtDM(from) + ' – ' + fmtDM(to) + ' (7–14 ngày tuổi)</small>';
+      } else if (b.kind === 'birth') {
+        extra = '<small class="sw-muted">' + esc(b.name ? b.name + ' · ' : '') + ageText(b.date) + '</small>';
+      }
+      mainInfo = '<p>' + (b.kind === 'due' ? 'Dự sinh' : 'Ngày sinh') + ' <strong>' + fmtDMY(b.date) + '</strong></p>';
+    } else {
+      const items = [];
+      if (b.name) items.push('Tên: <strong>' + esc(b.name) + '</strong>');
+      if (b.age) items.push('Tuổi: <strong>' + esc(b.age) + '</strong>');
+      if (b.gender) items.push('Giới tính: <strong>' + esc(b.gender) + '</strong>');
+      if (b.weight) items.push('Cân nặng: <strong>' + esc(b.weight) + '</strong>');
+      mainInfo = '<p>' + (items.length ? items.join(' · ') : 'Thông tin từ tư vấn chat') + '</p>';
     }
-    return '<div class="sw-soft"><small class="sw-label">Thông tin bé</small>' +
-      '<p>' + (b.kind === 'due' ? 'Dự sinh' : 'Ngày sinh') + ' <strong>' + fmtDMY(b.date) + '</strong></p>' + extra + '</div>';
+    return '<div class="sw-soft"><small class="sw-label">Thông tin bé</small>' + mainInfo + extra + '</div>';
   }
   function ageText(k) {
     const days = Math.round((parseKey(TODAY) - parseKey(k)) / 864e5);
@@ -732,10 +769,14 @@
   function babyText(c) {
     const b = c.baby;
     if (!b) return 'Chưa có';
-    if (b.kind === 'due') return 'Dự sinh ' + fmtDM(b.date);
-    const m = nextMilestone(b);
-    if (m) return (b.name || 'Bé') + ' ' + m.label + ' ' + fmtDM(m.key);
-    return (b.name ? b.name + ', ' : 'Bé ') + ageText(b.date);
+    if (b.date) {
+      if (b.kind === 'due') return 'Dự sinh ' + fmtDM(b.date);
+      const m = nextMilestone(b);
+      if (m) return (b.name || 'Bé') + ' ' + m.label + ' ' + fmtDM(m.key);
+      return (b.name ? b.name + ', ' : 'Bé ') + ageText(b.date);
+    }
+    const parts = [b.name, b.age, b.gender, b.weight].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Chưa có';
   }
   function nextStep(c) {
     if (c.lost) return { text: 'Gửi lại khi có khuyến mại', tone: 'muted' };
@@ -779,7 +820,8 @@
       '</div>' : readOnlyNote(c.owner)) +
       '<div class="sw-soft"><small class="sw-label">Các bé</small>' +
         (b ? '<div class="cu-baby"><strong>' + esc(b.name || 'Bé') + '</strong><span class="sw-muted">' +
-            (b.kind === 'due' ? 'dự sinh ' + fmtDMY(b.date) : 'sinh ' + fmtDMY(b.date) + ' · ' + ageText(b.date)) + '</span></div>' +
+            (b.date ? (b.kind === 'due' ? 'dự sinh ' + fmtDMY(b.date) : 'sinh ' + fmtDMY(b.date) + ' · ' + ageText(b.date))
+                    : [b.age, b.gender, b.weight].filter(Boolean).join(' · ')) + '</span></div>' +
           (m && !offerDone && isMine(c) ? '<div class="cu-offer">' + icon('gift') + '<span>Bé sắp ' + m.label + ' (' + fmtDM(m.key) + '). Gợi ý gói ' + (m.birthday ? 'Sinh nhật' : 'chụp 100 ngày') + '.</span>' +
             '<button type="button" class="sw-btn" data-act="offer" data-key="cus:' + c.id + '">Gửi ưu đãi</button></div>' : '')
           : '<p class="sw-muted">Chưa có thông tin bé</p>') +
@@ -869,9 +911,10 @@
           '<thead><tr><th>#</th><th>Khách hàng</th><th>SĐT</th><th>Nguồn</th><th>Dịch vụ</th><th>Giai đoạn</th><th>Phụ trách</th><th>Việc tiếp theo</th><th><span class="sr-only">Xem</span></th></tr></thead><tbody>' +
           (shown.length ? shown.map((c, i) => {
             const g = groupOf(c); const n = nextStep(c); const st = sub(c);
+            const babyBadge = c.baby ? ('<span class="sw-tag tone-peach" style="font-size:11px;padding:2px 6px;margin-top:3px;display:inline-block;" title="Thông tin bé tự động điền từ chat">👶 ' + esc(babyText(c)) + (c.concept ? ' · ' + esc(c.concept) : '') + '</span>') : '';
             return '<tr class="cu-row" data-id="' + c.id + '">' +
               '<td class="cu-num">' + (i + 1) + '</td>' +
-              '<td><strong>' + esc(c.name) + '</strong><small class="sw-muted sw-block">' + esc(c.since) + '</small></td>' +
+              '<td><strong>' + esc(c.name) + '</strong><small class="sw-muted sw-block">' + esc(c.since) + '</small>' + babyBadge + '</td>' +
               '<td class="cu-nowrap">' + maskPhone(c.phone) + '</td>' +
               '<td>' + esc(c.source) + '</td>' +
               '<td>' + (c.service ? svcTag(c.service) : '<span class="sw-muted">·</span>') + '</td>' +
@@ -896,15 +939,18 @@
   }
 
   function leadCard(c, stageIdx) {
+    const babyLine = c.baby ? ('<div style="font-size:11px;color:var(--pink-600);margin-top:2px;">👶 ' + esc(babyText(c)) + (c.concept ? ' (' + esc(c.concept) + ')' : '') + '</div>') : '';
     if (!isMine(c)) {
       return '<article class="sw-card kb-card kb-card-ro">' +
         '<div class="kb-card-top"><strong>' + esc(c.name) + '</strong>' + svcTag(c.service) + '</div>' +
+        babyLine +
         '<small class="sw-muted">' + esc(c.source) + ' · ' + esc(c.since) + '</small>' +
         '<p class="kb-status c-' + c.status.tone + '">' + icon('clock') + esc(c.status.text) + '</p>' +
         '<p class="kb-owner" title="Khách của ' + esc(saleName(c.owner)) + ', bạn chỉ xem">' + icon('lock') + esc(saleName(c.owner)) + '</p></article>';
     }
     return '<article class="sw-card kb-card" draggable="true" data-drag="' + c.id + '">' +
       '<div class="kb-card-top"><strong>' + esc(c.name) + '</strong>' + svcTag(c.service) + '</div>' +
+      babyLine +
       '<small class="sw-muted">' + esc(c.source) + ' · ' + esc(c.since) + '</small>' +
       '<p class="kb-status c-' + c.status.tone + '">' + icon('clock') + esc(c.status.text) + '</p>' +
       '<div class="kb-actions">' +
@@ -1786,11 +1832,27 @@
   }
   window.addEventListener('hashchange', render);
   function hydrateWorkflow(state) {
+    if (me.phone) me.achieved = computeSaleAchieved(me.phone);
+    db.sales.forEach(s => { s.achieved = computeSaleAchieved(s.phone); });
+    const swGoal = document.getElementById('swGoal');
+    if (swGoal) {
+      const pct = Math.min(100, Math.round(me.achieved / me.target * 100));
+      swGoal.innerHTML = '<span class="sw-label">Mục tiêu tháng</span>' +
+        '<strong>' + me.achieved + ' / ' + me.target + ' triệu</strong>' +
+        '<div class="sw-prog"><div class="sw-prog-bar" style="width:' + pct + '%"></div></div>' +
+        '<small>Còn ' + Math.round((parseKey(endOfMonth(TODAY)) - parseKey(TODAY)) / 864e5) + ' ngày · cần thêm ' + Math.max(0, Math.round((me.target - me.achieved) * 10) / 10) + ' triệu</small>';
+    }
     const employeeName=phone=>(state.employees.find(e=>e.phone===phone)||{}).name||phone;
     state.orders.forEach(o=>{
       const owner=(db.sales.find(s=>s.phone===o.salePhone)||{}).id||me.id;
       let c=db.customers.find(c=>c.phone===o.phone);
       if(!c) {c={id:o.customerId||'wf-customer-'+o.phone,owner,name:o.customerName,short:o.customerName.split(' ').pop(),title:'anh/chị',phone:o.phone,area:'',service:o.service,source:'Sale đặt lịch',stage:'cho-coc',since:o.date,status:{},tags:[],note:''};db.customers.push(c);}
+      if (o.babyName) {
+        c.baby = c.baby || {};
+        c.baby.name = o.babyName;
+        if (o.babyAge) c.baby.age = o.babyAge;
+      }
+      if (o.concept && (!c.concept || c.concept === 'Chưa chọn')) c.concept = o.concept;
       c.stage=o.status==='booked'?'cho-coc':'da-chot';c.status={text:o.shotAt?'Đã chụp':o.collected?'Đã cọc':'Chờ cọc',tone:o.shotAt?'teal':'blue'};
       const apId='wf-ap-'+o.id;
       if(o.status==='cancelled') {db.appointments=db.appointments.filter(a=>a.workflowOrderId!==o.id);return;}
@@ -1837,11 +1899,22 @@
             chatPhone: chatPhone,
             convId: convId,
             babyName: (c && c.baby && c.baby.name) || '',
-            babyAge: (c && c.baby && c.baby.date ? ageText(c.baby.date) : ''),
+            babyAge: (c && c.baby && (c.baby.age || (c.baby.date ? ageText(c.baby.date) : ''))) || '',
             service: (c && c.service) || 'Newborn',
             pkg: (c && c.pkg) || 'Tiêu chuẩn',
-            concept: (c && c.concept) || '',
+            concept: (c && (c.concept || (c.baby && c.baby.concept) || (conceptOf(c) !== 'Chưa chọn' ? conceptOf(c) : ''))) || '',
             onCreated: (orderData) => {
+              if (c) {
+                if (orderData.babyName) {
+                  c.baby = c.baby || {};
+                  c.baby.name = orderData.babyName;
+                }
+                if (orderData.babyAge) {
+                  c.baby = c.baby || {};
+                  c.baby.age = orderData.babyAge;
+                }
+                if (orderData.concept) c.concept = orderData.concept;
+              }
               if (v) {
                 if (!v.messages) v.messages = [];
                 if (!v.messages.some(m => m.orderData && m.orderData.code === orderData.code)) {
@@ -2265,6 +2338,52 @@
   const saleIdByName = (name) => (db.sales.find(s => s.name === name) || {}).id || null;
   const liveMsg = (m) => ({ from: m.from === 'sale' ? 'sale' : 'kh', text: m.text, time: msgTime(m.at), by: m.senderName, at: m.at });
 
+  // Tự động trích xuất thông tin bé và concept từ tin nhắn chat của mẹ hoặc tóm tắt hệ thống
+  function extractBabyAndConceptFromChat(text, currentBaby) {
+    if (!text || typeof text !== 'string') return {};
+    const res = Object.assign({}, currentBaby || {});
+
+    // 1. Tên bé: "bé tên là Bon", "bé Bon", "tên bé là Sam", "cháu tên An Nhiên"
+    const nameMatch = text.match(/(?:bé|con|cháu)\s+(?:tên\s+là|tên|gọi\s+là|ở\s+nhà\s+tên\s+là)\s+([A-ZÀ-Ỹa-zà-ỹ0-9\s]{2,15})/i) ||
+                      text.match(/(?:tên\s+bé|tên\s+con)\s+(?:là|:)\s*([A-ZÀ-Ỹa-zà-ỹ0-9\s]{2,15})/i) ||
+                      text.match(/Thông tin bé[^\n]*?tên\s+([A-ZÀ-Ỹa-zà-ỹ0-9\s]{2,15})/i);
+    if (nameMatch && nameMatch[1]) {
+      const cleanName = nameMatch[1].trim().replace(/[,.;\n].*$/, '').trim();
+      if (cleanName && cleanName.length >= 2 && cleanName.length <= 20) res.name = cleanName;
+    }
+
+    // 2. Tuổi / tháng tuổi / ngày sinh: "bé 3 tháng", "bé 1 tuổi", "7 ngày tuổi", "sinh ngày 12/04/2024", "dự sinh 20/11"
+    const ageMatch = text.match(/(\d+\s*(?:tháng|tuổi|ngày|tuần)(?:\s*tuổi)?)/i) ||
+                     text.match(/(?:dự\s*sinh|sinh\s*ngày|sinh)\s*[:\s]*(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?)/i);
+    if (ageMatch && ageMatch[1]) {
+      res.age = ageMatch[1].trim();
+    }
+
+    // 3. Giới tính: "bé trai", "bé gái", "con gái", "con trai", "hoàng tử", "công chúa"
+    if (/bé\s*trai|con\s*trai|quý\s*tử|công\s*tử/i.test(text)) res.gender = 'Bé trai';
+    else if (/bé\s*gái|con\s*gái|công\s*chúa|tiểu\s*thư/i.test(text)) res.gender = 'Bé gái';
+
+    // 4. Cân nặng: "nặng 5kg", "5.2kg", "6,5 kg", "nặng: 4kg"
+    const weightMatch = text.match(/(\d+(?:[.,]\d+)?\s*(?:kg|kí|cân))/i) ||
+                        text.match(/(?:nặng|cân\s*nặng)\s*[:\s]*(\d+(?:[.,]\d+)?\s*(?:kg|kí|cân)?)/i);
+    if (weightMatch && weightMatch[1]) {
+      let w = weightMatch[1].trim();
+      if (!/kg|kí|cân/i.test(w)) w += 'kg';
+      res.weight = w;
+    }
+
+    // 5. Concept mong muốn: "thích concept phi hành gia", "concept: hoàng tử nhí", "chụp concept công chúa"
+    const conceptMatch = text.match(/(?:thích\s+concept|quan\s*tâm\s+concept|chụp\s+concept|concept)\s+["“']?([^"”'.,;\n]+)["”']?/i) ||
+                         text.match(/Concept\s+đã\s+xem:\s*([^;\n]+)/i);
+    let concept = null;
+    if (conceptMatch && conceptMatch[1]) {
+      const cStr = conceptMatch[1].trim().replace(/^là\s+/i, '');
+      if (cStr && cStr.length >= 2 && cStr.length <= 40) concept = cStr;
+    }
+
+    return { baby: res, concept };
+  }
+
   // Gộp 1 bản tóm tắt (và đủ tin nếu có) từ server vào hồ sơ + hội thoại trên trang.
   function liveMerge(sum, full) {
     const id = LIVE_ID(sum.phone);
@@ -2285,6 +2404,33 @@
     if (sum.topic && c.service === 'Chưa chọn') c.service = serviceFromTopic(sum.topic);
     c.since = relTime(sum.updatedAt);
     v.time = relTime(sum.updatedAt);
+
+    // Tự động gán thông tin bé & concept từ tư vấn AI hoặc trích xuất từ chat
+    if (sum.baby) {
+      c.baby = Object.assign({}, c.baby || {}, sum.baby);
+    }
+    if (sum.concept && (!c.concept || c.concept === 'Chưa chọn')) {
+      c.concept = sum.concept;
+    }
+    if (full && Array.isArray(full.messages)) {
+      full.messages.forEach(m => {
+        const ext = extractBabyAndConceptFromChat(m.text, c.baby);
+        if (ext.baby && Object.keys(ext.baby).length) {
+          c.baby = Object.assign({}, c.baby || {}, ext.baby);
+        }
+        if (ext.concept && (!c.concept || c.concept === 'Chưa chọn')) {
+          c.concept = ext.concept;
+        }
+      });
+    } else if (sum.last && sum.last.text) {
+      const ext = extractBabyAndConceptFromChat(sum.last.text, c.baby);
+      if (ext.baby && Object.keys(ext.baby).length) {
+        c.baby = Object.assign({}, c.baby || {}, ext.baby);
+      }
+      if (ext.concept && (!c.concept || c.concept === 'Chưa chọn')) {
+        c.concept = ext.concept;
+      }
+    }
     const sumTime = typeof sum.updatedAt === 'number' ? sum.updatedAt : (Date.parse(sum.updatedAt) || 0);
     const lastTime = (sum.last && (typeof sum.last.at === 'number' ? sum.last.at : (Date.parse(sum.last.at) || parseTimeStr(sum.last.time)))) || 0;
     const exactTime = Math.max(sumTime, lastTime);
@@ -2417,6 +2563,12 @@
 
   render();
   liveRefresh();
+
+  window.AlohaSale = {
+    getDb: () => db,
+    liveRefresh: liveRefresh,
+    computeSaleAchieved: computeSaleAchieved
+  };
 })();
 
 // Quiet badge for the admin inbox destination, polled every 20 seconds.

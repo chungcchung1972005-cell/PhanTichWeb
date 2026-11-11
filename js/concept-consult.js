@@ -180,6 +180,26 @@
 
   let currentSession = null; // { initialService, initialConcept, initialName, stageKey, gender, weight }
 
+  // Ghi nhận thống kê concept được khách hàng quan tâm / tư vấn
+  function recordConceptInterest(conceptName, serviceSlug) {
+    if (!conceptName) return;
+    try {
+      const KEY = 'aloha_concept_stats';
+      const raw = localStorage.getItem(KEY);
+      const stats = raw ? JSON.parse(raw) : {};
+      const normKey = conceptName.trim();
+      const svcMap = { 'newborn': 'Newborn', 'be-lon': 'Bé lớn', 'bau': 'Bầu', 'gia-dinh': 'Gia đình', 'sinh-nhat': 'Sinh nhật' };
+      const displaySvc = svcMap[serviceSlug] || serviceSlug || 'Newborn';
+      if (!stats[normKey]) {
+        stats[normKey] = { name: normKey, service: displaySvc, count: 0, lastAt: Date.now() };
+      }
+      stats[normKey].count = (stats[normKey].count || 0) + 1;
+      stats[normKey].lastAt = Date.now();
+      localStorage.setItem(KEY, JSON.stringify(stats));
+      window.dispatchEvent(new CustomEvent('aloha:concept-stat-updated', { detail: stats }));
+    } catch (e) {}
+  }
+
   // Cuộn khung chat xuống đáy
   function scrollToBottom() {
     const body = $(CHAT_BODY_ID);
@@ -369,6 +389,21 @@
     const { stageKey, gender, initialConcept, initialName, initialService } = currentSession;
     const stageInfo = CONSULT_DATA[stageKey];
     const filteredConcepts = filterConcepts(stageKey, gender);
+
+    // Lưu thông tin bé và concept tư vấn vào Journey để tự động chuyển sang Sale
+    if (window.AlohaJourney && currentSession) {
+      window.AlohaJourney.add('lead', {
+        service: initialService || 'newborn',
+        gender: gender || '',
+        age: (stageInfo && stageInfo.label) || stageKey || '',
+        weight: currentSession.weight || '',
+        concept: initialName || initialConcept || '',
+        note: ''
+      });
+    }
+    if (initialName || initialConcept) {
+      recordConceptInterest(initialName || initialConcept, initialService);
+    }
 
     // 1. Kiểm tra tính tương thích của concept mẹ đã chọn ban đầu (nếu có)
     let isMatched = false;
@@ -585,6 +620,22 @@
           setInputLocked(false);
           const topicDesc = isBau ? 'bau' : (isGiaDinh ? 'gia-dinh' : (currentSession.initialService || 'newborn'));
           const serviceTitle = isBau ? 'Bầu' : (isGiaDinh ? 'Gia đình' : '');
+          const chosenConcept = selectedConceptName || (currentSession && (currentSession.initialName || currentSession.initialConcept)) || '';
+
+          if (window.AlohaJourney) {
+            window.AlohaJourney.add('lead', {
+              service: topicDesc,
+              gender: currentSession ? (currentSession.gender || '') : '',
+              age: currentSession ? (currentSession.stageKey || '') : '',
+              weight: currentSession ? (currentSession.weight || '') : '',
+              concept: chosenConcept,
+              note: ''
+            });
+          }
+          if (chosenConcept) {
+            recordConceptInterest(chosenConcept, topicDesc);
+          }
+
           if (window.AlohaChatbot && window.AlohaChatbot.openSale) {
             window.AlohaChatbot.openSale(topicDesc);
           }
@@ -715,6 +766,10 @@
       weight: null
     };
 
+    if (conceptName || conceptSlug) {
+      recordConceptInterest(conceptName || conceptSlug, 'bau');
+    }
+
     setInputLocked(true);
 
     if (!skipGreeting) {
@@ -803,6 +858,10 @@
       gender: 'Mẹ bầu',
       weight: null
     };
+
+    if (conceptName || conceptSlug) {
+      recordConceptInterest(conceptName || conceptSlug, 'bau');
+    }
 
     setInputLocked(true);
 
@@ -1006,6 +1065,10 @@
       weight: null
     };
 
+    if (conceptName || conceptSlug) {
+      recordConceptInterest(conceptName || conceptSlug, 'gia-dinh');
+    }
+
     setInputLocked(true);
 
     if (!skipGreeting) {
@@ -1093,6 +1156,10 @@
       gender: 'Gia đình',
       weight: null
     };
+
+    if (conceptName || conceptSlug) {
+      recordConceptInterest(conceptName || conceptSlug, 'gia-dinh');
+    }
 
     setInputLocked(true);
 
@@ -1337,7 +1404,16 @@
     endConsult: () => { currentSession = null; },
     checkPending: checkPendingConsultAfterLogin,
     data: CONSULT_DATA,
-    filterConcepts: filterConcepts
+    filterConcepts: filterConcepts,
+    recordConceptInterest: recordConceptInterest,
+    getConceptStats: () => {
+      try {
+        const raw = localStorage.getItem('aloha_concept_stats');
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
   };
 
 })(window, document);

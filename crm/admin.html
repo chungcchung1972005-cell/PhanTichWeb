@@ -306,6 +306,22 @@
         </div>
       </section>
 
+      <!-- Block Sếp: Thống kê Concept được quan tâm & tư vấn nhiều nhất -->
+      <section class="admin-section" id="concept-analytics-section" data-roles="sep">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h2 style="margin:0;">Concept Được Quan Tâm &amp; Tư Vấn Nhiều Nhất</h2>
+            <p class="sub" style="margin-top:4px;">Ghi nhận theo thời gian thực từ các lượt khách yêu cầu tư vấn concept qua website và AI chatbot.</p>
+          </div>
+          <span class="badge badge-tu-van" id="totalConceptConsultCount">0 lượt tư vấn</span>
+        </div>
+        <div class="top-concept-card-wrap" id="topConceptCardWrap" style="background:#fff; border-radius:14px; border:1px solid #f0e6ea; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+          <div id="topConceptList" class="top-concept-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px;">
+            <!-- Dynamic cards rendered by admin.js -->
+          </div>
+        </div>
+      </section>
+
       <!-- Block Sale + Sếp: Tin nhắn khách hàng (thêm 2026-09-27). Khách chat từ trang
          web (bấm ảnh dịch vụ đầu trang chủ / nút chat nổi, js/sale-chat.js) -> hiện
          ở đây cho MỌI tài khoản Sale, Sale nào trả lời thì tin ghi tên Sale đó. Sếp

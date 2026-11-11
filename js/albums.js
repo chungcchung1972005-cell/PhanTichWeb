@@ -1094,8 +1094,11 @@
       if (activeConsultFilter && activeConsultFilter.serviceSlug === service.slug && activeConsultFilter.concepts && activeConsultFilter.concepts.length) {
         const validSlugs = new Set(activeConsultFilter.concepts.map((c) => c.slug));
         const validNames = new Set(activeConsultFilter.concepts.map((c) => String(c.name || c.displayName || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
-        displayConcepts = concepts.filter((c) => validSlugs.has(c.slug) || validNames.has(String(c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
-        if (displayConcepts.length > 0) isFiltered = true;
+        const matched = concepts.filter((c) => validSlugs.has(c.slug) || validNames.has(String(c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
+        if (matched.length > 0) {
+          displayConcepts = matched;
+          isFiltered = true;
+        }
       }
 
       const isBau = isFiltered && activeConsultFilter && activeConsultFilter.serviceSlug === 'bau';
@@ -1125,8 +1128,8 @@
       $('gallerySwitch').setAttribute('aria-label', 'Dịch vụ đang xem');
       $('gallerySwitch').innerHTML = chips([service], service.slug, (s) => '#/album/' + s.slug);
       revealActiveChip();
-      // Nút tư vấn concept áp dụng cho tất cả các album dịch vụ (Newborn, Bé lớn, Bầu, Gia đình, Sinh nhật)
-      const isConsultable = ['newborn', 'be-lon', 'bau', 'gia-dinh', 'sinh-nhat'].includes(service.slug);
+      // Nút tư vấn concept trên từng thẻ album áp dụng cho Newborn & Bé lớn
+      const isConsultable = ['newborn', 'be-lon'].includes(service.slug);
 
       let bannerHtml = '';
       if (isFiltered) {
@@ -1154,17 +1157,20 @@
           const consultBtn = isConsultable
             ? `<button type="button" class="concept-album-consult" data-service="${service.slug}" data-concept="${c.slug}" data-name="${c.name}" title="Tư vấn concept ${c.name}">
                 <span>Tư vấn concept</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>`
-            : `<span class="concept-album-arrow">${ARROW}</span>`;
+            : '';
           return `<a href="${serviceHref}/${c.slug}" class="concept-album">
             <img src="${cover.src}" alt="${cover.alt}" loading="lazy">
+            <span class="concept-album-arrow" aria-label="Xem concept ${c.name}">${ARROW}</span>
             <span class="concept-album-body">
               <span class="concept-album-name">${c.name}</span>
               <span class="concept-album-desc">${c.desc}</span>
-              <span class="concept-album-count">${c.photos.length} ảnh</span>
+              <span class="concept-album-meta">
+                <span class="concept-album-count">${c.photos.length} ảnh</span>
+                ${consultBtn}
+              </span>
             </span>
-            ${consultBtn}
           </a>`;
         }).join('')
         : '<p class="gallery-empty">Không tìm thấy concept phù hợp.</p>';
@@ -1197,8 +1203,8 @@
 
     const consultTopBtn = $('galleryConsultTop');
     if (consultTopBtn) {
-      // Nút tư vấn concept áp dụng cho tất cả các album dịch vụ (Newborn, Bé lớn, Bầu, Gia đình, Sinh nhật)
-      const isConsultable = ['newborn', 'be-lon', 'bau', 'gia-dinh', 'sinh-nhat'].includes(service.slug);
+      // Nút tư vấn concept trên từng thẻ album áp dụng cho Newborn & Bé lớn
+      const isConsultable = ['newborn', 'be-lon'].includes(service.slug);
       consultTopBtn.hidden = !isConsultable;
       if (isConsultable) {
         consultTopBtn.onclick = () => {

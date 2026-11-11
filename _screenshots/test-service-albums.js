@@ -24,11 +24,13 @@ async function openHome(browser, viewport) {
 const visible = (el) => !!el && !el.closest('[hidden]') && el.getClientRects().length > 0;
 const state = (page) => page.evaluate(() => {
   const vis = (el) => !!el && !el.closest('[hidden]') && el.getClientRects().length > 0;
+  const vHome = document.getElementById('view-home');
+  const vAlbum = document.getElementById('view-album');
   return {
     hash: location.hash,
-    homeHidden: document.getElementById('view-home').hidden,
-    albumHidden: document.getElementById('view-album').hidden,
-    title: document.getElementById('galleryTitle').textContent,
+    homeHidden: vHome ? vHome.hidden : true,
+    albumHidden: vAlbum ? vAlbum.hidden : true,
+    title: (document.getElementById('galleryTitle') || {}).textContent || '',
     conceptsShown: vis(document.getElementById('galleryConcepts')),
     gridShown: vis(document.getElementById('galleryGrid')),
     upShown: vis(document.getElementById('galleryUp')),
@@ -36,8 +38,8 @@ const state = (page) => page.evaluate(() => {
     items: document.querySelectorAll('#galleryGrid .gallery-item').length,
     activeChip: (document.querySelector('.gallery-chip.active') || {}).textContent,
     missing: vis(document.getElementById('galleryMissing')),
-    lightboxOpen: !document.getElementById('lightbox').hidden,
-    bodyLocked: document.body.classList.contains('lightbox-open'),
+    lightboxOpen: !((document.getElementById('lightbox') || {}).hidden ?? true),
+    bodyLocked: !!(document.body && document.body.classList.contains('lightbox-open')),
     scrollY: window.scrollY,
     overflow: document.documentElement.scrollWidth > window.innerWidth
   };
@@ -112,7 +114,8 @@ const imgsLoaded = (page, sel) => page.evaluate((s) => Array.from(document.query
       // Ảnh bìa concept tải lazy: điện thoại xếp 10 thẻ 1 cột, thẻ cuối chỉ tải khi cuộn gần tới
       // -> cuộn qua hết danh sách rồi mới kiểm tra (2026-10-13, concept fanpage 10/dịch vụ).
       await page.evaluate(async () => {
-        for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); }
+        const h = (document.body && document.body.scrollHeight) || 1000;
+        for (let y = 0; y < h; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); }
       });
       await page.waitForFunction(() => Array.from(document.querySelectorAll('#galleryConcepts img')).every((i) => i.complete && i.naturalWidth > 0), { timeout: 5000 }).catch(() => {});
       const coversOk = await imgsLoaded(page, '#galleryConcepts img');

@@ -241,9 +241,13 @@
     submitBtn.textContent = busy ? 'Đang kết nối...' : (isRegisterMode ? 'Đăng ký' : 'Đăng nhập');
   }
   function goAfterLogin(role, next, fallbackRoute) {
-    if (role === 'khach-hang' && isValidNext(next)) window.location.href = 'index.html#/' + (next === 'home' ? '' : next);
-    else if (role === 'khach-hang' && fallbackRoute) window.location.href = 'index.html#/' + fallbackRoute;
-    else window.location.href = AlohaAuth.roleHome(role);
+    if (role === 'khach-hang' && isValidNext(next)) {
+      window.location.href = 'index.html#/' + (next === 'home' ? '' : next);
+    } else if (role === 'khach-hang' && fallbackRoute) {
+      window.location.href = 'index.html#/' + (fallbackRoute === 'home' ? '' : fallbackRoute);
+    } else {
+      window.location.href = AlohaAuth.roleHome(role);
+    }
   }
 
   document.getElementById('loginForm').addEventListener('submit', async function (e) {
@@ -267,10 +271,9 @@
       if (r.status === 400) return fail((r.data && r.data.message) || 'Thông tin đăng ký chưa hợp lệ.');
       AlohaAuth.login('khach-hang', name, phone, r.ok ? r.data.token : null);
       // Khách vừa đăng ký chưa từng đặt lịch nên chưa có ảnh nào để xem ->
-      // mặc định đưa vào luồng Đặt lịch (không phải "Ảnh của tôi" như tài
-      // khoản demo đăng nhập lại), hoặc chat với Sale khi Đặt lịch đang tắt,
+      // mặc định đưa vào Trang chủ để xem dịch vụ & tư vấn chat,
       // trừ khi họ đến từ một trang cụ thể (next).
-      return goAfterLogin('khach-hang', next, registerHome);
+      return goAfterLogin('khach-hang', next, 'home');
     }
 
     var account = DEMO_ACCOUNTS[phone];
@@ -281,7 +284,7 @@
     if (account) {
       // Tài khoản demo: kiểm tra được ngay tại trang, server chỉ để lấy mã đăng nhập cho chat.
       AlohaAuth.login(account.role, account.name, phone, res.ok ? res.data.token : null);
-      return goAfterLogin(account.role, next);
+      return goAfterLogin(account.role, next, account.role === 'khach-hang' ? 'chon-anh' : null);
     }
     // Khách đã đăng ký thật: chỉ server biết mật khẩu.
     if (res.ok) {
@@ -382,7 +385,7 @@
     googleSubmitBtn.textContent = 'Hoàn tất';
     if (r.ok && r.data && r.data.token) {
       AlohaAuth.login('khach-hang', r.data.session.name, r.data.session.phone, r.data.token);
-      return goAfterLogin('khach-hang', params.get('next'), registerHome);
+      return goAfterLogin('khach-hang', params.get('next'), 'home');
     }
     if (r.status === 409) return showError('Số điện thoại này đã có tài khoản. Vui lòng bấm "Dùng cách khác" rồi đăng nhập bằng số điện thoại và mật khẩu.');
     if (r.status === 400) return showError((r.data && r.data.message) || 'Thông tin chưa hợp lệ.');

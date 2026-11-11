@@ -9,7 +9,7 @@
   // location.hash, xem js/router.js) — 'khach-hang' trỏ tới route hash, không
   // còn là file .html riêng.
   const ROLE_HOME = {
-    'khach-hang': 'index.html#/chon-anh',
+    'khach-hang': 'index.html#/',
     'tho-anh': 'crm/admin.html',
     'sale': 'crm/sale.html', // Không gian Sale riêng (5 tài khoản sale)
     'sep': 'crm/admin.html'

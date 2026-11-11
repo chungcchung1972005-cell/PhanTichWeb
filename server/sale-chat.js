@@ -175,6 +175,7 @@ function summarize(chat) {
   const updatedAt = Math.max(chatAt, lastAt, createAt, 0);
   return {
     phone: chat.phone, customerName: chat.customerName, topic: chat.topic || '',
+    concept: chat.concept || '', baby: chat.baby || null,
     staffUnread: chat.staffUnread || 0, customerUnread: chat.customerUnread || 0,
     updatedAt, last,
     assignedSalePhone: chat.assignedSalePhone || null,
@@ -219,6 +220,8 @@ function memoryStore() {
       }
       if (fields.customerName) chat.customerName = fields.customerName;
       if (fields.topic) chat.topic = fields.topic;
+      if (fields.concept) chat.concept = fields.concept;
+      if (fields.baby) chat.baby = fields.baby;
       if (fields.assignedSalePhone) {
         chat.assignedSalePhone = fields.assignedSalePhone;
         if (fields.assignedSaleName) chat.assignedSaleName = fields.assignedSaleName;
@@ -283,6 +286,8 @@ function mongoStore(uri, dbName) {
       const onInsert = { createdAt: msg.at };
       if (fields.customerName) set.customerName = fields.customerName; else onInsert.customerName = 'Khách hàng';
       if (fields.topic) set.topic = fields.topic; else onInsert.topic = '';
+      if (fields.concept) set.concept = fields.concept;
+      if (fields.baby) set.baby = fields.baby;
       
       const sales = getActiveSales();
       let assigned = null;
@@ -517,12 +522,17 @@ router.post('/me/handoff', requireAuth(['khach-hang']), wrap(async (req, res) =>
   if (!text) return res.status(400).json({ error: 'bad_summary' });
   if (rateLimited(req.user.phone)) return res.status(429).json({ error: 'too_many_messages' });
   const topic = String(req.body.topic || '').trim().slice(0, MAX_TOPIC);
-  const chat = await store.appendMessage(req.user.phone, {
+  const concept = String(req.body.concept || '').trim().slice(0, 100);
+  const baby = (req.body.baby && typeof req.body.baby === 'object') ? req.body.baby : null;
+  const fields = {
     customerName: req.user.name,
     topic,
     assignedSalePhone: req.user.assignedSalePhone,
     assignedSaleName: req.user.assignedSaleName
-  }, newMessage('he-thong', 'Tóm tắt tự động', text, 'summary'));
+  };
+  if (concept) fields.concept = concept;
+  if (baby) fields.baby = baby;
+  const chat = await store.appendMessage(req.user.phone, fields, newMessage('he-thong', 'Tóm tắt tự động', text, 'summary'));
   res.json({ chat: publicChat(chat) });
 }));
 

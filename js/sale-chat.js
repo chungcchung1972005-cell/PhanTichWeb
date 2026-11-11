@@ -646,7 +646,33 @@
     const text = summaryText();
     if (text === lastSummary) return; // chuyển qua lại nhiều lần mà không xem thêm gì -> không gửi lặp
     lastSummary = text;
-    const r = await call('/api/sale-chat/me/handoff', { method: 'POST', body: { summary: text, topic: topicLabel(topicSlug) } });
+
+    // Trích xuất lead & concept từ hành trình để gửi kèm dữ liệu có cấu trúc sang Sale
+    const list = (window.AlohaJourney && window.AlohaJourney.list()) || [];
+    const lead = list.find((it) => it.type === 'lead');
+    let concept = lead && lead.concept ? lead.concept : '';
+    if (!concept) {
+      const lastConcept = [...list].reverse().find((it) => it.type === 'concept');
+      if (lastConcept && lastConcept.concept) concept = lastConcept.concept;
+    }
+    const baby = lead ? {
+      name: lead.name || lead.babyName || '',
+      age: lead.age || '',
+      gender: lead.gender || '',
+      weight: lead.weight || '',
+      concept: lead.concept || concept || '',
+      note: lead.note || ''
+    } : null;
+
+    const r = await call('/api/sale-chat/me/handoff', {
+      method: 'POST',
+      body: {
+        summary: text,
+        topic: topicLabel(topicSlug),
+        concept: concept || '',
+        baby: baby || undefined
+      }
+    });
     if (r.ok) { setChat(r.me, r.data.chat); if (active) render(false); } else lastSummary = '';
   }
 

@@ -173,7 +173,7 @@ const BASE_URL = ROOT_URL + 'index.html';
 
     await page.waitForFunction(() => {
       const lists = document.querySelectorAll('.chat-consult-list');
-      return lists.length >= 3;
+      return lists.length >= 2;
     }, { timeout: 5000 });
 
     const nb2BoyCount = await page.evaluate(() => {

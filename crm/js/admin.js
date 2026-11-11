@@ -480,11 +480,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ------------------------------- Hiệu suất Đội ngũ Sale & Duyệt chuyển giao (chỉ Sếp) -------------------------------
-  const salePerfGrid = document.getElementById('salePerfGrid');
-  if (salePerfGrid && SALE_DB && SALE_DB.sales) {
+  const BASE_ACHIEVED = {
+    '0900000002': 142, // Ngọc Anh
+    '0900000005': 115, // Minh Thư
+    '0900000006': 98   // Thu Hà
+  };
+
+  function computeSaleAchieved(phone) {
+    let totalVnd = 0;
+    const wf = window.AlohaWorkflow && window.AlohaWorkflow.get && window.AlohaWorkflow.get();
+    if (wf && Array.isArray(wf.orders)) {
+      wf.orders.forEach(o => {
+        if (o.salePhone === phone && o.status !== 'cancelled') {
+          const rev = (o.status === 'delivered' || o.status === 'shot' || o.status === 'confirmed')
+            ? (o.price || o.collected || 0)
+            : (o.collected || 0);
+          totalVnd += Number(rev) || 0;
+        }
+      });
+    }
+    const base = BASE_ACHIEVED[phone] || 0;
+    const orderMillions = Math.round((totalVnd / 1000000) * 10) / 10;
+    return Math.round((base + orderMillions) * 10) / 10;
+  }
+
+  function renderSalePerfGrid() {
+    const salePerfGrid = document.getElementById('salePerfGrid');
+    if (!salePerfGrid || !SALE_DB || !SALE_DB.sales) return;
     salePerfGrid.innerHTML = SALE_DB.sales.map(s => {
-      const pct = Math.min(100, Math.round(s.achieved / s.target * 100));
-      const custCount = (SALE_DB.customers || []).filter(c => c.owner === s.id).length;
+      s.achieved = computeSaleAchieved(s.phone);
+      const pct = s.target ? Math.min(100, Math.round(s.achieved / s.target * 100)) : 0;
+      const allCustomers = SALE_DB.customers || [];
+      const myCustomers = allCustomers.filter(c => c.owner === s.id || c.owner === s.phone);
+      const custCount = myCustomers.length;
+      const consultingCount = myCustomers.filter(c => c.stage === 'tu-van' || c.stage === 'moi' || !c.stage).length;
       const initials = customerInitials(s.name);
       const isLeave = s.leave && s.leave.from;
       return `
@@ -506,14 +535,94 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="sale-perf-fill" style="width:${pct}%;"></div>
             </div>
           </div>
-          <div class="sale-perf-stat-row">
-            <span>Khách đang phụ trách:</span>
+          <div class="sale-perf-stat-row" style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:12.5px;">
+            <span style="color:#64748b;">Đang tư vấn:</span>
+            <strong style="color:var(--pink-600); font-weight:700;">${consultingCount} khách</strong>
+          </div>
+          <div class="sale-perf-stat-row" style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:12px;">
+            <span style="color:#64748b;">Tổng phụ trách:</span>
             <strong>${custCount} khách</strong>
           </div>
         </div>
       `;
     }).join('');
   }
+  renderSalePerfGrid();
+
+  // ------------------------------- Thống kê Concept được quan tâm & tư vấn nhiều nhất (Chỉ Sếp) -------------------------------
+  function renderTopConcepts() {
+    const listEl = document.getElementById('topConceptList');
+    const totalEl = document.getElementById('totalConceptConsultCount');
+    if (!listEl) return;
+
+    let stats = {};
+    try {
+      const raw = localStorage.getItem('aloha_concept_stats');
+      if (raw) stats = JSON.parse(raw);
+    } catch (e) {}
+
+    const SEED_CONCEPTS = [
+      { name: 'Hoàng tử nhí', service: 'Newborn', count: 28 },
+      { name: 'Vintage cổ điển', service: 'Newborn', count: 24 },
+      { name: 'Khu vườn cổ tích', service: 'Bé lớn', count: 19 },
+      { name: 'Giấc mơ ngọt ngào', service: 'Bé lớn', count: 16 },
+      { name: 'Phi hành gia', service: 'Bé lớn', count: 14 },
+      { name: 'Nắng ấm gia đình', service: 'Gia đình', count: 11 },
+      { name: 'Nàng thơ mẹ bầu', service: 'Bầu', count: 9 }
+    ];
+
+    if (!Object.keys(stats).length) {
+      SEED_CONCEPTS.forEach(c => {
+        stats[c.name] = { name: c.name, service: c.service, count: c.count, lastAt: Date.now() };
+      });
+      try { localStorage.setItem('aloha_concept_stats', JSON.stringify(stats)); } catch (e) {}
+    }
+
+    if (SALE_DB && Array.isArray(SALE_DB.customers)) {
+      SALE_DB.customers.forEach(c => {
+        const cName = c.concept || (c.baby && c.baby.concept);
+        if (cName && cName !== 'Chưa chọn') {
+          const norm = cName.trim();
+          if (!stats[norm]) stats[norm] = { name: norm, service: c.service || 'Studio', count: 0, lastAt: Date.now() };
+          stats[norm].count += 1;
+        }
+      });
+    }
+
+    const sorted = Object.values(stats).sort((a, b) => (b.count || 0) - (a.count || 0));
+    const totalConsults = sorted.reduce((sum, item) => sum + (item.count || 0), 0);
+    if (totalEl) totalEl.textContent = `${totalConsults} lượt tư vấn`;
+
+    const maxCount = sorted.length ? Math.max(...sorted.map(s => s.count || 0), 1) : 1;
+
+    listEl.innerHTML = sorted.slice(0, 8).map((item, idx) => {
+      const pct = Math.min(100, Math.round(((item.count || 0) / maxCount) * 100));
+      const rankBadgeColor = idx === 0 ? 'background:#ffd700; color:#854d0e;' : (idx === 1 ? 'background:#e2e8f0; color:#334155;' : (idx === 2 ? 'background:#ffedd5; color:#9a3412;' : 'background:#f1f5f9; color:#64748b;'));
+      const svcClass = item.service === 'Newborn' ? 'badge-hoan-thanh' : (item.service === 'Bầu' ? 'badge-tu-van' : 'badge-cho-duyet');
+      return `
+        <div class="top-concept-item" style="border:1px solid #f1f5f9; border-radius:10px; padding:12px; background:#fafafa; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+              <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:11px; font-weight:800; ${rankBadgeColor}">#${idx + 1}</span>
+              <strong style="font-size:13.5px; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escHtml(item.name)}">${escHtml(item.name)}</strong>
+            </div>
+            <span class="badge ${svcClass}" style="font-size:10.5px; padding:2px 6px;">${escHtml(item.service || 'Studio')}</span>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px;">
+              <span style="color:#64748b;">Số lượt tư vấn:</span>
+              <strong style="color:var(--pink-600);">${item.count} lượt</strong>
+            </div>
+            <div style="height:6px; background:#e2e8f0; border-radius:99px; overflow:hidden;">
+              <div style="height:100%; width:${pct}%; background:linear-gradient(90deg, #f472b6, var(--pink-600)); border-radius:99px; transition:width 0.4s ease;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  renderTopConcepts();
+  window.addEventListener('aloha:concept-stat-updated', renderTopConcepts);
 
   const transferListEl = document.getElementById('saleTransferList');
   const transferCountEl = document.getElementById('saleTransferPendingCount');
@@ -3548,6 +3657,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const counts=saleFunnelCounts();
     ['quan-tam','tu-van','dat-lich','da-chup','hoan-thanh'].forEach((k,i)=>{const num=document.querySelector('#kpi .kpi-'+k+' .num');if(num){num.textContent=counts[i];num.dataset.val=counts[i];}});
     document.querySelectorAll('#funnelChart .funnel-row').forEach((row,i)=>{const pct=Math.round(counts[i]/(counts[0]||1)*100),val=row.querySelector('.val'),bar=row.querySelector('.funnel-bar');if(val){val.dataset.val=counts[i];val.dataset.pct=pct;val.textContent=counts[i]+' ('+pct+'%)';}if(bar){bar.dataset.w=pct;bar.style.width=pct+'%';}});
+    renderSalePerfGrid();
+    renderTopConcepts();
     window.dispatchEvent(new Event('aloha:crm-projection'));
   });
 });
