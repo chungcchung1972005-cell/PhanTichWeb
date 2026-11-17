@@ -5,6 +5,7 @@ const env = require('./test-env');
   const browser = await env.launchAllFeatures(puppeteer, { executablePath: env.CHROME_PATH, headless: 'new', args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    page.on('dialog', d => d.accept().catch(() => {}));
     await page.setViewport({width:1440,height:1000});
     await page.setRequestInterception(true);
     page.on('request', req => /^https?:/.test(req.url()) ? req.abort() : req.continue());
@@ -19,6 +20,7 @@ const env = require('./test-env');
     assert.match(await page.$eval('#psDrivePanel [role=status]', el => el.textContent),/chưa gửi/);
     assert.equal(await page.$('#psDriveUrl'),null);
     const staff = await browser.newPage();
+    staff.on('dialog', d => d.accept().catch(() => {}));
     await staff.setRequestInterception(true);
     staff.on('request', req => /^https?:/.test(req.url()) ? req.abort() : req.continue());
     staff.on('pageerror', e => errors.push(e.message));

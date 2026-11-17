@@ -70,6 +70,7 @@ async function api(p, token, body) {
     async function machine(sync) {
       const ctx = await browser.createBrowserContext();
       const page = await ctx.newPage();
+      page.on('dialog', d => d.accept().catch(() => {}));
       if (!sync) await fixture.installLocalAlbum(page,album);
       await page.setViewport({ width: 1440, height: 1200 });
       const m = { page, ctx, calls: [], bodies: [], responses: [], intercept: { mode: null } };

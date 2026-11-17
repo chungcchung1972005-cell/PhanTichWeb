@@ -35,6 +35,7 @@
           <button type="button" role="tab" data-f="wait" aria-selected="false">Chờ khách <b data-n="wait"></b></button>
           <button type="button" role="tab" data-f="all" aria-selected="false">Tất cả <b data-n="all"></b></button>
         </div></header>
+      <input type="search" class="tho-ws-search" placeholder="Tìm tên, SĐT hoặc mã đơn" aria-label="Tìm khách">
       <div class="tho-ws-body">
         <div class="tho-ws-list" role="list"></div>
         <aside class="tho-detail" aria-label="Chi tiết khách" hidden>
@@ -68,7 +69,7 @@
     showPage((location.hash || '').slice(1));
 
     // ---------------------------------------------------------------- Dữ liệu: đơn (workflow) + yêu cầu chỉnh
-    let orders = [], albums = [], filter = 'todo', openKey = null, tab = null, roundId = null;
+    let orders = [], albums = [], filter = 'todo', openKey = null, tab = null, roundId = null, picflowFilter = 'all';
     const ST = {
       booked: ['Chờ khách cọc', 'wait'], confirmed: ['Chờ ngày chụp', 'todo'], shooting: ['Đang chụp', 'todo'],
       shot: ['Cần gửi ảnh gốc', 'todo'], choosing: ['Chờ khách chọn ảnh', 'wait'], editing: ['Đang chỉnh ảnh', 'todo'],
@@ -98,12 +99,15 @@
 
     // ---------------------------------------------------------------- Danh sách
     const list = ws.querySelector('.tho-ws-list'), detail = ws.querySelector('.tho-detail');
+    function thoNorm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim(); }
+    const searchBox = ws.querySelector(".tho-ws-search");
+    if (searchBox) searchBox.addEventListener("input", () => renderList());
     function renderList() {
       const all = customers();
       const count = { todo: all.filter((c) => c.group === 'todo').length, wait: all.filter((c) => c.group === 'wait').length, all: all.length };
       ws.querySelectorAll('[data-n]').forEach((b) => { b.textContent = count[b.dataset.n] || ''; });
       const badge = tabsNav.querySelector('.tho-ws-count'); if (badge) { badge.hidden = !count.todo; badge.textContent = count.todo; }
-      const shown = all.filter((c) => filter === 'all' || c.group === filter);
+      const q = thoNorm(searchBox ? searchBox.value : ""); const shown = all.filter((c) => (filter === "all" || c.group === filter) && (!q || thoNorm([c.key, c.name, c.phone, c.order && c.order.customerName, c.order && c.order.phone, c.order && c.order.orderCode].join(" ")).includes(q)));
       list.innerHTML = shown.length ? shown.map((c) => `<button type="button" role="listitem" class="tho-cust${c.key === openKey ? ' is-open' : ''}${c.group === 'todo' ? ' is-todo' : ''}" data-key="${esc(c.key)}">
           <span class="tho-cust-name">${esc(c.name || 'Khách')}${c.isNew ? '<em class="tho-new">Mới</em>' : ''}</span>
           <span class="tho-cust-code">${esc(c.code || '')}${c.order ? ' · ' + esc(c.order.service || '') : ''}</span>
@@ -129,7 +133,7 @@
     }
     function openCustomer(key) {
       const c = customers().find((x) => x.key === key); if (!c) return;
-      openKey = key; tab = defaultTab(c); roundId = null; lastRendered = '';
+      openKey = key; tab = defaultTab(c); roundId = null; lastRendered = ''; picflowFilter = 'all';
       detail.hidden = false; ws.classList.add('has-detail');
       list.querySelectorAll('.tho-cust').forEach((b) => b.classList.toggle('is-open', b.dataset.key === key));
       refreshDetail(c, true);
@@ -146,8 +150,221 @@
     });
     rounds.addEventListener('click', (e) => {
       const b = e.target.closest('[data-round]'); if (!b) return;
-      roundId = b.dataset.round; lastRendered = ''; const c = customers().find((x) => x.key === openKey); if (c) refreshDetail(c, true);
+      roundId = b.dataset.round; lastRendered = ''; picflowFilter = 'all'; const c = customers().find((x) => x.key === openKey); if (c) refreshDetail(c, true);
     });
+
+    // ---------------------------------------------------------------- Picflow: Trạng thái ảnh + bộ lọc số đếm
+    function photoFilename(photoId) {
+      const n = parseInt((String(photoId).match(/\d+/) || ['0'])[0], 10);
+      return 'IMG_' + (7800 + ((n * 37 + 13) % 200)) + '.JPG';
+    }
+
+    function isPhotoDone(p, r) {
+      if (!p || !r) return false;
+      if (r.status === 'Hoàn thành' || p.matched === true) return true;
+      const pIdStr = String(p.id || '');
+      const pIdNum = pIdStr.replace(/\D+/g, '');
+      if (Array.isArray(r.doneIds) && r.doneIds.some((id) => {
+        const s = String(id || '');
+        return s === pIdStr || (pIdNum && s.replace(/\D+/g, '') === pIdNum);
+      })) {
+        return true;
+      }
+      const delivery = r.driveJob && r.driveJob.delivery;
+      if (delivery) {
+        if (delivery.status === 'delivered') return true;
+        const fname = p.name || photoFilename(p.id);
+        if (Array.isArray(delivery.missing)) {
+          if (!delivery.missing.includes(fname) && !delivery.missing.includes(pIdStr) && (Number(delivery.matched) > 0)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function isPhotoRedo(p) {
+      return !!(p && p.fromEdited === true);
+    }
+
+    function isPhotoTodo(p, r) {
+      return !isPhotoDone(p, r) && !isPhotoRedo(p);
+    }
+
+    function renderPicflow(r, host) {
+      const modalBody = host.querySelector('#kanbanModalBody') || host;
+      const photos = Array.isArray(r.photos) ? r.photos : [];
+
+      const countTodo = photos.filter((p) => isPhotoTodo(p, r)).length;
+      const countDone = photos.filter((p) => isPhotoDone(p, r)).length;
+      const countRedo = photos.filter((p) => isPhotoRedo(p)).length;
+      const countAll = photos.length;
+
+      // 1. Hàng chip lọc có số đếm (Cần sửa, Đã có bản sửa, Sửa lại, Tất cả)
+      let bar = modalBody.querySelector('.tho-picflow-bar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'tho-picflow-bar';
+        bar.setAttribute('role', 'tablist');
+        bar.setAttribute('aria-label', 'Lọc trạng thái ảnh');
+        const anchor = modalBody.querySelector('.photo-copy-row') || modalBody.querySelector('.kanban-photo-grid');
+        if (anchor) modalBody.insertBefore(bar, anchor);
+        else modalBody.prepend(bar);
+      }
+
+      bar.innerHTML = `
+        <button type="button" class="tho-chip${picflowFilter === 'todo' ? ' is-active' : ''}" data-chip="todo" role="tab" aria-selected="${picflowFilter === 'todo'}">
+          Cần sửa <b class="tho-chip-count">${countTodo}</b>
+        </button>
+        <button type="button" class="tho-chip${picflowFilter === 'done' ? ' is-active' : ''}" data-chip="done" role="tab" aria-selected="${picflowFilter === 'done'}">
+          Đã có bản sửa <b class="tho-chip-count">${countDone}</b>
+        </button>
+        <button type="button" class="tho-chip${countRedo > 0 ? ' has-redo' : ''}${picflowFilter === 'redo' ? ' is-active' : ''}" data-chip="redo" role="tab" aria-selected="${picflowFilter === 'redo'}">
+          Sửa lại <b class="tho-chip-count">${countRedo}</b>
+        </button>
+        <button type="button" class="tho-chip${picflowFilter === 'all' ? ' is-active' : ''}" data-chip="all" role="tab" aria-selected="${picflowFilter === 'all'}">
+          Tất cả <b class="tho-chip-count">${countAll}</b>
+        </button>
+      `;
+
+      bar.onclick = (e) => {
+        const btn = e.target.closest('.tho-chip');
+        if (!btn) return;
+        picflowFilter = btn.dataset.chip || 'all';
+        bar.querySelectorAll('.tho-chip').forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-selected', String(active));
+        });
+        applyPicflowFilter();
+      };
+
+      // 2. Gắn nhãn trạng thái và ghi chú vào từng ô ảnh trong .kanban-photo-grid
+      const grid = modalBody.querySelector('.kanban-photo-grid');
+      let compactList = modalBody.querySelector('.tho-compact-photo-list');
+
+      if (grid) {
+        if (compactList) compactList.remove();
+        photos.forEach((p, idx) => {
+          const tile = grid.querySelector(`.kanban-photo-tile[data-photo-id="${esc(p.id)}"]`) || grid.children[idx];
+          if (!tile) return;
+          const done = isPhotoDone(p, r);
+          const redo = isPhotoRedo(p);
+          const todo = isPhotoTodo(p, r);
+
+          tile.classList.toggle('is-todo', todo);
+          tile.classList.toggle('is-done', done);
+          tile.classList.toggle('is-redo', redo);
+
+          let badgesEl = tile.querySelector('.tho-photo-badges');
+          if (!badgesEl) {
+            badgesEl = document.createElement('div');
+            badgesEl.className = 'tho-photo-badges';
+            const img = tile.querySelector('img');
+            if (img && img.nextSibling) tile.insertBefore(badgesEl, img.nextSibling);
+            else tile.prepend(badgesEl);
+          }
+          let badgesHtml = '';
+          if (redo) badgesHtml += '<span class="tho-tag tho-tag-redo">Sửa lại</span>';
+          if (done) badgesHtml += '<span class="tho-tag tho-tag-done">Đã có bản sửa</span>';
+          if (todo) badgesHtml += '<span class="tho-tag tho-tag-todo">Cần sửa</span>';
+          badgesEl.innerHTML = badgesHtml;
+
+          let redoNoteEl = tile.querySelector('.tho-photo-redo-note');
+          if (redo && !tile.querySelector("p.note")) {
+            if (!redoNoteEl) {
+              redoNoteEl = document.createElement('div');
+              redoNoteEl.className = 'tho-photo-redo-note';
+              if (badgesEl.nextSibling) tile.insertBefore(redoNoteEl, badgesEl.nextSibling);
+              else tile.appendChild(redoNoteEl);
+            }
+            redoNoteEl.innerHTML = p.note
+              ? `<strong>Ghi chú khách:</strong> "${esc(p.note)}"`
+              : '<strong>Ghi chú:</strong> Khách yêu cầu chỉnh sửa lại ảnh này';
+            redoNoteEl.hidden = false;
+          } else if (redoNoteEl) {
+            redoNoteEl.hidden = true;
+          }
+        });
+      } else if (photos.length > 0) {
+        // Trường hợp dự phòng nếu không tìm thấy .kanban-photo-grid: dựng danh sách gọn 64px
+        if (!compactList) {
+          compactList = document.createElement('div');
+          compactList.className = 'tho-compact-photo-list';
+          compactList.setAttribute('role', 'list');
+          bar.insertAdjacentElement('afterend', compactList);
+        }
+        compactList.innerHTML = photos.map((p) => {
+          const done = isPhotoDone(p, r);
+          const redo = isPhotoRedo(p);
+          const todo = isPhotoTodo(p, r);
+          const fname = p.name || photoFilename(p.id);
+          const badges = (redo ? '<span class="tho-tag tho-tag-redo">Sửa lại</span>' : '') +
+                         (done ? '<span class="tho-tag tho-tag-done">Đã có bản sửa</span>' : '') +
+                         (todo ? '<span class="tho-tag tho-tag-todo">Cần sửa</span>' : '');
+          const cls = ['tho-compact-tile', todo ? 'is-todo' : '', done ? 'is-done' : '', redo ? 'is-redo' : ''].filter(Boolean).join(' ');
+          const noteHtml = redo
+            ? `<div class="tho-photo-redo-note">${p.note ? `<strong>Ghi chú khách:</strong> "${esc(p.note)}"` : 'Khách yêu cầu chỉnh sửa lại ảnh này'}</div>`
+            : (p.note ? `<p class="tho-compact-note">"${esc(p.note)}"</p>` : '');
+          return `
+            <article class="${cls}" data-photo-id="${esc(p.id)}" role="listitem">
+              <img class="tho-compact-img" src="${esc(p.src)}" alt="Ảnh ${esc(fname)}" loading="lazy">
+              <div class="tho-compact-info">
+                <div class="tho-compact-top">
+                  <span class="tho-compact-name">${esc(fname)}</span>
+                  <div class="tho-photo-badges">${badges}</div>
+                </div>
+                ${noteHtml}
+              </div>
+            </article>`;
+        }).join('');
+      }
+
+      // Thông báo khi lọc không có kết quả
+      let emptyEl = modalBody.querySelector('.tho-picflow-empty');
+      if (!emptyEl) {
+        emptyEl = document.createElement('p');
+        emptyEl.className = 'tho-picflow-empty';
+        emptyEl.hidden = true;
+        if (grid) grid.insertAdjacentElement('afterend', emptyEl);
+        else if (compactList) compactList.insertAdjacentElement('afterend', emptyEl);
+        else bar.insertAdjacentElement('afterend', emptyEl);
+      }
+
+      // 3. Hàm lọc theo class (không vẽ lại khung)
+      function applyPicflowFilter() {
+        const tiles = modalBody.querySelectorAll('.kanban-photo-tile, .tho-compact-tile');
+        let visible = 0;
+        tiles.forEach((t) => {
+          let show = false;
+          if (picflowFilter === 'all') show = true;
+          else if (picflowFilter === 'todo') show = t.classList.contains('is-todo');
+          else if (picflowFilter === 'done') show = t.classList.contains('is-done');
+          else if (picflowFilter === 'redo') show = t.classList.contains('is-redo');
+          t.classList.toggle('is-picflow-hidden', !show);
+          t.hidden = !show;
+          if (show) visible++;
+        });
+        if (emptyEl) {
+          emptyEl.hidden = visible > 0 || photos.length === 0;
+          if (visible === 0 && photos.length > 0) {
+            const labels = { todo: 'cần sửa', done: 'đã có bản sửa', redo: 'sửa lại' };
+            emptyEl.textContent = `Không có ảnh nào ở mục ${labels[picflowFilter] || 'này'}.`;
+          }
+        }
+      }
+
+      applyPicflowFilter();
+
+      // Theo dõi số đếm ảnh nhận trên Drive nếu có
+      const driveCount = modalBody.querySelector('[data-drive-count]');
+      if (driveCount && !driveCount._picflowObs) {
+        driveCount._picflowObs = new MutationObserver(() => {
+          renderPicflow(r, host);
+        });
+        driveCount._picflowObs.observe(driveCount, { childList: true, characterData: true, subtree: true });
+      }
+    }
 
     function refreshDetail(c, force) {
       const o = c.order;
@@ -177,6 +394,7 @@
         if (reqHost.contains(document.activeElement) && sig.split('|')[0] === lastRendered.split('|')[0] && document.activeElement.matches('textarea,input')) return; // đang gõ: không vẽ đè
         desk.render(r.id, reqHost); lastRendered = sig;
       }
+      renderPicflow(r, reqHost);
       if (tab === 'chat') { const l = document.getElementById('kanbanChatList'); if (l) l.scrollTop = l.scrollHeight; }
     }
 

@@ -2117,3 +2117,218 @@ body.ps-cart-open .fab-chat { bottom:calc(var(--ps-cart-height) + 16px); }
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   Việc B: Màn "Ảnh của tôi" (học theo Picflow)
+   - Nhãn "Đã sửa" / "Đang sửa" trên lưới ảnh chính
+   - Thanh nút hành động trong lightbox (Tim, Ghi chú, Tải ảnh, Trước/Sau)
+   - Nhãn "Ảnh đã sửa" / "Ảnh gốc" trong lightbox
+   - Nút "Tải cả bộ ảnh đã sửa" và "Sửa lại ảnh chưa ưng" trong tab Ảnh đã chỉnh
+   ========================================================================== */
+
+/* 1. Nhãn góc trên trái thẻ ảnh trong lưới chính */
+.ps-photo .ps-badge-edited {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 4;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--pink-500);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.2px;
+}
+.ps-photo .ps-badge-edited.ps-badge-editing {
+  background: var(--navy-500);
+  color: var(--white);
+}
+.ps-photo.ps-extra-photo .ps-badge-edited {
+  top: 36px;
+}
+
+/* 2. Nhãn hiển thị phiên bản ảnh trên khung xem ảnh lớn (Lightbox Stage) */
+.ps-lb-badge {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 10;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+.ps-lb-badge.is-edited {
+  background: var(--pink-500);
+  color: var(--white);
+}
+.ps-lb-badge.is-orig {
+  background: rgba(20, 15, 25, 0.75);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* 3. Thanh nút hành động trong Lightbox (class ps-lb-actions dưới ảnh) */
+.ps-lb-panel .ps-lb-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 10px;
+}
+.ps-lb-panel .ps-lb-actions button,
+.ps-lb-panel .ps-lb-actions a {
+  width: auto !important;
+  height: auto !important;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill, 999px) !important;
+  border: 1.5px solid var(--pink-500);
+  background: var(--white);
+  color: var(--pink-600);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+.ps-lb-panel .ps-lb-actions button svg,
+.ps-lb-panel .ps-lb-actions a svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.ps-lb-panel .ps-lb-actions button:hover:not(:disabled),
+.ps-lb-panel .ps-lb-actions a:hover {
+  background: var(--pink-50);
+  border-color: var(--pink-600);
+  color: var(--pink-700);
+}
+.ps-lb-panel .ps-lb-actions button:active:not(:disabled),
+.ps-lb-panel .ps-lb-actions a:active {
+  transform: scale(0.97);
+}
+.ps-lb-panel .ps-lb-actions .ps-lb-fav.active {
+  background: var(--pink-600);
+  border-color: var(--pink-600);
+  color: var(--white);
+}
+.ps-lb-panel .ps-lb-actions .ps-lb-fav.active svg {
+  fill: currentColor;
+}
+.ps-lb-panel .ps-lb-actions button:disabled,
+.ps-lb-panel .ps-lb-actions a[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  background: #f9fafb;
+}
+
+.ps-lb-favinfo-row {
+  margin: 2px 0 8px;
+  font-size: 12.5px;
+  color: var(--navy-500);
+}
+
+/* 4. Tab Ảnh đã chỉnh: Nút tải cả bộ và sửa lại */
+.ps-btn-download-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  margin: 14px 0 16px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--pink-600);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(224, 65, 122, 0.25);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.ps-btn-download-all:hover {
+  background: var(--pink-700);
+  transform: translateY(-1px);
+  color: var(--white);
+}
+.ps-btn-download-all svg {
+  width: 18px;
+  height: 18px;
+}
+.ps-revise {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0 6px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1.5px solid var(--pink-500);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--white);
+  color: var(--pink-600);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ps-revise:hover {
+  background: var(--pink-50);
+  border-color: var(--pink-600);
+}
+.ps-revise-note {
+  font-size: 12.5px;
+  color: var(--navy-500);
+  margin: 0 0 16px;
+}
+
+/* 5. Tối ưu điện thoại màn hình nhỏ (390px) */
+@media (max-width: 420px) {
+  .ps-lb-panel {
+    width: calc(100% - 16px);
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .ps-lb-panel .ps-lb-actions {
+    gap: 6px;
+  }
+  .ps-lb-panel .ps-lb-actions button,
+  .ps-lb-panel .ps-lb-actions a {
+    flex: 1 1 calc(50% - 6px);
+    min-height: 40px;
+    padding: 8px 8px;
+    font-size: 12px;
+    white-space: normal;
+    text-align: center;
+  }
+  .ps-lb-badge {
+    top: 12px;
+    left: 12px;
+    font-size: 11.5px;
+    padding: 4px 10px;
+  }
+}
+

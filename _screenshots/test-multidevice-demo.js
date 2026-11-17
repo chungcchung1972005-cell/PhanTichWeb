@@ -11,6 +11,7 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
  const browser=await puppeteer.launch({executablePath:env.CHROME_PATH,headless:'new',args:['--no-sandbox']}),errors=[];
  async function machine(role,phone,path){
   const ctx=await browser.createBrowserContext(),page=await ctx.newPage();
+  page.on('dialog', d => d.accept().catch(() => {}));
   await page.setRequestInterception(true);
   page.on('request',r=>{if(r.url().startsWith('http://localhost:3001/'))r.continue({url:r.url().replace('http://localhost:3001','http://127.0.0.1:'+server.address().port)});else if(/^https?:/.test(r.url()))r.abort();else r.continue();});
   page.on('pageerror',e=>errors.push(e.message));
@@ -94,7 +95,8 @@ const token=(role,phone)=>{const b=Buffer.from(JSON.stringify({role,phone,exp:Da
   await customer.waitForFunction(()=>document.querySelector('.ps-heart') && !document.querySelector('.ps-heart').disabled && document.getElementById('packageCount').textContent==='0');
   await customer.$eval('.ps-heart',e=>e.scrollIntoView({block:'center'}));await new Promise(r=>setTimeout(r,300));
   await customer.click('.ps-heart');assert.equal(await customer.$eval('#selectedCount',e=>e.textContent),'1');
-  assert.match(await customer.$eval('#extraFee',e=>e.textContent),/50[.,]000/);
+  // 18/11/2026 luật mới: ảnh vừa được trả (đã sửa) chọn lại = sửa lại lần đầu, miễn phí
+  assert.match(await customer.$eval("#extraFee",e=>e.textContent),/^0/);
   console.log('PASS delivered image can be selected again for a paid round');
   assert.deepEqual(errors,[]);console.log('PASS machine C public photos + edit options -> machine B file identity, labels, note and clipboard');
  } finally {await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));await new Promise(r=>drive.close(r));}

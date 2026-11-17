@@ -65,11 +65,81 @@ document.addEventListener('DOMContentLoaded', () => {
   const editOptions = [...EDIT_GROUPS.flatMap(g => g.items.map(i => i[0])), 'Khác'];
   let parentRequestId = '';
   let round = 1;
-  // Lượt sau không có ảnh miễn phí: ẩn "/ 0", ghi rõ giá mỗi ảnh
-  function showQuota() { const q=document.getElementById('psQuotaPart'),n=document.getElementById('psPaidNote'); if(q) q.hidden=PACKAGE_COUNT===0; if(n) n.hidden=PACKAGE_COUNT!==0;
-    const lead=document.getElementById('psExtraLead'),note=document.getElementById('psExtraNote');
-    if(lead) lead.textContent=PACKAGE_COUNT===0?'Lượt chỉnh thêm:':'Vượt';
-    if(note) note.textContent=PACKAGE_COUNT===0?'(Từ lượt thứ 2, mỗi ảnh chỉnh 50.000đ)':'(Đơn giá: 50.000đ / ảnh chỉnh sửa thêm ngoài gói 10 ảnh)'; }
+
+  // Lịch sử yêu cầu chỉnh ảnh của đơn hiện tại
+  function getRequestHistory() {
+    const list = SYNC ? syncRequests : (window.AlohaData && session ? AlohaData.getEditRequests().filter(r => r.phone === session.phone) : []);
+    const oc = (sourceAlbum && sourceAlbum.orderCode) || (record && record.orderCode);
+    return list.filter(r => r.orderCode === oc && r.kind !== 'source-album').sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  // Nhận diện ảnh đã sửa: từ resultPhotos của yêu cầu đã Hoàn thành hoặc cờ fromEdited trên photo
+  function isPhotoFromEdited(id) {
+    if (photoById[id]?.fromEdited) return true;
+    const history = getRequestHistory();
+    return history.some(r => r.status === 'Hoàn thành' && (r.resultPhotos || []).some(p => p.id === id));
+  }
+  // Mã ảnh GỐC của một ảnh (ảnh đã sửa trên Drive có mã file mới, giữ mã gốc ở sourceId)
+  function rootId(id) {
+    if (photoById[id]?.sourceId) return photoById[id].sourceId;
+    for (const r of getRequestHistory()) { const p = (r.resultPhotos || []).find(x => x.id === id); if (p) return p.sourceId || id; }
+    return id;
+  }
+
+  // Tính phí theo đúng luật mới (khớp 100% với server/edit-requests.js):
+  // - Lượt 1: 10 ảnh mới đầu tiên miễn phí, từ ảnh mới thứ 11 tính 50.000đ/ảnh.
+  // - Từ lượt 2: ảnh mới đều 50.000đ/ảnh.
+  // - Ảnh sửa lại (fromEdited): mỗi ảnh được sửa lại miễn phí 1 lần (nếu đã từng gửi sửa lại trước đây thì tính 50.000đ).
+  function computePhotoFees(selectedSet = selected) {
+    const history = getRequestHistory();
+    const previouslyEditedIds = new Set(history.flatMap(r => (r.photos || []).filter(x => x.fromEdited).map(x => x.sourceId || x.id)));
+    const extraSet = new Set();
+    let newPhotoIndex = 0;
+
+    selectedSet.forEach(id => {
+      const fromEdited = isPhotoFromEdited(id);
+      if (fromEdited) {
+        if (previouslyEditedIds.has(rootId(id))) {
+          extraSet.add(id);
+        }
+      } else {
+        const isFree = round === 1 && newPhotoIndex < 10;
+        if (!isFree) {
+          extraSet.add(id);
+        }
+        newPhotoIndex++;
+      }
+    });
+
+    const extraCount = extraSet.size;
+    const extraFee = extraCount * EXTRA_PRICE;
+    return { extraCount, extraFee, extraSet };
+  }
+
+  // Kiểm tra 1 ảnh khi chọn thêm có làm phát sinh phí hay không
+  function willPhotoBeExtra(id) {
+    if (isPhotoFromEdited(id)) {
+      const history = getRequestHistory();
+      const previouslyEditedIds = new Set(history.flatMap(r => (r.photos || []).filter(x => x.fromEdited).map(x => x.sourceId || x.id)));
+      return previouslyEditedIds.has(rootId(id));
+    }
+    if (round > 1) return true;
+    let newPhotosCount = 0;
+    selected.forEach(sid => {
+      if (!isPhotoFromEdited(sid)) newPhotosCount++;
+    });
+    return newPhotosCount >= 10;
+  }
+
+  // Cập nhật thông báo chỉ tiêu / luật phí
+  function showQuota() {
+    const q = document.getElementById('psQuotaPart'), n = document.getElementById('psPaidNote');
+    if (q) q.hidden = round > 1;
+    if (n) n.hidden = true;
+    const lead = document.getElementById('psExtraLead'), note = document.getElementById('psExtraNote');
+    if (lead) lead.textContent = 'Tính phí:';
+    if (note) note.textContent = '(Lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh)';
+  }
   function combinedNote(id) { return [...(photoOptions.get(id) || []).filter(o => o !== 'Khác'), photoNotes.get(id) || ''].filter(Boolean).join(' · '); }
   // Nhãn ngắn cho vừa ô ảnh trên điện thoại; giá trị gửi thợ vẫn là tên đầy đủ
   const chip = ([value, label]) => `<button type="button" class="ps-edit-chip" value="${value}" aria-pressed="false" title="${value}">${label}</button>`;
@@ -131,6 +201,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   const photoById = Object.fromEntries(photos.map(p => [p.id, p]));
+  const editedMap = new Map();
+  const origPhotoById = new Map();
+
+  function updateEditedMap() {
+    editedMap.clear();
+    const oc = (sourceAlbum && sourceAlbum.orderCode) || (record && record.orderCode);
+    if (!oc) return;
+    const list = SYNC ? syncRequests : (window.AlohaData && session ? AlohaData.getEditRequests().filter(r => r.phone === session.phone) : []);
+    const reqsWithPhotos = list
+      .filter(r => r.orderCode === oc && Array.isArray(r.resultPhotos) && r.resultPhotos.length > 0)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    reqsWithPhotos.forEach(r => {
+      (r.resultPhotos || []).forEach(p => {
+        if (p && p.id && !editedMap.has(p.id)) {
+          const large = p.src ? p.src.replace('sz=w1000', 'sz=w2000') : p.src;
+          const full = large;
+          editedMap.set(p.sourceId || p.id, Object.assign({}, p, { large, full }));
+        }
+      });
+    });
+  }
+
+  function updateGridBadges() {
+    grid.querySelectorAll('.ps-photo').forEach(card => {
+      const id = card.dataset.id;
+      card.querySelectorAll('.ps-badge-edited, .ps-badge-editing, .ps-sent-label').forEach(el => el.remove());
+      if (sentPhotoIds.has(id)) {
+        const badge = document.createElement('span');
+        badge.className = 'ps-badge-edited ps-badge-editing ps-sent-label';
+        badge.textContent = 'Đang sửa';
+        card.appendChild(badge);
+      } else if (editedMap.has(id)) {
+        const badge = document.createElement('span');
+        badge.className = 'ps-badge-edited';
+        badge.textContent = 'Đã sửa';
+        card.appendChild(badge);
+      }
+    });
+  }
   const countEl = document.getElementById('selectedCount');
   const packageEl = document.getElementById('packageCount');
   const barEl = document.getElementById('psProgressBar');
@@ -152,8 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="ps-modal-emoji">📸</div>
       <p class="ps-modal-text">Bạn có muốn chỉnh sửa thêm ảnh cho bé yêu nhà mình?<br><strong>Chỉ 50K/tấm thui nè 💕</strong></p>
       <div class="ps-modal-actions">
-        <button class="ps-modal-btn ps-modal-yes">Yes</button>
-        <button class="ps-modal-btn ps-modal-no">No</button>
+        <button class="ps-modal-btn ps-modal-yes">Đồng ý</button>
+        <button class="ps-modal-btn ps-modal-no">Để sau</button>
       </div>
     </div>
   `;
@@ -174,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateSummary();
       // Chuyển sang tab Yêu thích (trừ khi đang xem ảnh lớn trong lightbox)
-      if (!isLightboxOpen()) switchToTab('liked');
+      // Giữ khách ở tab đang xem để chọn tiếp (bỏ nhảy sang tab Yêu thích, 18/11/2026)
       pendingExtraId = null;
     }
   });
@@ -229,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div>
           <h3 id="psQrTitle">Chỉ một bước nữa thôi, ảnh của bé sắp được gửi đi</h3>
-          <p class="ps-qr-subtitle">Bạn đã chọn thêm những khoảnh khắc thật đáng yêu ngoài gói 10 ảnh. Hoàn tất phí chỉnh sửa bên dưới nhé.</p>
+          <p class="ps-qr-subtitle">Lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh.</p>
         </div>
       </div>
 
@@ -253,11 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <strong class="ps-code-tag" id="psQrCustCode">#AB240915</strong>
         </div>
         <div class="ps-qr-calc-row">
-          <span>Gói tiêu chuẩn:</span>
-          <span>10 ảnh (Đã bao gồm)</span>
+          <span>Chính sách miễn phí:</span>
+          <span>10 ảnh mới lượt đầu / Sửa lại miễn phí 1 lần</span>
         </div>
         <div class="ps-qr-calc-row">
-          <span>Số ảnh chọn thêm:</span>
+          <span>Số ảnh tính phí:</span>
           <strong class="ps-extra-count-tag">+<span id="psQrExtraCount">0</span> ảnh</strong>
         </div>
         <div class="ps-qr-calc-row">
@@ -395,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('psQrCountdownFill').style.width = (left / QR_VALID_MS * 100) + '%';
     document.getElementById('psQrCountdownLabel').textContent = left > 0
       ? 'Mã QR có hiệu lực trong'
-      : 'Mã QR đã hết hạn, bấm "Gửi yêu cầu chỉnh sửa" để nhận mã mới';
+      : 'Mã QR đã hết hạn, bấm "Thanh toán" để nhận mã mới';
     modal.classList.toggle('is-urgent', left > 0 && left <= 5 * 60 * 1000);
     modal.classList.toggle('is-expired', left === 0);
   }
@@ -528,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <strong>Ảnh của bé chưa được gửi đi</strong>
         <p>${waiting
           ? 'Hệ thống đang chờ thanh toán phí ảnh chọn thêm. Bạn chuyển khoản xong, ảnh sẽ tự động được gửi tới Thợ ảnh. Nếu muốn thay đổi danh sách ảnh, bạn có thể bấm "Hủy thanh toán".'
-          : 'Mã QR đã hết hạn. Bấm "Gửi yêu cầu chỉnh sửa" để nhận mã mới và hoàn tất thanh toán.'}</p>
+          : 'Mã QR đã hết hạn. Bấm "Thanh toán" để nhận mã mới và hoàn tất thanh toán.'}</p>
         ${waiting ? `
           <div class="ps-banner-actions">
             <button type="button" class="ps-reopen-qr-link" id="psContinuePayBtn">Xem lại mã QR</button>
@@ -576,16 +685,24 @@ document.addEventListener('DOMContentLoaded', () => {
     countEl.textContent = n;
     const pct = Math.min(100, (n / (PACKAGE_COUNT || 1)) * 100);
     barEl.style.width = pct + '%';
-    barEl.classList.toggle('over', n > PACKAGE_COUNT);
 
-    const extraCount = Math.max(0, n - PACKAGE_COUNT);
+    const { extraCount, extraFee, extraSet } = computePhotoFees(selected);
+    extraPhotos.clear();
+    extraSet.forEach(id => extraPhotos.add(id));
+
+    barEl.classList.toggle('over', extraCount > 0);
+
     if (extraCount > 0) {
       extraBox.hidden = false;
       extraCountEl.textContent = extraCount;
-      extraFeeEl.textContent = (extraCount * EXTRA_PRICE).toLocaleString('vi-VN') + 'đ';
+      extraFeeEl.textContent = extraFee.toLocaleString('vi-VN') + 'đ';
     } else {
       extraBox.hidden = true;
     }
+
+    document.querySelectorAll('.ps-photo').forEach(c => {
+      c.classList.toggle('ps-extra-photo', extraPhotos.has(c.dataset.id));
+    });
 
     // Chế độ đồng bộ: chưa tải xong dữ liệu server (chưa biết đã gửi chưa) hoặc đang gửi -> khoá nút
     submitBtn.disabled = !sourceAlbum || n === 0 || requestSent || (SYNC && (!syncLoaded || submitting));
@@ -636,27 +753,19 @@ document.addEventListener('DOMContentLoaded', () => {
       heartBtn.setAttribute('aria-pressed', 'false');
       selected.delete(id);
       extraPhotos.delete(id);
-
-      // Nếu số ảnh còn lại <= PACKAGE_COUNT thì không còn ảnh nào là extra nữa
-      if (selected.size <= PACKAGE_COUNT) {
-        extraPhotos.clear();
-        extraModeActive = false;
-        document.querySelectorAll('.ps-photo').forEach(c => {
-          c.classList.remove('ps-extra-photo');
-        });
-      }
-
       updateSummary();
+      if (extraPhotos.size === 0) {
+        extraModeActive = false;
+      }
       return;
     }
 
-    // Nếu đã đủ giới hạn PACKAGE_COUNT (10 ảnh)
-    if (selected.size >= PACKAGE_COUNT) {
+    // Nếu ảnh này sẽ bị tính phí theo luật mới
+    if (willPhotoBeExtra(id)) {
       if (extraModeActive) {
         // Đã đồng ý chỉnh sửa thêm -> thêm trực tiếp
-        extraPhotos.add(id);
         selected.add(id);
-        card.classList.add('selected', 'ps-extra-photo');
+        card.classList.add('selected');
         heartBtn.setAttribute('aria-pressed', 'true');
         updateSummary();
       } else {
@@ -667,7 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Chưa đạt giới hạn -> chọn bình thường trong gói
+    // Ảnh miễn phí -> chọn bình thường
     card.classList.add('selected');
     heartBtn.setAttribute('aria-pressed', 'true');
     selected.add(id);
@@ -728,17 +837,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (bulkUndo) bulkUndo.innerHTML = '';
   }
 
-  // Chọn thêm các ảnh: ảnh vượt quá số ảnh trong gói được đánh dấu "chỉnh sửa thêm"
+  // Chọn thêm các ảnh: cập nhật theo luật tính phí mới
   function applySelectAll(ids) {
     hideUndo();
     ids.forEach((id) => {
-      const extra = selected.size >= PACKAGE_COUNT;
-      if (extra) extraPhotos.add(id);
       selected.add(id);
-      setCardSelected(id, true, extra);
     });
-    if (selected.size > PACKAGE_COUNT) extraModeActive = true;
     updateSummary();
+    if (extraPhotos.size > 0) extraModeActive = true;
     applyFilter(currentFilter);
   }
   function closeSelectAllModal() {
@@ -750,14 +856,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (selectAllBtn) selectAllBtn.addEventListener('click', () => {
     const ids = visibleUnselectedIds();
     if (!ids.length || isSelectionLocked()) return;
-    const total = selected.size + ids.length;
-    const extra = Math.max(0, total - PACKAGE_COUNT);
-    if (extra === 0) { applySelectAll(ids); return; }
+    const testSet = new Set([...selected, ...ids]);
+    const { extraCount, extraFee } = computePhotoFees(testSet);
+    const currentFees = computePhotoFees(selected);
+    const newlyExtra = extraCount - currentFees.extraCount;
+    if (extraCount === 0 || newlyExtra <= 0) { applySelectAll(ids); return; }
     pendingSelectAll = ids;
+    const total = testSet.size;
     document.getElementById('psSelectAllTitle').textContent = `Chọn tất cả ${total} ảnh?`;
     document.getElementById('psSelectAllText').innerHTML =
-      `Gói của bạn có <strong>${PACKAGE_COUNT} ảnh</strong> chỉnh sửa miễn phí. <strong>${extra} ảnh</strong> còn lại sẽ tính phí chỉnh sửa thêm ${fmtVnd(EXTRA_PRICE)}/ảnh.`;
-    document.getElementById('psSelectAllFee').textContent = fmtVnd(extra * EXTRA_PRICE);
+      `Trong tổng số <strong>${total} ảnh</strong>, có <strong>${extraCount} ảnh</strong> tính phí chỉnh sửa ${fmtVnd(EXTRA_PRICE)}/ảnh (Lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh).`;
+    document.getElementById('psSelectAllFee').textContent = fmtVnd(extraFee);
     selectAllModal.classList.add('show');
     document.getElementById('psSelectAllCancel').focus(); // mặc định là lựa chọn an toàn
   });
@@ -821,7 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ps-lb-shell">
       <div class="ps-lb-top">
         <span class="ps-lb-counter" id="psLbCounter">1 / 1</span>
-        <div class="ps-lb-actions">
+        <div class="ps-lb-actions ps-lb-zoom-actions">
           <button type="button" id="psLbZoomOut" aria-label="Thu nhỏ">&minus;</button>
           <button type="button" id="psLbZoomReset" aria-label="Về kích thước vừa khung" class="ps-lb-zoom-val">100%</button>
           <button type="button" id="psLbZoomIn" aria-label="Phóng to">+</button>
@@ -829,13 +938,28 @@ document.addEventListener('DOMContentLoaded', () => {
         <button type="button" class="ps-lb-close" id="psLbClose" aria-label="Đóng">&times;</button>
       </div>
       <div class="ps-lb-stage" id="psLbStage">
+        <span class="ps-lb-badge" id="psLbBadge" hidden>Ảnh đã sửa</span>
         <img class="ps-lb-img" id="psLbImg" alt="" draggable="false" referrerpolicy="no-referrer">
         <button type="button" class="ps-lb-prev" id="psLbPrev" aria-label="Ảnh trước">&#8249;</button>
         <button type="button" class="ps-lb-next" id="psLbNext" aria-label="Ảnh sau">&#8250;</button>
       </div>
       <div class="ps-lb-panel">
-        <div class="ps-lb-fav-row">
-          <button type="button" class="ps-lb-fav" id="psLbFav" aria-pressed="false">${heartIcon}<span id="psLbFavText">Chọn làm yêu thích</span></button>
+        <div class="ps-lb-actions" id="psLbBottomActions">
+          <button type="button" class="ps-lb-fav ps-lb-btn" id="psLbFav" aria-pressed="false">${heartIcon}<span id="psLbFavText">Chọn làm yêu thích</span></button>
+          <button type="button" class="ps-lb-btn ps-lb-btn-note" id="psLbBtnNote">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Ghi chú</span>
+          </button>
+          <a class="ps-lb-btn ps-lb-btn-download" id="psLbDownload" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Tải ảnh</span>
+          </a>
+          <button type="button" class="ps-lb-btn ps-lb-btn-compare" id="psLbCompare" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 3v18"/></svg>
+            <span id="psLbCompareText">Xem ảnh gốc</span>
+          </button>
+        </div>
+        <div class="ps-lb-favinfo-row">
           <span class="ps-lb-favinfo" id="psLbFavInfo"></span>
         </div>
         <div class="ps-lb-note" id="psLbNoteWrap" hidden>
@@ -855,6 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let lbIds = [];       // danh sách ảnh đang lướt (theo tab lúc mở)
   let lbIndex = 0;
   let lbScale = 1, lbX = 0, lbY = 0;
+  let lbShowEdited = true;
 
   function isLightboxOpen() { return lb.classList.contains('show'); }
 
@@ -863,10 +988,13 @@ document.addEventListener('DOMContentLoaded', () => {
     lb.querySelector('#psLbZoomReset').textContent = Math.round(lbScale * 100) + '%';
     lbStage.classList.toggle('is-zoomed', lbScale > 1);
     // Phóng to thì đổi sang ảnh kích thước gốc cho nét
-    const p = photoById[lbIds[lbIndex]];
-    if (lbScale > 1.5 && p && lbImg.dataset.res !== 'full') {
+    const id = lbIds[lbIndex];
+    const orig = origPhotoById.get(id) || photoById[id];
+    const edited = editedMap.get(id);
+    const cur = (lbShowEdited && edited) ? edited : orig;
+    if (lbScale > 1.5 && cur && lbImg.dataset.res !== 'full') {
       lbImg.dataset.res = 'full';
-      lbImg.src = p.full;
+      lbImg.src = cur.full || cur.large || cur.src;
     }
   }
 
@@ -884,26 +1012,87 @@ document.addEventListener('DOMContentLoaded', () => {
     applyLbTransform();
   }
 
+  function syncLbPhotoState() {
+    const id = lbIds[lbIndex];
+    if (!id) return;
+    const orig = origPhotoById.get(id) || photoById[id];
+    const edited = editedMap.get(id);
+    const hasEdited = !!edited;
+    const compareBtn = lb.querySelector('#psLbCompare');
+    const compareText = lb.querySelector('#psLbCompareText');
+    const badge = lb.querySelector('#psLbBadge');
+    const downloadBtn = lb.querySelector('#psLbDownload');
+
+    if (hasEdited) {
+      if (compareBtn) compareBtn.hidden = false;
+      if (badge) {
+        badge.hidden = false;
+        badge.textContent = lbShowEdited ? 'Ảnh đã sửa' : 'Ảnh gốc';
+        badge.className = 'ps-lb-badge ' + (lbShowEdited ? 'is-edited' : 'is-orig');
+      }
+      if (compareText) {
+        compareText.textContent = lbShowEdited ? 'Xem ảnh gốc' : 'Xem ảnh đã sửa';
+      }
+      const cur = lbShowEdited ? edited : orig;
+      if (cur) {
+        lbImg.src = (lbScale > 1.5 ? cur.full : cur.large) || cur.src;
+        lbImg.alt = cur.name || orig?.name || '';
+      }
+      const dlId = (cur && cur.driveFileId) || (cur?.driveUrl && cur.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1])
+        || (orig && orig.driveFileId) || (orig?.driveUrl && orig.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1])
+        || (edited && edited.driveFileId) || (edited?.driveUrl && edited.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1]);
+      if (downloadBtn) {
+        if (dlId) {
+          downloadBtn.href = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(dlId)}`;
+          downloadBtn.hidden = false;
+        } else {
+          downloadBtn.hidden = true;
+          downloadBtn.removeAttribute('href');
+        }
+      }
+    } else {
+      if (compareBtn) compareBtn.hidden = true;
+      if (badge) badge.hidden = true;
+      if (orig) {
+        lbImg.src = (lbScale > 1.5 ? orig.full : orig.large) || orig.src;
+        lbImg.alt = orig.name || '';
+      }
+      const dlId = (orig && orig.driveFileId) || (orig?.driveUrl && orig.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1]);
+      if (downloadBtn) {
+        if (dlId) {
+          downloadBtn.href = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(dlId)}`;
+          downloadBtn.hidden = false;
+        } else {
+          downloadBtn.hidden = true;
+          downloadBtn.removeAttribute('href');
+        }
+      }
+    }
+  }
+
   function showLbPhoto(index) {
     lbIndex = (index + lbIds.length) % lbIds.length;
     const id = lbIds[lbIndex];
-    const p = photoById[id];
+    const orig = origPhotoById.get(id) || photoById[id];
+    const edited = editedMap.get(id);
     lbScale = 1; lbX = 0; lbY = 0;
     lbImg.dataset.res = 'large';
+    lbShowEdited = !!edited;
     // Luôn nạp đúng ghi chú của ảnh mới (syncLightbox bỏ qua khi ô ghi chú đang được
     // chọn, nên nếu không nạp ở đây thì chữ của ảnh trước sẽ "dính" sang ảnh này)
     lbNote.value = photoNotes.get(id) || '';
-    lbImg.src = p.large;
-    lbImg.alt = p.name || `Ảnh số ${photos.indexOf(p) + 1}`;
+    syncLbPhotoState();
     applyLbTransform();
-    lb.querySelector('#psLbCounter').textContent = `${lbIndex + 1} / ${lbIds.length}${p.name ? ' · ' + p.name : ''}`;
+    const displayName = (edited && edited.name) || (orig && orig.name);
+    lb.querySelector('#psLbCounter').textContent = `${lbIndex + 1} / ${lbIds.length}${displayName ? ' · ' + displayName : ''}`;
     const single = lbIds.length < 2;
     lb.querySelector('#psLbPrev').hidden = single;
     lb.querySelector('#psLbNext').hidden = single;
     // Tải trước ảnh kế bên để lướt mượt
     [lbIndex - 1, lbIndex + 1].forEach(i => {
-      const n = photoById[lbIds[(i + lbIds.length) % lbIds.length]];
-      if (n) new Image().src = n.large;
+      const nid = lbIds[(i + lbIds.length) % lbIds.length];
+      const n = editedMap.get(nid) || photoById[nid];
+      if (n && n.large) new Image().src = n.large;
     });
     syncLightbox();
   }
@@ -922,12 +1111,21 @@ document.addEventListener('DOMContentLoaded', () => {
     lb.querySelector('#psLbFavText').textContent = isSel ? 'Đã chọn yêu thích' : 'Chọn làm yêu thích';
     lb.querySelector('#psLbFavInfo').textContent = locked && !isSel
       ? 'Danh sách ảnh đang khoá'
-      : PACKAGE_COUNT === 0 ? `Đã chọn ${selected.size} ảnh · 50.000đ/ảnh` : `Đã chọn ${selected.size}/${PACKAGE_COUNT} ảnh trong gói`;
-    lb.querySelector('#psLbNoteWrap').hidden = !isSel || sentPhotoIds.has(id);
+      : PACKAGE_COUNT === 0 ? `Đã chọn ${selected.size} ảnh · 50.000đ/ảnh` : (extraPhotos.size > 0
+          ? `Đã chọn ${selected.size} ảnh (${extraPhotos.size} ảnh tính phí 50.000đ/ảnh)`
+          : PACKAGE_COUNT > 0 ? `Đã chọn ${selected.size}/${PACKAGE_COUNT} ảnh trong gói` : `Đã chọn ${selected.size} ảnh (Miễn phí)`);
+    const noteWrap = lb.querySelector('#psLbNoteWrap');
+    noteWrap.hidden = !isSel || sentPhotoIds.has(id);
     lb.querySelector('#psLbExtra').hidden = !extraPhotos.has(id);
     if (document.activeElement !== lbNote) lbNote.value = photoNotes.get(id) || '';
     lbNote.readOnly = locked;
-    syncEditor(lb.querySelector('#psLbNoteWrap'), id, locked);
+    syncEditor(noteWrap, id, locked);
+
+    const btnNote = lb.querySelector('#psLbBtnNote');
+    if (btnNote) {
+      btnNote.disabled = noteWrap.hidden;
+      btnNote.setAttribute('aria-disabled', String(noteWrap.hidden));
+    }
   }
 
   function openLightbox(id) {
@@ -947,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dragStart = pinchStart = null;
     document.body.style.overflow = '';
     lbImg.removeAttribute('src');
+    lbShowEdited = true;
   }
 
   lb.querySelector('#psLbClose').addEventListener('click', closeLightbox);
@@ -957,6 +1156,27 @@ document.addEventListener('DOMContentLoaded', () => {
   lb.querySelector('#psLbZoomOut').addEventListener('click', () => setZoom(lbScale / 1.5));
   lb.querySelector('#psLbZoomReset').addEventListener('click', () => setZoom(1));
   lb.querySelector('#psLbFav').addEventListener('click', () => toggleSelect(lbIds[lbIndex]));
+  const lbBtnNote = lb.querySelector('#psLbBtnNote');
+  if (lbBtnNote) {
+    lbBtnNote.addEventListener('click', () => {
+      const noteWrap = lb.querySelector('#psLbNoteWrap');
+      if (noteWrap && !noteWrap.hidden) {
+        if (lbNote.hidden) lbNote.hidden = false;
+        lbNote.focus();
+        lbNote.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+  const lbCompare = lb.querySelector('#psLbCompare');
+  if (lbCompare) {
+    lbCompare.addEventListener('click', () => {
+      const id = lbIds[lbIndex];
+      if (!editedMap.has(id)) return;
+      lbShowEdited = !lbShowEdited;
+      syncLbPhotoState();
+      applyLbTransform();
+    });
+  }
   bindEditor(lb.querySelector('#psLbNoteWrap'), () => lbIds[lbIndex]);
 
   lbStage.addEventListener('wheel', (e) => {
@@ -1101,7 +1321,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(id => ({ id, note: combinedNote(id).trim() }))
         .filter(n => n.note);
       const allSelectedPhotos = Array.from(selected)
-        .map(id => Object.assign({}, photoById[id], {note:(photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra:extraPhotos.has(id)}));
+        .map(id => Object.assign({}, photoById[id], {
+          note: (photoNotes.get(id)||'').trim(),
+          editOptions: photoOptions.get(id)||[],
+          isExtra: extraPhotos.has(id),
+          ...(isPhotoFromEdited(id) ? { fromEdited: true } : {})
+        }));
 
       AlohaData.createEditRequest({
         phone: session.phone,
@@ -1133,13 +1358,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         <div class="ps-banner-info">
           <strong>Đã nhận thanh toán, ảnh của bé đã được gửi tới đội ngũ Thợ ảnh!</strong>
-          <p>Lượt ${round}: <strong>${selected.size} ảnh</strong>, miễn phí ${PACKAGE_COUNT} ảnh; <strong>${extraCount} ảnh tính phí: ${extraFee.toLocaleString('vi-VN')}đ</strong>. Theo dõi tiến độ và nhận ảnh ở tab "Ảnh đã chỉnh".</p>
+          <p>Lượt ${round}: <strong>${selected.size} ảnh</strong> (<strong>${extraCount} ảnh tính phí: ${extraFee.toLocaleString('vi-VN')}đ</strong>; lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh). Theo dõi tiến độ và nhận ảnh ở tab "Ảnh đã chỉnh".</p>
         </div>
       `;
     } else {
       banner.innerHTML = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Bạn có thể gửi thêm ảnh bất cứ lúc nào với phí 50.000đ/ảnh. Theo dõi tiến độ từng lượt ở tab "Ảnh đã chỉnh".</span>
+        <span>Đã gửi yêu cầu chỉnh sửa cho đội ngũ Thợ ảnh. Lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh. Theo dõi tiến độ từng lượt ở tab "Ảnh đã chỉnh".</span>
       `;
     }
 
@@ -1173,7 +1398,14 @@ document.addEventListener('DOMContentLoaded', () => {
       orderCode: record.orderCode, parentRequestId, sourceAlbumId: sourceAlbum.id, round,
       serviceLabel: record.serviceLabel,
       note: document.getElementById('psNote').value.trim(),
-      photos: Array.from(selected).map(id => ({ id, src: photoById[id].src, note: (photoNotes.get(id)||'').trim(), editOptions:photoOptions.get(id)||[], isExtra: extraPhotos.has(id) })),
+      photos: Array.from(selected).map(id => ({
+        id,
+        src: photoById[id].src,
+        note: (photoNotes.get(id)||'').trim(),
+        editOptions:photoOptions.get(id)||[],
+        isExtra: extraPhotos.has(id),
+        ...(isPhotoFromEdited(id) ? { fromEdited: true } : {})
+      })),
       extraFee, paymentStatus, paymentCode
     };
   }
@@ -1188,7 +1420,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (res.data && res.data.request && qr && qr.code === code) {
       lastPaidCode = code; qr = null; stopPaymentWatch(); qrOverlay.classList.remove('show');
       syncRequests = syncRequests.filter((r) => r.id !== res.data.request.id).concat([res.data.request]);
-      showSubmittedUi(Math.max(0, selected.size - PACKAGE_COUNT), extraFee);
+      const { extraCount } = computePhotoFees(selected);
+      showSubmittedUi(extraCount, extraFee);
       renderEdited(true);
     }
   }
@@ -1232,15 +1465,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (paidPending) { submitToServer(paidPending.count, paidPending.fee, paidPending.status); return; }
     }
 
-    const extraCount = Math.max(0, selected.size - PACKAGE_COUNT);
-    const extraFee = extraCount * EXTRA_PRICE;
+    const { extraCount, extraFee } = computePhotoFees(selected);
 
     if (extraCount > 0) {
       // Tự động nhảy lên mã QR chuyển khoản cá nhân hóa!
       openQrPaymentModal(extraCount, extraFee);
     } else {
-      // Trong gói 10 ảnh -> gửi ngay không cần thanh toán thêm
-      executeSubmit(0, 0, 'Trong gói 10 ảnh');
+      // Trong diện miễn phí -> gửi ngay không cần thanh toán thêm
+      executeSubmit(0, 0, round === 1 ? 'Miễn phí lượt đầu' : 'Miễn phí sửa lại');
     }
   });
 
@@ -1277,18 +1509,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!req) return;
     const tools = document.createElement('div'); tools.id = 'psRoundTools';
     const label = document.createElement('p');
-    label.textContent = `Lượt ${req.round || 1} · Phí chỉnh: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ. Lượt đầu miễn phí 10 ảnh; thêm ảnh 50.000đ/ảnh. Từ lượt 2: 50.000đ/ảnh.`;
+    label.textContent = `Lượt ${req.round || 1} · Phí chỉnh: ${(req.extraFee || 0).toLocaleString('vi-VN')}đ. Lượt đầu miễn phí 10 ảnh, thêm ảnh 50.000đ/ảnh. Mỗi ảnh được sửa lại miễn phí 1 lần, từ lần sau 50.000đ/ảnh.`;
     tools.appendChild(label);
     const history = (SYNC ? syncRequests : AlohaData.getEditRequests().filter(r => r.phone === session.phone)).filter(r => r.orderCode === record.orderCode && r.id !== req.id).sort((a,b) => a.createdAt-b.createdAt);
     history.forEach(old => { const line = document.createElement('details'); const title = document.createElement('summary'); title.textContent = `Lượt ${old.round || 1} · ${old.photoCount} ảnh · ${old.status}`; line.appendChild(title); const body = document.createElement('div'); body.innerHTML = escHtml(old.note || '') + (old.resultLink ? '<a target="_blank" rel="noopener noreferrer" href="'+escHtml(old.resultLink)+'">Mở trên Google Drive</a>' : ''); line.appendChild(body);
       if(old.status==='Hoàn thành') {
         const happy=document.createElement('button');happy.type='button';happy.textContent=old.customerFeedback==='satisfied'?'Đã hài lòng':'Hài lòng lượt '+(old.round||1);
-        happy.onclick=async()=>{if(SYNC){const res=await AlohaEditSync.feedback(old.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(old.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};body.appendChild(happy);
+        happy.onclick=async()=>{if(old.customerFeedback!=="satisfied"&&!confirm("Xác nhận bạn đã hài lòng với lượt ảnh này?"))return;if(SYNC){const res=await AlohaEditSync.feedback(old.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(old.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};body.appendChild(happy);
       }
       tools.appendChild(line); });
     if(req.status==='Hoàn thành') {
       const happy=document.createElement('button');happy.type='button';happy.textContent=req.customerFeedback==='satisfied'?'Đã hài lòng':'Hài lòng';
-      happy.onclick=async()=>{if(SYNC){const res=await AlohaEditSync.feedback(req.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(req.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};tools.appendChild(happy);
+      happy.onclick=async()=>{if(!confirm("Xác nhận bạn đã hài lòng với lượt ảnh này?"))return;if(SYNC){const res=await AlohaEditSync.feedback(req.id,'satisfied');if(!res.ok){label.textContent=res.message;return;}keepServerCopy(res.data.request);}else{AlohaWorkflow.progress(AlohaData.setCustomerFeedback(req.id,'satisfied'),'delivered');}happy.textContent='Đã hài lòng';};tools.appendChild(happy);
     }
     resultBody.appendChild(tools);
   }
@@ -1301,8 +1533,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   function renderResultPhotos(req) {
-    const completed = (SYNC ? syncRequests : AlohaData.getEditRequests().filter(r => r.phone === session.phone))
-      .filter(r => r.orderCode === record.orderCode && r.resultLink);
+    const list = SYNC ? syncRequests : (window.AlohaData && session ? AlohaData.getEditRequests().filter(r => r.phone === session.phone) : []);
+    const completed = list.filter(r => r.orderCode === record.orderCode && r.resultLink);
+    const completedDone = completed.filter(r => r.status === 'Hoàn thành').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const latestDone = completedDone[0] || null;
+
+    if (latestDone && latestDone.resultLink) {
+      const safeLink = /^https:\/\//i.test(latestDone.resultLink) ? latestDone.resultLink : '';
+      if (safeLink) {
+        const dlAll = document.createElement('a');
+        dlAll.className = 'ps-result-link ps-btn-download-all';
+        dlAll.href = safeLink;
+        dlAll.target = '_blank';
+        dlAll.rel = 'noopener noreferrer';
+        dlAll.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Mở thư mục để tải cả bộ</span>
+        `;
+        resultBody.appendChild(dlAll);
+      }
+    }
+
     const gallery = document.createElement('div'); gallery.className = 'ps-result-gallery';
     const seen = new Set();
     completed.forEach(r => (r.resultPhotos || []).forEach(p => {
@@ -1317,9 +1568,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     resultBody.appendChild(gallery);
     if (gallery.children.length) {
-      const again = document.createElement('button'); again.type = 'button'; again.className = 'ps-revise'; again.textContent = 'Tôi muốn chỉnh tiếp';
+      const again = document.createElement('button'); again.type = 'button'; again.className = 'ps-revise'; again.textContent = 'Sửa lại ảnh chưa ưng';
       again.onclick = () => { gallery.classList.add('is-revising'); gallery.querySelector('.ps-heart')?.focus(); };
       resultBody.appendChild(again);
+      const subNote = document.createElement('p'); subNote.className = 'ps-revise-note'; subNote.textContent = 'Mỗi ảnh được sửa lại miễn phí 1 lần';
+      resultBody.appendChild(subNote);
     } else if (req?.resultLink) {
       const hint = document.createElement('p'); hint.textContent = 'Chưa xem trước được, mở trên Drive'; resultBody.appendChild(hint);
     }
@@ -1413,6 +1666,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderEdited(force) {
     const req = latestRequest();
+    updateEditedMap();
+    updateGridBadges();
     const open = !!editedPanel && !editedPanel.hidden;
     if (open && req) markEditedSeen(req);
     updateEditedDot(req);
@@ -1634,12 +1889,37 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCart() {
     const waiting = !!qr && Date.now() < qr.deadline;
     const active = !document.getElementById('view-chon-anh').hidden && selected.size > 0;
-    cart.hidden = !active;
+    cart.hidden = !active; if (active) cart.style.display = "";
     document.body.classList.toggle('ps-cart-open', active);
-    const feeCount = Math.max(0, selected.size - PACKAGE_COUNT);
+    const { extraCount: feeCount, extraFee, extraSet } = computePhotoFees(selected);
+    let redoFree = 0, redoPaid = 0, newFree = 0, newPaid = 0;
+    selected.forEach(id => {
+      const fromEdited = isPhotoFromEdited(id);
+      const isPaid = extraSet.has(id);
+      if (fromEdited) {
+        if (isPaid) redoPaid++;
+        else redoFree++;
+      } else {
+        if (isPaid) newPaid++;
+        else newFree++;
+      }
+    });
+    let detailText = waiting ? 'Đang chờ thanh toán…' : '';
+    if (!waiting) {
+      if (redoFree + redoPaid > 0) {
+        const parts = [];
+        if (redoFree > 0) parts.push(redoFree + ' ảnh sửa lại miễn phí');
+        if (redoPaid > 0) parts.push(redoPaid + ' ảnh sửa lại × 50.000đ');
+        if (newFree > 0) parts.push(newFree + ' ảnh mới miễn phí');
+        if (newPaid > 0) parts.push(newPaid + ' ảnh mới × 50.000đ');
+        detailText = parts.join(' · ');
+      } else {
+        detailText = feeCount ? feeCount + ' × 50.000đ' : (round === 1 ? 'Miễn phí 10 ảnh lượt đầu' : 'Miễn phí sửa lại');
+      }
+    }
     document.getElementById('psCartCount').textContent = 'Đã chọn ' + selected.size + ' ảnh';
-    document.getElementById('psCartDetail').textContent = waiting ? 'Đang chờ thanh toán…' : feeCount ? feeCount + ' × 50.000đ' : '10 ảnh miễn phí lượt đầu';
-    document.getElementById('psCartTotal').textContent = feeCount ? (feeCount * EXTRA_PRICE).toLocaleString('vi-VN') + 'đ' : 'Miễn phí';
+    document.getElementById('psCartDetail').textContent = detailText;
+    document.getElementById('psCartTotal').textContent = feeCount ? extraFee.toLocaleString('vi-VN') + 'đ' : 'Miễn phí';
     const missing = [...selected].filter(id => !(photoOptions.get(id) || []).length && !(photoNotes.get(id) || '').trim()).length;
     const reminder = document.getElementById('psCartMissing');
     reminder.hidden = missing === 0;
@@ -1665,8 +1945,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (target.querySelector(`[data-id="${id}"]`)) return;
     const src = doc.src;
     const photo = Object.assign({}, doc, {src, large:src.replace('sz=w1000','sz=w2000'), full:src.replace('sz=w1000','sz=w2000')});
-    if (!photoById[id]) photos.push(photo);
-    photoById[id] = photo;
+    if (!doc.fromEdited) {
+      origPhotoById.set(id, photo);
+      if (!photoById[id]) photos.push(photo);
+      photoById[id] = photo;
+    } else {
+      if (!photoById[id]) {
+        photos.push(photo);
+        photoById[id] = photo;
+      }
+    }
     const card = document.createElement('div'); card.className = 'ps-photo'; card.dataset.id = id;
     const image = document.createElement('img'); image.src = src; image.alt = doc.name || 'Ảnh từ Drive'; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; card.appendChild(image);
     const badge = document.createElement('span'); badge.className = 'ps-photo-badge'; badge.textContent = doc.name; card.appendChild(badge);
@@ -1688,6 +1976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const driveLink = document.getElementById('psDriveLink');
     if (driveLink) { driveLink.hidden = !album; if (album) driveLink.href = album.folderUrl; else driveLink.removeAttribute('href'); }
     Object.keys(photoById).forEach(id => delete photoById[id]);
+    origPhotoById.clear();
     selected.clear(); extraPhotos.clear(); photoNotes.clear(); photoOptions.clear();
     sentPhotoIds.clear(); requestSent = false; parentRequestId = ''; round = 1; PACKAGE_COUNT = 10; extraModeActive = false; paidPending = null;
     packageEl.textContent = '10';
@@ -1748,11 +2037,19 @@ document.addEventListener('DOMContentLoaded', () => {
     history.filter(r=>r.status!=='Hoàn thành').forEach(r=>(r.photos||[]).forEach(p=>sentPhotoIds.add(p.id)));
     document.querySelectorAll('.ps-photo').forEach(card=>{
       const locked=sentPhotoIds.has(card.dataset.id),btn=card.querySelector('.ps-heart');
-      btn.disabled=submitting || !!paidPending || !!(qr && Date.now()<qr.deadline);
-      btn.setAttribute('aria-disabled',String(locked || btn.disabled));btn.style.opacity=locked?'0.35':'';
+      if (btn) {
+        btn.disabled=submitting || !!paidPending || !!(qr && Date.now()<qr.deadline);
+        btn.setAttribute('aria-disabled',String(locked || btn.disabled));
+        btn.style.opacity=locked?'0.35':'';
+      }
       card.querySelector('.ps-sent-label')?.remove();
-      if(locked) {selected.delete(card.dataset.id);extraPhotos.delete(card.dataset.id);setCardSelected(card.dataset.id,false,false);const label=document.createElement('span');label.className='ps-sent-label';label.textContent='Đã gửi thợ';card.appendChild(label);}
+      if(locked) {
+        selected.delete(card.dataset.id);
+        extraPhotos.delete(card.dataset.id);
+        setCardSelected(card.dataset.id,false,false);
+      }
     });
+    updateGridBadges();
     submitBtn.textContent='Gửi ảnh đã chọn cho thợ chỉnh';
   }
 

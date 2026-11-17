@@ -49,7 +49,7 @@ async function scan({store,workflow,syncStore,drive,request:r,now,env}) {
   const status={status:'waiting',matched,total:r.photos.length,missing:m.missing,unknown:m.unknown};
   if(m.errors.length)status.error=m.errors.join('; ');
   if(r.photos.length && matched===r.photos.length && !m.errors.length && stable) {
-    const resultPhotos=m.matches.map(fs=>photo(fs[0]));
+    const resultPhotos=m.matches.map((fs,i)=>Object.assign(photo(fs[0]),{sourceId:r.photos[i].sourceId||r.photos[i].id}));
     return delivery.complete({store,workflow,request:r,at,set:{
       ...delivery.resultLinks('https://drive.google.com/drive/folders/'+r.driveJob.outputFolderId,resultPhotos,at),
       driveJob:{...r.driveJob,delivery:{status:'delivered',at,matched,unknown:m.unknown}}
