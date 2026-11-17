@@ -327,16 +327,25 @@ function createEditRequestsRouter(store, opts) {
       const edited = editedPhotos.get(p.id), source = edited || sourcePhotos.get(p.id);
       if (!source) return fail(400, 'photo_not_in_album');
       Object.assign(p, {id:source.id,src:source.src,name:source.name,driveUrl:source.driveUrl,driveFileId:source.driveFileId});
-      if (edited) p.fromEdited = true;
+      if (edited) { p.fromEdited = true; p.sourceId = edited.sourceId || edited.id; }
     }
     const previous = history[0];
     const parentRequestId = cleanStr(b.parentRequestId, 80);
     const openIds = new Set(history.filter(r => r.status !== STATUS_FLOW[2]).flatMap(r => r.photos.map(p => p.id)));
     if (photos.some(p => openIds.has(p.id))) return fail(409, 'photo_already_submitted');
     const round = previous ? Math.max(...history.map(r => r.round || 1)) + 1 : 1;
-    const freeCount = round === 1 ? 10 : 0;
-    photos.forEach((p, i) => { p.isExtra = i >= freeCount; });
-    const extraCount = Math.max(0, photos.length - freeCount);
+    const previouslyEditedIds = new Set(history.flatMap(r => (r.photos || []).filter(x => x.fromEdited).map(x => x.sourceId || x.id)));
+    let newPhotoIndex = 0;
+    photos.forEach((p) => {
+      if (p.fromEdited) {
+        p.isExtra = previouslyEditedIds.has(p.sourceId || p.id);
+      } else {
+        const isFree = round === 1 && newPhotoIndex < 10;
+        p.isExtra = !isFree;
+        newPhotoIndex++;
+      }
+    });
+    const extraCount = photos.filter(p => p.isExtra).length;
     const extraFee = extraCount * 50000;
     if (b.extraFee !== extraFee) return fail(400, 'bad_extra_fee');
     if (extraFee > 0 && !paymentCode) return fail(402, 'payment_required');

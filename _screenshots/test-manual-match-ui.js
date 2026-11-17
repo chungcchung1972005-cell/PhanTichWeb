@@ -26,6 +26,7 @@ function outputList() {
   const timer = setTimeout(() => { console.error('TIMEOUT'); process.exit(2); }, 90000);
   try {
     const page = await browser.newPage();
+    page.on('dialog', d => d.accept().catch(() => {}));
     const errors = []; page.on('pageerror', (e) => errors.push(e.message));
     await page.setRequestInterception(true);
     page.on('request', (r) => {

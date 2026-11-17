@@ -76,3 +76,253 @@ tr.wf-money-approved .wf-money-tag{background:#fff1d6;color:#8a5200}
 tr.wf-money-paid .wf-money-tag{background:#dff3e7;color:#146c42}
 tr.wf-money-pending td:nth-child(3),tr.wf-money-pending td:nth-child(4){color:#7d8795}
 .tho-ws-on #quy-trinh .wf-tabs{display:none}
+
+/* ===== Giao diện Picflow cho Thợ ảnh: Trạng thái ảnh + Bộ lọc số đếm (Việc C) ===== */
+.tho-picflow-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  background: var(--pink-50);
+  border: 1px solid var(--pink-100);
+  border-radius: var(--radius-md);
+}
+.tho-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--pink-200);
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  color: var(--navy-700);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.tho-chip:hover {
+  border-color: var(--pink-500);
+  color: var(--navy-900);
+}
+.tho-chip.is-active,
+.tho-chip[aria-selected="true"] {
+  background: var(--navy-900);
+  border-color: var(--navy-900);
+  color: var(--white);
+}
+.tho-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--pink-100);
+  color: var(--pink-700);
+}
+.tho-chip.is-active .tho-chip-count,
+.tho-chip[aria-selected="true"] .tho-chip-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--white);
+}
+.tho-chip.has-redo:not(.is-active) {
+  background: #fff0f6;
+  border-color: var(--pink-400);
+  color: var(--pink-700);
+}
+.tho-chip.has-redo:not(.is-active) .tho-chip-count {
+  background: var(--pink-600);
+  color: var(--white);
+}
+
+/* Nhãn trạng thái màu trên ô ảnh trong lưới */
+.kanban-photo-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.kanban-photo-tile.is-redo {
+  border: 2px solid var(--pink-500);
+  background: var(--white);
+  box-shadow: 0 4px 14px rgba(224, 65, 122, 0.14);
+}
+.kanban-photo-tile.is-done {
+  border: 1.5px solid #1a9d5c;
+  background: var(--white);
+}
+.kanban-photo-tile.is-todo {
+  border: 1.5px solid #e2e8f0;
+  background: var(--white);
+}
+.tho-photo-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 6px 2px;
+  align-items: center;
+}
+.tho-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.tho-tag-redo {
+  background: var(--pink-600);
+  color: var(--white);
+  border: 1px solid var(--pink-700);
+  box-shadow: 0 2px 6px rgba(224, 65, 122, 0.28);
+  letter-spacing: 0.02em;
+}
+.tho-tag-done {
+  background: #eaf7ef;
+  color: #16794a;
+  border: 1px solid #9fd8b4;
+}
+.tho-tag-todo {
+  background: var(--pink-50);
+  color: var(--pink-700);
+  border: 1px solid var(--pink-200);
+}
+
+/* Ghi chú nổi bật của khách cho ảnh Sửa lại */
+.tho-photo-redo-note {
+  margin: 6px 6px 8px;
+  padding: 7px 9px;
+  background: var(--pink-50);
+  border: 1.5px solid var(--pink-200);
+  border-radius: var(--radius-sm);
+  color: var(--pink-700);
+  font-size: 12px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.tho-photo-redo-note strong {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pink-600);
+  margin-bottom: 2px;
+}
+.kanban-photo-tile.is-redo > .note:not(.tho-photo-redo-note) {
+  display: none !important;
+}
+
+/* Danh sách ảnh thu gọn dự phòng (ảnh 64px) */
+.tho-compact-photo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.tho-compact-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+.tho-compact-tile.is-redo {
+  border-color: var(--pink-500);
+  background: var(--pink-50);
+}
+.tho-compact-tile.is-done {
+  border-color: #9fd8b4;
+}
+.tho-compact-img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--pink-50);
+}
+.tho-compact-info {
+  flex: 1;
+  min-width: 0;
+}
+.tho-compact-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.tho-compact-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--navy-900);
+  overflow-wrap: anywhere;
+}
+.tho-compact-note {
+  font-size: 12px;
+  color: var(--navy-700);
+  margin: 4px 0 0;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Ẩn hiện ảnh theo bộ lọc mà không vẽ lại khung */
+.is-picflow-hidden {
+  display: none !important;
+}
+.tho-picflow-empty {
+  text-align: center;
+  padding: 22px 16px;
+  color: var(--navy-500);
+  background: var(--pink-50);
+  border: 1px dashed var(--pink-200);
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  margin: 12px 0;
+}
+
+/* Thích ứng trên màn hình hẹp và điện thoại (390px) */
+@media (max-width: 560px) {
+  .tho-picflow-bar {
+    padding: 8px;
+    gap: 6px;
+  }
+  .tho-chip {
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    padding: 0 10px;
+    font-size: 12.5px;
+    min-height: 38px;
+  }
+  .tho-compact-tile {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+  .tho-compact-img {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+
+/* Ô tìm khách màn thợ (18/11/2026) */
+.tho-ws-search{width:100%;box-sizing:border-box;min-height:42px;margin:0 0 12px;padding:0 14px;border:1px solid var(--pink-200,#f6c9d0);border-radius:var(--radius-md,12px);background:#fff;font:inherit;color:var(--navy-700,#1f2a44)}
+.tho-ws-search:focus{outline:2px solid var(--pink-400,#f07c8c);outline-offset:1px}
